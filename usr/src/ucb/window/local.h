@@ -1,0 +1,18 @@
+/*
+ * @(#)local.h	3.7 (2.11BSD) 2026/9/14
+ */
+
+/*
+ * Copyright (c) 1983 Regents of the University of California,
+ * All rights reserved.  Redistribution permitted subject to
+ * the terms of the Berkeley Software License Agreement.
+ */
+
+/*
+ * Things of local interest.
+ */
+
+#define RUNCOM		".windowrc"
+#define ESCAPEC		ctrl('p')
+#define NLINE		3			/* default text buffer size */
+#define SHELL		"/bin/csh"		/* if no environment SHELL */

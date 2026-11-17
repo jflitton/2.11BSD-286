@@ -1,0 +1,34 @@
+.\" Copyright (c) 1986 Regents of the University of California.
+.\" All rights reserved.  The Berkeley software License Agreement
+.\" specifies the terms and conditions for redistribution.
+.\"
+.\"	@(#)qe.4	6.2 (2.11BSD) 2026/9/26
+.\"
+.TH QE 4 "August 20, 1987"
+.UC 2
+.SH NAME
+qe \- DEC DEQNA Q-BUS 10 Mb/s Ethernet interface
+.SH SYNOPSIS
+.ft B
+.nf
+/sys/conf/SYSTEM:
+	NQE	\fIqe_controllers\fP	# DEQNA
+.fi
+.ft R
+.SH DESCRIPTION
+The
+.B qe
+interface provides access to a 10 Mb/s Ethernet network through
+the DEC DEQNA Q-BUS controller.
+.PP
+Each of the host's network addresses
+is specified at boot time with an SIOCSIFADDR
+ioctl.  The
+.B qe
+interface employs the address resolution protocol described in
+arp(4)
+to map dynamically  between Internet and Ethernet addresses on the local
+network.
+.SH DIAGNOSTICS
+.SH SEE ALSO
+inet(4), intro(4), arp(4)

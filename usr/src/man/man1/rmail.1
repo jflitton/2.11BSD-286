@@ -1,0 +1,33 @@
+.\" Copyright (c) 1983 Regents of the University of California.
+.\" All rights reserved.  The Berkeley software License Agreement
+.\" specifies the terms and conditions for redistribution.
+.\"
+.\"	@(#)rmail.1	6.2 (2.11BSD) 2026/7/18
+.\"
+.TH RMAIL 1 "April 29, 1985"
+.UC 5
+.SH NAME
+rmail \- handle remote mail received via uucp
+.SH SYNOPSIS
+.B rmail
+user ...
+.SH DESCRIPTION
+.I rmail
+interprets incoming mail received via
+.IR uucp (1)
+collapsing ``From'' lines in the form generated
+by 
+.IR mail (1)
+into a single line of the form ``return-path!sender'',
+and passing the processed mail on to
+.IR sendmail (8).
+.PP
+.I rmail
+is explicitly designed for use with 
+.I uucp
+and
+.IR sendmail .
+.SH "SEE ALSO"
+mail(1),
+uucp(1),
+sendmail(8)

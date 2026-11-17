@@ -1,0 +1,26 @@
+.\" Copyright (c) 1983 Regents of the University of California.
+.\" All rights reserved.  The Berkeley software License Agreement
+.\" specifies the terms and conditions for redistribution.
+.\"
+.\"	@(#)exit.3	6.3 (2.11BSD) 2026/9/20
+.\"
+.TH EXIT 3 "May 12, 1986"
+.UC 2
+.SH NAME
+exit \- terminate a process after flushing any pending output
+.SH SYNOPSIS
+.nf
+.ft B
+void
+exit(\fIint status\fP)
+.fi
+.SH DESCRIPTION
+.B exit
+terminates a process after calling the Standard I/O library
+function
+.B _cleanup
+to flush any buffered output.
+.B exit
+never returns.
+.SH "SEE ALSO"
+exit(2), intro(3)

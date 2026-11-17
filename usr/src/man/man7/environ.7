@@ -1,0 +1,91 @@
+.\" Copyright (c) 1983 Regents of the University of California.
+.\" All rights reserved.  The Berkeley software License Agreement
+.\" specifies the terms and conditions for redistribution.
+.\"
+.\"	@(#)environ.7	6.2 (2.11BSD) 2026/9/27
+.\"
+.TH ENVIRON 7 "May 20, 1985"
+.UC 5
+.SH NAME
+environ \- user environment
+.SH SYNOPSIS
+.B extern char **environ;
+.SH DESCRIPTION
+An array of strings called the `environment' is made available by
+.BR execve (2)
+when a process begins.  By convention these strings have the form
+.RI ` name = value '.
+The following names are used by various commands:
+.TP "\w'TERMCAP 'u"
+PATH
+The sequence of directory prefixes that
+.BR sh ,
+etc. apply in searching for a program known by an incomplete path name.
+The prefixes are separated by `:'.
+.BR login (1)
+sets PATH=:/usr/ucb:/bin:/usr/bin.
+.TP
+HOME
+A user's login directory, set by
+.BR login (1)
+from the password file
+.BR passwd (5).
+.TP
+TERM
+The kind of terminal for which output is to be prepared.
+This information is used by commands, such as
+.B nroff
+or
+.BR plot (1),
+which may exploit special terminal capabilities.  See
+.B /etc/termcap
+.RB ( termcap (5))
+for a list of terminal types.
+.TP
+SHELL
+The file name of the users login shell.
+.TP
+TERMCAP
+The string describing the terminal in TERM, or the name of the termcap file, see
+.BR termcap (5), termcap (3).
+.TP
+EXINIT
+A startup list of commands read by
+.BR ex (1),
+.BR edit (1),
+and
+.BR vi (1).
+.TP
+USER
+The login name of the user.
+.TP
+PRINTER
+The name of the default printer to be used by
+.BR lpr (1),
+.BR lpq (1),
+and
+.BR lprm (1).
+.PP
+Further names may be placed in the environment by the
+.I export
+command and `name=value' arguments in
+.BR sh (1),
+or by the
+.B setenv
+command if you use
+.BR csh (1).
+Arguments may also be placed in the environment at the point of an
+.BR execve (2).
+It is unwise to conflict with certain 
+.BR sh (1)
+variables that are frequently exported by `.profile' files:
+MAIL, PS1, PS2, IFS.
+.SH SEE ALSO
+csh(1),
+ex(1),
+login(1),
+sh(1),
+execve(2),
+system(3),
+termcap(3),
+termcap(5)

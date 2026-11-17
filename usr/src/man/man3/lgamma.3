@@ -1,0 +1,86 @@
+.\" Copyright (c) 1985 Regents of the University of California.
+.\" All rights reserved.  The Berkeley software License Agreement
+.\" specifies the terms and conditions for redistribution.
+.\"
+.\"	@(#)lgamma.3	6.3 (2.11BSD) 2026/9/27
+.\"
+.TH LGAMMA 3  "May 12, 1986"
+.UC 6
+.SH NAME
+lgamma \- log gamma function
+.SH SYNOPSIS
+.nf
+.ft B
+#include <math.h>
+
+double
+lgamma(\fIdouble x\fP)
+.ft R
+.fi
+.SH DESCRIPTION
+.nf
+.ta \w'\fBlgamma\fP returns ln\||\(*G(x)| where'u+1n +1.7i
+.if t \{\
+\fBlgamma\fP returns ln\||\(*G(x)| where	\(*G(x) = \(is\d\s8\z0\s10\u\u\s8\(if\s10\d t\u\s8x\-1\s10\d e\u\s8\-t\s10\d dt	for x > 0 and
+.br
+	\(*G(x) = \(*p/(\(*G(1\-x)\|sin(\(*px))	for x < 1.  \}
+.if n \
+\fBlgamma\fP returns ln\||\(*G(x)|.
+.ta
+.fi
+.PP
+The external integer \fBsigngam\fP returns the sign of
+\(*G(x) .
+.SH IDIOSYNCRASIES
+Do \fBnot\fR use the expression \fBsigngam\fP\(**\fBexp\fP(\fBlgamma\fP(x))
+to compute g := \(*G(x).  Instead use a program like this (in C):
+.sp
+.RS
+lg = \fBlgamma\f{(x); g = \fBsigngam\fP\(**\fBexp\fP(lg);
+.RE
+.PP
+Only after \fBlgamma\fP has returned can \fBsigngam\fP be correct.
+Note too that \(*G(x) must overflow when x is large enough,
+underflow when \-x is large enough, and spawn a division by zero
+when x is a nonpositive integer.
+.PP
+Only in the UNIX math library for C was the name gamma ever attached
+to ln\(*G.  Elsewhere, for instance in IBM's FORTRAN library, the name
+GAMMA belongs to \(*G and the name ALGAMA to ln\(*G in single precision;
+in double the names are DGAMMA and DLGAMA.  Why should C be different?
+.PP
+Archaeological records suggest that C's gamma originally delivered
+ln(\(*G(|x|)).  Later, the program gamma was changed to
+cope with negative arguments x in a more conventional way, but
+the documentation did not reflect that change correctly.  The most
+recent change corrects inaccurate values when x is almost a
+negative integer, and lets \(*G(x) be computed without
+conditional expressions.  Programmers should not assume that
+lgamma has settled down.
+.PP
+At some time in the future, the name \fBgamma\fR will be rehabilitated
+and used for the gamma function, just as is done in FORTRAN.
+The reason for this is not so much compatibility with FORTRAN as a
+desire to achieve greater speed for smaller values of |x| and greater
+accuracy for larger values.
+.PP
+Meanwhile, programmers who have to use the name \fBgamma\fR in its former
+sense, for what is now \fBlgamma\fR, have two choices:
+.IP 1) \w'1)\0'u
+Use the old math library, \fIlibom\fR.
+.IP 2) \w'1)\0'u
+Add the following program to your others:
+.RS
+.nf
+\fB#include <math.h>
+double gamma(x)
+double x;
+{
+.RS
+\fBreturn (lgamma(x));
+.RE
+}\fR
+.RE
+.fi
+.SH SEE ALSO
+math(3)

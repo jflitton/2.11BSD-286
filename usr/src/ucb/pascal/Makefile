@@ -1,0 +1,36 @@
+#
+#       #(@)Makefile    2.0 (2.11BSD) 2025/11/25
+#
+BINDIR=	/usr/ucb
+
+CFLAGS= -O -w
+LDFLAGS= -X -i
+
+PASCAL= pi px pxp
+UTILS= eyacc
+ALL= ${PASCAL} ${UTILS}
+
+all: ${PASCAL}
+
+pi pxp: eyacc
+
+${ALL}: FRC
+	cd $@; make CFLAGS="${CFLAGS}" LDFLAGS="${LDFLAGS}" \
+		BINDIR=${BINDIR}
+
+install: ${UTILS}
+	for i in ${PASCAL}; do \
+		(cd $$i; make install); \
+	done
+
+tags: FRC
+	for i in ${ALL}; do \
+		(cd $$i; make tags); \
+	done
+
+FRC:
+
+clean:
+	for i in ${ALL}; do \
+		(cd $$i; make clean); \
+	done

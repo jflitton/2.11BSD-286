@@ -1,0 +1,69 @@
+.\" Copyright (c) 1985 Regents of the University of California.
+.\" All rights reserved.  The Berkeley software License Agreement
+.\" specifies the terms and conditions for redistribution.
+.\"
+.\"	@(#)math.3	6.8 (2.11BSD) 2026/9/27
+.\"
+.TH MATH 3 "May 27, 1986"
+.UC 4
+.SH NAME
+math \- introduction to mathematical library functions
+.SH DESCRIPTION
+These functions constitute the C math library,
+.I libm.
+The link editor searches this library under the \*(lq\-lm\*(rq option.
+Declarations for these functions may be obtained from the include file
+.RI < math.h >.
+The Fortran math library is described in ``man 3f intro''.
+.SH "LIST OF FUNCTIONS"
+.sp 2
+.nf
+.ta \w'copysign'u+2n +\w'infnan.3'u+10n +\w'inverse trigonometric func'u
+\fIName\fP	\fIon Page\fP	\fIDescription\fP
+.ta \w'copysign'u+4n +\w'infnan.3'u+4n +\w'inverse trigonometric function'u
+.sp 5p
+acos	sin.3	inverse trigonometric function
+acosh	asinh.3	inverse hyperbolic function
+asin	sin.3	inverse trigonometric function
+asinh	asinh.3	inverse hyperbolic function
+atan	sin.3	inverse trigonometric function
+atanh	asinh.3	inverse hyperbolic function
+atan2	sin.3	inverse trigonometric function
+cabs	hypot.3	complex absolute value
+cbrt	sqrt.3	cube root
+ceil	floor.3	integer no less than
+cos	sin.3	trigonometric function
+cosh	sinh.3	hyperbolic function
+erf	erf.3	error function
+erfc	erf.3	complementary error function
+exp	exp.3	exponential
+expm1	exp.3	exp(x)\-1
+fabs	floor.3	absolute value
+floor	floor.3	integer no greater than
+hypot	hypot.3	Euclidean distance
+j0	j0.3	bessel function
+j1	j0.3	bessel function
+jn	j0.3	bessel function
+lgamma	lgamma.3	log gamma function
+log	exp.3	natural logarithm
+log10	exp.3	logarithm to base 10
+log1p	exp.3	log(1+x)
+pow	exp.3	exponential x**y
+rint	floor.3	round to nearest integer
+sin	sin.3	trigonometric function
+sinh	sinh.3	hyperbolic function
+sqrt	sqrt.3	square root
+tan	sin.3	trigonometric function
+tanh	sinh.3	hyperbolic function
+y0	j0.3	bessel function
+y1	j0.3	bessel function
+yn	j0.3	bessel function
+.ta
+.fi
+.SH NOTES
+The 4.3BSD VAX notes have removed because they inapplicable 
+and unimplmentable on a PDP-11 running 2.11BSD.  Consult the 4.3BSD
+math(3) if the notes are missed.
+.SH AUTHOR
+W. Kahan, with the help of Z\-S. Alex Liu, Stuart I. McDonald,
+Dr. Kwok\-Choi Ng, Peter Tang.

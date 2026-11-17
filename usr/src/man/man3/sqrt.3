@@ -1,0 +1,32 @@
+.\" Copyright (c) 1985 Regents of the University of California.
+.\" All rights reserved.  The Berkeley software License Agreement
+.\" specifies the terms and conditions for redistribution.
+.\"
+.\"	@(#)sqrt.3	6.3 (2.11BSD) 2026/9/27
+.\"
+.TH SQRT 3  "May 12, 1986"
+.UC 6
+.SH NAME
+cbrt, sqrt \- cube root, square root
+.SH SYNOPSIS
+.nf
+.ft B
+#include <math.h>
+
+double
+cbrt(\fIdouble x\fP)
+
+double
+sqrt(\fIdouble x\fP)
+.ft R
+.fi
+.SH DESCRIPTION
+.BR cbrt (x)
+returns the cube root of x.
+.PP
+.BR sqrt (x)
+returns the square root of x.
+.SH SEE ALSO
+math(3)
+.SH AUTHOR
+W. Kahan

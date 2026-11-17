@@ -1,0 +1,146 @@
+.\" Copyright (c) 1983 Regents of the University of California.
+.\" All rights reserved.  The Berkeley software License Agreement
+.\" specifies the terms and conditions for redistribution.
+.\"
+.\"	@(#)nroff.1	6.2 (2.11BSD) 2020/3/24
+.\"
+.Dd October 22, 1996
+.Dt NROFF 1
+.Os
+.Sh NAME
+.Nm nroff
+.Nd text formatting
+.Sh SYNOPSIS
+.Nm
+.Op Fl F Ns Ar tabdir
+.Op Fl M Ns Ar tmacdir
+.Op Fl T Ns Ar terminal
+.Op Fl m Ns Ar name
+.Op Fl o Ns Ar list
+.Op Fl r Ns Ar aN
+.Op Fl s Ns Ar page
+.Op Fl ehinq
+.Op Ar
+.Sh DESCRIPTION
+.Nm
+formats text in the named files for typewriter-like devices.
+See also
+.Xr troff 1 .
+The full capabilities of
+.Nm
+are described in the
+.Ar Nroff/Troff User's Manual.
+.Pp
+If no
+.Ar file
+argument is present, the standard input is read.
+An argument consisting of a single dash
+is taken to be a file name corresponding to the standard input.
+.Pp
+The options, which may appear in any order so long as they appear
+.Ar before
+the files, are:
+.Bl -tag -width indent
+.It Fl F Ns Ar tabdir
+Alternate directory for terminal tab files.
+.It Fl M Ns Ar tmacdir
+Alternate directory for macro files.
+.It Fl o Ns Ar list
+Print only pages whose page numbers appear in the comma-separated
+.Ar list
+of numbers and ranges.  A range
+.Ar N Ns \- Ns M
+means pages
+.Ar N
+through
+.Ar M ;
+an initial
+.Ar \-N
+means from the beginning to page
+.Ar N ;
+and a final
+.Ar N Ns \-
+means from
+.Ar N
+to the end.
+.It Fl n Ns Ar N
+Number first generated page
+.Ar N .
+.It Fl s Ns Ar N
+Stop every
+.Ar N
+pages.
+.Nm
+will halt prior to every
+.Ar N
+pages (default
+.Ar N =1)
+to allow paper loading or changing, and will resume upon receipt of a newline.
+.It Fl m Ns Ar name
+Load the macro file
+.Ar tmac.name 
+before processing input files.
+.It Fl r Ns Ar aN
+Set register
+.Ar a
+(one-character) to
+.Ar N .
+.It Fl i
+Read standard input after the input files are exhausted.
+.It Fl q
+Invoke the simultaneous input-output mode of the
+.Ar rd
+request.
+.It Fl T Ns Ar name
+Prepare output for specified terminal or printer.  Installed terminal
+descriptions can be found in the
+.Ar /usr/share/term/
+directory.
+.It Fl e
+Produce equally-spaced words in adjusted lines, using full terminal resolution.
+.It Fl h
+Use output tabs during horizontal spacing
+to speed output and reduce output character count.
+Tab settings are assumed to be every 8 nominal character widths.
+.El
+.Sh ENVIRONMENT
+The following environment variables affect the execution of
+.Nm nroff :
+.Bl -tag -width TERMTAB_PATH
+.It Ev TERMTAB_PATH
+Path to the terminal description files.
+.It Ev TMAC_PATH
+Path to the macro packages.
+.El
+.Sh FILES
+.Bl -tag -width /usr/share/tmac/tmac.* -compact
+.It Pa /usr/share/tmac/tmac.*
+system macro files.
+.It Pa /usr/share/term/*
+terminal driving tables for
+.Nm nroff .
+.El
+.Sh SEE ALSO
+.Xr troff 1 ,
+.Xr eqn 1 ,
+.Xr tbl 1 ,
+.Xr soelim 1 ,
+.Xr col 1 ,
+.Xr ms 7 ,
+.Xr me 7 ,
+.Xr mdoc 7 ,
+.Xr mdoc.samples 7
+.Rs
+.%T "Nroff/Troff user's manual"
+.%A J. F. Ossanna
+.Re
+.Rs
+.%T A TROFF Tutorial
+.%A B. W. Kernighan,
+.Re
+.Sh HISTORY
+The
+.Nm
+text formatter appeared in Version 4 AT&T UNIX.
+.Sh BUGS
+Too many internal tables with a size set at compile time.

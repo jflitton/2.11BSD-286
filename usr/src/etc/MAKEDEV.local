@@ -1,0 +1,13 @@
+#       @(#)MAKEDEV     2.0 (2.11BSD) 2026/5/5
+#
+# These are examples and almost certainly will need to be adjusted to local
+# conventions.
+
+rm -f ttyi6 ttyd0;	mknod ttyd0 c 3 22
+
+# Cua* can't be owned by anyone real who wants to use the dialer if the mode
+# 060 below and the dialer group is to work.  Note that the uucp programs
+# must be in the dialer group.
+chown 32767 cua*
+chgrp dialer cua*
+chmod 060 cua*

@@ -1,0 +1,33 @@
+#
+# Copyright (c) 1988 Regents of the University of California.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms are permitted
+# provided that this notice is preserved and that due credit is given
+# to the University of California at Berkeley. The name of the University
+# may not be used to endorse or promote products derived from this
+# software without specific prior written permission. This software
+# is provided ``as is'' without express or implied warranty.
+#
+#	@(#)Makefile	4.15 (2.11BSD) 2026/5/1
+#
+SUBDIR=	lib src
+
+all: ${SUBDIR}
+
+${SUBDIR}: FRC
+	cd $@; make ${MFLAGS}
+
+clean: FRC
+	for i in ${SUBDIR}; do (cd $$i; make ${MFLAGS} clean); done
+
+depend: FRC
+	for i in ${SUBDIR}; do (cd $$i; make ${MFLAGS} depend); done
+
+install: FRC
+	-mkdir /usr/spool/mqueue
+	chown root.wheel /usr/spool/mqueue
+	chmod 775 /usr/spool/mqueue
+	for i in ${SUBDIR}; do (cd $$i; make ${MFLAGS} install); done
+
+FRC:

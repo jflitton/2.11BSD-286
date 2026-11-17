@@ -1,0 +1,79 @@
+.\" Copyright (c) 1980 Regents of the University of California.
+.\" All rights reserved.  The Berkeley software License Agreement
+.\" specifies the terms and conditions for redistribution.
+.\"
+.\"	@(#)lseek.2	6.4 (2.11BSD) 2026/5/8
+.\"
+.Dd "May 8, 2026"
+.Dt LSEEK 2
+.Os
+.Sh NAME
+.Nm lseek
+.Nd reposition read/write offset
+.Sh SYNOPSIS
+.Fd #include <unistd.h>
+.Ft off_t
+.Fn lseek "int d" "off_t offset" "int whence"
+.Sh DESCRIPTION
+The descriptor 
+.Fa d
+refers to a file or device open for reading and/or writing.
+.sp
+.Fn lseek
+sets the file pointer of
+.Fa d
+as follows:
+.sp
+If
+.Fa whence
+is SEEK_SET the pointer is set to
+.Fa offset
+.sp
+If
+.Fa whence
+is SEEK_CUR the pointer is set to its current location plus
+.Fa offset
+.sp
+If
+.Fa whence
+is SEEK_END the pointer is set to the size of the
+file plus
+.Fa offset
+.sp
+Upon successful completion the resulting pointer location
+as measured in bytes from beginning of the file is returned.
+.sp
+Some devices are incapable of seeking.  The value of the pointer
+associated with such a device is undefined.
+.Sh NOTES
+Seeking far beyond the end of a file, then writing,
+creates a gap or \*(lqhole\*(rq, which occupies no
+physical space and reads as zeros.
+.Sh "RETURN VALUE
+Upon successful completion,
+the current file pointer value is returned.
+Otherwise,
+a value of \-1 is returned and 
+.Va errno
+is set to indicate
+the error.
+.Sh "ERRORS
+.Fn lseek
+will fail and the file pointer will remain unchanged if:
+.Bl -tag -width [ESPIPE]
+.It Bq Er EBADF
+.Fa d
+is not an open file descriptor.
+.It Bq Er ESPIPE
+.Fa d
+is associated with a pipe or a socket.
+.It Bq Er EINVAL
+.Fa whence
+is not a proper value.
+.Sh "SEE ALSO"
+.Xr dup 2 ,
+.Xr open 2
+.Sh BUGS
+This document's use of
+.Fa whence
+is incorrect English but maintained for historical reasons.

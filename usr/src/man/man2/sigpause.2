@@ -1,0 +1,51 @@
+.\" Copyright (c) 1980 Regents of the University of California.
+.\" All rights reserved.  The Berkeley software License Agreement
+.\" specifies the terms and conditions for redistribution.
+.\"
+.\"	@(#)sigpause.2	6.2.2 (2.11BSD) 2026/9/22
+.\"
+.TH SIGPAUSE 2 "September 2, 1997"
+.UC 4
+.SH NAME
+\fBsigpause\fP \- atomically release blocked signals and wait for interrupt
+.SH SYNOPSIS
+.nf
+.ft B
+#include <signal.h>
+
+int
+sigpause(\fIlong sigmask\fP)
+.ft R
+.fi
+.SH DESCRIPTION
+.B This interface is made obsolete by:
+sigsuspend(2).
+.PP
+.B sigpause
+assigns 
+.I sigmask
+to the set of masked signals
+and then waits for a signal to arrive;
+on return the set of masked signals is restored.
+.I sigmask
+is usually 0L to indicate that no
+signals are to be blocked.
+.B sigpause
+always terminates by being interrupted, returning \-1 with
+.B errno
+set to EINTR.
+.SH SEE ALSO
+sigsuspend(2), kill(2), sigaction(2), sigprocmask(2), sigblock(2),
+sigvec(2)
+.SH HISTORY
+The
+.B sigpause
+function call appeared in 4.2BSD and has been deprecated.
+.sp
+Other systems changed \fBsigpause\fP to accept a signal number instead
+of a mask.
+.SH NOTES
+.B sigpause
+is no longer a system call but is implemented in a compatibilty routine
+using 
+.BR sigsuspend (2)

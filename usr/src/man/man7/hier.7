@@ -1,0 +1,609 @@
+.\" Copyright (c) 1980 Regents of the University of California.
+.\" All rights reserved.  The Berkeley software License Agreement
+.\" specifies the terms and conditions for redistribution.
+.\"
+.\"	@(#)hier.7	6.2 (2.11BSD) 2026/9/27
+.\"
+.TH HIER 7 "May 20, 1985"
+.UC 4
+.SH NAME
+hier \- file system hierarchy
+.SH DESCRIPTION
+The following outline gives a quick tour through a representative
+directory hierarchy.
+.na
+.nh
+.IP /
+root
+.PD 0
+.IP /unix
+the kernel binary (UNIX itself)
+.IP /lost+found
+directory for connecting detached files for
+.BR fsck (8)
+.IP /dev/
+devices (4)
+.RS
+.IP MAKEDEV
+shell script to create special files
+.IP MAKEDEV.local
+site specific part of MAKEDEV
+.IP console
+main console,
+.BR tty (4)
+.IP tty*
+terminals,
+.BR tty (4)
+.IP xp*
+disks,
+.BR xp (4)
+.IP rxp*
+raw disks,
+.BR ra (4)
+.IP rra*
+.IP ...
+.RE
+.IP /bin/
+utility programs, e.g. /usr/bin/ (1)
+.RS
+.IP as
+assembler
+.IP cc
+C compiler executive, /lib/c0, /lib/c1, /lib/cpp, /lib/c2
+.IP csh
+C shell
+.IP ...
+.RE
+.IP /lib/
+object libraries and other stuff, e.g. /usr/lib/
+.RS
+.IP libc.a
+system calls, standard I/O, etc. (2,3)
+.IP ...
+.IP c0
+.IP c1
+C compiler proper
+.IP cpp
+C preprocessor
+.IP c2
+C code improver
+.IP ...
+.RE
+.IP /etc/
+essential data and maintenance utilities; sect (8)
+.RS
+.IP dump
+dump program
+.BR dump (8)
+.IP passwd
+password file,
+.BR passwd (5)
+.IP group
+group file,
+.BR group (5)
+.IP motd
+message of the day,
+.BR login (1)
+.IP termcap
+description of terminal capabilities,
+.BR termcap (5)
+.IP ttytype
+table of what kind of terminal is on each port,
+.BR ttytype (5)
+.IP mtab
+mounted file table,
+.BR mtab (5)
+.IP fstab
+file system configuration table
+.BR fstab (5)
+.IP disktab
+disk characteristics and partition tables,
+.BR disktab (5)
+.IP hosts
+host name to network address mapping file,
+.BR hosts (5)
+.IP networks
+network name to network number mapping file,
+.BR networks (5)
+.IP protocols
+protocol name to protocol number mapping file,
+.BR protocols (5)
+.IP services
+network services definition file,
+.BR services (5)
+.IP remote
+names and description of remote hosts for 
+.BR tip (1),
+.BR remote (5)
+.IP phones
+private phone numbers for remote hosts, as described in
+.BR phones (5)
+.IP ttys
+properties of terminals,
+.BR ttys (5)
+.IP getty
+part of
+.BR login ,
+.BR getty (8)
+.IP init
+the parent of all processes,
+.BR init (8)
+.IP rc
+shell program to bring the system up
+.IP rc.local
+site dependent portion of 
+.I rc
+.IP cron
+the clock daemon,
+.BR cron (8)
+.IP mount
+.BR mount (8)
+.IP ...
+.RE
+.IP /sys/
+system source
+.RS
+.IP h/
+header (include) files
+.RS
+.IP acct.h
+.BR acct (5)
+.IP stat.h
+.BR stat (2)
+.IP ...
+.RE
+.IP sys/
+machine independent system source 
+.RS
+.IP init_main.c
+.IP uipc_socket.c
+.IP ufs_syscalls.c
+.IP ...
+.RE
+.IP conf/
+site configuration files
+.RS
+.IP GENERIC
+.IP ...
+.RE
+.IP net/
+general network source
+.IP netinet/
+DARPA Internet network source
+.IP netimp/
+network code related to use of an IMP
+.RS
+.IP if_imp.c
+.IP if_imphost.c
+.IP if_imphost.h
+.IP ...
+.RE
+.IP pdp/
+source specific to the PDP-11
+.RS
+.IP locore.s
+.IP machdep.c
+.IP ...
+.RE
+.IP pdpuba/
+device drivers
+.RS
+.IP dh.c
+.IP ra.c
+.IP xp.c
+.IP ...
+.RE
+.IP pdpif
+network interface drivers for the PDP-11
+.RS
+.IP if_de.c
+.IP if_qe.c
+.IP if_qt.c
+.IP ...
+.RE
+.RE
+.IP /tmp/
+temporary files
+.IP /usr/
+general-pupose directory
+.RS
+.IP adm/
+administrative information
+.RS
+.IP wtmp
+login history,
+.BR utmp (5)
+.IP messages
+hardware error messages
+.RE
+.IP /usr\t/bin
+.RS
+utility programs, to keep /bin/ small
+.IP tmp/
+temporaries, to keep /tmp/ small
+.RS
+.IP stm*
+used by
+.BR sort (1)
+.IP raster
+used by
+.BR plot (1)
+.RE
+.IP dict/
+word lists, etc.
+.RS
+.IP words
+principal word list, used by
+.BR look (1)
+.IP spellhist
+history file for
+.BR spell (1)
+.RE
+.IP games/
+.RS
+.IP hangman
+.IP lib/
+library of stuff for the games
+.RS
+.IP quiz.k/
+what
+.BR quiz (6)
+knows
+.RS
+.IP index
+category index
+.IP africa
+countries and capitals
+.IP ...
+.RE
+.IP ...
+.RE
+.IP ...
+.RE
+.IP include/
+standard #include files
+.RS
+.IP a.out.h
+object file layout,
+.BR a.out (5)
+.IP stdio.h
+standard I/O,
+.BR intro (3)
+.IP math.h
+.IP ...
+.IP sys/
+system-defined layouts, e.g. /sys/h
+.IP net/
+symbolic link to sys/net
+.IP machine/
+symbolic link to sys/machine
+.IP ...
+.RE
+.IP lib/
+object libraries and stuff, to keep /lib/ small
+.RS
+.IP atrun
+scheduler for
+.BR at (1)
+.IP struct/
+passes of
+.BR struct (1)
+.IP ...
+.IP tmac/
+macros for
+.BR troff (1)
+.RS
+.IP tmac.an
+macros for
+.BR man (7)
+.IP tmac.s
+macros for
+.BR ms (7)
+.IP ...
+.RE
+.IP font/
+fonts for
+.BR troff (1)
+.RS
+.IP ftR
+Times Roman
+.IP ftB
+Times Bold
+.IP ...
+.RE
+.IP uucp/
+programs and data for
+.BR uucp (1)
+.RS
+.IP L.sys
+remote system names and numbers
+.IP uucico
+the real copy program
+.IP ...
+.RE
+.IP units
+conversion tables for
+.BR units (1)
+.IP eign
+list of English words to be ignored by
+.BR ptx (1)
+.RE
+.RE
+.br
+.ne 5
+.IP /usr/\tman/
+.RS
+volume 1 of this manual,
+.BR man (1)
+.RS
+.IP man0/
+general
+.RS
+.IP intro
+introduction to volume 1,
+.BR ms (7)
+format
+.IP xx
+template for manual page
+.RE
+.IP man1/
+chapter 1
+.RS
+.IP as.1
+.IP mount.1m
+.IP ...
+.RE
+.IP ...
+.IP cat1/
+preformatted pages for section 1
+.IP ...
+.RE
+.IP msgs/
+messages, e.g.
+.BR msgs (1)
+.RS
+.IP bounds
+highest and lowest message
+.RE
+.IP new/
+binaries of new versions of programs
+.IP preserve/
+editor temporaries preserved here after crashes/hangups
+.IP public/
+binaries of user programs - write permission to everyone
+.IP spool/
+delayed execution files
+.RS
+.IP at/
+used by 
+.BR at (1)
+.IP lpd/
+used by
+.BR lpr (1)
+.RS
+.IP lock
+present when line printer is active
+.IP cf*
+copy of file to be printed, if necessary
+.IP df*
+daemon control file,
+.BR lpd (8)
+.IP tf*
+transient control file, while 
+.I lpr
+is working
+.RE
+.IP uucp/
+work files and staging area for 
+.BR uucp (1)
+.RS
+.IP LOGFILE
+summary log
+.IP LOG.*
+log file for one transaction
+.RE
+.IP mail/
+mailboxes for
+.BR mail (1)
+.IP uucp/
+work files and staging area for 
+.BR uucp (1)
+.RS
+.IP LOGFILE
+summary log
+.IP LOG.*
+log file for one transaction
+.IP mqueue/
+mail queue for 
+.BR sendmail (8)
+.RE
+.RE
+.TP
+.I wd
+initial working directory of a user,
+typically
+.I wd
+is the user's login name
+.RS
+.TP
+.BR . profile
+set environment for
+.BR sh (1),
+.BR environ (7)
+.TP
+.BR . project
+what you are doing (used by (
+.BR finger (1)
+)
+.TP
+.BR . cshrc
+startup file for
+.BR csh (1)
+.TP
+.BR . exrc
+startup file for
+.BR ex (1)
+.TP
+.BR . plan
+what your short-term plans are (used by
+.BR finger (1)
+)
+.TP
+.BR . netrc
+startup file for various network programs
+.TP
+.BR . msgsrc
+startup file for
+.BR msgs (1)
+.TP
+.BR . mailrc
+startup file for
+.BR mail (1)
+.IP calendar
+user's datebook for
+.BR calendar (1)
+.RE
+.IP doc/
+papers, mostly in volume 2 of this manual, typically in
+.BR ms (7)
+format
+.RS
+.IP as/
+assembler manual
+.IP c
+C manual
+.IP ...
+.RE
+.RE
+.RE
+.IP /usr/\tsrc/
+.RS
+.IP
+source programs for utilities, etc.
+.RS
+.IP bin/
+source of commands in /bin
+.RS
+.IP as/
+assembler
+.IP ar.c
+source for
+.BR ar (1)
+.IP ...
+.RE
+.IP usr.bin/
+source for commands in /usr/bin
+.RS
+.IP troff/
+source for
+.I nroff
+and
+.BR troff (1)
+.RS
+.IP font/
+source for font tables, /usr/lib/font/
+.RS
+.IP ftR.c
+Roman
+.IP ...
+.RE
+.IP term/
+terminal characteristics tables, /usr/lib/term/
+.RS
+.IP tab300.c
+DASI 300
+.IP ...
+.RE
+.IP ...
+.RE
+.RE
+.IP ucb
+source for programs in /usr/ucb
+.IP games/
+source for /usr/games
+.IP lib/
+source for programs and archives in /lib
+.RS
+.IP libc/
+C runtime library
+.RS
+.IP csu/
+startup and wrapup routines needed with every C program
+.RS
+.IP crt0.s
+regular startup
+.IP mcrt0.s
+modified startup for
+.I cc \-p
+.RE
+.IP sys/
+system calls (2)
+.RS
+.IP access.s
+.IP brk.s
+.IP ...
+.RE
+.RE
+.IP stdio/
+standard I/O functions (3)
+.RS
+.IP fgets.c
+.IP fopen.c
+.IP ...
+.RE
+.IP gen/
+other functions in (3)
+.RS
+.IP abs.c
+.IP ...
+.RE
+.IP net/
+network functions in (3)
+.RS
+.IP gethostbyname.c
+.IP ...
+.RE
+.RE
+.IP local/
+source which isn't normally distributed
+.IP new/
+source for new versions of commands and library routines
+.IP old/
+source for old versions of commands and library routines
+.IP ucb/
+binaries of programs developed at UCB
+.RS
+.IP ...
+.IP edit
+editor for beginners
+.IP ex
+command editor for experienced users
+.IP ...
+.IP mail
+mail reading/sending subsystem
+.IP man
+on line documentation
+.IP ...
+.IP pi
+Pascal translator
+.IP px
+Pascal interpreter
+.IP ...
+.IP vi
+visual editor
+.RE
+.RE
+.RE
+.ad
+.SH SEE ALSO
+ls(1),
+apropos(1),
+whatis(1),
+whereis(1),
+finger(1),
+which(1),
+ncheck(8),
+find(1),
+grep(1)
+.SH BUGS
+The position of files is subject to change without notice.

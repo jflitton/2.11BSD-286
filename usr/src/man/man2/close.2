@@ -1,0 +1,74 @@
+.\" Copyright (c) 1980 Regents of the University of California.
+.\" All rights reserved.  The Berkeley software License Agreement
+.\" specifies the terms and conditions for redistribution.
+.\"
+.\"	@(#)close.2	6.4 (2.11BSD) 2026/9/23
+.\"
+.TH CLOSE 2 "May 22, 1986"
+.UC 4
+.SH NAME
+close \- delete a descriptor
+.SH SYNOPSIS
+.nf
+.ft B
+#include <unistd.h>
+
+int
+close(\fIint d\fP)
+.ft R
+.fi
+.SH DESCRIPTION
+.B close
+deletes a descriptor from the per-process object
+reference table.
+If this is the last reference to the underlying object, then
+it will be deactivated.
+For example, on the last close of a file
+the current \fIseek\fP pointer associated with the file is lost;
+on the last close of a
+.BR socket (2)
+associated naming information and queued data are discarded;
+on the last close of a file holding an advisory lock
+the lock is released (see
+.BR flock (2)\fR).
+.PP
+A close of all of a process's descriptors is automatic on
+.BR exit ,
+but since
+there is a limit on the number of active descriptors per process,
+.B close
+is necessary for programs that deal with many descriptors.
+.PP
+When a process forks (see
+.BR fork (2)\fR)
+all descriptors for the new child process reference the same
+objects as they did in the parent before the fork.
+If a new process is then to be run using
+.BR execve (2),
+the process would normally inherit these descriptors.  Most
+of the descriptors can be rearranged with
+.BR dup2 (2)
+or deleted with
+.B close
+before the
+.B execve
+is attempted, but if some of these descriptors will still
+be needed if \fBexecve\fP fails, it is necessary to arrange for them
+to be closed if \fBexecve\fP succeeds.
+For this reason, the call \fBfcntl\fP(d, F_SETFD, 1) is provided,
+which arranges that a descriptor will be closed after a successful
+\fBexecve\fP; the call \fBfcntl\fP(d, F_SETFD, 0) restores the default,
+which is to not close the descriptor.
+.SH "RETURN VALUE
+Upon successful completion, a value of 0 is returned.
+Otherwise, a value of \-1 is returned and the global integer variable
+.B errno
+is set to indicate the error.
+.SH ERRORS
+.B close
+will fail if:
+.TP 15
+[EBADF]
+\fId\fP is not an active descriptor.
+.SH "SEE ALSO"
+open(2), pipe(2), socket(2), execve(2), fcntl(2)

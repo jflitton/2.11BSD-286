@@ -1,0 +1,33 @@
+.\" Copyright (c) 1980 Regents of the University of California.
+.\" All rights reserved.  The Berkeley software License Agreement
+.\" specifies the terms and conditions for redistribution.
+.\"
+.\"	@(#)creat.2	6.8 (2.11BSD) 2026/5/8
+.\"
+.TH CREAT 3 "May 8, 2026"
+.UC 4
+.SH NAME
+creat \- create a new file
+.SH SYNOPSIS
+.nf
+.ft B
+#include <fcntl.h>
+.PP
+creat(name, mode)
+    const char *name;
+    int mode;
+.ft R
+.fi
+.SH DESCRIPTION
+\fBThis interface is made obsolete by:\fP open(2).
+.PP
+.BR creat ()
+is the same as:
+.nf
+
+    open(name, O_CREAT | O_TRUNC | O_WRONLY, mode);
+.fi 
+.SH "SEE ALSO"
+open(2)
+.SH "HISTORY"
+The \fBcreat\fP function call appeared in Version 6 AT&T UNIX.

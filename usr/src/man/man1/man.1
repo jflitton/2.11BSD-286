@@ -1,0 +1,63 @@
+.\" Copyright (c) 1980 Regents of the University of California.
+.\" All rights reserved.  The Berkeley software License Agreement
+.\" specifies the terms and conditions for redistribution.
+.\"
+.\"	@(#)man.1	6.8 (2.11BSD) 2026/9/15
+.\"
+.TH MAN 1 "April 19, 1988"
+.UC 4
+.SH NAME
+man \- print out the manual
+.SH SYNOPSIS
+.br
+.B man
+[
+.B \-
+] [
+.B -a
+] [
+.B \-M
+.I path
+] [
+section
+]
+title ...
+.SH DESCRIPTION
+\fIMan\fP is the program which provides on-line access to the UNIX manual.
+If a \fIsection\fP specifier is given, \fIman\fP looks in that section of
+the manual for the given \fItitle\fP(s).  \fISection\fP is an Arabic
+section number ('3' for example).
+If \fIsection\fP is omitted, \fIman\fP searches all sections of the manual,
+giving preference to commands over library subroutines, and displays the
+first manual page it finds.
+If the \fI-a\fP option is supplied,
+\fIman\fP displays all applicable manual pages.
+.PP
+Normally \fIman\fP checks in standard locations (/usr/man, /usr/new/man,
+/usr/local/man)
+for manual information.  This can be changed by supplying a search path
+with the \fB-M\fP flag.  The search path is a colon
+(':') separated list of directories in which \fIman\fP expects to find
+standard manual subdirectory structure (e.g. cat3).  This search path can 
+also be set with the environmental variable \fIMANPATH\fP.
+.PP
+If the standard output is a teletype, and the \fB-\fP flag is not provided,
+\fIman\fP uses \fImore\fP(1), or the pager provided by the environmental
+variable \fIPAGER\fP, to display the manual page.
+.PP
+The FORTRAN version of section 3 of the manual may be specified by using
+the \fIsection\fP '3f'.
+.SH FILES
+.nf
+.ta \w'/usr/new/man/man?   'u
+/usr/man/cat?	standard formatted manual pages
+/usr/new/man/cat?	additional standard formatted pages
+/usr/local/man/cat?	local formatted pages
+/usr/src/man	standard unformatted manual pages
+.fi
+.SH SEE\ ALSO
+apropos(1), more(1), whatis(1), whereis(1)
+.SH BUGS
+The manual is supposed to be reproducible either on the
+phototypesetter or on a typewriter, however, on a typewriter,
+some information is necessarily lost.

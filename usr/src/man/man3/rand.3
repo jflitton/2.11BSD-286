@@ -1,0 +1,40 @@
+.\"	@(#)rand.3	6.3 (2.11BSD) 2026/9/27
+.\"
+.TH RAND 3 "September 29, 1985"
+.AT 3
+.SH NAME
+rand, srand \- random number generator
+.SH SYNOPSIS
+.nf
+.B srand(\fIint seed\fP)
+.PP
+.B int rand(\fIvoid\fP)
+.fi
+.SH DESCRIPTION
+.ft B
+The newer random(3) should be used in new applications;
+rand remains for compatibilty.
+.ft R
+.PP
+.B rand
+uses a multiplicative congruential
+random number generator with period
+.if t 2\u\s732\s0\d
+.if n 2**32
+to return successive pseudo-random
+numbers in the range from 0 to
+.if t 2\u\s731\s10\d\(mi1.
+.if n (2**31)\(mi1
+on the VAX, and
+.if t 2\u\s715\s10\d\(mi1.
+.if n (2**15)\(mi1
+on the PDP-11.
+.PP
+The generator is reinitialized by calling
+.B srand
+with 1 as argument.
+It can be set to a random starting point by calling
+.B srand
+with whatever you like as argument.
+.SH "SEE ALSO"
+random(3)

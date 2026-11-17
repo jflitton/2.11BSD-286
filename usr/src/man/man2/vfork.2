@@ -1,0 +1,80 @@
+.\" Copyright (c) 1980 Regents of the University of California.
+.\" All rights reserved.  The Berkeley software License Agreement
+.\" specifies the terms and conditions for redistribution.
+.\"
+.\"	@(#)vfork.2	6.3 (2.11BSD) 2026/9/20
+.\"
+.TH VFORK 2 "June 30, 1985"
+.UC 4
+.SH NAME
+vfork \- spawn new process in an efficient way
+.SH SYNOPSIS
+.nf
+.ft B
+#include <unistd.h>
+
+pid_t
+vfork(\fIvoid\fP)
+.br
+.SH DESCRIPTION
+.B vfork
+can be used to create new processes without fully copying the address
+space of the old process.
+It is useful when the purpose of
+.BR fork (2)
+would have been to create a new system context for an
+.BR execve .
+.B vfork
+differs from
+.B fork
+in that the child borrows the parent's memory and thread of
+control until a call to
+.BR execve (2)
+or an exit (either by a call to
+.BR exit (2)
+or abnormally.)
+The parent process is suspended while the child is using its resources.
+.PP
+.B vfork
+returns 0 in the child's context and (later) the pid of the child in
+the parent's context.
+.PP
+.B vfork
+can normally be used just like
+.BR fork .
+It does not work, however, to return while running in the childs context
+from the procedure that called
+.B vfork
+since the eventual return from
+.B vfork
+would then return to a no longer existent stack frame.
+Be careful, also, to call
+.B _exit
+rather than
+.B exit
+if you can't
+.BR execve ,
+since
+.B exit
+will flush and close standard I/O channels, and thereby mess up the
+parent processes standard I/O data structures.
+Even with
+.B fork
+it is wrong to call
+.B exit
+since buffered data would then be flushed twice.
+.SH SEE ALSO
+fork(2), execve(2), sigvec(2), wait(2),
+.SH DIAGNOSTICS
+Same as for
+.BR fork .
+.SH BUGS
+To avoid a possible deadlock situation,
+processes that are children in the middle
+of a
+.B vfork
+are never sent SIGTTOU or SIGTTIN signals; rather,
+output or
+.BR ioctl s
+are allowed
+and input attempts result in an end-of-file indication.

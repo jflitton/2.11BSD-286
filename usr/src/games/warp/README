@@ -1,0 +1,46 @@
+			Warp Kit, Version 7.0
+
+		    Copyright (c) 1986, Larry Wall
+
+You may copy the warp kit in whole or in part as long as you don't try to
+make money off it, or pretend that you wrote it.
+--------------------------------------------------------------------------
+
+Warp is a real-time space war game that doesn't get boring very quickly.
+Read warp.doc and the manual page for more information.
+
+Warp will probably not run on V7 systems that don't have a non-blocking read,
+or on machines with a small address space like the PDP-11.  Caveat Emptor.
+
+Please read all the directions below before you proceed any further, and
+then follow them carefully.  Failure to do so may void your warranty. :-)
+
+Installation
+
+1)  make depend
+
+    This will look for all the includes and modify Makefile accordingly.
+    Configure will offer to do this for you.
+
+2)  make
+
+    This will attempt to make warp in the current directory.
+
+3)  make install
+
+    This will put warp into a public directory (normally /usr/games).
+    It will also put the man pages in the usual place.
+
+4)  Read the manual entry before running warp.
+
+5)  Feel free to edit warp.news.
+
+6)  IMPORTANT!  Help save the world!  Communicate any problems and
+    suggested patches to the 2BSD maintainers / developers.
+
+    If possible, send in patches such that the patch program will apply them.
+    Context diffs are the best, then normal diffs.  Don't send ed scripts--
+
+NEW FEATURES IN THIS RELEASE
+
+Remove Configure.  Trim config.h to minimum. Create customary 2.11BSD Makefile

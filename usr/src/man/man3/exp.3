@@ -1,0 +1,61 @@
+.\" Copyright (c) 1985 Regents of the University of California.
+.\" All rights reserved.  The Berkeley software License Agreement
+.\" specifies the terms and conditions for redistribution.
+.\"
+.\"	@(#)exp.3	6.10 (2.11BSD) 2026/9/27
+.\"
+.TH EXP 3  "May 27, 1986"
+.UC 4
+.SH NAME
+exp, expm1, log, log10, log1p, pow \- exponential, logarithm, power
+.SH SYNOPSIS
+.nf
+.ft B
+#include <math.h>
+
+double
+exp(\fIdouble x\fP)
+
+double
+expm1(\fIdouble x\fP)
+
+double
+log(\fIdouble x\fP)
+
+double
+log10(\fIdouble x\fP)
+
+double
+log1p(\fIdouble x\fP)
+
+double
+pow(\fIdouble x\fP, \fIdouble y\fP)
+.ft R
+.fi
+.SH DESCRIPTION
+.PP
+.B exp
+returns the exponential function of x.
+.PP
+.B expm1
+returns exp(x)\-1 accurately even for tiny x.
+.PP
+.B log
+returns the natural logarithm of x.
+.PP
+.B log10
+returns the logarithm of x to base 10.
+.PP
+.B log1p
+returns log(1+x) accurately even for tiny x.
+.PP
+.B pow(x,y)
+ returns
+.if n \
+x**y.
+.if t \
+x\u\s8y\s10\d.
+.SH SEE ALSO
+math(3)
+.SH AUTHOR
+Kwok\-Choi Ng, W. Kahan

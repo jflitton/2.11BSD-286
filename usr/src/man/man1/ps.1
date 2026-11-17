@@ -1,0 +1,204 @@
+.\"     @(#)ps.1       2.0 (2.11BSD) 2026/6/12
+.\"
+.TH PS 1 "June 12, 2026"
+.UC
+.SH NAME
+ps \- process status
+.SH SYNOPSIS
+.B ps
+[\fB-acglnruwxU\fP] [\fB-p pid\fP] [\fB-k mem:kern:swap\fP] [\fB-t tt\fP]
+.SH DESCRIPTION
+.I ps
+prints information about active processes.
+To get a complete printout on the console or lpr, use
+`ps\ \-axlw'
+For a quick snapshot of system activity,
+`ps\ \-au'
+is recommended.
+.sp
+The following options may be specified:
+.TP
+.B a
+display information about all processes with terminals (ordinarily
+only one's own processes are displayed).
+.TP
+.B c
+only the
+.I comm
+field is displayed instead of the arguments.
+The comm field is the tail of the path name of the file
+the process last exec'd.
+This option reduces the amount of output.
+It is also more reliable since the process can't scribble on it.
+.TP
+.B g
+do all processes.
+Without this option,
+.I ps
+only prints `interesting' processes.
+Processes are deemed to be uninteresting if their
+their arguments begin with a `\-'.
+This normally eliminates shells and getty processes.
+.TP
+.B p
+argument is the process number to print information about.  \fB-x\fP and
+\fB-a\fP are implicitly enabled by \fB-p\fP.
+.TP
+.B k
+files to use for the memory image (/dev/kmem, /dev/mem), kernel (/unix) and 
+swap (as returned from swapdevname(3)).
+Examples:
+.sp
+-k /usr/crash/core.1
+.sp
+-k savedcore.1:genunix
+.sp
+-k /usr/crash/core.1:/unix:/dev/xp1b
+.sp
+Empty fields default.  Thus '-k ::/dev/xp1b' only affects the swap filename
+and '-k core.9:unix.9' sets the memory and kernel files and defaults the
+swap file.
+.sp
+This is used for postmortem system debugging.
+.TP
+.B l
+long listing.
+The short listing contains the user name, process ID, tty,
+the cumulative execution time of the process and an
+approximation to the command line.
+.TP
+.B n
+numeric rather than symbolic wchans.  This flag
+implies the `l' flag.
+.TP
+.B r
+`raw' output.
+A non-human readable sequence of structures is output on the standard output.
+There is one structure for each process, the format is defined by
+<psout.h>
+.TP
+.BI t ttyname
+restricts output to processes whose controlling tty is the
+specified ttyname (e.g. p0 not /dev/ttyp0) including
+.I t?
+for processes with no tty.
+.sp
+The space after \fB-t\fP is optional.  Thus this option may be either
+\fB-tp0\fP or \fB-t p0\fP.
+.TP
+.B u
+A user oriented output is produced.
+This includes the
+name of the owner of the process,
+process id,
+nice value,
+size,
+tty,
+cpu time used,
+and the command.
+.TP
+.B w
+tells
+.I ps
+you are on a wide terminal (132 columns).
+.I ps
+normally assumes
+you are on an 80 column terminal.
+This information is used to decide how much of long commands to print.
+The
+.B w
+option may be repeated, e.g.
+.B ww
+and the entire command, up to 128 characters, will be printed
+without regard to terminal width.
+.TP
+.B x
+reports about processes with no terminal.
+.TP
+.B U
+causes ps to update a private database where is keeps system
+information.  `ps \-U' should be included in the system startup script 
+/etc/rc
+.PP
+The output is sorted by tty, then by process ID.
+.PP
+The long listing is columnar and contains
+.IP F
+Flags associated with the process.
+These are defined in /usr/include/sys/proc.h.
+.IP S
+The state of the process.
+0: nonexistent;
+S: sleeping;
+W: waiting;
+R: running;
+I: intermediate;
+Z: terminated;
+T: stopped.
+.IP UID
+The user id of the process owner.
+.IP PID
+The process ID of the process;
+as in certain cults it is possible to kill a process
+if you know its true name.
+.IP PPID
+The process ID of the parent process.
+.IP CPU
+Processor utilization for scheduling.
+.IP PRI
+The priority of the
+process; high numbers mean low priority.
+.IP NICE
+Used in priority computation.
+.IP ADDR
+The memory address of the process if resident,
+otherwise the disk address.
+.IP SZ
+The size in blocks (512 bytes) of the memory image of the process.
+.IP WCHAN
+The event for which the process is waiting or sleeping;
+if blank, the process is running.
+.IP TTY
+The controlling tty for the process.
+.IP TIME
+The cumulative execution time for the process.
+.IP COMMAND
+The command and its arguments.
+.DT
+.PP
+A process that has exited and has a parent, but has not
+yet been waited for by the parent is marked <defunct>.
+.I ps
+makes an educated guess as to the file name
+and arguments given when the process was created
+by examining memory or the swap area.
+The method is inherently somewhat unreliable and in any event
+a process is entitled to destroy this information,
+so the names cannot be counted on too much.
+.SH FILES
+.ta 2i
+/unix	system namelist
+.br
+/dev/kmem	kernel memory
+.br
+/dev/swap	swap device
+.br
+/var/run/psdatabase	system namelist and device information
+.SH "SEE ALSO"
+kill(1), w(1), pstat(8), devname(3)
+.SH BUGS
+Things can change while
+.I ps
+is running; the picture it gives is only a close
+approximation to reality.
+.PP
+Some processes, typically those in the background, are
+printed with null or nonsense arguments, even though
+the process has not swapped.
+In these cases, the name of the command is printed in parentheses.
+.PP
+Use of the running system's swap device during postmortem system debugging
+is likely to produce unexpected results.
+.PP
+The raw output produced by \fB-r\fP isn't used by anything in the system,
+is deprecated and likely to removed in the future.

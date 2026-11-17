@@ -1,0 +1,40 @@
+.\"	@(#)atof.3	6.2 (2.11BSD) 2026/9/27
+.\"
+.TH ATOF 3  "May 15, 1985"
+.AT 3
+.SH NAME
+atof, atoi, atol \- convert ASCII to numbers
+.SH SYNOPSIS
+.nf
+.ft B
+double atof(nptr)
+char *nptr;
+
+atoi(nptr)
+char *nptr;
+
+long atol(nptr)
+char *nptr;
+.ft R
+.fi
+.SH DESCRIPTION
+These functions convert a string pointed to by
+.I nptr
+to floating, integer, and long integer representation respectively.
+The first unrecognized character ends the string.
+.PP
+.B atof
+recognizes an optional string of spaces, then an optional sign, then
+a string of digits optionally containing a decimal
+point, then an optional `e' or `E' followed by an optionally signed integer.
+.PP
+.B atoi
+and
+.B atol
+recognize an optional string of spaces, then an optional sign, then a
+string of
+digits.
+.SH SEE ALSO
+scanf(3)
+.SH BUGS
+There are no provisions for overflow.

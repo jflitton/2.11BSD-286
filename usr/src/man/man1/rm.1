@@ -1,0 +1,55 @@
+.\" Copyright (c) 1980 Regents of the University of California.
+.\" All rights reserved.  The Berkeley software License Agreement
+.\" specifies the terms and conditions for redistribution.
+.\"
+.\"	@(#)rm.1	6.2 (2.11BSD) 2026/7/31
+.\"
+.TH RM 1 "April 29, 1985"
+.UC 4
+.SH NAME
+rm \- remove (unlink) files or directories
+.SH SYNOPSIS
+.B rm
+[
+.B \-f
+] [
+.B \-r
+] [
+.B \-i
+]
+file ...
+.PP
+.SH DESCRIPTION
+.B rm
+removes the entries for one or more files from a directory.
+If an entry was the last link to the file, the file is destroyed.
+Removal of a file requires write permission in its directory
+but neither read nor write permission on the file itself.
+.PP
+If a file has no write permission and the standard input is a terminal,
+its permissions are printed and a line is read from the standard input.
+If that line begins with `y' the file is deleted otherwise the file remains.
+No questions are asked and no errors are reported when the
+.B \-f
+(force) option is given.
+.PP
+If a designated file is a directory
+an error comment is printed unless the optional argument
+.B \-r
+has been used.  In that case,
+.B rm
+recursively deletes the entire contents of the specified directory
+and the directory itself.
+.sp
+.B \-R
+is a synonym for \fB-r\fP
+.PP
+If the
+.B \-i
+(interactive) option is in effect,
+.I rm
+asks whether to delete each file and, under
+.BR \-r ,
+whether to examine each directory.
+.SH "SEE ALSO"
+rm(1), unlink(2), rmdir(2)

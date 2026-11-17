@@ -1,0 +1,73 @@
+.\" Copyright (c) 1985 Regents of the University of California.
+.\" All rights reserved.  The Berkeley software License Agreement
+.\" specifies the terms and conditions for redistribution.
+.\"
+.\"	@(#)sin.3	6.7 (2.11BSD) 2026/9/27
+.\"
+.TH SIN 3  "May 12, 1986"
+.UC 4
+.de Pi		\" PI stuff sign
+.if n \\
+\\$2pi\\$1
+.if t \\
+\\$2\\(*p\\$1
+..
+.ds up \fIulp\fR
+.SH NAME
+sin, cos, tan, asin, acos, atan, atan2 \- trigonometric functions
+and their inverses
+.SH SYNOPSIS
+.nf
+.ft B
+#include <math.h>
+
+double
+sin(\fIdouble x\fP)
+
+double
+cos(\fIdouble x\fP)
+
+double
+tan(\fIdouble x\fP)
+
+double
+asin(\fIdouble x\fP)
+
+double
+acos(\fIdouble x\fP)
+
+double
+atan(\fIdouble x\fP)
+
+double
+atan2(\fdouble y\fP, \fIdouble x\fP)
+.ft R
+.fi
+.SH DESCRIPTION
+.BR sin ,
+.B cos
+and 
+.B tan
+return trigonometric functions of radian arguments \fIx\fP.
+.PP
+.B asin
+returns the arc sine in the range 
+.Pi /2 \-
+to
+.Pi /2.
+.PP
+.B acos
+returns the arc cosine in the range 0 to
+.Pi.
+.PP
+.B atan
+returns the arc tangent in the range
+.Pi /2 \-
+to
+.Pi /2.
+.PP
+.SH SEE ALSO
+math(3), hypot(3), sqrt(3)
+.SH AUTHOR
+Robert P. Corbett, W. Kahan, Stuart\0I.\0McDonald, Peter\0Tang and,
+for the codes for IEEE 754, Dr. Kwok\-Choi\0Ng.

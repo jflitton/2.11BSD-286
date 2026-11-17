@@ -1,0 +1,174 @@
+.\"     @(#)restor.8      2.0 (2.11BSD) 2025/12/26
+.\"
+.TH RESTOR 8
+.UC
+.SH NAME
+restor \- incremental filesystem restore
+.SH SYNOPSIS
+.I restor
+key [ argument ... ]
+.SH DESCRIPTION
+.I Restor
+is used to read magtapes dumped with the
+.I dump
+command.
+The
+.I key
+specifies what is to be done.
+.I Key
+is one of the characters
+.B rRxt
+optionally combined with \fBf\fP.
+.TP
+.B f
+Use the first
+.I argument
+as the name of the file to read instead of the default /dev/rmt0.
+The argument may be a special file like /dev/nrmt1 (a tape drive), an ordinary
+file or '-' (the standard input).  The string /dev/stdin is a synonym for '-'.
+.TP
+.B r or R
+The tape
+is read and loaded into the filesystem
+specified in
+.I argument.
+This should not be done lightly (see below).
+If the key is \fBR\fP
+.I restor
+asks which tape of a multi volume set to start on.
+This allows restor to be interrupted and then
+restarted (an
+.I icheck
+\-s must be done before restarting ).
+.sp
+.B R
+is \fBNOT\fP allowed when the input is from stdin because the concept of
+volume changes on a pipe makes no sense.
+.TP
+.B x
+Each file on the
+tape named by an 
+.I argument
+is extracted.
+.sp
+.B x
+is \fBNOT\fP allowed when the input is from stdin because the concept of
+volume changes on a pipe makes no sense.
+.sp
+The file name has all `mount' prefixes removed;
+for example, /usr/bin/lpr is named /bin/lpr on the tape.
+The file extracted is placed in a file with a numeric name
+supplied by
+.I restor
+(actually the inode number).
+In order to keep the amount of tape read to a minimum,
+the following procedure is recommended:
+.sp
+Mount volume 1 of the set of dump tapes.
+.sp
+Type the
+.I restor
+command.
+.sp
+.I Restor
+will announce whether or not it found the files,
+give the number it will name the file, and rewind the tape.
+.sp
+It then
+asks you to `mount the desired tape volume'.
+Type the number of the volume you choose.
+On a
+multivolume dump the recommended procedure is to mount the
+last through the first volume in that order.
+.I Restor
+checks to see if any of the files requested are on the
+mounted tape (or a later tape, thus the reverse order) and doesn't
+read through the tape if no files are.
+If you are working with a single volume dump or the number of files
+being restored is large, respond to the query with `1' and
+.I restor
+will read the tapes in sequential order.
+.sp
+If you have a hierarchy to restore you can use
+.IR dumpdir (8)
+to produce the list of names and a shell script to move
+the resulting files to their homes.
+.TP
+.B t
+Print the date the tape was written and the date
+the filesystem was dumped from.
+.PP
+The
+.B r
+option should only be used to restore
+a complete dump tape onto a clear filesystem
+or to restore an incremental dump tape into the filesystem.
+Thus
+.PP
+	mkfs /dev/hp0a 4807
+.br
+	restor r /dev/hp0a
+.PP
+is a typical sequence to restore a complete dump.
+.PP
+Instead of first writing a tape using dump and  restoring the tape as above
+\fIrestor\fP can be used in a pipeline.
+For example to clone the root filesystem to another device.
+.PP
+         newfs rl0a
+         dump 0f - / | restor rf - /dev/rrl0a
+.sp
+When cloning an active (mounted) filesystem you need to run \fIfsck\fP on the 
+target (rrl0a) after \fIrestor\fP to repair the unreferenced files and missing
+blocks inconsistencies.
+.PP
+Another
+.I restor
+can be done to get an incremental dump
+in on top of this.
+.PP
+A
+.I dump
+followed by a
+.I mkfs
+and a
+.I restor
+is used to
+change the size of a filesystem.
+.SH FILES
+.ta 2i
+/dev/rmt1	default file name
+.br
+rst*	temporary files
+.SH "SEE ALSO"
+dump(8), dumpdir(8), mkfs(8)
+.SH DIAGNOSTICS
+There are various diagnostics
+involved with reading the tape and writing the disk.
+There are also diagnostics if the i-list or the free list
+of the filesystem is not large enough to hold the dump.
+.PP
+If the dump extends over more than one tape,
+it may ask you to change tapes.
+Reply with a newline when the next tape has been mounted.
+.PP
+Dump tapes made before the new ondisc directory structure will
+be converted automatically by
+.I restor .
+.SH BUGS
+There is redundant information on the tape
+that could be used in case of tape reading problems.
+Unfortunately,
+.IR restor
+doesn't use it.
+.PP
+When reading from a pipe (standard input) \fIrestor\fP will not issue the 
+"Last chance before scribbling on \fIdevice\fP" message and will not wait for
+a response.  This is because getchar() would consume the first byte of data from
+\fIdump\fP thus corrupting the first block of data.
+.PP
+\fBx\fP and \fBR\fP commands are not allowed when reading stdin because  the
+options make no sense when reading from dump input from a pipe \fBAND\fP 
+prompting for a volume number would consume data from the stdin input 
+data stream.
+

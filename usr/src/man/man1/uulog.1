@@ -1,0 +1,57 @@
+.\" Copyright (c) 1986 Regents of the University of California.
+.\" All rights reserved.  The Berkeley software License Agreement
+.\" specifies the terms and conditions for redistribution.
+.\"
+.\"	@(#)uulog.1	6.2 (2.11BSD) 2026/9/28
+.\"
+.TH UULOG 1 "April 24, 1986"
+.UC 6
+.SH NAME
+uulog \- display \s-1UUCP\s0 log files
+.SH SYNOPSIS
+.B uulog
+[
+.B \-s
+.I sys
+] [
+.B \-u
+.I user
+]
+.SH DESCRIPTION
+.B uulog
+queries a log
+of 
+.BR uucp (1)
+and
+.BR uux (1)
+transactions in the file
+.B /usr/spool/uucp/\s-1LOGFILE.\s0
+.PP
+The options command 
+.B uulog
+to print logging information:
+.TP 8
+.BI \-s sys\^
+Print information about work involving system
+.IR sys .
+.TP 8
+.BI \-u user\^
+Print information about work done for the specified
+.IR user .
+.SH FILES
+/usr/spool/uucp/\s-1LOGFILE\s0
+.SH SEE ALSO
+uucp(1), uux(1).
+.SH NOTES
+Very early releases of \s-1UUCP\s0 used separate log files
+for each of the \s-1UUCP\s0 utilities;
+.B uulog
+was used to merge the individual logs into a master file.
+This capability has not been necessary for some time and is
+no longer supported.
+.SH BUGS
+\s-1UUCP\s0's recording of which user issued a request is unreliable.
+.PP
+.B uulog
+is little more than an overspecialized version of
+.BR grep (1).

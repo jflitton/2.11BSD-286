@@ -1,0 +1,28 @@
+.\"	@(#)abort.3	6.4 (2.11BSD) 2026/9/27
+.\"
+.TH ABORT 3 "May 27, 1986"
+.AT 3
+.SH NAME
+abort \- generate a fault
+.SH SYNOPSIS
+.nf
+.ft B
+#include <stdlib.h>
+
+void
+abort(\fIvoid\fP)
+.ft R
+.fi
+.SH DESCRIPTION
+.B abort
+executes an instruction which is illegal in user mode.
+This causes a signal that normally terminates
+the process with a core dump, which may be used for debugging.
+.SH SEE ALSO
+adb(1), sigvec(2), exit(2)
+.SH DIAGNOSTICS
+Usually ``Illegal instruction \- core dumped'' from the shell.
+.SH BUGS
+.B abort
+does not flush standard I/O buffers.  Use
+.BR fflush (3).

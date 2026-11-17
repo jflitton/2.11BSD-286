@@ -1,0 +1,53 @@
+.\" Copyright (c) 1980 Regents of the University of California.
+.\" All rights reserved.  The Berkeley software License Agreement
+.\" specifies the terms and conditions for redistribution.
+.\"
+.\"	@(#)chown.8	6.2.2 (2.11BSD) 2026/2/1
+.\"
+.TH CHOWN 8 "February 2, 2026"
+.UC 4
+.SH NAME
+chown \- change owner
+.SH SYNOPSIS
+.B /usr/sbin/chown
+[
+.B \-f
+.B \-R
+]
+owner[:group] file ...
+.SH DESCRIPTION
+.I chown
+changes the owner of the
+.I files
+to
+.IR owner .
+The owner may be either a decimal UID or
+a login name found in the password file.
+An optional group may also be specified.
+The group may be either a decimal GID or
+a group name found in the group-ID file.
+.PP
+Only the super-user can change owner.
+.sp
+No errors are reported when the
+.B \-f
+(force) option is given.
+.PP
+When the
+.B \-R
+option is given, 
+.I chown
+recursively descends its directory arguments
+setting the specified owner.
+When symbolic links are encountered, their ownership is changed,
+but they are not traversed.
+.PP
+The old form "owner[.group] file ..." is supported for compatibility with 
+existing Makefiles and scripts.  Allowing \fB.\fP to be used this way
+precludes having \fB.\fP in a username.
+.SH FILES
+/etc/passwd
+.SH "SEE ALSO"
+chgrp(1),
+chown(2),
+passwd(5), group(5)

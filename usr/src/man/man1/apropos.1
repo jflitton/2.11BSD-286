@@ -1,0 +1,43 @@
+.\"	@(#)apropos.1	6.5 (2.11BSD) 2026/9/28
+.\"
+.TH APROPOS 1 "June 5, 1986"
+.AT 3
+.SH NAME
+apropos \- locate commands by keyword lookup
+.SH SYNOPSIS
+.B apropos
+keyword ...
+.SH DESCRIPTION
+.B apropos
+shows which manual sections contain instances of any of the given
+keywords in their title.
+Each word is considered separately and case of letters is ignored.
+Words which are part of other words are considered; thus, when looking for
+compile, \fBapropos\fP will find all instances of `compiler' also.
+Try
+.IP
+apropos password
+.PP
+and
+.IP
+apropos editor
+.PP
+If the line starts `name(section) ...' you can do
+`man section name' to get the documentation for it.
+Try `apropos format' to get the manual
+on the subroutine
+.B printf.
+.PP
+.B apropos
+is actually just the
+.B \-k
+option to the
+.BR man (1)
+command.
+.SH FILES
+.DT
+/usr/man/whatis		data base
+.SH "SEE ALSO"
+man(1), whatis(1), catman(8)
+.SH AUTHOR
+William Joy
