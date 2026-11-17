@@ -64,3 +64,9 @@ git  prior-art/discobsd  2c841439f950d06f17a032046417b3d0c0de9169  https://githu
 git  prior-art/elks  9b3c134eaaa603656167e01c1c4e409f3c1bcc15  https://github.com/ghaerr/elks
 # Mark Williams Coherent, released 2015: a 286 Unix with its own compiler.
 git  prior-art/coherent  09796faea83e79c8d3dc6a8b2bcfa95000feadc7  https://github.com/OldRepoPreservation/coherent
+
+# --- The cross toolchain --------------------------------------------------------
+# Open Watcom v2, the 2026-11-01 build: one archive with builds for Linux
+# (x64, arm64) and macOS (x64, arm64).  tools/install-watcom.sh unpacks the
+# one for this host into toolchain/.
+file  toolchain/open-watcom-2.0-2026-11-01.tar.xz  89e90b7544cf3ea4a38124ec4c104a5027f31101405d7115c3f833daa465bb48  https://github.com/open-watcom/open-watcom-v2/releases/download/2026-11-01-Build/ow-snapshot.tar.xz

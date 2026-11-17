@@ -25,6 +25,8 @@ has file names that differ only by case.
 | `reference/upstream/` | the install tape, patches, setup guide | no |
 | `reference/manuals/` | Intel, IBM, Adaptec and DEC manuals; Ralf Brown's Interrupt List | no |
 | `reference/prior-art/` | MINIX, RetroBSD, DiscoBSD, ELKS, Coherent sources | no |
+| `reference/toolchain/` | the cross-compiler's distribution archive | no |
+| `toolchain/` | the installed cross-compiler | no |
 | `obj/`, `images/`, `vm/` | build output, disk images, emulator state (none yet) | no |
 
 Where the 286 code will go, beside its PDP-11 counterpart in each case:
@@ -48,6 +50,56 @@ points at `pdp` upstream.
 - `main` branches from it. `git diff upstream main -- usr sys` is the port.
 
 How `upstream` was made and how to take a new patch: [docs/upstream.md](docs/upstream.md).
+
+## Toolchain
+
+The system is cross-compiled with Open Watcom v2, which runs on Linux (x64,
+arm64) and macOS (x64, arm64).
+
+```sh
+tools/fetch-reference.py toolchain   # the archive, about 150 MB
+tools/install-watcom.sh              # unpack this host's build into toolchain/
+. tools/env.sh                       # wcc, wasm, wlink, wlib, wdis on PATH
+```
+
+Why Open Watcom, from compiling test code and 448 unmodified files of this
+tree with each candidate (November 2026):
+
+- It has the large and huge memory models, where pointers are far by
+  default, so an existing program gets several data segments without source
+  changes. gcc-ia16 stops at the medium model: one data segment, and
+  anything outside it needs `__far` on every pointer.
+- It generates 287 instructions in line. gcc-ia16 calls a software routine
+  for every floating-point operation.
+- Its far-pointer code loads segment registers only with selectors it was
+  given and does no segment arithmetic, which protected mode requires.
+- Based pointers (`__based`) let near-data code reach another segment with
+  a 16-bit offset. That is the kernel's situation when it touches a buffer
+  or a user's memory.
+- Its linker writes segmented executables with a segment table and
+  per-segment relocations. ELKS loads that format for the same compiler.
+- Compiled code needs only a handful of helper routines (32-bit multiply
+  and divide, float-to-integer rounding, huge-pointer arithmetic), small
+  enough to write here instead of taking Open Watcom's library.
+
+What it costs:
+
+- It cannot run on the 286, so the system does not compile itself. None of
+  the compilers small enough to run there (pcc, ACK, C86, the Fuzix
+  compiler, bcc) has far data today. A native compiler is a later project.
+- Objects are OMF and the assembler takes Intel syntax; nothing of the
+  tree's own `as`, `ld`, `ar`, `nm` or a.out format carries over unchanged.
+- It is stricter than the tree's compiler. About one file in seven fails
+  as distributed, mostly old-style definitions that disagree with a
+  prototype and functions that mix `return;` with `return x;`. gcc-ia16
+  rejects about as many.
+
+Flags that worked in those trials: `-2` (286 instructions), `-fpi87 -fp2`
+(in-line 287), `-ecc` (arguments on the stack, caller removes them, which
+old-style calls with mismatched argument counts depend on), `-s` (no stack
+probes), `-zl -zls` (no references to Open Watcom's libraries), `-ms`,
+`-mm`, `-ml`, `-mh` for the memory model, and `-Drestrict=` because the
+headers use `restrict` while other files use `inline` as an identifier.
 
 ## Reference material
 
@@ -88,6 +140,8 @@ DOS and OS/2 user's guide with nothing on ports or interrupts; not kept.)
 | tool | does |
 |------|------|
 | `tools/fetch-reference.py` | fetches `reference/` from the manifest |
+| `tools/install-watcom.sh` | installs the cross-compiler for this host into `toolchain/` |
+| `tools/env.sh` | sourced, puts the toolchain on `PATH` |
 | `tools/untap.py` | splits a SimH `.tap` tape image into its files |
 | `tools/tar2git.py` | commits tar archives to a branch without unpacking them |
 | `tools/import-upstream.sh` | rebuilds the `upstream` import from the tape, to check it |
@@ -96,6 +150,8 @@ DOS and OS/2 user's guide with nothing on ports or interrupts; not kept.)
 
 - `upstream` holds patch level 500, checked file by file against the tape.
 - Reference material is listed and fetched.
-- Nothing is ported yet. The first decision is the C compiler: the tree's
-  own (`usr/src/lib/ccom`) generates PDP-11 code only, and more than one
-  data segment per process means far pointers.
+- The cross-compiler is chosen and installs from the manifest (see
+  Toolchain). Nothing compiled with it has been run yet.
+- Nothing is ported yet. Open questions that come next: the memory model
+  and calling convention for the kernel and for user programs, the
+  executable format, and the helper routines the compiler's output calls.

@@ -2,7 +2,8 @@
 /reference/*
 !/reference/MANIFEST
 
-# Build output, disk images, emulator state.
+# The installed cross toolchain, build output, disk images, emulator state.
+/toolchain/
 /obj/
 /images/
 /vm/
