@@ -1,0 +1,66 @@
+# Third-party reference material.  Nothing under reference/ but this file
+# is in git; `tools/fetch-reference.py` fetches the rest.
+#
+# KIND PATH ID URL     (see tools/fetch-reference.py; ID "-" = not pinned)
+
+# --- 2.11BSD itself -------------------------------------------------------
+# The patch level 500 install tape (SimH .tap).  The upstream branch is made
+# from it: docs/upstream.md.
+file  upstream/PL500/PL500.tap.bz2  198e8ca3d1e76ee17ea28b63040488ce9bec3c9157233ffc6272eae7fd19eaf9  https://www.tuhs.org/Archive/Distributions/UCB/2BSD/2.11BSD/Patches/PL500.tap.bz2
+file  upstream/PL500/PL500readme.txt  ccb75ea24277e6d450cd56bcb1fdb02efbe6633aa53d69e09abaf9799e4e9862  https://www.tuhs.org/Archive/Distributions/UCB/2BSD/2.11BSD/Patches/PL500readme.txt
+# Installing and operating 2.11BSD, as revised for patch level 500.
+file  upstream/PL500/PL500setup.pdf  8836945cb7bf124c66461b8057592726137db0faed57b2bff24f572b686011b3  https://www.tuhs.org/Archive/Distributions/UCB/2BSD/2.11BSD/Patches/PL500setup.pdf
+# The two latest patches, for their descriptions of what changed and why
+# (ANSI stdio, Makefile cleanup, 1795 files in 500).  Later patches go here
+# too, and get applied to the upstream branch.
+file  upstream/patches/499  ecafa024256830113b1747f7585736c4f5f3997ccfc8e098833de04ea1e1f376  https://www.tuhs.org/Archive/Distributions/UCB/2BSD/2.11BSD/Patches/499
+file  upstream/patches/500  d52e80258543dfc08298ca3d60212b0d4bb7b6b4d95b579eedd4c42a3d7f6b16  https://www.tuhs.org/Archive/Distributions/UCB/2BSD/2.11BSD/Patches/500
+
+# --- The processor ---------------------------------------------------------
+# Descriptor tables, gates, tasks, faults, and the 287.  The main reference.
+file  manuals/intel/80286_and_80287_Programmers_Reference_Manual_1987.pdf  ad487ba99b48cd9f61b14c0fe912a04c7cdb4c7c14a18419aa9faf62d8962460  http://bitsavers.trailing-edge.com/components/intel/80286/210498-005_80286_and_80287_Programmers_Reference_Manual_1987.pdf
+# How Intel meant an operating system to use protected mode: segment
+# swapping, not-present faults, task switching, 287 context.
+file  manuals/intel/iAPX_286_Operating_Systems_Writers_Guide_1983.pdf  3d1cd77bd629988440c7829f4000c270a29d8916722fb5a7cd46262964114440  http://bitsavers.trailing-edge.com/components/intel/80286/121960-001_iAPX_286_Operating_Systems_Writers_Guide_1983.pdf
+# Bus timing, reset, the 287 interface.
+file  manuals/intel/80286_Hardware_Reference_Manual_1987.pdf  d3ece037a200b17ef32d78a055d0d96c3e47474d755d94569b9576a9a68c6915  http://bitsavers.trailing-edge.com/components/intel/80286/210760-002_80286_Hardware_Reference_Manual_1987.pdf
+# Data sheets for the support chips: 8259A, 8254, 8237A, 8042, 80287.
+file  manuals/intel/Microprocessor_and_Peripheral_Handbook_Vol2_1989.pdf  26f8f672cf05af9c7bab9115587d2b4d1637dede96d427b87915a3de4c90e7a1  http://bitsavers.trailing-edge.com/components/intel/_dataBooks/1989_Microprocessor_and_Peripheral_Handbook_Volume_2.pdf
+
+# --- The machine -------------------------------------------------------------
+# No Model 30 286 Technical Reference has turned up on line.  These cover it
+# between them: the AT it is compatible with (with BIOS listing), the PS/2
+# BIOS and hardware interfaces, and the 30 286's own schematics.
+file  manuals/ibm/PC_AT_Technical_Reference_Mar86.pdf  09e2968263400b6bcd1bc0ce4fae0c2d2cc0958ff89bd5a28b068c7f046898da  http://bitsavers.trailing-edge.com/pdf/ibm/pc/at/6183355_PC_AT_Technical_Reference_Mar86.pdf
+file  manuals/ibm/PS2_and_PC_BIOS_Interface_Technical_Reference_May88.pdf  da29981e841c26bffb6f6c6277f8abd42284b3c681ec31dabdcba1783fc2cc92  http://bitsavers.trailing-edge.com/pdf/ibm/pc/ps2/15F0306_PS2_and_PC_BIOS_Interface_Technical_Reference_May88.pdf
+file  manuals/ibm/PS2_Hardware_Interface_Technical_Reference_May88.pdf  542242238abd3d5d9657a3cc7c256c2b2d78af986a707e370e4d1aa57c0482af  http://bitsavers.trailing-edge.com/pdf/ibm/pc/ps2/Personal_System_2_Hardware_Interface_Technical_Reference_May88.pdf
+file  manuals/ibm/PS2_Model_30_286_schematics.pdf  c2d74174ceb6926ffb36eaee9206d3a284e03b9ebf17886b86424c4bdede1055  https://ardent-tool.com/docs/pdf/schematics/m30-286_sch.pdf
+file  manuals/ibm/PS2_Model_30_286_Guide_to_Operations.pdf  b9d32660698ffb18eea1af0a281f1e78f2b26625d7cdd73a12b439d5f039c3a0  https://ardent-tool.com/docs/pdf/IBM_Personal_System_2_Model_30_286_Guide_to_Operations.pdf
+# Ralf Brown's Interrupt List, release 61: BIOS calls, I/O ports (PORTS.*),
+# memory map (MEMORY.LST), CMOS (CMOS.LST).
+zip  manuals/rbil/a  8077536135c0290ff18a4a44cf63c56339f6127f053ee673f9895837248cc947  http://www.cs.cmu.edu/~ralf/interrupt-list/inter61a.zip
+zip  manuals/rbil/b  713e9e218eda694ed2bac8d5f02378f935f3e3132b79c92c44c14101e76b88a7  http://www.cs.cmu.edu/~ralf/interrupt-list/inter61b.zip
+zip  manuals/rbil/c  d7a059a1700c765adb9d4bf9dbe6289621aca6ff09c0583192764ee47e2b690a  http://www.cs.cmu.edu/~ralf/interrupt-list/inter61c.zip
+zip  manuals/rbil/d  0d0a04e84dd6a1db312157f3365fc7ee0b539af677944ace593df5236a563241  http://www.cs.cmu.edu/~ralf/interrupt-list/inter61d.zip
+
+# --- The SCSI adapter ---------------------------------------------------------
+# Ports, adapter commands, mailboxes and CCBs for the 1540C series.
+file  manuals/adaptec/AHA-1540C_Series_Technical_Reference_Manual_Apr93.pdf  0ab01c0e9ef7d6149c8ef61739a8cb6423dbe9ba36b851c4733e260b24f9ac9b  http://bitsavers.trailing-edge.com/pdf/adaptec/pc/AHA-1540A/510397-00A_AHA-1540C_Series_ISA_SCSI_Technical_Reference_Manual_199304.pdf
+# The Plug and Play variant's installation guide.
+file  manuals/adaptec/AHA-1540CP_1542CP_Installation_Guide.pdf  0367e5039a3f166369fda310a145b7a1d15c17282478797f41b43627ad644ad8  https://ftpmirror2.infania.net/sites/ct_treiber_service/treiber/adaptec/ig/ig154xcp.pdf
+
+# --- The PDP-11, to read the code being replaced -------------------------------
+# Memory management, split I/D, the modes and traps sys/pdp/*.s is written to.
+file  manuals/dec/PDP-11_Processor_Handbook_1981.pdf  6b13d6bb3b25173a118673e8d3589e92602231624ea580e22fcb3c38722391f3  http://bitsavers.trailing-edge.com/pdf/dec/pdp11/handbooks/EB-19402-20_PDP-11_Processor_Handbook_1981.pdf
+
+# --- Prior art in source -------------------------------------------------------
+# MINIX 1.1 to 2.0.4.  Its kernel runs in 16-bit protected mode on the 286.
+git  prior-art/minix  de2d2a615df86ae4643effde5474c8b5b275d700  https://github.com/chenshuo/old-minix
+# 2.11BSD moved off the PDP-11 (to PIC32, then STM32): shows where the
+# machine-dependent seam falls.
+git  prior-art/retrobsd  e7a6580d755f2fa9675ac1313cad097dae8ffea0  https://github.com/RetroBSD/retrobsd
+git  prior-art/discobsd  2c841439f950d06f17a032046417b3d0c0de9169  https://github.com/chettrick/discobsd
+# 16-bit x86 Linux: AT drivers, boot code, ia16 toolchain use.
+git  prior-art/elks  9b3c134eaaa603656167e01c1c4e409f3c1bcc15  https://github.com/ghaerr/elks
+# Mark Williams Coherent, released 2015: a 286 Unix with its own compiler.
+git  prior-art/coherent  09796faea83e79c8d3dc6a8b2bcfa95000feadc7  https://github.com/OldRepoPreservation/coherent

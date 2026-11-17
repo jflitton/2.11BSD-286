@@ -1,0 +1,11 @@
+# Third-party material: fetched by tools/fetch-reference.py from the manifest.
+/reference/*
+!/reference/MANIFEST
+
+# Build output, disk images, emulator state.
+/obj/
+/images/
+/vm/
+
+__pycache__/
+.DS_Store
