@@ -305,4 +305,5 @@ controller is set; the driver has not run on one, nor on any real card.
 - The Internet checksum, mbuf copies and the network card's transfers in
   assembly ([memory model](memory-model.md)); the size of the mbuf pool,
   which could grow to fill the segment.
-- None of it has run on a real machine.
+- Most of it has run in the emulator only. The system has also been
+  logged in to over the network on a real machine.

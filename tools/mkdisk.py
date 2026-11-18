@@ -30,6 +30,9 @@ Each PARTITION is a letter from a to h, and WHAT is one of
 
     FILE            a file system image, as tools/mkfs.py makes
     swap:SECTORS    a swap area
+    fs:SECTORS      room for a file system, which the label says it is,
+                    for newfs to make one in; the kernel mounts only what
+                    the label says is a file system
     SECTORS         that much room and nothing in it
 
 They are laid out in the order given.  The first must be a: the label is
@@ -119,6 +122,8 @@ def main():
             sys.exit("the first partition must be a")
         if what.startswith("swap:") and what[5:].isdigit():
             psize, fstype = int(what[5:]), FS_SWAP
+        elif what.startswith("fs:") and what[3:].isdigit():
+            psize, fstype = int(what[3:]), FS_V71K
         elif what.isdigit():
             psize, fstype = int(what), FS_UNUSED
         else:

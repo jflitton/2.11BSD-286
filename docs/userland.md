@@ -21,14 +21,27 @@ are this system's to set up.
 
 What a user now expects and upstream's program does not do goes in a
 program of this port's own, beside upstream's rather than in its place,
-so that both are there. None is written yet. The first planned is an
-editor in the manner of `vim`, beside `vi`: one that fills a window of
-any size, where `vi` refuses a window bigger than its copy of the
-screen ("Screen too large for internal buffer"); whose Home and End go
-to the start and end of the line, where `vi`'s Home goes to the top of
-the screen and it knows no End; whose Page Up, Page Down, Delete and
-Insert work with no `.exrc`; and which knows the cursor keys in insert
-mode too.
+so that both are there. Each is in a directory of its own in
+`usr/src/i286`, and the Makefile lists them as `OWNPROGS`. The first is
+`adduser`. 2.11BSD has `adduser(8)` only as a manual page that says how
+to add a user by hand; `adduser` asks for the login name, full name,
+group, shell, home directory and uid, offering `staff`, `/bin/csh`,
+`/home/name` and the lowest uid from 100 that nobody has; has upstream's
+`chpass -a` add the entry, so that the password file is locked and its
+database made again as `vipw` does; makes the home directory with copies
+of the files in `/usr/skel`, all the user's; and runs `passwd`. The
+entry is added with the password `*`, which nothing matches, so that the
+account cannot be used until `passwd` has given it one. It is in C
+rather than the shell: the Bourne shell has no arithmetic, to find a
+free uid with, and `expr`, which has, is not built, since it is a `yacc`
+grammar and the tree's `yacc` does not run on the machines the system is
+built on. The next planned is an editor in the manner of `vim`, beside
+`vi`: one that fills a window of any size, where `vi` refuses a window
+bigger than its copy of the screen ("Screen too large for internal
+buffer"); whose Home and End go to the start and end of the line, where
+`vi`'s Home goes to the top of the screen and it knows no End; whose
+Page Up, Page Down, Delete and Insert work with no `.exrc`; and which
+knows the cursor keys in insert mode too.
 
 ## Building
 
@@ -191,18 +204,19 @@ they mean them.
 - a function used before it is declared `void` and then defined so.
 
 The usual case of the second is a `fatal(status, fmt, a)` called with
-more or fewer arguments; those became variadic, with `vfprintf`, and
+more or fewer arguments, as in `chown`, or `fsck`'s `errexit`, `pfatal`
+and `pwarn`; those became variadic, with `vfprintf` or `vprintf`, and
 `csh`'s `error` with a `vprintf` of its own. `ex`'s `error` takes a
 message and sometimes an argument, an `int` or a pointer, so it is
-variadic too. Where only trailing
-arguments that go unused were left out, as in `csh`'s `search` and
-`execute` and `telnet`'s `printoption` and `dosynch`, the calls pass
-them now; `telnet`'s `call`, which walks its arguments to the null that
-ends them, is variadic. A few of
-the disagreements were real bugs on any 16-bit machine, the PDP-11
-included: `dd` passed an `int` where `number()` takes a `long`, the XNS
-address parser passed an `int` where `cvtbase()` takes a `long`, and
-`srandom` was defined with a `long` and declared with an `unsigned`.
+variadic too. Where only trailing arguments that go unused were left
+out, as in `csh`'s `search` and `execute` and `telnet`'s `printoption`
+and `dosynch`, the calls pass them now; `telnet`'s `call`, which walks
+its arguments to the null that ends them, is variadic. `mkfs` passes a
+block of inodes to routines that take a `char *`, and casts it now. A
+few of the disagreements were real bugs on any 16-bit machine, the
+PDP-11 included: `dd` passed an `int` where `number()` takes a `long`,
+the XNS address parser passed an `int` where `cvtbase()` takes a `long`,
+and `srandom` was defined with a `long` and declared with an `unsigned`.
 `ex`'s `cerror`, for a bad regular expression, had a real bug of its own
 on the PDP-11. It took the message as a string, but `mkstr` gives it the
 message's offset in the file. It printed that offset with `"%s"`, which
@@ -251,6 +265,9 @@ a union (`bin/sh/mode.h`); the shell's few other such uses have casts.
   only and is for the 286 too. With the network compiled in, as now,
   `syslog` gets its socket, finds no `/dev/log` to connect it to, since
   `syslogd` is not built, and writes to the console instead.
+- **That the year begins with 19.** `chpass` showed a date as `19`
+  and the years since 1900, so 2026 as 19126, which it could not read
+  back; it shows the whole year now.
 - **That the password database exists.** With only the flat
   `master.passwd`, `getpwent` took the password from the start of the
   file, so root's was "root". It was meant for the ndbm files, where the
@@ -297,33 +314,60 @@ short `/.profile` for the single-user shell, which are upstream's
 (`usr/src/etc/root`), but for the erase character, which `.profile` and
 `.login` make ^H only on the console's screens ([the
 console](console.md)), and root's `.exrc`, this port's own
-(`usr/src/i286/root`); and `passwd`, `syserrlst` and the terminal
-capabilities, which the Makefile makes. As upstream has them, the
-capabilities are in `/usr/share/misc/termcap`, and `/etc/termcap` is a
-symbolic link to that file. Upstream's `rc` is the PDP-11's, with its
-buses and network interfaces, and calls much that is not built yet. This
-port's reads `/etc/rc.conf`, which names the machine and gives the
+(`usr/src/i286/root`); and what the Makefile makes: `syserrlst`, the
+terminal capabilities, and `passwd` with the password database. As
+upstream has them, the capabilities are in `/usr/share/misc/termcap`,
+and `/etc/termcap` is a symbolic link to that file. `fstab` names the
+disk the root is to be on: the Makefile makes it `wd0`, the first on the
+AT disk controller, unless `make root ROOTDISK=sd0` makes it the first
+SCSI disk. The database, `passwd.dir` and `passwd.pag`, is what
+`getpwnam` and the rest look users up in; without it they read
+`master.passwd`, which only root may, and nobody else can tell whose a
+file is. Upstream makes it and `passwd` with `mkpasswd -p
+master.passwd`; here `tools/mkpasswd.py` does, and writes the same bytes
+as `mkpasswd` on the 286, which `tests/system` checks. `/var/run/utmp`
+is there from the start and readable by all, as upstream installs it:
+otherwise `init` makes it under the kernel's umask, 026, and only root
+can run `who`. The root has a `lost+found`, as a file system `mkfs`
+makes does, a `/mnt`, and a `/home` for users. `/usr/skel` has a new
+user's `.profile`, `.cshrc` and `.login`, which `adduser` copies;
+upstream's `adduser(8)` names the directory but the tree has nothing in
+it, so these are this port's own (`usr/src/i286/skel`), root's without
+root's prompt and paths, and with the same erase character on the
+console's screens.
+
+Upstream's `rc` is the PDP-11's, with its buses and network interfaces,
+and calls much that is not built yet. This port's checks the file
+systems as upstream's does. At an automatic boot `fsck -p` checks each
+in `fstab` that was not unmounted cleanly, the root first and alone; if
+it had to change the root, which is mounted, `rc` starts the system
+again with `reboot -n`, so that nothing the kernel held of the old is
+written over what `fsck` wrote. From single user `rc` checks nothing,
+that having been done by hand. `mount -a` mounts the rest of `fstab`.
+Then `rc` reads `/etc/rc.conf`, which names the machine and gives the
 Ethernet interface's address, netmask and gateway, and runs
 `/etc/netstart`, which sets up the loopback interface and, if `rc.conf`
 gives an address, the Ethernet interface and the default route, as
 upstream's `rc.conf` and `netstart` do for the PDP-11's interfaces; as
 shipped there is no address, to be set for the machine. Then it starts
-`inetd`, whose `inetd.conf` is this port's own, as is a `hosts` that
-names only `localhost`; `services` and `protocols` are upstream's ([the
-network](network.md)).
+`update`, which has the kernel write what it holds for the disks every
+30 seconds, and `inetd`, whose `inetd.conf` is this port's own, as is a
+`hosts` that names only `localhost`; `services` and `protocols` are
+upstream's ([the network](network.md)).
 
-The programs: `init`, `getty`, `login`, `sh`, `csh`, `ls`, `cat`, `cp`, `mv`,
-`rm`, `ln`, `mkdir`, `rmdir`, `chmod`, `chgrp`, `cmp`, `dd`, `df`, `du`,
-`echo`, `ed`, `grep`, `kill`, `nice`, `od`, `pr`, `pwd`, `stty`, `sync`,
-`tee`, `test` (and `[`), `time`, `who`, `wall`, `write`, `date`,
-`hostname`, `hostid`, `pagesize`, `tcsh`, `/usr/bin/sleep`, and in
-`/sbin` `mount`, `umount`, `mknod`, `reboot` and `halt`. `/usr/ucb` has `ex`,
-`vi` and `view`, one file under three names, as upstream has them, and
-`/usr/sbin` has `exrecover` and `expreserve`. For the network there are
+The programs: `init`, `getty`, `login`, `sh`, `csh`, `ls`, `cat`, `cp`,
+`mv`, `rm`, `ln`, `mkdir`, `rmdir`, `chmod`, `chgrp`, `cmp`, `dd`, `df`,
+`du`, `echo`, `ed`, `grep`, `kill`, `nice`, `od`, `pr`, `pwd`, `stty`,
+`sync`, `tee`, `test` (and `[`), `time`, `who`, `wall`, `write`, `date`,
+`hostname`, `hostid`, `pagesize`, `passwd`, `chpass` (and `chfn` and
+`chsh`), `tcsh`, `/usr/bin/sleep`, and in `/sbin` `mount`, `umount`,
+`mknod`, `fsck`, `mkfs`, `newfs`, `mkpasswd`, `reboot` and `halt`.
+`/usr/ucb` has `ex`, `vi` and `view`, one file under three names, as
+upstream has them, and `/usr/sbin` has `update`, `vipw`, `chown`,
+`adduser`, `exrecover` and `expreserve`. For the network there are
 `ifconfig`, `ping` and `route` in `/sbin`, `inetd` in `/usr/sbin`,
-`telnetd` in
-`/usr/libexec` and `telnet` in `/usr/ucb`. `tools/mkfs.py` makes
-these other names as hard links, and also `[` and `halt`.
+`telnetd` in `/usr/libexec` and `telnet` in `/usr/ucb`. `tools/mkfs.py`
+makes these other names as hard links, and also `[` and `halt`.
 
 ## Following a program
 
@@ -356,38 +400,57 @@ group files, `gmtime` and `ctime`, directories, `errno` and `strerror`,
 `setenv`, `getopt`, `isatty` and `ttyname`, and `rand`.
 
 `tests/system` builds everything as for a real machine, puts the root
-file system and a swap area on an IDE disk shared by a partition table,
-and boots it with no diskette. The system goes multi-user, runs
-`/etc/rc` and `getty`; the test logs in as root on the first serial
-port, and in the shell makes a directory, copies and compares a file,
-runs a loop, a second shell and a pipeline, expands a pattern, and lists
-`/etc`. Then in `csh` it sets variables and a list and does arithmetic,
-runs a `foreach` typed a line at a time, repeats a command from the
-history, defines and uses an alias, tests files, reads `$status`, makes
-an error, uses `pushd`, puts a job in the background and kills it by its
-number, and times a command. Back in the shell it edits a new file with
-`ex`: it appends two lines, substitutes in one, makes a bad regular
-expression, which must give the message from `exstrings`, and writes the
-file. It has `ex -r` (`exrecover`) list the saved files, of which there
-must be none. In `vi`, on the serial port as a VT100, it opens a line at
-the end and types into it, deletes the first line, and writes the file,
-whose words the shell then prints. In `tcsh` it prints `$HOSTTYPE`,
-edits a line with the line editor, completes a file name, repeats the
-last command from the history with ^P, lists `/usr/ucb` with `ls-F`, and
-puts a job in the background, lists it and kills it. Then it logs in on
-two of the console's screens with the keyboard and uses `vi` there ([the
-console](console.md)). Back on the serial port it shows the loopback
-interface with `ifconfig`, pings it, and logs in over it with `telnet`,
-where `who` must show the login on `ttyp0` from `localhost`; it logs out
-with ^D, since `exit` in an interactive Bourne shell goes back to its
-prompt, as upstream's shell has it (`exitsh` in `bin/sh/error.c`), and
-`telnet` must report the connection closed. It sets up the Ethernet
-interface, an NE2000 of the emulator's on a network of its own, by
-reading `/etc/rc.conf` and running `/etc/netstart` with an address and a
-gateway given; pings the gateway; and adds the default route again,
-which `route` must refuse, `netstart` having added it. Meanwhile the
-host logs in over telnet through that network, where `who` must show the
-login from the gateway, and sends `/etc/services` three times into
+file system, a swap area and room for another file system on an IDE disk
+shared by a partition table, and boots it with no diskette. The root's
+superblock is not marked clean, as a power cut leaves it, so `/etc/rc`
+has `fsck` check it, which must mark it clean, and starts the system
+again; the second time the root must be clean, and `rc` must start
+`update` and `inetd`, which the console's screen shows. The system goes
+multi-user and runs `getty`; the test logs in as root on the first
+serial port, and in the shell makes a directory, copies and compares a
+file, runs a loop, a second shell and a pipeline, expands a pattern, and
+lists `/etc`. Then in `csh` it sets variables and a list and does
+arithmetic, runs a `foreach` typed a line at a time, repeats a command
+from the history, defines and uses an alias, tests files, reads
+`$status`, makes an error, uses `pushd`, puts a job in the background
+and kills it by its number, and times a command. Back in the shell it
+edits a new file with `ex`: it appends two lines, substitutes in one,
+makes a bad regular expression, which must give the message from
+`exstrings`, and writes the file. It has `ex -r` (`exrecover`) list the
+saved files, of which there must be none. In `vi`, on the serial port as
+a VT100, it opens a line at the end and types into it, deletes the first
+line, and writes the file, whose words the shell then prints. In `tcsh`
+it prints `$HOSTTYPE`, edits a line with the line editor, completes a
+file name, repeats the last command from the history with ^P, lists
+`/usr/ucb` with `ls-F`, and puts a job in the background, lists it and
+kills it. Then it logs in on two of the console's screens with the
+keyboard and uses `vi` there ([the console](console.md)). Back on the
+serial port it makes the password database from `master.passwd` with
+`mkpasswd`, which must be the same as the one on the disk; adds a user
+with `adduser`, taking what it offers but for the group, and gives it a
+password; and lists the home directory, where the files from `/usr/skel`
+must be the user's. It makes a file system in the spare partition with
+`newfs`, checks it with `fsck`, mounts it, copies files to it, unmounts
+it, and checks it twice more: `fsck -p` must leave it alone as clean,
+and `fsck -f` must find the files. It shows the loopback interface with
+`ifconfig`, pings it, and logs in over it with `telnet` as the new user,
+with a wrong password first, which must be refused. The user's shell is
+`csh`, which runs the `.cshrc` and `.login` from `/usr/skel`. `who` must
+show the login on `ttyp0` from `localhost`, and the user must be able to
+see who owns `/etc/passwd` and not to read `master.passwd`. The user
+changes the full name with `chfn`, editing with `ed`, which
+`/etc/passwd` must then show, and the password, which `passwd` must
+first ask for, and logs out with ^D; `telnet` must report the connection
+closed. Then the user logs in again with the new password, and out with
+^D. Root's telnet over the loopback interface logs out with ^D too,
+since `exit` in an interactive Bourne shell goes back to its prompt, as
+upstream's shell has it (`exitsh` in `bin/sh/error.c`). It sets up the
+Ethernet interface, an NE2000 of the emulator's on a network of its own,
+by reading `/etc/rc.conf` and running `/etc/netstart` with an address
+and a gateway given; pings the gateway; and adds the default route
+again, which `route` must refuse, `netstart` having added it. Meanwhile
+the host logs in over telnet through that network, where `who` must show
+the login from the gateway, and sends `/etc/services` three times into
 `cat`, which must give a file the same as the system's copies; then the
 system sends the first 20K of `/etc/termcap` back, which must arrive as
 it is ([the network](network.md)). That telnet says it is an
@@ -397,8 +460,8 @@ shell and then `vi`'s insert mode must obey, `vi` must draw its last
 line on the window's last, and in `vi` Home, End and Delete must go to
 the top line, go to the bottom one and delete a character. Last it runs
 `who`, and halts the machine with `reboot -h`. Afterwards
-`tools/fsck.py` must find nothing wrong with the file system and must
-find the copied file.
+`tools/fsck.py` must find nothing wrong with either file system, and
+must find the copied files.
 
 Not done, or not tested:
 
@@ -407,23 +470,26 @@ Not done, or not tested:
 - `csh`, `ex` and `tcsh` are the medium-model programs so far. The other
   12 that the PDP-11 overlays (`sendmail`, `named`, `uucp`, `jove`,
   `kermit` and some games) are the ones meant for it. `csh`'s file name
-  completion, and `csh` or `tcsh` as a login shell, with `.cshrc` and
-  `.login`, have not been tried.
+  completion, and `tcsh` as a login shell, have not been tried.
 - `ex`'s `preserve`, and the saving of an editor's file when its
   terminal hangs up, fail. `expreserve` saves the file and then mails
   its owner through `/bin/mail`, which is not built. That `mail` hands
   letters to `sendmail`, and it tells `comsat` of a new one over the
   network. So these wait for `mail` and `sendmail`.
 - Most programs are not built: of `/usr/bin` and `/usr/ucb` only
-  `sleep`, `ex` and `vi` (not `more`), and no `fsck`, `mkfs`, `ps`,
-  `mkpasswd`, `passwd`, `cron`, `syslogd` or `update`. Nothing checks the
-  file systems at boot. Of the network's, `route` is built without
+  `sleep`, `ex` and `vi` (not `more`), and no `ps`, `cron`, `syslogd`,
+  `swapon` or `disklabel`. With no `disklabel`, a partition can be made
+  a file system only where `tools/mkdisk.py` labelled it one: the kernel
+  mounts nothing else. Of the network's, `route` is built without
   `-f`, which reads the kernel's tables through `/dev/kmem` and `nlist`,
   and `netstat`, `arp`, `ftp` and the rest are not built.
+- `fsck` keeps its tables in what is left of 56K of data, as on the
+  PDP-11: room for a file system of about 40 MB with an inode for each
+  4K, `newfs`'s default. A bigger one needs a scratch file, `fsck -t`,
+  which `/etc/rc` names on the root.
 - A program that overflows its stack runs into its data without a fault
   ([processes](processes.md)).
 - With every call printed (`sctrace=2`), the kernel's printing can stall
   the serial port's interrupt-driven output, and the terminal stops.
-- A user other than root, and a password, have not been tried.
 - Most of it has run in the emulator only. The system has also booted
   on a real machine and been logged in to over the network.

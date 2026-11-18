@@ -109,9 +109,27 @@ inetd_SRCS=	usr.sbin/inetd/inetd.c
 route_SRCS=	sbin/route/route.c
 NETPROGS=	ifconfig ping route telnet telnetd inetd
 
+# Those that look after the file systems, the password file and users.
+update_SRCS=	usr.sbin/update/update.c
+fsck_SRCS=	$(addprefix sbin/fsck/,dir.c inode.c main.c pass1.c pass1b.c \
+		pass2.c pass3.c pass4.c pass5.c setup.c utilities.c)
+mkfs_SRCS=	sbin/mkfs/mkfs.c
+newfs_SRCS=	sbin/newfs/newfs.c
+passwd_SRCS=	bin/passwd/passwd.c
+mkpasswd_SRCS=	sbin/mkpasswd/mkpasswd.c
+vipw_SRCS=	usr.sbin/vipw/vipw.c
+chown_SRCS=	usr.sbin/chown/chown.c
+chpass_SRCS=	$(addprefix bin/chpass/,chpass.c field.c util.c)
+chpass_FLAGS=	-I$(SRC)/bin/chpass
+SYSPROGS=	update fsck mkfs newfs passwd mkpasswd vipw chown chpass
+
+# This port's own (docs/userland.md), each in a directory here.
+adduser_SRCS=	i286/adduser/adduser.c
+OWNPROGS=	adduser
+
 PROGS=	init getty login sh csh ls mkdir stty test hostname mknod mount \
 	umount reboot sleep ex exrecover expreserve tcsh $(BINSTD) \
-	$(NETPROGS)
+	$(NETPROGS) $(SYSPROGS) $(OWNPROGS)
 
 # The libraries the programs use besides the C library: NAME_LIB lists a
 # library's sources, and NAME_LIBFLAGS what it is compiled with.  Each is
@@ -125,7 +143,7 @@ LIBRARIES=	util termcap
 
 all:	$(addprefix $(O)/,$(PROGS))
 
-.PHONY:	all root clean
+.PHONY:	all root clean FORCE
 
 $(O) $(O)/log $(EXO) $(TCO):
 	mkdir -p $@
@@ -194,19 +212,31 @@ $(foreach l,$(LIBRARIES),$(foreach m,s m,$(eval $(call library,$(l),$(m)))))
 
 # The root file system, obj/root/root.fs, as root.proto lists it.  It
 # needs the kernel (../sys/PC) and /boot (../sys/i286stand) made first.
+# ROOTDISK is the disk it is to be on, for /etc/fstab: wd0, the first on
+# the AT disk controller, unless it is given, as sd0 is for the first
+# SCSI disk (make root ROOTDISK=sd0).
 R=	$(TOP)/obj/root
 ROOTSIZE= 4000
+ROOTDISK= wd0
 
 root:	$(R)/root.fs
 
 $(R):
 	mkdir -p $@
 
-# /etc/passwd is master.passwd without the passwords and the fields only
-# the master file has: class, change and expire.
-$(R)/passwd: $(SRC)/etc/master.passwd | $(R)
-	sed -E 's/^([^:]*):[^:]*:([^:]*):([^:]*):[^:]*:[^:]*:[^:]*:/\1:*:\2:\3:/' \
-	    $< > $@
+# /etc/passwd, which is master.passwd without the passwords and the
+# fields only the master file has, and the database that programs look
+# users up in, passwd.dir and passwd.pag: what mkpasswd -p makes.
+$(R)/passwd: $(SRC)/etc/master.passwd $(TOP)/tools/mkpasswd.py | $(R)
+	python3 -I $(TOP)/tools/mkpasswd.py $< $(R)
+$(R)/passwd.dir $(R)/passwd.pag: $(R)/passwd ;
+
+# fstab for ROOTDISK.  It is made each time and replaced only if it is
+# different, so that the file system is made again when ROOTDISK is.
+$(R)/fstab: etc/fstab FORCE | $(R)
+	sed 's,^/dev/wd0,/dev/$(ROOTDISK),' $< > $@.new
+	cmp -s $@.new $@ && rm $@.new || mv $@.new $@
+FORCE:
 
 $(R)/syserrlst: $(SRC)/usr.lib/liberrlst/errlst.c $(TOP)/tools/mkerrlst.py | $(R)
 	python3 -I $(TOP)/tools/mkerrlst.py $< $@
@@ -218,8 +248,10 @@ $(R)/termcap: $(wildcard $(SRC)/share/termcap/*) $(TOP)/tools/mktermcap.py \
 		| $(R)
 	python3 -I $(TOP)/tools/mktermcap.py $(SRC)/share/termcap $@
 
-$(R)/root.fs: root.proto $(wildcard etc/* root/*) $(addprefix $(O)/,$(PROGS)) \
-		$(R)/passwd $(R)/syserrlst $(R)/empty $(R)/termcap \
+$(R)/root.fs: root.proto $(wildcard etc/* root/* skel/*) \
+		$(addprefix $(O)/,$(PROGS)) \
+		$(R)/passwd $(R)/passwd.dir $(R)/passwd.pag $(R)/fstab \
+		$(R)/syserrlst $(R)/empty $(R)/termcap \
 		$(TOP)/obj/PC/unix $(TOP)/obj/stand/boot
 	python3 -I $(TOP)/tools/mkfs.py -s $(ROOTSIZE) root.proto $@
 

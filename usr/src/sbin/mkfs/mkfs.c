@@ -450,14 +450,14 @@ register struct inode *ip;
 		printf("ilist too small\n");
 		return;
 	}
-	rdfs(d, buf);
+	rdfs(d, (char *)buf);
 	dp = (struct dinode *)buf;
 	dp += itoo(ip->i_number);
 
 	dp->di_addr[0] = ip->i_addr[0];
 	dp->di_ic1 = ip->i_ic1;
 	dp->di_ic2 = ip->i_ic2;
-	wtfs(d, buf);
+	wtfs(d, (char *)buf);
 }
 
 #ifndef	STANDALONE

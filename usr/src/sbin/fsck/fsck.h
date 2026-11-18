@@ -217,6 +217,7 @@ struct	dinode	zino;
 #define	STOP	01
 
 time_t	time();
+int	errexit(char *, ...), pfatal(char *, ...), pwarn(char *, ...);
 DINODE	*ginode();
 BUFAREA	*getblk();
 int	findino();

@@ -3,7 +3,7 @@
 
 usage: runtest.py NAME SOURCE...
        runtest.py [--hd IMAGE,CYLINDERS,HEADS,SECTORS[,BUS]] [--until TEXT]
-                  [--net CARD[:PORT:IRQ]] [--term TYPE:COLSxROWS]
+                  [--resets N] [--net CARD[:PORT:IRQ]] [--term TYPE:COLSxROWS]
                   [--type AFTER TEXT | --key AFTER TEXT | --telnet AFTER TEXT]...
                   --boot NAME [EXECUTABLE [FILESYSTEM]]
 
@@ -28,20 +28,23 @@ itself.
 
 With --until the run does not end at the "@exit" line but when the program
 has written TEXT after it: a system has its disks to bring up to date
-before it stops, and says when it has.  With --type, once the machine has
-written AFTER to the serial port, TEXT and a carriage return are typed at
-it there; a second --type waits for its AFTER in what is written after
-that, and so on.  --key types on the keyboard instead, once the screen
-has changed since the last --key and shows AFTER just before the
-cursor, or, if AFTER begins with "*", once the rest of it is on the
-screen more often than it was when the last --key began.  TEXT is
-typed and then Return, except that a TEXT that is only a key's name in
-braces, such as {Alt-F2}, is that key alone; TEXT may name keys so
-anywhere (keyname() says which), and its control characters are typed
-with Ctrl.  Each screen a --key waited for is saved
-in screen.txt, and the last one when the run ends.  The steps are taken
-in the order given, whichever kind they are.  86Box with the automation
-socket only.
+before it stops, and says when it has.  With --resets the machine may be
+reset N times, as a system starting itself again does, before a reset ends
+the run; from each until the machine next writes to the serial port, which
+it does once the BIOS has done and the boot program runs, its exceptions
+and resets are the BIOS's and not counted.  With --type, once the machine
+has written AFTER to the serial port, TEXT and a carriage return are typed
+at it there; a second --type waits for its AFTER in what is written after
+that, and so on.  --key types on the keyboard instead, once the screen has
+changed since the last --key and shows AFTER just before the cursor, or,
+if AFTER begins with "*", once the rest of it is on the screen more often
+than it was when the last --key began.  TEXT is typed and then Return,
+except that a TEXT that is only a key's name in braces, such as {Alt-F2},
+is that key alone; TEXT may name keys so anywhere (keyname() says which),
+and its control characters are typed with Ctrl.  Each screen a --key
+waited for is saved in screen.txt, and the last one when the run ends.
+The steps are taken in the order given, whichever kind they are.  86Box
+with the automation socket only.
 
 With --net the machine has an NE1000 or NE2000 of 86Box's: CARD is its
 name there (novell_ne1k, ne1k, novell_ne2k, ne2k or ne2k8), at that I/O
@@ -168,6 +171,7 @@ def finished(text):
 
 
 UNTIL = None            # --until: what must follow the "@exit" line
+RESETS = 0              # --resets: how many resets are not failures
 TYPE = []               # --type, --key, --telnet: [kind, after, text]
 NET = None              # --net: (card, port, irq, the host's port)
 TERM = None             # --term: (type, columns, rows)
@@ -640,6 +644,8 @@ def run_86box_socket(box, img, out):
         pos = 0
         typist = Typist()
         tel = None
+        resets = RESETS
+        booting = None          # where the serial output was at a reset
         screens = open(os.path.join(out, "screen.txt"), "w", encoding="utf-8")
         def keep(rows):
             screens.write("".join(r.rstrip() + "\n" for r in rows) + "=" * 80 + "\n")
@@ -670,8 +676,16 @@ def run_86box_socket(box, img, out):
                 if data:
                     tel.send(data)
             evs, scan = events(auto, scan)
+            if booting is not None:
+                if len(raw) > booting:
+                    booting, mark = None, scan
+                evs = None
             if any(e["type"] == "reset" and not bios_move(e) for e in evs or []):
-                seen = "the machine was reset\n" + describe(auto, mark)
+                if resets:
+                    resets -= 1
+                    booting = len(raw)
+                else:
+                    seen = "the machine was reset\n" + describe(auto, mark)
             elif late:
                 seen = describe(auto, mark)
         if typist.before is not None:
@@ -758,7 +772,7 @@ def run_86box(img, out):
 
 
 def main():
-    global HD, UNTIL, NET, TERM
+    global HD, UNTIL, RESETS, NET, TERM
     emu = os.environ.get("EMU", "86box")
     if emu not in ("86box", "qemu"):
         sys.exit("EMU must be 86box or qemu")
@@ -776,6 +790,12 @@ def main():
         del sys.argv[1:3]
     if len(sys.argv) > 2 and sys.argv[1] == "--until":
         UNTIL = sys.argv[2]
+        del sys.argv[1:3]
+    if len(sys.argv) > 2 and sys.argv[1] == "--resets":
+        try:
+            RESETS = int(sys.argv[2])
+        except ValueError:
+            sys.exit(__doc__)
         del sys.argv[1:3]
     if len(sys.argv) > 2 and sys.argv[1] == "--net":
         try:

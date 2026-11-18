@@ -1,24 +1,66 @@
 #!/bin/sh
 # /etc/rc for the 286.  init runs it as the system goes multi-user, with
-# "autoboot" when the machine has come up by itself.  If it fails, init
-# goes to single user.
+# "autoboot" when the machine has come up by itself, or "fastboot" when
+# it comes from single user.  If it fails, init goes to single user.
 #
 # Upstream's ../../etc/rc is the PDP-11's (its buses, its network
-# interfaces) and calls much that is not built here yet: fsck, swapon,
-# syslogd, cron.
+# interfaces) and calls much that is not built here yet: swapon,
+# syslogd, cron.  What this does of it, it does as that does.
 
 HOME=/; export HOME
 PATH=/bin:/sbin:/usr/sbin:/usr/bin; export PATH
 
-if [ "$1" = autoboot ]
+if [ "$1" = fastboot ]
 then
-	echo Automatic boot in progress...	>/dev/console 2>&1
+	echo ''
+	echo Fast boot ... skipping disk checks		>/dev/console 2>&1
+elif [ "$1" = autoboot ]
+then
+	echo Automatic boot in progress...		>/dev/console 2>&1
+	date						>/dev/console 2>&1
+	# The file systems in /etc/fstab, the root alone first.  fsck
+	# leaves alone one that was unmounted cleanly; if it has to
+	# change the root, which is mounted, the system must start again
+	# without writing over what fsck wrote.  The scratch file is for a
+	# file system too big for fsck's memory, and so never the root's.
+	fsck -p -t /_FSCK_TMP_FILE			>/dev/console 2>&1
+	case $? in
+	0)
+		date					>/dev/console 2>&1
+		;;
+	2)
+		exit 1
+		;;
+	4)
+		reboot -n
+		;;
+	8)
+		echo "Automatic reboot failed... help!"	>/dev/console 2>&1
+		exit 1
+		;;
+	12)
+		echo "Reboot interrupted"		>/dev/console 2>&1
+		exit 1
+		;;
+	*)
+		echo "Unknown error in reboot"		>/dev/console 2>&1
+		exit 1
+		;;
+	esac
 fi
 
-# nothing checks the file systems yet
+# attempt to rationally recover the passwd file if needed
+if [ -s /etc/ptmp ]
+then
+	echo 'password file may be incorrect' > /dev/console
+fi
+
+# What /etc/fstab lists besides the root, which is mounted again with
+# the options it gives.
+umount -a
+mount -a					>/dev/console 2>&1
 
 rm -f /etc/nologin
-: >/etc/utmp
 
 # The network, as /etc/rc.conf describes it (/etc/netstart), and inetd,
 # which answers telnet (/etc/inetd.conf).
@@ -27,7 +69,11 @@ then
 	. /etc/rc.conf
 fi
 . /etc/netstart
-inetd						>/dev/console 2>&1
+
+echo -n standard daemons:			>/dev/console 2>&1
+update;		echo -n ' update'		>/dev/console 2>&1
+inetd;		echo -n ' inetd'		>/dev/console 2>&1
+echo '.'					>/dev/console 2>&1
 
 date						>/dev/console 2>&1
 exit 0

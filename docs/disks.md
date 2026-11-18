@@ -132,8 +132,8 @@ adapter and `sd.c` the disks on it.
 ## Tools
 
 `tools/mkdisk.py` makes a disk image: a geometry, a partition table or
-none, a label, partitions filled from file system images, and the
-sectors that boot it.
+none, a label, partitions filled from file system images or left for a
+file system that `newfs` is to make, and the sectors that boot it.
 `tools/fsck.py` checks a file system in an image, or in a partition of a
 disk image, without changing it, and can print a file from it. It is how
 the tests see what the kernel left on a disk.
@@ -191,4 +191,9 @@ Not done, or not tested:
 - No crash dump is written to a disk.
 - Nothing inside the system installs the boot block or `/boot`; only
   `tools/mkdisk.py` does, on an image.
-- All of it has run in the emulator only.
+- Nothing inside the system changes a label either: there is no
+  `disklabel`. The kernel mounts only a partition that the label says
+  is a 2.11BSD file system, so what `newfs` makes can be mounted only
+  where `tools/mkdisk.py` left room for one with `fs:`.
+- Most of it has run in the emulator only. The system has also booted
+  on a real machine from a SCSI disk.

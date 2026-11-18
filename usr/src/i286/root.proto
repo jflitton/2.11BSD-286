@@ -3,7 +3,8 @@
 # directory: the programs as obj/bin has them, the kernel and /boot as
 # their own Makefiles make them, /etc from ../etc (upstream's) or etc
 # (this port's own), root's files from ../etc/root (upstream's) or root
-# (this port's own), and what the Makefile makes in obj/root.
+# (this port's own), a new user's from skel (this port's own), and what
+# the Makefile makes in obj/root.
 d /bin 755
 d /sbin 755
 d /etc 755
@@ -22,6 +23,10 @@ d /usr/adm 755
 d /usr/tmp 1777
 d /var 755
 d /var/run 755
+d /lost+found 755
+d /mnt 755
+d /home 755
+d /usr/skel 755
 f /unix 644 ../../../obj/PC/unix
 f /boot 644 ../../../obj/stand/boot
 f /etc/init 700 ../../../obj/bin/init
@@ -29,7 +34,7 @@ f /etc/rc 644 etc/rc
 f /etc/rc.conf 644 etc/rc.conf
 f /etc/netstart 644 etc/netstart
 f /etc/ttys 644 etc/ttys
-f /etc/fstab 644 etc/fstab
+f /etc/fstab 644 ../../../obj/root/fstab
 f /etc/motd 644 etc/motd
 f /etc/gettytab 644 ../etc/gettytab
 f /.profile 644 ../etc/root/dot.minimal
@@ -37,6 +42,9 @@ f /root/.profile 644 ../etc/root/dot.profile
 f /root/.cshrc 644 ../etc/root/dot.cshrc
 f /root/.login 644 ../etc/root/dot.login
 f /root/.exrc 644 root/dot.exrc
+f /usr/skel/.profile 644 skel/dot.profile
+f /usr/skel/.cshrc 644 skel/dot.cshrc
+f /usr/skel/.login 644 skel/dot.login
 f /etc/master.passwd 600 ../etc/master.passwd
 f /etc/group 644 ../etc/group
 f /etc/shells 644 ../etc/shells
@@ -45,11 +53,13 @@ f /etc/inetd.conf 644 etc/inetd.conf
 f /etc/services 644 ../etc/services
 f /etc/protocols 644 ../etc/protocols
 f /etc/passwd 644 ../../../obj/root/passwd
+f /etc/passwd.dir 644 ../../../obj/root/passwd.dir
+f /etc/passwd.pag 644 ../../../obj/root/passwd.pag
 f /etc/syserrlst 644 ../../../obj/root/syserrlst
 f /etc/tcsh6.00strgs 444 ../../../obj/tcsh/tcsh6.00strgs
 f /usr/share/misc/termcap 444 ../../../obj/root/termcap
 l /etc/termcap ../usr/share/misc/termcap
-f /etc/utmp 644 ../../../obj/root/empty
+f /var/run/utmp 644 ../../../obj/root/empty
 f /usr/adm/wtmp 644 ../../../obj/root/empty
 f /usr/adm/lastlog 644 ../../../obj/root/empty
 f /usr/adm/messages 644 ../../../obj/root/empty
@@ -92,6 +102,10 @@ f /bin/time 755 ../../../obj/bin/time
 f /bin/who 755 ../../../obj/bin/who
 f /bin/wall 755 ../../../obj/bin/wall
 f /bin/write 755 ../../../obj/bin/write
+f /bin/passwd 4755 ../../../obj/bin/passwd
+f /bin/chpass 4755 ../../../obj/bin/chpass
+h /bin/chfn /bin/chpass
+h /bin/chsh /bin/chpass
 h /bin/[ /bin/test
 f /usr/bin/sleep 755 ../../../obj/bin/sleep
 f /usr/ucb/ex 1755 ../../../obj/bin/ex
@@ -105,6 +119,14 @@ f /sbin/mount 755 ../../../obj/bin/mount
 f /sbin/umount 755 ../../../obj/bin/umount
 f /sbin/reboot 755 ../../../obj/bin/reboot
 f /sbin/mknod 755 ../../../obj/bin/mknod
+f /sbin/fsck 755 ../../../obj/bin/fsck
+f /sbin/mkfs 755 ../../../obj/bin/mkfs
+f /sbin/newfs 755 ../../../obj/bin/newfs
+f /sbin/mkpasswd 755 ../../../obj/bin/mkpasswd
+f /usr/sbin/update 755 ../../../obj/bin/update
+f /usr/sbin/vipw 755 ../../../obj/bin/vipw
+f /usr/sbin/chown 755 ../../../obj/bin/chown
+f /usr/sbin/adduser 755 ../../../obj/bin/adduser
 f /sbin/ifconfig 755 ../../../obj/bin/ifconfig
 f /sbin/ping 4755 ../../../obj/bin/ping
 f /sbin/route 755 ../../../obj/bin/route

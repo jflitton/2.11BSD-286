@@ -25,6 +25,9 @@ static char sccsid[] = "@(#)chown.c	5.6.2 (2.11BSD) 2026/2/1";
 #include <sys/dir.h>
 #include <grp.h>
 #include <strings.h>
+#include <stdarg.h>
+
+int	fatal(int, char *, ...);
 
 static	char	*fchdirmsg = "Can't fchdir() back to starting directory";
 struct	passwd *pwd;
@@ -168,25 +171,15 @@ chownr(dir, uid, gid, savedir)
 	return (ecode);
 }
 
-error(fmt, a)
-	char *fmt, *a;
+fatal(int status, char *fmt, ...)
 {
+	va_list ap;
 
-	if (!fflag) {
-		fprintf(stderr, "chown: ");
-		fprintf(stderr, fmt, a);
-		putc('\n', stderr);
-	}
-	return (!fflag);
-}
-
-fatal(status, fmt, a)
-	int status;
-	char *fmt, *a;
-{
-
-	fflag = 0;
-	(void) error(fmt, a);
+	fprintf(stderr, "chown: ");
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
+	putc('\n', stderr);
 	exit(status);
 }
 

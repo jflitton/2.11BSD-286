@@ -10,6 +10,7 @@ static char sccsid[] = "@(#)utilities.c	5.3 (2.11BSD) 2019/11/18";
 
 #include <stdio.h>
 #include <ctype.h>
+#include <stdarg.h>
 #include <sys/param.h>
 #include <sys/inode.h>
 #include <sys/fs.h>
@@ -368,11 +369,13 @@ dofix(idesc, msg)
 	/* NOTREACHED */
 }
 
-/* VARARGS1 */
-errexit(s1, s2, s3, s4)
-	char *s1;
+errexit(char *s1, ...)
 {
-	printf(s1, s2, s3, s4);
+	va_list ap;
+
+	va_start(ap, s1);
+	vprintf(s1, ap);
+	va_end(ap);
 	exit(8);
 }
 
@@ -380,34 +383,36 @@ errexit(s1, s2, s3, s4)
  * An inconsistency occured which shouldn't during normal operations.
  * Die if preening, otherwise just printf.
  */
-/* VARARGS1 */
-pfatal(s, a1, a2, a3, a4)
-	char *s;
+pfatal(char *s, ...)
 {
+	va_list ap;
 
+	va_start(ap, s);
 	if (preen) {
 		printf("%s: ", devname);
-		printf(s, a1, a2, a3, a4);
+		vprintf(s, ap);
 		printf("\n");
 		printf("%s: UNEXPECTED INCONSISTENCY; RUN fsck MANUALLY.\n",
 			devname);
 		exit(8);
 	}
-	printf(s, a1, a2, a3, a4);
+	vprintf(s, ap);
+	va_end(ap);
 }
 
 /*
  * Pwarn is like printf when not preening,
  * or a warning (preceded by filename) when preening.
  */
-/* VARARGS1 */
-pwarn(s, a1, a2, a3, a4, a5, a6)
-	char *s;
+pwarn(char *s, ...)
 {
+	va_list ap;
 
 	if (preen)
 		printf("%s: ", devname);
-	printf(s, a1, a2, a3, a4, a5, a6);
+	va_start(ap, s);
+	vprintf(s, ap);
+	va_end(ap);
 }
 
 stype(p)
