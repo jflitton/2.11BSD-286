@@ -9,13 +9,14 @@
 ; This asks the BIOS how much memory there is, opens address line 20,
 ; describes the kernel's segments in the global descriptor table, moves
 ; the interrupt controllers' vectors clear of the processor's exceptions,
-; enters protected mode and calls main.  Everything before the mode switch
+; enters protected mode and calls main, and when main returns starts the
+; first process.  Everything before the mode switch
 ; uses near jumps and calls only: the far addresses in the kernel are
 ; protected-mode selectors, which mean nothing yet.
 
 %include "mch_defs.inc"
 
-        extern  _main
+        extern  _main, trapret
         extern  _idt:wrt DGROUP
         global  _bootinfo, _basemem, _extmem, _gdt, _ktss
 
@@ -170,7 +171,7 @@ pmode:  mov     ax, DGROUP
         mov     ds, ax
         mov     es, ax
         mov     ss, ax
-        mov     sp, bootstack
+        mov     sp, bootstack - TF_SIZE ; below the first process's frame
         mov     [_ktss + TS_SS0], ax
         mov     word [_ktss + TS_SP0], bootstack
         xor     ax, ax
@@ -180,8 +181,12 @@ pmode:  mov     ax, DGROUP
         fninit
         fsetpm                  ; the 287 has a mode of its own
         call    far _main
-.halt:  hlt
-        jmp     .halt
+
+; main returns when there is a first process to run.  It has filled in
+; the frame at the top of the kernel stack, as if that process had been
+; interrupted; resume it.  The stack pointer is at that frame again.
+        cli
+        jmp     trapret
 
 noa20:  db      "unix: cannot enable address line 20", 13, 10, 0
 

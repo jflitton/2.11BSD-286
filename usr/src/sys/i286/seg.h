@@ -18,6 +18,25 @@
 #define	SEL(slot)	((slot) << 3)	/* slot to selector, ring 0 */
 
 /*
+ * A process's segments are in its own local descriptor table, and their
+ * selectors are written into the program when it is linked: segment N of
+ * the executable, counting from 1, is slot N.
+ */
+#define	LSEL(slot)	(((slot) << 3) | 7)	/* in the LDT, ring 3 */
+
+/*
+ * An address in a process: a selector and an offset.  The kernel's own
+ * pointers are near, so this is the only kind that can hold one.  It is
+ * not for dereferencing: copyin and copyout do that, with the process's
+ * privilege and ready for the fault.  A kernel address converts to one by
+ * assignment, which is what lets a struct uio point at either.
+ */
+typedef	char __far	*uaddr_t;
+#define	UADDR(sel, off)	((uaddr_t)(((unsigned long)(sel) << 16) | (unsigned)(off)))
+#define	USEL(ua)	((unsigned)((unsigned long)(ua) >> 16))
+#define	UOFF(ua)	((unsigned)(unsigned long)(ua))
+
+/*
  * A segment descriptor as the 286 has it.
  */
 struct segdesc {
@@ -34,6 +53,8 @@ struct segdesc {
 #define	SD_S		0x10		/* code or data, not a system segment */
 #define	SD_CODE		0x9B		/* ring 0 code, readable */
 #define	SD_DATA		0x93		/* ring 0 data, writable */
+#define	SD_UCODE	0xFB		/* ring 3 code, readable */
+#define	SD_UDATA	0xF3		/* ring 3 data, writable */
 #define	SD_TSS		0x81		/* task state segment, not busy */
 #define	SD_LDT		0x82		/* local descriptor table */
 #define	SD_INTGATE	0x86		/* gate that turns interrupts off */

@@ -71,6 +71,9 @@ The same sector starts the real-mode test programs of `tests/harness`;
    make a far jump, which loads CS with a selector for the first time.
 8. Load DS, ES and SS with the data segment's selector, load the task
    register, put the 287 into protected mode, and call `main`.
+9. When `main` returns, resume the frame at the top of the kernel stack,
+   which `main` has made the first process's
+   ([processes](processes.md)).
 
 Everything up to step 7 is written with near jumps and calls only. Far
 addresses inside the kernel are protected-mode selectors, written in when
@@ -97,14 +100,15 @@ into the kernel.
 
 ## Exceptions and interrupts (`sys/i286/mch_trap.s`)
 
-The interrupt descriptor table has 48 gates: the processor's exceptions at
-0 to 16, and the 16 interrupt requests at 32 to 47. It is assembled as
-data, complete, so no code runs to fill it in. Every gate turns interrupts
-off.
+The interrupt descriptor table has 49 gates: the processor's exceptions at
+0 to 16, the 16 interrupt requests at 32 to 47, and the system call at 48.
+It is assembled as data, complete, so no code runs to fill it in. Every
+gate but the system call's turns interrupts off.
 
 Each vector pushes its number, and an error code of 0 if the processor
 pushed none, and joins a common path that saves the registers, loads DS
-and ES with the kernel's data segment and calls `trap(frame)`. The frame,
+and ES with the kernel's data segment and calls `trap(frame)`, or
+`syscall(frame)` for the system call. The frame,
 `struct trapframe` in `sys/i286/frame.h`, is on the kernel stack. Because
 that stack is inside the kernel's data segment, `frame` is an ordinary
 near pointer, and whatever `trap` changes in it is what the interrupted
@@ -112,9 +116,6 @@ code resumes with.
 
 ## Not done yet
 
-- Entering from a process: a ring 3 code segment, the stack switch through
-  the task state segment, system calls.
-- The system call gate and its vector.
 - 287 errors, which reach an AT-compatible machine as interrupt request 13
   and not as exception 16.
 - A console on the display and keyboard. `sys/i286/cons.c` writes to the

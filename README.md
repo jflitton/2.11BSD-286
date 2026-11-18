@@ -34,7 +34,7 @@ Where the 286 code goes, beside its PDP-11 counterpart in each case:
 
 | new | beside | holds |
 |-----|--------|-------|
-| `usr/src/sys/i286/` | `pdp/` | startup, traps, segments and tasks, 287, copy routines; the first two exist |
+| `usr/src/sys/i286/` | `pdp/` | startup, traps, system call entry, copy routines, segments and tasks, 287; the first four exist |
 | `usr/src/sys/i286at/` | `pdpuba/` | AT-bus drivers: SCSI, console, serial, clock; to come |
 | `usr/src/sys/i286if/` | `pdpif/` | network interfaces; to come |
 | `usr/src/sys/i286stand/` | `pdpstand/`, `mdec/` | boot blocks and standalone programs; the diskette boot sector exists |
@@ -161,6 +161,7 @@ serial port and takes the `@exit` line it ends with as the result.
 . tools/env.sh
 tests/crt/run.sh        # the compiler's helper routines: 5,161 checks
 tests/pm/run.sh         # the kernel's start-up and trap entry: 52 checks
+tests/user/run.sh       # a process in ring 3: 58 checks
 ```
 
 - `tests/crt` is a small-model program in real mode, built through the
@@ -172,6 +173,12 @@ tests/pm/run.sh         # the kernel's start-up and trap entry: 52 checks
   code segments, the far versions of the helper routines, that each kind of
   protection fault arrives as the right exception and can be returned from,
   memory above 1M, the clock interrupt and the 287.
+- `tests/user` is two programs. A small-model one runs as a process in
+  ring 3: it makes system calls, passes the kernel addresses it has no
+  right to, and tries everything a process must not do. A medium-model
+  one is the kernel under it, with the kernel's own entry and copy
+  routines and a stand-in for `trap` and `syscall`; it carries the first
+  as data, there being no file system yet.
 
 The emulator is [86Box](https://github.com/86Box/86Box), as an IBM PS/2
 Model 30 286 with a 287 (`tests/harness/86box.cfg`): a real 286, which
@@ -210,7 +217,8 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   [memory model](docs/memory-model.md),
   [calling convention and kernel interface](docs/abi.md),
   [executable format](docs/executable-format.md),
-  [booting](docs/boot.md).
+  [booting](docs/boot.md),
+  [processes](docs/processes.md).
 - A C program can be compiled, linked, converted to the executable format
   and run in an emulated PS/2 Model 30 286.
 - The helper routines compiled code calls for 32-bit multiply and divide
@@ -223,6 +231,11 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   mode with the descriptor tables in place, takes exceptions and
   interrupts, and calls C ([booting](docs/boot.md)). The diskette boot
   sector and the start-up have not run on the real machine.
-- Nothing machine-independent is ported yet. Next: enter and leave ring 3
-  (a process's segments in a local descriptor table, system call entry),
-  then compile `sys/sys` against the new machine headers.
+- A process runs in ring 3 with its segments in a local descriptor table,
+  makes system calls, and is stopped by the processor from everything it
+  must not do; the kernel copies to and from it with the process's own
+  privilege ([processes](docs/processes.md)). One process, and a stand-in
+  for the system call table.
+- Nothing machine-independent is ported yet. Next: compile `sys/sys`
+  against the new machine headers, starting with the user address type in
+  the system call argument structures.

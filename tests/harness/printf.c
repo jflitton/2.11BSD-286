@@ -1,6 +1,7 @@
 /*
  * A small printf for the tests: %d %u %x %o %c %s, with l for long and a
- * field width.  The kernel's own comes with the rest of sys/kern.
+ * field width.  It writes with cnputc(c), which the program supplies.
+ * The kernel's own printf comes with the rest of sys/kern.
  */
 static
 printn(n, base, width)

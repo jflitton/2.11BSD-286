@@ -1,5 +1,5 @@
-; Conventions and constants for the kernel's assembly (NASM).  seg.h and
-; frame.h say the same to the compiler; change both.
+; Conventions and constants for the kernel's assembly (NASM).  seg.h,
+; frame.h and trap.h say the same to the compiler; change both.
 ;
 ; The kernel is medium model: C functions are called far and return far,
 ; and DS and SS are always the kernel's one data segment.
@@ -16,10 +16,19 @@ NGDT            equ     GDT_KERNEL + NKSEG
 SD_CODE         equ     0x9B
 SD_DATA         equ     0x93
 SD_TSS          equ     0x81
-SD_INTGATE      equ     0x86
+SD_INTGATE      equ     0x86    ; gate that turns interrupts off
+SD_TRAPGATE     equ     0x87    ; gate that leaves them as they were
+SD_USER         equ     0x60    ; added to a gate: a process may use it
 
-NIDT            equ     48      ; exceptions, then 16 interrupt requests
-T_IRQ0          equ     32
+T_BPT           equ     3
+T_OFLOW         equ     4
+T_IRQ0          equ     32      ; the 16 interrupt requests
+T_SYSCALL       equ     48
+NIDT            equ     49
+
+TF_SIZE         equ     32      ; struct trapframe (frame.h)
+
+EFAULT          equ     14      ; h/errno.h
 
 ; struct bootinfo (boot.h)
 BI_NSEG         equ     2

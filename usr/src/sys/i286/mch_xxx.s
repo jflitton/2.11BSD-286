@@ -50,3 +50,9 @@ ENTRY idle
         sti
         hlt
         retf
+
+; lldt(selector): make a segment the local descriptor table.
+ENTRY lldt
+        mov     bx, sp
+        lldt    [bx+4]
+        retf

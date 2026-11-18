@@ -10,6 +10,7 @@
 #include "seg.h"
 #include "boot.h"
 #include "frame.h"
+#include "trap.h"
 
 extern long	farmul();
 
@@ -70,6 +71,14 @@ trap(tf)
 	printf("ax %x bx %x cx %x dx %x si %x di %x bp %x ds %x es %x\n",
 	    tf->tf_ax, tf->tf_bx, tf->tf_cx, tf->tf_dx, tf->tf_si,
 	    tf->tf_di, tf->tf_bp, tf->tf_ds, tf->tf_es);
+	done(0xFF);
+}
+
+/* Nothing here makes a system call. */
+syscall(tf)
+	struct trapframe *tf;
+{
+	printf("unexpected system call at %x:%x\n", tf->tf_cs, tf->tf_ip);
 	done(0xFF);
 }
 

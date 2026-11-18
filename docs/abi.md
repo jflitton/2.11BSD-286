@@ -2,8 +2,9 @@
 
 Decided November 2026. The calling convention and the helper routines run
 under the tests: `tests/crt` in real mode with near calls, `tests/pm` in
-protected mode with far ones. The system call interface and the user
-address type are not implemented yet.
+protected mode with far ones. The system call entry and the user address
+type run under `tests/user`, with a stand-in for the kernel's system call
+table; [processes](processes.md) describes them as built.
 
 ## C calling convention
 
@@ -63,25 +64,58 @@ caller's caller in that case.
 
 ## System calls
 
-A program enters the kernel with a software interrupt, the call number in
-AX and the arguments on its own stack as for a C call. A 286 call gate was
-the alternative; it can copy arguments to the kernel stack itself, but the
-cost comes out within a few clocks of the interrupt (about 133 against
-137 plus 4 for each argument word), and an interrupt frame is the simpler
-thing for signals and restarted calls.
+A program enters the kernel with a software interrupt, `INT 30h`: the call
+number in AX and the arguments in BX, CX, DX, SI, DI and BP, a pointer
+always as offset and selector. The result comes back in AX or DX:AX with
+the carry flag clear, or an error number in AX with it set.
+[Processes](processes.md) has the details.
+
+Arguments were first left on the program's stack, as 2.11BSD has them on
+the PDP-11, for the kernel to copy in. Registers are the better fit here:
+the kernel gets the arguments for nothing, already in the frame it saves,
+and it no longer needs to know a program's memory model to find them or to
+widen a 16-bit pointer.
+
+A 286 call gate was the alternative to the interrupt. It can copy
+arguments to the kernel stack itself, but with arguments in registers
+that buys nothing, and an interrupt frame is the simpler thing for signals
+and restarted calls.
+
+## What is kept from the PDP-11 system, and what is not
+
+Kept, because code outside the machine-dependent layer depends on it:
+
+- The system calls themselves, their numbers and what they do: the whole
+  of the user-level source is written to them.
+- The names and meanings of what the shared kernel code calls and
+  includes: `copyin`, `copyout`, `spl`, `machine/seg.h` and the rest.
+  Keeping them keeps that code close to upstream, whose patches are diffs
+  to it.
+- A symbol table `nlist` can read.
+
+Not kept: anything that was the PDP-11's own answer to a hardware
+question. Argument passing, the layout of a process's memory, the units
+memory is counted in, the clock rate, the executable format and how the
+kernel reaches memory outside its data segment are all decided for the
+286. Where shared code assumes the PDP-11's answer, that code changes.
 
 ## User addresses in the kernel
 
 The kernel's own pointers are 16 bits. A large-model program's pointers
 are 32, a selector and an offset. The PDP-11 code uses one type,
 `caddr_t`, for both kinds of address; here an address in user memory is a
-type of its own, 32 bits wide, everywhere one flows: system call argument
+type of its own, `uaddr_t`, 32 bits wide, everywhere one flows: system call argument
 structures, `copyin` and `copyout` and their relatives, `struct uio` and
 `struct iovec`, and the pathname argument to `namei`.
 
-A small- or medium-model program passes 16-bit data pointers. They are
-widened with the process's data selector on entry to the kernel, so the
-rest of the kernel sees one form.
+A small- or medium-model program's own data pointers are 16 bits. Its
+system call stubs pass each with the data segment's selector, so the
+kernel sees one form.
+
+`uaddr_t` is a far pointer, not an integer. The compiler then keeps the
+selector and offset apart, adds to the offset alone, and turns a kernel
+address into one by assignment. The kernel does not dereference it:
+`copyin` and `copyout` do, with the process's privilege.
 
 This is done from the start. The kernel has 93 system call argument
 structures and about 144 calls to the copy routines; introducing the type

@@ -22,7 +22,7 @@ for f in "$sys/mch_start.s" "$sys/mch_trap.s" "$sys/mch_xxx.s" \
     nasm -f obj -DFAR -I "$sys/" -I "$crt/" -o "$o" "$f"
     objs="$objs,$o"
 done
-for f in "$sys/cons.c" "$top/tests/pm/printf.c" "$top/tests/pm/pm_test.c" \
+for f in "$sys/cons.c" "$top/tests/harness/printf.c" "$top/tests/pm/pm_test.c" \
     "$top/tests/pm/pm_far.c"; do
     o=$(basename "$f" .c).o
     "$top/tools/cc286" -mm -wcd=131 -wcd=107 -I"$sys" -o "$o" "$f"
