@@ -177,7 +177,6 @@ physio(strat, bp, dev, rw, uio)
 			bp->b_xmem = hiint(paddr);
 			bp->b_blkno = uio->uio_offset >> PGSHIFT;
 			bp->b_bcount = iov->iov_len;
-			c = bp->b_bcount;
 			(*strat)(bp);
 			s = splbio();
 			while ((bp->b_flags & B_DONE) == 0)
@@ -185,13 +184,20 @@ physio(strat, bp, dev, rw, uio)
 			if (bp->b_flags & B_WANTED)	/* rare */
 				wakeup((caddr_t)bp);
 			splx(s);
-			c -= bp->b_resid;
+			/*
+			 * How much was moved: counted from b_bcount as
+			 * it is now, since the driver makes that less
+			 * for a transfer that runs off the end of a
+			 * partition (partition_check).
+			 */
+			c = (bp->b_flags & B_ERROR) ? 0 :
+			    bp->b_bcount - bp->b_resid;
 			iov->iov_base += c;
 			iov->iov_len -= c;
 			uio->uio_resid -= c;
 			uio->uio_offset += c;
 			/* temp kludge for tape drives */
-			if (bp->b_resid || (bp->b_flags & B_ERROR))
+			if (bp->b_resid || c == 0 || (bp->b_flags & B_ERROR))
 				break;
 		}
 		bp->b_flags &= ~(B_BUSY|B_WANTED);

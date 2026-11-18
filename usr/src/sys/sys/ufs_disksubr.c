@@ -385,7 +385,7 @@ partition_check(bp, dk)
 			bp->b_error = EINVAL;
 			goto bad;
 			}
-		bp->b_bcount = dbtob(sz);	/* compute byte count */
+		bp->b_bcount = sz << 9;		/* sectors, not blocks */
 		}
 /*
  * Check for write to write-protected label area.  This does not include

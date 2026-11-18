@@ -157,7 +157,7 @@ copen(mode, arg, fname)
 		fp->f_count = 0;
 		if	((error == ENODEV || error == ENXIO) && 
 			  u.u_dupfd >= 0 &&
-			  (error = dupfdopen(indx,u.u_dupfd,flags,error) == 0))
+			  (error = dupfdopen(indx,u.u_dupfd,flags,error)) == 0)
 			{
 			u.u_r.r_val1 = indx;
 			return(0);
