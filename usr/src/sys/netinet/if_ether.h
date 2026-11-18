@@ -80,7 +80,15 @@ struct	arptab {
 };
 
 #ifdef	SUPERVISOR
-u_char etherbroadcastaddr[6];
+extern u_char etherbroadcastaddr[6];
 struct	arptab *arptnew();
 char *ether_sprintf();
+#ifdef i286
+/*
+ * The driver's output routine gives arpresolve its locals, which are on
+ * the kernel's stack, for the answer (docs/network.md).
+ */
+int	arpresolve(struct arpcom *ac, struct mbuf *m, struct in_addr *destip,
+	    u_char ANYSPACE *desten, int ANYSPACE *usetrailers);
+#endif
 #endif

@@ -144,6 +144,9 @@ allintr:
 ; Interrupt priority.  cpl is the level; an interrupt whose level is not
 ; above it is put off by intr(), which notes it in ipending.  These
 ; raise the level, and return what it was for splx to put back.
+;
+; The network calls these too, with DS its own data segment, so they
+; reach the kernel's data through SS, which is always the kernel's.
 %macro  SPL 2
 ENTRY %1
 ENTRY _%1
@@ -160,11 +163,11 @@ ENTRY _%1
         SPL     splclock, IPL_CLOCK
         SPL     splhigh, IPL_HIGH
 
-raise:  cmp     ax, [_cpl]
+raise:  cmp     ax, [ss:_cpl]
         jbe     .keep
-        xchg    ax, [_cpl]
+        xchg    ax, [ss:_cpl]
         retf
-.keep:  mov     ax, [_cpl]
+.keep:  mov     ax, [ss:_cpl]
         retf
 
 ; spl0(): let everything in.  splx(s): put the level back to s.  If
@@ -176,22 +179,26 @@ ENTRY _spl0
         jmp     short lower
 ENTRY splx
         mov     bx, sp
-        mov     ax, [bx+4]
-lower:  xchg    ax, [_cpl]
-        mov     bx, [_ipending]
-        or      bx, [_spending]
+        mov     ax, [ss:bx+4]
+lower:  xchg    ax, [ss:_cpl]
+        mov     bx, [ss:_ipending]
+        or      bx, [ss:_spending]
         jnz     .run
         retf
 .run:   push    ax
         pushf
         cli
+        push    ds
+        push    ss
+        pop     ds
         call    runpend
+        pop     ds
         popf
         pop     ax
         retf
 
 ; Call spllower() on the interrupt stack, unless already on it.  Entered
-; and left with interrupts off.
+; and left with interrupts off, and with DS the kernel's.
 runpend:
         mov     bx, sp
         inc     word [_intnest]

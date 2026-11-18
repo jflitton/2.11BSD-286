@@ -38,7 +38,7 @@
  */
 /*ARGSUSED*/
 socreate(dom, aso, type, proto)
-	struct socket **aso;
+	struct socket * KSPACE *aso;	/* the kernel's */
 	register int type;
 	int proto;
 {
@@ -299,12 +299,12 @@ bad:
 sosend(so, nam, uio, flags, rights)
 	register struct socket *so;
 	struct mbuf *nam;
-	register struct uio *uio;
+	register struct uio KSPACE *uio;	/* the kernel's */
 	int flags;
 	struct mbuf *rights;
 {
 	struct mbuf *top = 0;
-	register struct mbuf *m, **mp;
+	register struct mbuf *m, * ANYSPACE *mp;
 	register int space;
 	int len, rlen = 0, error = 0, s, dontroute, first = 1;
 
@@ -423,10 +423,10 @@ release:
  */
 soreceive(so, aname, uio, flags, rightsp)
 	register struct socket *so;
-	struct mbuf **aname;
-	register struct uio *uio;
+	struct mbuf * KSPACE *aname;		/* these are the kernel's */
+	register struct uio KSPACE *uio;
 	int flags;
-	struct mbuf **rightsp;
+	struct mbuf * KSPACE *rightsp;
 {
 	register struct mbuf *m;
 	register int len, error = 0, s, offset;
@@ -620,18 +620,26 @@ sorflush(so)
 	register struct sockbuf *sb = &so->so_rcv;
 	register struct protosw *pr = so->so_proto;
 	register int s;
-	struct sockbuf asb;
+	register struct sockbuf *asb;
+	struct mbuf *am;
 
+	/*
+	 * The copy is in an mbuf: sbrelease could not reach one on the
+	 * stack (docs/network.md).
+	 */
+	am = m_get(M_WAIT, MT_DATA);
+	asb = mtod(am, struct sockbuf *);
 	sblock(sb);
 	s = splimp();
 	socantrcvmore(so);
 	sbunlock(sb);
-	asb = *sb;
+	*asb = *sb;
 	bzero((caddr_t)sb, sizeof (*sb));
 	splx(s);
 	if (pr->pr_flags & PR_RIGHTS && pr->pr_domain->dom_dispose)
-		(*pr->pr_domain->dom_dispose)(asb.sb_mb);
-	sbrelease(&asb);
+		(*pr->pr_domain->dom_dispose)(asb->sb_mb);
+	sbrelease(asb);
+	(void) m_free(am);
 }
 
 sosetopt(so, level, optname, m0)
@@ -650,7 +658,8 @@ sosetopt(so, level, optname, m0)
 	if (level != SOL_SOCKET) {
 		if (so->so_proto && so->so_proto->pr_ctloutput)
 			return ((*so->so_proto->pr_ctloutput)
-				  (PRCO_SETOPT, so, level, optname, &m0));
+				  (PRCO_SETOPT, so, level, optname,
+				   (struct mbuf * KSPACE *)&m0));
 		error = ENOPROTOOPT;
 	} else {
 		switch (optname) {
@@ -730,7 +739,7 @@ bad:
 sogetopt(so, level, optname, mp)
 	register struct socket *so;
 	int level, optname;
-	struct mbuf **mp;
+	struct mbuf * KSPACE *mp;		/* the kernel's */
 {
 	register struct mbuf *m;
 

@@ -447,20 +447,20 @@ iptime()
 	extern struct timeval time;
 	extern int lbolt, hz;
 
-	cpfromkern(&time, &atv, sizeof(struct timeval));
+	atv = *ktime;			/* the kernel's: net_mac.h */
 	t = (atv.tv_sec % (24L*60L*60L)) * 1000L
-	  + (long)mfkd(&lbolt) * 1000L / (long)hz;
+	  + (long)*klbolt * 1000L / (long)hz;
 	splx(s);
 	return (htonl(t));
 }
 
 int
 icmp_sysctl(name, namelen, oldp, oldlenp, newp, newlen)
-	int *name;
+	int KSPACE *name;		/* the kernel's */
 	u_int namelen;
-	void *oldp;
-	size_t *oldlenp;
-	void *newp;
+	void __far *oldp;		/* the process's */
+	size_t KSPACE *oldlenp;		/* the kernel's */
+	void __far *newp;		/* the process's */
 	size_t newlen;
 {
 

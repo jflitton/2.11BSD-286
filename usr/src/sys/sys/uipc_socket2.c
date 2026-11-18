@@ -231,7 +231,8 @@ sbselqueue(sb)
 	register struct proc *p;
 	extern int selwait;
 
-	if ((p = sb->sb_sel) && (caddr_t)mfkd(&p->p_wchan) == (caddr_t)&selwait)
+	if ((p = sb->sb_sel) &&
+	    ((struct proc KSPACE *)p)->p_wchan == kselwait)	/* net_mac.h */
 		sb->sb_flags |= SB_COLL;
 	else
 		sb->sb_sel = u.u_procp;

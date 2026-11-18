@@ -37,5 +37,5 @@
 #define	TCP_ISSINCR	128		/* increment for tcp_iss each second */
 
 #ifdef SUPERVISOR
-tcp_seq	tcp_iss;		/* tcp initial send seq # */
+extern tcp_seq	tcp_iss;		/* tcp initial send seq # */
 #endif

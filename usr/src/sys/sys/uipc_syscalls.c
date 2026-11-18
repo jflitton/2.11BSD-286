@@ -57,7 +57,7 @@ socket()
 	register struct file *fp;
 
 	if (netoff)
-		return(u.u_error = ENETDOWN);
+		{ u.u_error = ENETDOWN; return; }
 	if ((fp = falloc()) == NULL)
 		return;
 	fp->f_flag = FREAD|FWRITE;
@@ -84,14 +84,14 @@ bind()
 	char sabuf[MSIZE];
 
 	if (netoff)
-		return(u.u_error = ENETDOWN);
+		{ u.u_error = ENETDOWN; return; }
 	fp = gtsockf(uap->s);
 	if (fp == 0)
 		return;
 	nam = (struct mbuf *)sabuf;
 	MBZAP(nam, uap->namelen, MT_SONAME);
 	if (uap->namelen > MLEN)
-		return (u.u_error = EINVAL);
+		{ u.u_error = EINVAL; return; }
 	u.u_error = copyin(uap->name, mtod(nam, caddr_t), uap->namelen);
 	if (u.u_error)
 		return;
@@ -107,7 +107,7 @@ listen()
 	register struct file *fp;
 
 	if (netoff)
-		return(u.u_error = ENETDOWN);
+		{ u.u_error = ENETDOWN; return; }
 	fp = gtsockf(uap->s);
 	if (fp == 0)
 		return;
@@ -129,7 +129,7 @@ accept()
 	char sabuf[MSIZE];
 
 	if (netoff)
-		return(u.u_error = ENETDOWN);
+		{ u.u_error = ENETDOWN; return; }
 	if (uap->name == 0)
 		goto noname;
 	u.u_error = copyin(uap->anamelen, (caddr_t)&namelen,
@@ -191,12 +191,12 @@ connect()
 	struct	socket	kcopy;
 
 	if (netoff)
-		return(u.u_error = ENETDOWN);
+		{ u.u_error = ENETDOWN; return; }
 	fp = gtsockf(uap->s);
 	if (fp == 0)
 		return;
 	if (uap->namelen > MLEN)
-		return (u.u_error = EINVAL);
+		{ u.u_error = EINVAL; return; }
 	nam = (struct mbuf *)sabuf;
 	MBZAP(nam, uap->namelen, MT_SONAME);
 	u.u_error = copyin(uap->name, mtod(nam, caddr_t), uap->namelen);
@@ -241,7 +241,7 @@ socketpair()
 	int sv[2];
 
 	if	(netoff)
-		return(u.u_error = ENETDOWN);
+		{ u.u_error = ENETDOWN; return; }
 	u.u_error = SOCREATE(uap->domain, &so1, uap->type, uap->protocol);
 	if	(u.u_error)
 		return;
@@ -352,7 +352,7 @@ sendmsg()
 		return;
 	}
 	u.u_error =
-	    copyin((caddr_t)msg.msg_iov, (caddr_t)aiov,
+	    copyin(msg.msg_iov, (caddr_t)aiov,
 		(unsigned)(msg.msg_iovlen * sizeof (aiov[0])));
 	if (u.u_error)
 		return;
@@ -374,17 +374,17 @@ sendit(s, mp, flags)
 	char sabuf[MSIZE], ribuf[MSIZE];
 
 	if (netoff)
-		return(u.u_error = ENETDOWN);
+		{ u.u_error = ENETDOWN; return; }
 	fp = gtsockf(s);
 	if (fp == 0)
 		return;
-	auio.uio_iov = mp->msg_iov;
+	auio.uio_iov = (struct iovec *)mp->msg_iov;	/* the kernel's copy */
 	auio.uio_iovcnt = mp->msg_iovlen;
 	auio.uio_segflg = UIO_USERSPACE;
 	auio.uio_offset = 0;				/* XXX */
 	auio.uio_resid = 0;
 	auio.uio_rw = UIO_WRITE;
-	iov = mp->msg_iov;
+	iov = (struct iovec *)mp->msg_iov;
 	for	(i = 0; i < mp->msg_iovlen; i++, iov++)
 		{
 		if	(iov->iov_len == 0)
@@ -404,7 +404,7 @@ sendit(s, mp, flags)
 		rights = (struct mbuf *)ribuf;
 		MBZAP(rights, mp->msg_accrightslen, MT_RIGHTS);
 		if (mp->msg_accrightslen > MLEN)
-			return(u.u_error = EINVAL);
+			{ u.u_error = EINVAL; return; }
 		u.u_error = copyin(mp->msg_accrights, mtod(rights, caddr_t),
 				mp->msg_accrightslen);
 		if (u.u_error)
@@ -450,7 +450,7 @@ recvfrom()
 	aiov.iov_len = uap->len;
 	msg.msg_accrights = 0;
 	msg.msg_accrightslen = 0;
-	recvit(uap->s, &msg, uap->flags, uap->fromlenaddr, (caddr_t)0);
+	recvit(uap->s, &msg, uap->flags, uap->fromlenaddr, (int __far *)0);
 }
 
 recv()
@@ -472,7 +472,7 @@ recv()
 	aiov.iov_len = uap->len;
 	msg.msg_accrights = 0;
 	msg.msg_accrightslen = 0;
-	recvit(uap->s, &msg, uap->flags, (caddr_t)0, (caddr_t)0);
+	recvit(uap->s, &msg, uap->flags, (int __far *)0, (int __far *)0);
 }
 
 recvmsg()
@@ -493,20 +493,20 @@ recvmsg()
 		return;
 	}
 	u.u_error =
-	    copyin((caddr_t)msg.msg_iov, (caddr_t)aiov,
+	    copyin(msg.msg_iov, (caddr_t)aiov,
 		(unsigned)(msg.msg_iovlen * sizeof(aiov[0])));
 	if (u.u_error)
 		return;
-	recvit(uap->s, &msg, uap->flags,
-	    (caddr_t)&uap->msg->msg_namelen,
-	    (caddr_t)&uap->msg->msg_accrightslen);
+	msg.msg_iov = aiov;
+	recvit(uap->s, &msg, uap->flags, &uap->msg->msg_namelen,
+	    &uap->msg->msg_accrightslen);
 }
 
 recvit(s, mp, flags, namelenp, rightslenp)
 	int s;
 	register struct msghdr *mp;
 	int flags;
-	caddr_t namelenp, rightslenp;
+	int __far *namelenp, __far *rightslenp;
 {
 	register struct file *fp;
 	struct uio auio;
@@ -516,17 +516,17 @@ recvit(s, mp, flags, namelenp, rightslenp)
 	int len;
 
 	if (netoff)
-		return(u.u_error = ENETDOWN);
+		{ u.u_error = ENETDOWN; return; }
 	fp = gtsockf(s);
 	if (fp == 0)
 		return;
-	auio.uio_iov = mp->msg_iov;
+	auio.uio_iov = (struct iovec *)mp->msg_iov;	/* the kernel's copy */
 	auio.uio_iovcnt = mp->msg_iovlen;
 	auio.uio_segflg = UIO_USERSPACE;
 	auio.uio_offset = 0;				/* XXX */
 	auio.uio_resid = 0;
 	auio.uio_rw = UIO_READ;
-	iov = mp->msg_iov;
+	iov = (struct iovec *)mp->msg_iov;
 	for	(i = 0; i < mp->msg_iovlen; i++, iov++)
 		{
 		if	(iov->iov_len == 0)
@@ -578,7 +578,7 @@ shutdown()
 	register struct file *fp;
 
 	if (netoff)
-		return(u.u_error = ENETDOWN);
+		{ u.u_error = ENETDOWN; return; }
 	fp = gtsockf(uap->s);
 	if (fp == 0)
 		return;
@@ -599,7 +599,7 @@ setsockopt()
 	char optbuf[MSIZE];
 
 	if (netoff)
-		return(u.u_error = ENETDOWN);
+		{ u.u_error = ENETDOWN; return; }
 	fp = gtsockf(uap->s);
 	if (fp == 0)
 		return;
@@ -632,7 +632,7 @@ getsockopt()
 	int valsize;
 
 	if (netoff)
-		return(u.u_error = ENETDOWN);
+		{ u.u_error = ENETDOWN; return; }
 	fp = gtsockf(uap->s);
 	if (fp == 0)
 		return;
@@ -674,7 +674,7 @@ getsockname()
 	char sabuf[MSIZE];
 
 	if (netoff)
-		return(u.u_error = ENETDOWN);
+		{ u.u_error = ENETDOWN; return; }
 	fp = gtsockf(uap->fdes);
 	if (fp == 0)
 		return;
@@ -710,7 +710,7 @@ getpeername()
 	char sabuf[MSIZE];
 
 	if (netoff)
-		return(u.u_error = ENETDOWN);
+		{ u.u_error = ENETDOWN; return; }
 	fp = gtsockf(uap->fdes);
 	if (fp == 0)
 		return;

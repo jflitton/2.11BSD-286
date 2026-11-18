@@ -78,7 +78,7 @@ extern	struct	timeval time;
 		    pr->pr_protocol && pr->pr_protocol != IPPROTO_RAW)
 			ip_protox[pr->pr_protocol] = pr - inetsw;
 	ipq.next = ipq.prev = &ipq;
-	cpfromkern(&time, &nettime, sizeof (struct timeval));
+	nettime = *ktime;		/* the kernel's: net_mac.h */
 	ip_id = nettime.tv_sec & 0xffffL;
 	ipintrq.ifq_maxlen = ipqmaxlen;
 }
@@ -682,7 +682,7 @@ ip_dooptions(ip, ifp)
 				goto bad;
 			}
 			ntime = iptime();
-			bcopy((caddr_t)&ntime, (caddr_t)cp + ipt->ipt_ptr - 1,
+			bcopy(&ntime, (caddr_t)cp + ipt->ipt_ptr - 1,
 			    sizeof(n_time));
 			ipt->ipt_ptr += sizeof(n_time);
 		}
@@ -865,8 +865,8 @@ ip_forward(ip, ifp, srcrt)
 
 	dest.s_addr = 0;
 	if (ipprintfs)
-		printf("fw src %lx dst %lx ttl %x\n", ntohl(ip->ip_src),
-			ntohl(ip->ip_dst), ip->ip_ttl);
+		printf("fw src %lx dst %lx ttl %x\n", ntohl(ip->ip_src.s_addr),
+			ntohl(ip->ip_dst.s_addr), ip->ip_ttl);
 	ip->ip_id = htons(ip->ip_id);
 	if (in_canforward(ip->ip_dst) == 0) {
 		ipstat.ips_cantforward++;
@@ -1003,11 +1003,11 @@ sendicmp:
 
 int
 ip_sysctl(name, namelen, oldp, oldlenp, newp, newlen)
-	int *name;
+	int KSPACE *name;		/* the kernel's */
 	u_int namelen;
-	void *oldp;
-	size_t *oldlenp;
-	void *newp;
+	void __far *oldp;		/* the process's */
+	size_t KSPACE *oldlenp;		/* the kernel's */
+	void __far *newp;		/* the process's */
 	size_t newlen;
 {
 	/* All sysctl names at this level are terminal. */

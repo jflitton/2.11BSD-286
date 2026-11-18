@@ -65,6 +65,9 @@ struct	rtstat {
 };
 
 #ifdef SUPERVISOR
+/* the addresses may be the caller's locals: docs/network.md */
+int	rtinit(struct sockaddr ANYSPACE *dst, struct sockaddr ANYSPACE *gateway,
+	    int cmd, int flags);
 #define	RTFREE(rt) \
 	if ((rt)->rt_refcnt == 1) \
 		rtfree(rt); \
@@ -81,7 +84,7 @@ struct	rtstat {
 #else
 #define RTHASHMOD(h)	((h) % RTHASHSIZ)
 #endif
-struct	mbuf *rthost[RTHASHSIZ];
-struct	mbuf *rtnet[RTHASHSIZ];
-struct	rtstat	rtstat;
+extern struct	mbuf *rthost[RTHASHSIZ];
+extern struct	mbuf *rtnet[RTHASHSIZ];
+extern struct	rtstat	rtstat;
 #endif

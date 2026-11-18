@@ -25,6 +25,8 @@ f /unix 644 ../../../obj/PC/unix
 f /boot 644 ../../../obj/stand/boot
 f /etc/init 700 ../../../obj/bin/init
 f /etc/rc 644 etc/rc
+f /etc/rc.conf 644 etc/rc.conf
+f /etc/netstart 644 etc/netstart
 f /etc/ttys 644 etc/ttys
 f /etc/fstab 644 etc/fstab
 f /etc/motd 644 etc/motd
@@ -36,6 +38,10 @@ f /root/.login 644 ../etc/root/dot.login
 f /etc/master.passwd 600 ../etc/master.passwd
 f /etc/group 644 ../etc/group
 f /etc/shells 644 ../etc/shells
+f /etc/hosts 644 etc/hosts
+f /etc/inetd.conf 644 etc/inetd.conf
+f /etc/services 644 ../etc/services
+f /etc/protocols 644 ../etc/protocols
 f /etc/passwd 644 ../../../obj/root/passwd
 f /etc/syserrlst 644 ../../../obj/root/syserrlst
 f /etc/tcsh6.00strgs 444 ../../../obj/tcsh/tcsh6.00strgs
@@ -97,6 +103,12 @@ f /sbin/mount 755 ../../../obj/bin/mount
 f /sbin/umount 755 ../../../obj/bin/umount
 f /sbin/reboot 755 ../../../obj/bin/reboot
 f /sbin/mknod 755 ../../../obj/bin/mknod
+f /sbin/ifconfig 755 ../../../obj/bin/ifconfig
+f /sbin/ping 4755 ../../../obj/bin/ping
+f /sbin/route 755 ../../../obj/bin/route
+f /usr/sbin/inetd 755 ../../../obj/bin/inetd
+f /usr/libexec/telnetd 755 ../../../obj/bin/telnetd
+f /usr/ucb/telnet 755 ../../../obj/bin/telnet
 h /sbin/halt /sbin/reboot
 c /dev/console 622 0 0
 c /dev/ttyv1 666 0 1
@@ -105,6 +117,22 @@ c /dev/ttyv3 666 0 3
 c /dev/tty00 666 10 0
 c /dev/tty01 666 10 1
 c /dev/tty 666 2 0
+c /dev/ptyp0 666 5 0
+c /dev/ptyp1 666 5 1
+c /dev/ptyp2 666 5 2
+c /dev/ptyp3 666 5 3
+c /dev/ptyp4 666 5 4
+c /dev/ptyp5 666 5 5
+c /dev/ptyp6 666 5 6
+c /dev/ptyp7 666 5 7
+c /dev/ttyp0 666 6 0
+c /dev/ttyp1 666 6 1
+c /dev/ttyp2 666 6 2
+c /dev/ttyp3 666 6 3
+c /dev/ttyp4 666 6 4
+c /dev/ttyp5 666 6 5
+c /dev/ttyp6 666 6 6
+c /dev/ttyp7 666 6 7
 c /dev/mem 640 1 0
 c /dev/kmem 640 1 1
 c /dev/null 666 1 2

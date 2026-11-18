@@ -53,8 +53,8 @@ mbinit()
 	 */
 	mbutl = (struct mbuf *)(((int)xmbutl | CLBYTES-1) + 1);
 	mbuf = (struct mbuf *)(((int)xmbuf | MSIZE-1) + 1);
-	mbinit2(mbuf, MPG_MBUFS, NMBUFS);
-	mbinit2(mbutl, MPG_CLUSTERS, NMBCLUSTERS);
+	mbinit2((char *)mbuf, MPG_MBUFS, NMBUFS);
+	mbinit2((char *)mbutl, MPG_CLUSTERS, NMBCLUSTERS);
 	splx(s);
 	return;
 }
@@ -126,7 +126,7 @@ m_expand(canwait)
 	register int tries;
 
 	for (tries = 0;; ) {
-#ifdef	pdp11
+#if defined(pdp11) || defined(i286)
 		if (mfree)
 			return (1);
 #else
@@ -243,7 +243,7 @@ m_copy(m, off, len)
 	int off;
 	register int len;
 {
-	register struct mbuf *n, **np;
+	register struct mbuf *n, * ANYSPACE *np;
 	struct mbuf *top, *p;
 
 	if (len == 0)

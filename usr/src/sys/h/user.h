@@ -146,6 +146,15 @@ struct user {
 #include <sys/errno.h>
 
 #ifdef KERNEL
+#ifdef SUPERVISOR
+/*
+ * The network's view of uptr, which KScall and SKcall keep (mch_net.s):
+ * the network's data segment cannot hold the kernel's own.
+ */
+extern	struct user KSPACE *netuptr;
+#define	u	(*netuptr)
+#else
 extern	struct user *uptr;	/* the running process's */
 #define	u	(*uptr)
+#endif
 #endif

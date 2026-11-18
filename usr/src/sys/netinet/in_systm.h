@@ -30,7 +30,7 @@ typedef u_long	n_long;			/* long as received from the net */
 
 typedef	u_long	n_time;			/* ms since 00:00 GMT, byte rev */
 
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 #define	UCHAR(a)	((u_int)((a)&0xff))
 #endif
 

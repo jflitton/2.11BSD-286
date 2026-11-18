@@ -48,7 +48,7 @@ extern	int errno;
 int	setifflags(), setifaddr(), setifdstaddr(), setifnetmask();
 int	setifmetric(), setifbroadaddr(), setifipdst();
 
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 #define	NEXTARG		0x7fff
 #else
 #define	NEXTARG		0xffffff
@@ -213,7 +213,7 @@ setifaddr(addr, param)
 setifnetmask(addr)
 	char *addr;
 {
-	in_getaddr(addr, &netmask);
+	in_getaddr(addr, (struct sockaddr *)&netmask);
 	setmask++;
 }
 
@@ -227,7 +227,7 @@ setifbroadaddr(addr)
 setifipdst(addr)
 	char *addr;
 {
-	in_getaddr(addr, &ipdst);
+	in_getaddr(addr, (struct sockaddr *)&ipdst);
 	setipdst++;
 }
 

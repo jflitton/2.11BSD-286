@@ -13,6 +13,10 @@
 ; routines serve the kernel's data segment, a buffer, and anything else
 ; the kernel can address; a near pointer converts where the function is
 ; declared (seg.h).
+;
+; nofault is reached through SS, which is always the kernel's data
+; segment, so that the network, whose DS is its own, can call these
+; routines too (docs/network.md).
 
 %include "mch_defs.inc"
 
@@ -34,7 +38,7 @@ ENTRY copyin
         push    si
         push    di
         push    ds
-        mov     word [_nofault], cpfault
+        mov     word [ss:_nofault], cpfault
         les     di, [bp+10]
         mov     cx, [bp+14]
         mov     si, [bp+6]
@@ -52,7 +56,7 @@ ENTRY copyout
         push    si
         push    di
         push    ds
-        mov     word [_nofault], cpfault
+        mov     word [ss:_nofault], cpfault
         mov     di, [bp+10]
         mov     cx, [bp+14]
         mov     ax, [bp+12]
@@ -67,7 +71,7 @@ copy:   cld
         movsb
 .even:  xor     ax, ax
 done:   pop     ds
-        mov     word [_nofault], 0
+        mov     word [ss:_nofault], 0
         pop     di
         pop     si
         pop     bp
@@ -167,7 +171,7 @@ ENTRY copyinstr
         push    si
         push    di
         push    ds
-        mov     word [_nofault], strfault
+        mov     word [ss:_nofault], strfault
         les     di, [bp+10]
         mov     si, [bp+6]
         mov     ax, [bp+8]
@@ -181,7 +185,7 @@ ENTRY copyoutstr
         push    si
         push    di
         push    ds
-        mov     word [_nofault], strfault
+        mov     word [ss:_nofault], strfault
         mov     di, [bp+10]
         mov     ax, [bp+12]
         or      al, 3
@@ -195,7 +199,7 @@ ENTRY copystr
         push    si
         push    di
         push    ds
-        mov     word [_nofault], strfault
+        mov     word [ss:_nofault], strfault
         les     di, [bp+10]
         lds     si, [bp+6]
 
@@ -213,7 +217,7 @@ str:    mov     cx, [bp+14]
 .long:  mov     ax, ENOENT
 strdone:
         pop     ds
-        mov     word [_nofault], 0
+        mov     word [ss:_nofault], 0
         sub     dx, cx
         mov     bx, [bp+16]
         or      bx, bx
@@ -236,26 +240,26 @@ strfault:
 ENTRY fubyte
 ENTRY fuibyte
         mov     bx, sp
-        mov     word [_nofault], fufault
-        mov     ax, [bx+6]
+        mov     word [ss:_nofault], fufault
+        mov     ax, [ss:bx+6]
         or      al, 3
         mov     es, ax
-        mov     bx, [bx+4]
+        mov     bx, [ss:bx+4]
         mov     al, [es:bx]
         xor     ah, ah
-        mov     word [_nofault], 0
+        mov     word [ss:_nofault], 0
         retf
 
 ENTRY fuword
 ENTRY fuiword
         mov     bx, sp
-        mov     word [_nofault], fufault
-        mov     ax, [bx+6]
+        mov     word [ss:_nofault], fufault
+        mov     ax, [ss:bx+6]
         or      al, 3
         mov     es, ax
-        mov     bx, [bx+4]
+        mov     bx, [ss:bx+4]
         mov     ax, [es:bx]
-        mov     word [_nofault], 0
+        mov     word [ss:_nofault], 0
         retf
 
 ; subyte(addr, value), suword(addr, value): store one in a process.
@@ -263,33 +267,33 @@ ENTRY fuiword
 ENTRY subyte
 ENTRY suibyte
         mov     bx, sp
-        mov     word [_nofault], fufault
-        mov     ax, [bx+6]
+        mov     word [ss:_nofault], fufault
+        mov     ax, [ss:bx+6]
         or      al, 3
         mov     es, ax
-        mov     al, [bx+8]
-        mov     bx, [bx+4]
+        mov     al, [ss:bx+8]
+        mov     bx, [ss:bx+4]
         mov     [es:bx], al
         xor     ax, ax
-        mov     [_nofault], ax
+        mov     [ss:_nofault], ax
         retf
 
 ENTRY suword
 ENTRY suiword
         mov     bx, sp
-        mov     word [_nofault], fufault
-        mov     ax, [bx+6]
+        mov     word [ss:_nofault], fufault
+        mov     ax, [ss:bx+6]
         or      al, 3
         mov     es, ax
-        mov     ax, [bx+8]
-        mov     bx, [bx+4]
+        mov     ax, [ss:bx+8]
+        mov     bx, [ss:bx+4]
         mov     [es:bx], ax
         xor     ax, ax
-        mov     [_nofault], ax
+        mov     [ss:_nofault], ax
         retf
 
 fufault:
-        mov     word [_nofault], 0
+        mov     word [ss:_nofault], 0
         mov     ax, -1
         retf
 

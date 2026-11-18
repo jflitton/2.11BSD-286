@@ -59,7 +59,7 @@ null_init()
 /*ARGSUSED*/
 null_hash(addr, hp)
 	struct sockaddr *addr;
-	struct afhash *hp;
+	struct afhash KSPACE *hp;	/* the caller's local */
 {
 
 	hp->afh_nethash = hp->afh_hosthash = 0;

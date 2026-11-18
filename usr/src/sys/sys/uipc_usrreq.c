@@ -526,12 +526,20 @@ unp_internalize(rights)
 	register int i;
 	register struct file *fp;
 
+	/*
+	 * GETF would return nothing, where this returns a value; and the
+	 * file table is the kernel's, which u.u_ofile points into.
+	 */
+#define	NGETF(fp, fd) { \
+	if ((unsigned)(fd) >= NOFILE || ((fp) = u.u_ofile[fd]) == NULL) \
+		return (EBADF); \
+}
 	rp = mtod(rights, struct file **);
 	for (i = 0; i < oldfds; i++, rp++)
-		GETF(fp, *(int *)rp);
+		NGETF(fp, *(int *)rp);
 	rp = mtod(rights, struct file **);
 	for (i = 0; i < oldfds; i++) {
-		GETF(fp, *(int *)rp);
+		NGETF(fp, *(int *)rp);
 		*rp++ = fp;
 		/* bump both the message count and reference count of fp */
 		SKcall(fadjust, sizeof(fp) + sizeof(int) + sizeof(int),
@@ -561,7 +569,9 @@ unp_gc()
 restart:
 	unp_defer = 0;
 	/* get limits AND clear FMARK|FDEFER in all file table entries */
-	SKcall(unpgc1, sizeof(file) + sizeof(fileNFILE), &file, &fileNFILE);
+	/* the locals are on the kernel's stack, where it can reach them */
+	SKcall(unpgc1, sizeof(file) + sizeof(fileNFILE),
+	    (struct file **)&file, (struct file **)&fileNFILE);
 	do {
 		for (fp = file; fp < fileNFILE; fp++) {
 			/* get file table entry, the return value is f_count */

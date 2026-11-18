@@ -5,7 +5,7 @@
 #
 # Upstream's ../../etc/rc is the PDP-11's (its buses, its network
 # interfaces) and calls much that is not built here yet: fsck, swapon,
-# the network, syslogd, cron.
+# syslogd, cron.
 
 HOME=/; export HOME
 PATH=/bin:/sbin:/usr/sbin:/usr/bin; export PATH
@@ -19,5 +19,15 @@ fi
 
 rm -f /etc/nologin
 : >/etc/utmp
+
+# The network, as /etc/rc.conf describes it (/etc/netstart), and inetd,
+# which answers telnet (/etc/inetd.conf).
+if [ -s /etc/rc.conf ]
+then
+	. /etc/rc.conf
+fi
+. /etc/netstart
+inetd						>/dev/console 2>&1
+
 date						>/dev/console 2>&1
 exit 0

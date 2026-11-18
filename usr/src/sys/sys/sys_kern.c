@@ -18,7 +18,9 @@
 #include "mbuf.h"
 #include "map.h"
 
+#ifndef i286
 int knetisr;
+#endif
 
 netcrash()
 {
@@ -81,7 +83,7 @@ unpdet(ip)
 }
 
 unpbind(path, len, ipp, unpsock)
-	char *path;
+	char __far *path;	/* in the network's data (net_mac.h) */
 	int len;
 	struct inode **ipp;
 	struct socket *unpsock;
@@ -90,6 +92,9 @@ unpbind(path, len, ipp, unpsock)
 	 * As far as I could find out, the 'path' is in the _u area because
 	 * a fake mbuf was MBZAP'd in bind().  The inode pointer is in the
 	 * kernel stack so we can modify it.  SMS
+	 *
+	 * On the 286 the path is in an mbuf of the network's, and comes as
+	 * a far pointer.
 	 */
 	register struct inode *ip;
 	char pth[MLEN];
@@ -118,7 +123,7 @@ unpbind(path, len, ipp, unpsock)
 }
 
 unpconn(path, len, so2, ipp)
-	char *path;
+	char __far *path;	/* in the network's data (net_mac.h) */
 	int len;
 	struct socket **so2;
 	struct inode **ipp;
@@ -147,6 +152,17 @@ unpconn(path, len, so2, ipp)
 	if (*so2 == 0)
 		return(ECONNREFUSED);
 	return(0);
+}
+
+/* copied from the network's copy in the PDP-11's sys_net.c */
+ufavail()
+{
+	register int i, avail = 0;
+
+	for (i = 0; i < NOFILE; i++)
+		if (u.u_ofile[i] == NULL)
+			avail++;
+	return (avail);
 }
 
 unpgc1(beginf, endf)

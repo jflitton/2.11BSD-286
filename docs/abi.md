@@ -148,7 +148,9 @@ matter.
   cast, and the tree is full of `(caddr_t)` casts that were harmless when
   every pointer was 16 bits. Nor does it check a far argument to a
   function with no prototype. `tools/farlint.py` looks for both by
-  pattern.
+  pattern. In the network, whose data segment is not the stack's, the
+  address of a local is itself far, and `tools/netcheck.py` keeps count
+  of the places that make it near ([the network](network.md)).
 - `sizeof` a pointer is no longer `sizeof (int)`. One system call copied
   out `sizeof (uap->status)` bytes and so wrote four bytes over a
   two-byte variable in the process.

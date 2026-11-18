@@ -1182,7 +1182,7 @@ telrcv()
 				nfrontp += sizeof (wont) - 2;
 				flushline = 1;
 				setconnmode();	/* set new tty mode (maybe) */
-				printoption(">SENT", wont, c);
+				printoption(">SENT", wont, c, 0);
 			}
 			state = TS_DATA;
 			continue;
@@ -1235,9 +1235,9 @@ willoption(option, reply)
 	sprintf(nfrontp, fmt, option);
 	nfrontp += sizeof (dont) - 2;
 	if (reply)
-		printoption(">SENT", fmt, option);
+		printoption(">SENT", fmt, option, 0);
 	else
-		printoption("<SENT", fmt, option);
+		printoption("<SENT", fmt, option, 0);
 }
 
 wontoption(option, reply)
@@ -1264,9 +1264,9 @@ wontoption(option, reply)
 	sprintf(nfrontp, fmt, option);
 	nfrontp += sizeof (doopt) - 2;
 	if (reply)
-		printoption(">SENT", fmt, option);
+		printoption(">SENT", fmt, option, 0);
 	else
-		printoption("<SENT", fmt, option);
+		printoption("<SENT", fmt, option, 0);
 }
 
 dooption(option)
@@ -1294,7 +1294,7 @@ dooption(option)
 	}
 	sprintf(nfrontp, fmt, option);
 	nfrontp += sizeof (doopt) - 2;
-	printoption(">SENT", fmt, option);
+	printoption(">SENT", fmt, option, 0);
 }
 
 /*
@@ -1368,7 +1368,7 @@ doflush()
     flushout = 1;
     ttyflush();
     /* do printoption AFTER flush, otherwise the output gets tossed... */
-    printoption("<SENT", doopt, TELOPT_TM);
+    printoption("<SENT", doopt, TELOPT_TM, 0);
 }
 
 intp()
@@ -1378,7 +1378,7 @@ intp()
 	doflush();
     }
     if (autosynch) {
-	dosynch();
+	dosynch((struct sendlist *)0);
     }
 }
 
@@ -1389,7 +1389,7 @@ sendbrk()
 	doflush();
     }
     if (autosynch) {
-	dosynch();
+	dosynch((struct sendlist *)0);
     }
 }
 
@@ -1518,7 +1518,7 @@ char	**argv;
 	} else {
 	    switch (what = s->what) {
 	    case SYNCH:
-		dosynch();
+		dosynch((struct sendlist *)0);
 		break;
 	    case SENDQUESTION:
 		for (s = Sendlist; s->name; s++) {
@@ -2231,9 +2231,7 @@ help(argc, argv)
  * Call routine with argc, argv set from args (terminated by 0).
  * VARARGS2
  */
-call(routine, args)
-	int (*routine)();
-	char *args;
+call(int (*routine)(), char *args, ...)
 {
 	register char **argp;
 	register int argc;

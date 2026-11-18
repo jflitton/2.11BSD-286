@@ -78,6 +78,18 @@ main(argc, argv)
  * Purge all entries in the routing tables not
  * associated with network interfaces.
  */
+#ifdef i286
+/*
+ * The tables are read from /dev/kmem, at addresses from the kernel's
+ * namelist; on the 286 they are in the network's data segment, which
+ * neither reaches, and there is no nlist.
+ */
+flushroutes()
+{
+	fprintf(stderr, "route: -f is not supported on the 286\n");
+	exit(1);
+}
+#else
 #include <nlist.h>
 
 struct nlist nl[] = {
@@ -195,6 +207,7 @@ again:
 	close(kmem);
 	free(routehash);
 }
+#endif
 
 char *
 routename(sa)
@@ -381,13 +394,15 @@ newroute(argc, argv)
 		}
 	}
 	sin = (struct sockaddr_in *)&route.rt_dst;
-	ishost = getaddr(argv[1], &route.rt_dst, &hp, &dest, forcenet);
+	ishost = getaddr(argv[1], (struct sockaddr_in *)&route.rt_dst, &hp,
+	    &dest, forcenet);
 	if (forcehost)
 		ishost = 1;
 	if (forcenet)
 		ishost = 0;
 	sin = (struct sockaddr_in *)&route.rt_gateway;
-	(void) getaddr(argv[2], &route.rt_gateway, &hp, &gateway, 0);
+	(void) getaddr(argv[2], (struct sockaddr_in *)&route.rt_gateway, &hp,
+	    &gateway, 0);
 	route.rt_flags = RTF_UP;
 	if (ishost)
 		route.rt_flags |= RTF_HOST;
@@ -419,7 +434,7 @@ newroute(argc, argv)
 		printf(": ");
 		fflush(stdout);
 		errno = oerrno;
-		error(0);
+		error((char *)0);
 	}
 }
 

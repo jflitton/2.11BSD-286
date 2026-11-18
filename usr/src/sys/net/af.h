@@ -37,5 +37,5 @@ struct afhash {
 };
 
 #ifdef SUPERVISOR
-struct	afswitch afswitch[];
+extern struct	afswitch afswitch[];
 #endif

@@ -220,8 +220,8 @@ softclock(pc, ps)
 		callfree = p1;
 		splx(s);
 #ifdef INET
-		if (ISSUPERADD(func))
-			KScall(KERNELADD(func), sizeof(arg) + sizeof(a),
+		if (ISSUPERFUN(func))
+			KScall(KERNELFUN(func), sizeof(arg) + sizeof(a),
 			    arg, a);
 		else
 #endif

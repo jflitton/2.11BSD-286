@@ -135,15 +135,26 @@ struct sockproto {
 #define	SOMAXCONN	5
 
 /*
- * Message header for recvmsg and sendmsg calls.
+ * Message header for recvmsg and sendmsg calls.  The kernel's is always
+ * the first form, as with struct iovec (uio.h): a program in a model with
+ * near data pointers has its library pass the kernel far ones.
  */
 struct msghdr {
+#ifdef KERNEL
+	char __far *msg_name;		/* optional address */
+	int	msg_namelen;		/* size of address */
+	struct	iovec __far *msg_iov;	/* scatter/gather array */
+	int	msg_iovlen;		/* # elements in msg_iov */
+	char __far *msg_accrights;	/* access rights sent/received */
+	int	msg_accrightslen;
+#else
 	caddr_t	msg_name;		/* optional address */
 	int	msg_namelen;		/* size of address */
 	struct	iovec *msg_iov;		/* scatter/gather array */
 	int	msg_iovlen;		/* # elements in msg_iov */
 	caddr_t	msg_accrights;		/* access rights sent/received */
 	int	msg_accrightslen;
+#endif
 };
 
 #define	MSG_OOB		0x1		/* process out-of-band data */

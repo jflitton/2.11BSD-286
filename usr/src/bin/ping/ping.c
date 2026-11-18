@@ -689,7 +689,7 @@ tvsub(out, in)
 void
 finish()
 {
-	register int i;
+	long i;		/* microseconds: more than an int of them */
 
 	(void)signal(SIGINT, SIG_IGN);
 	(void)putchar('\n');

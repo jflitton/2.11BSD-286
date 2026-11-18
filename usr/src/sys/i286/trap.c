@@ -126,6 +126,14 @@ userret(tf, syst)
 	}
 	if (u.u_prof.pr_scale)
 		addupc(tf->tf_ip, &u.u_prof, (int)(u.u_ru.ru_stime - syst));
+	/*
+	 * A process runs at level 0, as the PDP-11's return to user mode
+	 * makes it by restoring the PS.  Here the level is a variable, and
+	 * swtch leaves it where the process that switched set it: a new
+	 * process, or one that was preempted, would otherwise run with
+	 * every interrupt put off until the kernel next lowered it.
+	 */
+	spl0();
 }
 
 /*

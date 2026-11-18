@@ -30,7 +30,7 @@
 #ifdef INET
 inet_hash(sin, hp)
 	register struct sockaddr_in *sin;
-	struct afhash *hp;
+	struct afhash KSPACE *hp;	/* the caller's local */
 {
 	register u_long n;
 
@@ -310,7 +310,7 @@ in_control(so, cmd, data, ifp)
 		break;
 
 	case SIOCSIFADDR:
-		return (in_ifinit(ifp, ia, &ifr->ifr_addr));
+		return (in_ifinit(ifp, ia, (struct sockaddr_in *)&ifr->ifr_addr));
 
 	case SIOCSIFNETMASK:
 		ia->ia_subnetmask = ntohl(satosin(&ifr->ifr_addr)->sin_addr.s_addr);
@@ -355,7 +355,7 @@ in_ifinit(ifp, ia, sin)
 	/*
 	 * Delete any previous route for an old address.
 	 */
-	bzero((caddr_t)&netaddr, sizeof (netaddr));
+	bzero(&netaddr, sizeof (netaddr));
 	netaddr.sin_family = AF_INET;
 	if (ia->ia_flags & IFA_ROUTE) {
 		if (ifp->if_flags & IFF_LOOPBACK)
@@ -366,7 +366,7 @@ in_ifinit(ifp, ia, sin)
 		else {
 			netaddr.sin_addr = in_makeaddr(ia->ia_subnet,
 			    INADDR_ANY);
-			rtinit((struct sockaddr *)&netaddr, &oldaddr, 
+			rtinit((struct sockaddr ANYSPACE *)&netaddr, &oldaddr, 
 			    (int)SIOCDELRT, 0);
 		}
 		ia->ia_flags &= ~IFA_ROUTE;
@@ -402,7 +402,7 @@ in_ifinit(ifp, ia, sin)
 		    RTF_HOST|RTF_UP);
 	else {
 		netaddr.sin_addr = in_makeaddr(ia->ia_subnet, INADDR_ANY);
-		rtinit((struct sockaddr *)&netaddr, &ia->ia_addr,
+		rtinit((struct sockaddr ANYSPACE *)&netaddr, &ia->ia_addr,
 		    (int)SIOCADDRT, RTF_UP);
 	}
 	ia->ia_flags |= IFA_ROUTE;

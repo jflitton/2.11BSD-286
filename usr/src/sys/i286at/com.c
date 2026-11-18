@@ -113,8 +113,9 @@ comopen(dev, flag)
 	} else if (tp->t_state & TS_XCLUDE && u.u_uid != 0)
 		return (EBUSY);
 	if (!comattached[unit]) {
+		if (setirq(comirq[unit], IPL_TTY, comintr, unit) < 0)
+			return (EBUSY);		/* a network card has it */
 		comattached[unit] = 1;
-		setirq(comirq[unit], IPL_TTY, comintr, unit);
 	}
 	outb(port + MCR, MCR_DTR_RTS | MCR_OUT2);
 	outb(port + IER, IER_RX | IER_TX);

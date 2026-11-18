@@ -865,7 +865,7 @@ willoption(option)
 
 	case TELOPT_BINARY:
 		mode(RAW, 0);
-		lmode(PASS8, 0);
+		lmode(PASS8, 0L);
 		fmt = doopt;
 		break;
 
@@ -928,7 +928,7 @@ wontoption(option)
 
 	case TELOPT_BINARY:
 		mode(0, RAW);
-		lmode(0, PASS8);
+		lmode(0L, PASS8);
 		break;
 
 	case TELOPT_TTYPE:
@@ -960,7 +960,7 @@ dooption(option)
 
 	case TELOPT_BINARY:
 		mode(RAW, 0);
-		lmode(PASS8, 0);
+		lmode(PASS8, 0L);
 		fmt = will;
 		break;
 

@@ -74,7 +74,9 @@ code's existing shape.
 Networking keeps a data segment of its own. On the PDP-11 it runs in
 supervisor mode in a separate address space, and the kernel and network
 code call each other through `KScall` and `SKcall`. Here each of those
-becomes a far call that switches the data segment.
+becomes a far call that switches the data segment, and the network runs
+on the kernel's stacks, reaching the kernel's data through SS
+([the network](network.md)).
 
 ### The user area and kernel stack
 

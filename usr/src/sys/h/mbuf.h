@@ -99,6 +99,17 @@ struct mbuf {
  */
 #define	MPULL_EXTRA	32
 
+/*
+ * Whether MGET's caller was at splnet or below, where it may wait a
+ * little longer: the PDP-11 tests the priority in its PS, the 286 the
+ * level splimp returned.
+ */
+#ifdef i286
+#define	MGETLOW(ms)	((ms) <= IPL_NET)
+#else
+#define	MGETLOW(ms)	(((ms)&0340) <= 0100)
+#endif
+
 #define	MGET(m, i, t) \
 	{ int ms = splimp(); \
 	  if ((m)=mfree) \
@@ -107,7 +118,7 @@ struct mbuf {
 		  mfree = (m)->m_next; (m)->m_next = 0; \
 		  (m)->m_off = MMINOFF; } \
 	  else \
-		(m) = m_more((((ms&0340) <= 0100) && (i==M_DONTWAIT)) ? M_DONTWAITLONG : i, t); \
+		(m) = m_more((MGETLOW(ms) && (i==M_DONTWAIT)) ? M_DONTWAITLONG : i, t); \
 	  splx(ms); }
 
 /*
@@ -118,7 +129,7 @@ struct mbuf {
  * m->m_len is set to MCLBYTES upon success, and to MLEN on failure.
  * MCLFREE frees clusters allocated by MCLALLOC.
  */
-#ifndef	pdp11
+#if !defined(pdp11) && !defined(i286)
 #define	MCLALLOC(m, i) \
 	{ int ms = splimp(); \
 	  if (mclfree == 0) \
@@ -183,11 +194,11 @@ struct mbstat {
 
 #ifdef	SUPERVISOR
 extern	struct	mbuf *mbutl;		/* virtual address of net free mem */
-struct	mbstat mbstat;
-int	nmbclusters;
-struct	mbuf *mfree, *mclfree;
-char	mclrefcnt[NMBCLUSTERS + 1];
-int	m_want;
+extern struct	mbstat mbstat;
+extern int	nmbclusters;
+extern struct	mbuf *mfree, *mclfree;
+extern char	mclrefcnt[NMBCLUSTERS + 1];
+extern int	m_want;
 struct	mbuf *m_get(),*m_getclr(),*m_free(),*m_more(),*m_copy(),*m_pullup();
 
 /*
@@ -198,7 +209,7 @@ struct	mbuf *m_get(),*m_getclr(),*m_free(),*m_more(),*m_copy(),*m_pullup();
 */
 extern	char	mgetStr[], mfreeStr[];
 
-#ifndef	pdp11
+#if !defined(pdp11) && !defined(i286)
 caddr_t	m_clalloc();
 #endif
 #endif

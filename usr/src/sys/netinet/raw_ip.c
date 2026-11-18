@@ -124,7 +124,7 @@ rip_ctloutput(op, so, level, optname, m)
 	int op;
 	struct socket *so;
 	int level, optname;
-	struct mbuf **m;
+	struct mbuf * KSPACE *m;	/* on the stack: sogetopt */
 {
 	int error = 0;
 	register struct rawcb *rp = sotorawcb(so);

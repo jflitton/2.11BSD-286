@@ -110,8 +110,10 @@ and 4 (`INTO`) that a process may use.
 
 A structure a program hands the kernel has the same layout whatever the
 program's model: a pointer in it is far. So far that is `struct iovec`,
-`struct sigaction` and `struct sigaltstack`; a library for a model with
-near pointers converts them. The one exception is the
+`struct msghdr`, `struct sigaction` and `struct sigaltstack`; a library
+for a model with near pointers converts them. The one structure that
+cannot be converted so, because an `ioctl` passes it, is `struct
+ifconf`, whose pointer is far in every model ([the network](network.md)). The one exception is the
 lists of arguments and environment given to `execve`, which may be long:
 the kernel reads them as the calling program's model has them, near
 pointers in the list's own segment or far ones.
@@ -244,8 +246,19 @@ variable; the `spl` routines change it and nothing else, which makes
 them a handful of instructions. An interrupt request whose level is not
 above `cpl` is put off: its line is shut at the interrupt controller and
 noted in `ipending`, and its handler runs when `splx` or `spl0` lowers
-the level far enough. The clock's deferred work (`softclock`) is
-requested and run the same way.
+the level far enough. The clock's deferred work (`softclock`) and the
+network's software interrupt (`netintr`, [the network](network.md)) are
+requested and run the same way. A device's handler is given to
+`setirq`, which refuses a line that has one already; a handler in the
+network, the Ethernet card's, is marked as `timeout`'s are, and called
+through `KScall`, which gives it the network's data segment.
+
+A process runs at level 0. The PDP-11 makes it so by restoring the PS on
+the way back to user mode; here `userret`, which every way back to a
+process passes through, lowers the level. Without that a process went on
+at whatever level the kernel was at when it switched to it, which for a
+new process or a preempted one was 7: every interrupt was put off until
+the kernel next lowered the level, and the serial ports lost characters.
 
 Handlers run on a stack of their own, so that a process's kernel stack
 need not have room for them. On the way back to a process, if another

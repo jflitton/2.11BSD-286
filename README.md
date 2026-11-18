@@ -34,9 +34,9 @@ Where the 286 code goes, beside its PDP-11 counterpart in each case:
 
 | new | beside | holds |
 |-----|--------|-------|
-| `usr/src/sys/i286/` | `pdp/` | startup, traps, system calls, copy routines, segments, switching between processes, signals, the 287, the clock, the console on the display, a RAM disk |
+| `usr/src/sys/i286/` | `pdp/` | startup, traps, system calls, copy routines, segments, switching between processes, signals, the 287, the clock, the console on the display, a RAM disk; the calls between the kernel and the network, and the network's side of them ([the network](docs/network.md)) |
 | `usr/src/sys/i286at/` | `pdpuba/` | AT-bus drivers: the Adaptec SCSI adapter and its disks, the AT disk controller (IDE), and the PC partition table; the serial ports, the keyboard, and the console's VT102 terminal emulator ([the console](docs/console.md)) |
-| `usr/src/sys/i286if/` | `pdpif/` | network interfaces; to come |
+| `usr/src/sys/i286if/` | `pdpif/` | network interfaces: the NE1000 and NE2000 and the cards that copy them ([the network](docs/network.md)) |
 | `usr/src/sys/i286stand/` | `pdpstand/`, `mdec/` | what loads the kernel: the diskette's boot sector, and for a hard disk its first sector, the boot block and `/boot`; `make -C usr/src/sys/i286stand` builds them in `obj/stand` |
 | `usr/src/sys/PC/` | `GENERIC/` | the kernel's configuration and Makefile: `make -C usr/src/sys/PC` builds `obj/PC/unix` |
 | `usr/src/lib/libc/i286/` | `lib/libc/pdp/` | libc's machine-dependent part, and the Makefile that builds the library from it and the tree's portable C: `make -C usr/src/lib/libc/i286` makes `obj/lib/s/libc.lib` |
@@ -159,6 +159,7 @@ DOS and OS/2 user's guide with nothing on ports or interrupts; not kept.)
 | `tools/mkstubs.py` | writes system call stubs from a table of the calls' arguments, checked against the kernel's |
 | `tools/kpatch.py` | changes a variable in an executable file, by name |
 | `tools/farlint.py` | looks for far pointers that kernel code truncates without the compiler noticing |
+| `tools/netcheck.py` | looks in the kernel's objects for calls and references between it and the network that do not switch the data segment; run at every link |
 | `tools/untap.py` | splits a SimH `.tap` tape image into its files |
 | `tools/tar2git.py` | commits tar archives to a branch without unpacking them |
 | `tools/import-upstream.sh` | rebuilds the `upstream` import from the tape, to check it |
@@ -170,8 +171,9 @@ program on a diskette image behind the boot sector
 (`usr/src/sys/i286stand/fdboot.s`), boots it, prints what it wrote to the
 serial port and takes the `@exit` line it ends with as the result. It can
 also give the machine a hard disk, boot from that with no diskette, type
-at the serial port, and type on the keyboard once the screen shows a
-prompt.
+at the serial port, type on the keyboard once the screen shows a
+prompt, and give the machine an NE1000 or NE2000 on a network of the
+emulator's own, with the host able to telnet to it there.
 
 ```sh
 . tools/env.sh
@@ -184,8 +186,10 @@ tests/libc/run.sh       # the C library, with a test program as init: 73
                         # checks in the small model, 73 in the medium
 tests/system/run.sh     # the system, booted from a hard disk to multi-user:
                         # logs in on a serial port and on two of the
-                        # console's screens, uses sh, csh and tcsh, and
-                        # edits with ex and vi
+                        # console's screens, uses sh, csh and tcsh,
+                        # edits with ex and vi, and logs in again over
+                        # the loopback interface with telnet, and from
+                        # the host over an emulated NE2000
 tests/vt/run.sh         # the console's terminal emulator, on the machine
                         # the system is built on: 302 checks
 ```
@@ -227,10 +231,14 @@ tests/vt/run.sh         # the console's terminal emulator, on the machine
   the C shell some commands, edits a file with `ex` and `vi`, uses
   `tcsh`'s line editor, all on the first serial port. Then it logs in on
   two of the console's screens with the keyboard, edits with `vi` on
-  one, and checks what the screens showed; and it halts the machine,
-  after which `tools/fsck.py` checks the disk
+  one, and checks what the screens showed. Back on the serial port it
+  pings the loopback interface and logs in over it with `telnet`. It
+  sets up the Ethernet interface, an NE2000 of the emulator's on a
+  network of the emulator's own, pings the gateway, and the host logs in
+  over it with telnet and sends a file each way. Then it halts the
+  machine, after which `tools/fsck.py` checks the disk
   ([the C library and programs](docs/userland.md),
-  [the console](docs/console.md)).
+  [the console](docs/console.md), [the network](docs/network.md)).
 - `tests/vt` is the console's terminal emulator, which touches no
   hardware, built with the C compiler of the machine the system is built
   on and run there: what each sequence leaves on the screen, where it
@@ -277,7 +285,8 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   [processes](docs/processes.md),
   [disks](docs/disks.md),
   [the C library and programs](docs/userland.md),
-  [the console](docs/console.md).
+  [the console](docs/console.md),
+  [the network](docs/network.md).
 - A C program can be compiled, linked, converted to the executable format
   and run in an emulated PS/2 Model 30 286.
 - The helper routines compiled code calls for 32-bit multiply and divide
@@ -315,14 +324,19 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
 - The console is the display and keyboard, as four terminals that Alt-F1
   to Alt-F4 choose between, each a VT102 with 25 lines and colours; the
   serial ports are terminals too ([the console](docs/console.md)).
-- That is the state in an emulated PS/2 Model 30 286 only. Nothing has
-  run on a real machine.
-- What the kernel does not have: a driver for the network card,
-  pseudo-terminals
-  (the code is there and not yet compiled in), networking, quotas. The
-  parts of it that no test reaches yet: `ptrace`, `sysctl`, core dumps
-  beyond being written, `fork` when memory is short, and swapping of
-  shared code.
+- The network is compiled in, with a data segment of its own: sockets,
+  IP, ICMP, UDP, TCP, ARP, raw and Unix-domain sockets, the loopback
+  interface, eight pseudo-terminals, and a driver for the NE1000, the
+  NE2000 and the cards and emulations that copy them, which finds out at
+  boot what each does: where it is, how wide, how much memory, which
+  interrupt. `/etc/rc.conf` gives the machine's address, `inetd` starts
+  at boot, and one logs in over the network with `telnet`
+  ([the network](docs/network.md)).
+- That is the state in an emulated PS/2 Model 30 286. The system has
+  also booted on a real machine and been logged in to over the network.
+- What the kernel does not have: quotas. The parts of it that no test reaches yet: `ptrace`, `sysctl`,
+  core dumps beyond being written, `fork` when memory is short,
+  swapping of shared code, and Unix-domain sockets.
 - What user space does not have: a library for the large model, and
-  most of the programs, among them `more`, `mail`, `ps`, `fsck` and
-  everything for the network.
+  most of the programs, among them `more`, `mail`, `ps`, `fsck`, and of
+  the network's `netstat`, `ftp` and `syslogd`.

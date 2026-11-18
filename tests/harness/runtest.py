@@ -3,7 +3,8 @@
 
 usage: runtest.py NAME SOURCE...
        runtest.py [--hd IMAGE,CYLINDERS,HEADS,SECTORS[,BUS]] [--until TEXT]
-                  [--type AFTER TEXT | --key AFTER TEXT]...
+                  [--net CARD[:PORT:IRQ]]
+                  [--type AFTER TEXT | --key AFTER TEXT | --telnet AFTER TEXT]...
                   --boot NAME [EXECUTABLE [FILESYSTEM]]
 
 The first form builds a small-model program that runs in real mode.  Each
@@ -41,6 +42,20 @@ with Ctrl.  Each screen a --key waited for is saved
 in screen.txt, and the last one when the run ends.  The steps are taken
 in the order given, whichever kind they are.  86Box with the automation
 socket only.
+
+With --net the machine has an NE1000 or NE2000 of 86Box's: CARD is its
+name there (novell_ne1k, ne1k, novell_ne2k, ne2k or ne2k8), at that I/O
+address (hexadecimal) and interrupt request, 300 and 3 if not given.  It
+is on 86Box's SLiRP, a network of its own, where the machine is to be
+10.0.2.15 and 10.0.2.2 answers for the host; and a port of the host's,
+free when the run starts, is forwarded to the machine's port 23, the
+telnet server's.  86Box listens on it on every interface the host has,
+so it is reachable from other machines while the run lasts, but only
+while the machine's interface is up.  --telnet TEXT is typed on a
+telnet connection to that port, opened at the first --telnet, once the
+connection has shown AFTER since the last --telnet; what the machine
+writes on it is printed after what it wrote to the serial port, under a
+line "telnet:".  86Box with the automation socket only.
 
 A program given is put on a diskette image by tools/mkfd.py, behind the
 boot sector, usr/src/sys/i286stand/fdboot.s, and the emulator boots it.
@@ -151,7 +166,8 @@ def finished(text):
 
 
 UNTIL = None            # --until: what must follow the "@exit" line
-TYPE = []               # --type and --key: [kind, after, text] for each
+TYPE = []               # --type, --key, --telnet: [kind, after, text]
+NET = None              # --net: (card, port, irq, the host's port)
 
 
 class Typist:
@@ -162,10 +178,20 @@ class Typist:
         self.todo = list(TYPE)
         self.since = 0          # where in the output the last was typed
         self.before = None      # the screen the last --key waited for
+        self.netsince = 0       # where in the telnet text the last was
 
     def kind(self):
-        """What the next step types on: "serial", "key", or None."""
+        """What the next step types on: "serial", "key", "telnet", or
+        None."""
         return self.todo[0][0] if self.todo else None
+
+    def nextnet(self, text):
+        """What to send on the telnet connection now that TEXT has come
+        on it, or None."""
+        if self.kind() != "telnet" or self.todo[0][1] not in text[self.netsince:]:
+            return None
+        self.netsince = len(text)
+        return (self.todo.pop(0)[2] + "\r\n").encode("latin-1")
 
     def next(self, text):
         """What to type on the serial port now that TEXT has been
@@ -309,6 +335,99 @@ def run_qemu(img, out):
     return text
 
 
+class Telnet:
+    """The host's end of a telnet connection to the machine.  The machine
+    may echo and suppress go-ahead; any other option it offers, and any
+    it asks for, is refused."""
+
+    IAC, DONT, DO, WONT, WILL, SB, SE = 255, 254, 253, 252, 251, 250, 240
+    ECHO, SGA = 1, 3
+
+    def __init__(self, port):
+        self.sock = socket.create_connection(("127.0.0.1", port), timeout=10)
+        self.sock.setblocking(False)
+        self.pending = b""      # a command not yet all here
+        self.text = ""          # what the machine has written
+        self.answered = set()   # (command, option) already answered
+        self.closed = False
+
+    def poll(self):
+        if self.closed:
+            return
+        try:
+            data = self.sock.recv(4096)
+        except BlockingIOError:
+            return
+        except OSError:
+            data = b""
+        if not data:
+            self.closed = True
+            self.sock.close()
+            return
+        buf = self.pending + data
+        out = bytearray()
+        i = 0
+        while i < len(buf):
+            if buf[i] != self.IAC:
+                out.append(buf[i])
+                i += 1
+                continue
+            if i + 1 >= len(buf):
+                break
+            cmd = buf[i + 1]
+            if cmd == self.IAC:
+                out.append(self.IAC)
+                i += 2
+            elif cmd in (self.DO, self.DONT, self.WILL, self.WONT):
+                if i + 2 >= len(buf):
+                    break
+                opt = buf[i + 2]
+                if cmd == self.DO:
+                    self.answer(self.WONT, opt)
+                elif cmd == self.WILL:
+                    self.answer(self.DO if opt in (self.ECHO, self.SGA)
+                                else self.DONT, opt)
+                i += 3
+            elif cmd == self.SB:
+                end = buf.find(bytes([self.IAC, self.SE]), i)
+                if end < 0:
+                    break
+                i = end + 2
+            else:
+                i += 2
+        self.pending = buf[i:]
+        self.text += out.decode("latin-1")
+
+    def answer(self, cmd, opt):
+        if (cmd, opt) not in self.answered:
+            self.answered.add((cmd, opt))
+            self.sock.sendall(bytes([self.IAC, cmd, opt]))
+
+    def send(self, data):
+        self.sock.setblocking(True)
+        self.sock.sendall(data.replace(b"\xff", b"\xff\xff"))
+        self.sock.setblocking(False)
+
+    def close(self):
+        if not self.closed:
+            self.closed = True
+            self.sock.close()
+
+
+NETCARDS = {"novell_ne1k": "Novell NE1000", "ne1k": "NE1000 Compatible",
+            "novell_ne2k": "Novell NE2000", "ne2k": "NE2000 Compatible",
+            "ne2k8": "NE2000 Compatible 8-bit"}
+
+
+def free_port():
+    """A TCP port of the host's that nothing is listening on now."""
+    s = socket.socket()
+    s.bind(("127.0.0.1", 0))
+    port = s.getsockname()[1]
+    s.close()
+    return port
+
+
 def find_86box():
     for box in (os.environ.get("BOX86"),
                 os.path.join(TOP, "toolchain", MAC_86BOX),
@@ -362,6 +481,13 @@ def start_86box(box, img, out, com1, args=(), env=None):
                            int(scsi[2]), int(scsi[4], 16)))
             else:
                 f.write("hdd_01_ide_channel = 0:0\n")
+        if NET:
+            card, port, irq, hostport = NET
+            f.write("\n[Network]\nnet_01_card = %s\nnet_01_net_type = slirp\n\n"
+                    "[%s #1]\nbase = %04X\nirq = %d\nmac = 12:34:56\n\n"
+                    "[SLiRP Port Forwarding #1]\n0_protocol = tcp\n"
+                    "0_external = %d\n0_internal = 23\n"
+                    % (card, NETCARDS[card], port, irq, hostport))
     shutil.copy(os.path.join(HARNESS, "ibmps2_m30_286.nvr"), os.path.join(vm, "nvr"))
     with open(os.path.join(vm, "86box.out"), "w") as o:
         p = subprocess.Popen([box, "-N", "-P", vm, "-L", os.path.join(vm, "86box.log")]
@@ -493,6 +619,7 @@ def run_86box_socket(box, img, out):
                     + describe(auto, None))
         pos = 0
         typist = Typist()
+        tel = None
         screens = open(os.path.join(out, "screen.txt"), "w", encoding="utf-8")
         def keep(rows):
             screens.write("".join(r.rstrip() + "\n" for r in rows) + "=" * 80 + "\n")
@@ -512,6 +639,16 @@ def run_86box_socket(box, img, out):
                 if text is not None:
                     keep(rows)
                     typekeys(auto, text)
+            if typist.kind() == "telnet" and tel is None:
+                try:
+                    tel = Telnet(NET[3])
+                except OSError as e:
+                    seen = "no telnet connection to port %d: %s\n" % (NET[3], e)
+            if tel:
+                tel.poll()
+                data = typist.nextnet(tel.text)
+                if data:
+                    tel.send(data)
             evs, scan = events(auto, scan)
             if any(e["type"] == "reset" and not bios_move(e) for e in evs or []):
                 seen = "the machine was reset\n" + describe(auto, mark)
@@ -531,12 +668,15 @@ def run_86box_socket(box, img, out):
             p.kill()
             p.wait()
         shutil.rmtree(tmp, ignore_errors=True)
-    return raw.decode("latin-1"), seen
+    if tel:
+        tel.poll()
+        tel.close()
+    return raw.decode("latin-1"), seen, tel.text if tel else None
 
 
 def run_86box_pty(box, img, out):
-    if any(t[0] == "key" for t in TYPE):
-        sys.exit("--key needs an 86Box with the automation socket")
+    if any(t[0] in ("key", "telnet") for t in TYPE):
+        sys.exit("--key and --telnet need an 86Box with the automation socket")
     p, vm = start_86box(box, img, out,
                         "serial1_passthrough_enabled = 1\n\n"
                         "[Serial Passthrough Device #1]\nmode = 0\n"
@@ -582,20 +722,23 @@ def run_86box_pty(box, img, out):
             os.close(fd)
         p.send_signal(signal.SIGKILL)       # 86Box ignores SIGTERM
         p.wait()
-    return text, None
+    return text, None, None
 
 
 def run_86box(img, out):
     box = find_86box()
     run = run_86box_socket if has_automation(box) else run_86box_pty
-    text, seen = run(box, img, out)
+    text, seen, teltext = run(box, img, out)
     with open(os.path.join(out, "serial.txt"), "w", newline="") as f:
         f.write(text)
-    return text, seen
+    if teltext is not None:
+        with open(os.path.join(out, "telnet.txt"), "w", newline="") as f:
+            f.write(teltext)
+    return text, seen, teltext
 
 
 def main():
-    global HD, UNTIL
+    global HD, UNTIL, NET
     emu = os.environ.get("EMU", "86box")
     if emu not in ("86box", "qemu"):
         sys.exit("EMU must be 86box or qemu")
@@ -614,8 +757,22 @@ def main():
     if len(sys.argv) > 2 and sys.argv[1] == "--until":
         UNTIL = sys.argv[2]
         del sys.argv[1:3]
-    while len(sys.argv) > 3 and sys.argv[1] in ("--type", "--key"):
-        TYPE.append(["serial" if sys.argv[1] == "--type" else "key"] + sys.argv[2:4])
+    if len(sys.argv) > 2 and sys.argv[1] == "--net":
+        try:
+            card, port, irq = (sys.argv[2] + ":300:3").split(":")[:3]
+            if card not in NETCARDS:
+                raise ValueError
+            NET = (card, int(port, 16), int(irq), free_port())
+        except ValueError:
+            sys.exit(__doc__)
+        if emu != "86box":
+            sys.exit("--net: needs 86Box")
+        del sys.argv[1:3]
+    kinds = {"--type": "serial", "--key": "key", "--telnet": "telnet"}
+    while len(sys.argv) > 3 and sys.argv[1] in kinds:
+        if sys.argv[1] == "--telnet" and not NET:
+            sys.exit("--telnet: needs --net")
+        TYPE.append([kinds[sys.argv[1]]] + sys.argv[2:4])
         del sys.argv[1:4]
     if len(sys.argv) < 3:
         sys.exit(__doc__)
@@ -636,8 +793,11 @@ def main():
         os.makedirs(out, exist_ok=True)
         img = build(name, sources, out)
     # The program's output, and what the emulator can say of a failure.
-    text, seen = run_86box(img, out) if emu == "86box" else (run_qemu(img, out), None)
+    text, seen, teltext = (run_86box(img, out) if emu == "86box"
+                           else (run_qemu(img, out), None, None))
     sys.stdout.write(text.replace("\r", ""))
+    if teltext is not None:
+        sys.stdout.write("\ntelnet:\n" + teltext.replace("\r", ""))
     sys.stdout.flush()
     if seen:
         print("\n" + seen, file=sys.stderr)

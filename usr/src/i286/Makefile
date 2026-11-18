@@ -97,8 +97,20 @@ tcsh_FLAGS=	-I$(TCO) -I$(SRC)/bin/tcsh
 tcsh_LIBS=	-ltermcap
 tcsh_MODEL=	m
 
+# The network's.
+ifconfig_SRCS=	sbin/ifconfig/ifconfig.c
+ping_SRCS=	bin/ping/ping.c
+telnet_SRCS=	ucb/telnet.c
+telnetd_SRCS=	libexec/telnetd/telnetd.c $(addprefix libexec/getty/,\
+		gettytab.c subr.c init.c)
+telnetd_FLAGS=	-I$(SRC)/libexec/getty
+inetd_SRCS=	usr.sbin/inetd/inetd.c
+route_SRCS=	sbin/route/route.c
+NETPROGS=	ifconfig ping route telnet telnetd inetd
+
 PROGS=	init getty login sh csh ls mkdir stty test hostname mknod mount \
-	umount reboot sleep ex exrecover expreserve tcsh $(BINSTD)
+	umount reboot sleep ex exrecover expreserve tcsh $(BINSTD) \
+	$(NETPROGS)
 
 # The libraries the programs use besides the C library: NAME_LIB lists a
 # library's sources, and NAME_LIBFLAGS what it is compiled with.  Each is

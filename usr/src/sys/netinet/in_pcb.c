@@ -197,7 +197,7 @@ in_pcbconnect(inp, nam)
 	if (in_pcblookup(inp->inp_head,
 	    sin->sin_addr,
 	    sin->sin_port,
-	    inp->inp_laddr.s_addr ? inp->inp_laddr.s_addr : ifaddr->sin_addr.s_addr,
+	    inp->inp_laddr.s_addr ? inp->inp_laddr : ifaddr->sin_addr,
 	    inp->inp_lport,
 	    0))
 		return (EADDRINUSE);

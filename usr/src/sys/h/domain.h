@@ -26,5 +26,5 @@ struct	domain {
 };
 
 #ifdef SUPERVISOR
-struct	domain *domains;
+extern struct	domain *domains;
 #endif

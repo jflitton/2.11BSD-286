@@ -1,1 +1,1 @@
-#define NPTY	0
+#define	NPTY	8

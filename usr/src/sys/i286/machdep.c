@@ -564,7 +564,10 @@ int	cpl;
 u_int	ipending;		/* requests put off, a bit a line */
 u_int	spending;		/* software interrupts wanted */
 #define	SP_CLOCK	1
-#define	SP_NET		2
+#define	SP_NET		2		/* setsoftnet (mch_net.s) */
+#ifdef INET
+int	netintr();			/* in the network: KScall it */
+#endif
 static u_int imask = 0xFFFB;	/* lines shut; 2 is the second controller */
 static char irqlevel[16];
 static int (*irqhand[16])();
@@ -588,7 +591,9 @@ setmask(irq)
 
 /*
  * handler(arg, frame) is to be called at the given level when the line
- * requests; frame is 0 if the call was put off.
+ * requests; frame is 0 if the call was put off.  A handler in the
+ * network is marked with SUPERFUN, and called with KScall and its arg
+ * alone (callirq).  -1 if the line has a handler already.
  */
 setirq(irq, level, handler, arg)
 	int irq, level, arg;
@@ -596,6 +601,8 @@ setirq(irq, level, handler, arg)
 {
 	register int s;
 
+	if (irqhand[irq])
+		return (-1);
 	s = intsoff();
 	irqlevel[irq] = level;
 	irqhand[irq] = handler;
@@ -603,6 +610,23 @@ setirq(irq, level, handler, arg)
 	imask &= ~(1 << irq);
 	setmask(irq);
 	intson(s);
+	return (0);
+}
+
+static
+callirq(irq, tf)
+	int irq;
+	struct trapframe *tf;
+{
+	register int (*f)() = irqhand[irq];
+
+#ifdef INET
+	if (ISSUPERFUN(f)) {
+		KScall(KERNELFUN(f), sizeof(int), irqarg[irq]);
+		return;
+	}
+#endif
+	(*f)(irqarg[irq], tf);
 }
 
 /*
@@ -630,7 +654,7 @@ intr(tf)
 	s = cpl;
 	cpl = irqlevel[irq];
 	enable();
-	(*irqhand[irq])(irqarg[irq], tf);
+	callirq(irq, tf);
 	disable();
 	imask &= ~bit;
 	setmask(irq);
@@ -657,14 +681,25 @@ again:
 				s = cpl;
 				cpl = irqlevel[irq];
 				enable();
-				(*irqhand[irq])(irqarg[irq],
-				    (struct trapframe *)0);
+				callirq(irq, (struct trapframe *)0);
 				disable();
 				imask &= ~bit;
 				setmask(irq);
 				cpl = s;
 				goto again;
 			}
+#ifdef INET
+	if ((spending & SP_NET) && cpl < IPL_NET) {
+		spending &= ~SP_NET;
+		s = cpl;
+		cpl = IPL_NET;
+		enable();
+		KScall(netintr, 0);
+		disable();
+		cpl = s;
+		goto again;
+	}
+#endif
 	if ((spending & SP_CLOCK) && cpl < IPL_SOFTCLOCK) {
 		spending &= ~SP_CLOCK;
 		s = cpl;

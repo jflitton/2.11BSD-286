@@ -161,6 +161,10 @@ void	pcopy(long from, long to, unsigned count);
 void	pclear(long addr, unsigned count);
 void	pinsw(int port, long addr, unsigned count);
 void	poutsw(int port, long addr, unsigned count);
+void	insb(int port, void __far *buf, unsigned count);
+void	insw(int port, void __far *buf, unsigned count);
+void	outsb(int port, void __far *buf, unsigned count);
+void	outsw(int port, void __far *buf, unsigned count);
 unsigned gdtalloc(long paddr, unsigned limit);
 #endif
 

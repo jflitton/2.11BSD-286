@@ -12,11 +12,23 @@
 #define	ENDIAN	LITTLE		/* byte order on the 286 */
 
 /*
- * Macros for network/external number representation conversion.
+ * Macros for network/external number representation conversion.  The
+ * kernel has them in line.
  */
 #include <sys/types.h>
+#ifdef KERNEL
+u_short	ntohs(u_short), htons(u_short);
+u_long	ntohl(u_long), htonl(u_long);
+#pragma aux ntohs = "xchg al,ah" parm [ax] value [ax] modify exact [ax];
+#pragma aux htons = "xchg al,ah" parm [ax] value [ax] modify exact [ax];
+#pragma aux ntohl = "xchg al,ah" "xchg dl,dh" "xchg ax,dx" \
+	parm [dx ax] value [dx ax] modify exact [ax dx];
+#pragma aux htonl = "xchg al,ah" "xchg dl,dh" "xchg ax,dx" \
+	parm [dx ax] value [dx ax] modify exact [ax dx];
+#else
 u_short	ntohs(), htons();
 u_long	ntohl(), htonl();
+#endif
 
 #include <machine/limits.h>
 
@@ -90,6 +102,39 @@ u_long	ntohl(), htonl();
 #define	loint(long)	(((int *)&(long))[0])
 #define	hiint(long)	(((int *)&(long))[1])
 #ifdef KERNEL
+/*
+ * The network has a data segment of its own, and runs on the kernel's
+ * stacks (docs/network.md), so it reaches the kernel's data through SS.
+ * KSPACE makes a pointer of that kind in the network's code; in the
+ * kernel's it is an ordinary pointer.
+ *
+ * Addresses the kernel keeps for the network, as on the PDP-11: SUPERADD
+ * makes a channel to sleep on that is unlike any of the kernel's own, and
+ * SUPERFUN marks a network function for softclock to call with KScall
+ * (bit 0 of the selector, which is otherwise 0 for the kernel's code).
+ */
+#ifdef SUPERVISOR
+#define	KSPACE		__based(__segname("_STACK"))
+#else
+#define	KSPACE
+#endif
+/*
+ * A pointer in the network's code that may point at one of its local
+ * variables, on the kernel's stack, or at its own data, as a pointer
+ * that starts at a list's head and walks down its links: it is far.
+ */
+#ifdef SUPERVISOR
+#define	ANYSPACE	__far
+#else
+#define	ANYSPACE
+#endif
+#define	SUPERADD(add)	((int)(add)|01)
+#define	KERNELADD(add)	((int)(add)&~01)
+#define	ISSUPERADD(add)	((int)(add)&01)
+#define	SUPERFUN(f)	((int (*)())((long)(f) | 0x10000L))
+#define	KERNELFUN(f)	((int (*)())((long)(f) & ~0x10000L))
+#define	ISSUPERFUN(f)	((long)(f) & 0x10000L)
+
 #include "../machine/seg.h"
 #endif
 

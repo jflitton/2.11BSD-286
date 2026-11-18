@@ -332,27 +332,28 @@ ifconf(cmd, data)
 	register struct ifconf *ifc = (struct ifconf *)data;
 	register struct ifnet *ifp = ifnet;
 	register struct ifaddr *ifa;
-	register char *cp, *ep;
-	struct ifreq ifr, *ifrp;
+	register char KSPACE *cp, KSPACE *ep;	/* in ifr, on the stack */
+	struct ifreq ifr;
+	struct ifreq __far *ifrp;		/* in the process */
 	int space = ifc->ifc_len, error = 0;
 
 	ifrp = ifc->ifc_req;
-	ep = ifr.ifr_name + sizeof (ifr.ifr_name) - 2;
+	ep = (char KSPACE *)ifr.ifr_name + sizeof (ifr.ifr_name) - 2;
 	for (; space > sizeof (ifr) && ifp; ifp = ifp->if_next) {
 		bcopy(ifp->if_name, ifr.ifr_name, sizeof (ifr.ifr_name) - 2);
-		for (cp = ifr.ifr_name; cp < ep && *cp; cp++)
+		for (cp = (char KSPACE *)ifr.ifr_name; cp < ep && *cp; cp++)
 			;
 		*cp++ = '0' + ifp->if_unit; *cp = '\0';
 		if ((ifa = ifp->if_addrlist) == 0) {
-			bzero((caddr_t)&ifr.ifr_addr, sizeof(ifr.ifr_addr));
-			error = copyout((caddr_t)&ifr, (caddr_t)ifrp, sizeof (ifr));
+			bzero(&ifr.ifr_addr, sizeof(ifr.ifr_addr));
+			error = copyout(&ifr, ifrp, sizeof (ifr));
 			if (error)
 				break;
 			space -= sizeof (ifr), ifrp++;
 		} else 
 		    for ( ; space > sizeof (ifr) && ifa; ifa = ifa->ifa_next) {
 			ifr.ifr_addr = ifa->ifa_addr;
-			error = copyout((caddr_t)&ifr, (caddr_t)ifrp, sizeof (ifr));
+			error = copyout(&ifr, ifrp, sizeof (ifr));
 			if (error)
 				break;
 			space -= sizeof (ifr), ifrp++;

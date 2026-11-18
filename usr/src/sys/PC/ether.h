@@ -1,1 +1,1 @@
-#define NETHER	0
+#define NETHER	1

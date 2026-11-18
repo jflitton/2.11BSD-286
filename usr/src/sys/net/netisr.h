@@ -26,6 +26,9 @@
 #ifdef pdp11
 #define	setsoftnet()	{ extern int knetisr; mtkd(&knetisr, 1); }
 #endif
+#ifdef i286
+int	setsoftnet();		/* mch_net.s */
+#endif
 
 /*
  * Each ``pup-level-1'' input queue has a bit in a ``netisr'' status
@@ -42,5 +45,5 @@
 #define	schednetisr(anisr)	{ netisr |= 1<<(anisr); setsoftnet(); }
 
 #ifdef SUPERVISOR
-int	netisr;				/* scheduling bits for network */
+extern int	netisr;				/* scheduling bits for network */
 #endif

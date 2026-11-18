@@ -76,7 +76,12 @@ struct uio {
 };
 #ifdef KERNEL
 struct inode;
+#ifdef SUPERVISOR
+/* the network's own, for the kernel's uio (i286/net_sys.c) */
+int	uiomove(caddr_t cp, u_int n, struct uio KSPACE *uio);
+#else
 int	uiomove(void __far *cp, u_int n, struct uio *uio);
+#endif
 int	rdwri(enum uio_rw rw, struct inode *ip, void __far *base, int len,
 	    off_t offset, enum uio_seg segflg, int ioflg, int *aresid);
 #endif

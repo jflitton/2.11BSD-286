@@ -17,7 +17,7 @@
  */
 struct ipovly {
 	caddr_t	ih_next, ih_prev;	/* for protocol sequence q's */
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 	u_long	ih_pad;
 #endif
 	u_char	ih_x1;			/* (unused) */
@@ -35,7 +35,7 @@ struct ipovly {
  */
 struct ipq {
 	struct	ipq *next,*prev;	/* to other reass headers */
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 	u_long	ipq_pad;
 #endif
 	u_char	ipq_ttl;		/* time for reass q to live */
@@ -73,7 +73,7 @@ struct	ipasfrag {
 	u_short	ip_sum;
 	struct	ipasfrag *ipf_next;	/* next fragment */
 	struct	ipasfrag *ipf_prev;	/* previous fragment */
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 	u_long	ipf_pad;
 #endif
 };
@@ -112,10 +112,10 @@ struct	ipstat {
 #define	IP_ROUTETOIF		SO_DONTROUTE	/* bypass routing tables */
 #define	IP_ALLOWBROADCAST	SO_BROADCAST	/* can send broadcast packets */
 
-struct	ipstat	ipstat;
-struct	ipq	ipq;			/* ip reass. queue */
-u_short	ip_id;				/* ip packet ctr, for ids */
-int	ip_defttl;			/* default IP ttl */
+extern struct	ipstat	ipstat;
+extern struct	ipq	ipq;			/* ip reass. queue */
+extern u_short	ip_id;				/* ip packet ctr, for ids */
+extern int	ip_defttl;			/* default IP ttl */
 
 struct	mbuf *ip_srcroute();
 #endif

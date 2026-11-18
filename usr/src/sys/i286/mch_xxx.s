@@ -1,5 +1,6 @@
-; Small routines for C.  The kernel's stack is in its data segment, so
-; arguments are reached through BX without a frame.
+; Small routines for C.  Arguments are reached through BX without a
+; frame, with SS, which is always the kernel's data segment: the network,
+; whose DS is its own, calls some of these too (docs/network.md).
 
 %include "mch_defs.inc"
 
@@ -8,7 +9,7 @@
 ; inb(port): read a byte from an I/O port.
 ENTRY inb
         mov     bx, sp
-        mov     dx, [bx+4]
+        mov     dx, [ss:bx+4]
         in      al, dx
         xor     ah, ah
         retf
@@ -16,23 +17,84 @@ ENTRY inb
 ; outb(port, value): write a byte to an I/O port.
 ENTRY outb
         mov     bx, sp
-        mov     dx, [bx+4]
-        mov     al, [bx+6]
+        mov     dx, [ss:bx+4]
+        mov     al, [ss:bx+6]
         out     dx, al
         retf
 
 ; inw(port), outw(port, value): the same for 16 bits.
 ENTRY inw
         mov     bx, sp
-        mov     dx, [bx+4]
+        mov     dx, [ss:bx+4]
         in      ax, dx
         retf
 
 ENTRY outw
         mov     bx, sp
-        mov     dx, [bx+4]
-        mov     ax, [bx+6]
+        mov     dx, [ss:bx+4]
+        mov     ax, [ss:bx+6]
         out     dx, ax
+        retf
+
+; insb(port, buf, count), insw(port, buf, count): read count bytes, or
+; words, from an I/O port into buf; outsb and outsw write them from it.
+;       int port; char __far *buf; u_int count;
+; For the network interfaces, whose buffers are the network's mbufs or
+; its locals, on the stack: buf is far.
+ENTRY insb
+        push    bp
+        mov     bp, sp
+        push    di
+        mov     dx, [bp+6]
+        les     di, [bp+8]
+        mov     cx, [bp+12]
+        cld
+        rep insb
+        pop     di
+        pop     bp
+        retf
+
+ENTRY insw
+        push    bp
+        mov     bp, sp
+        push    di
+        mov     dx, [bp+6]
+        les     di, [bp+8]
+        mov     cx, [bp+12]
+        cld
+        rep insw
+        pop     di
+        pop     bp
+        retf
+
+ENTRY outsb
+        push    bp
+        mov     bp, sp
+        push    si
+        push    ds
+        mov     dx, [bp+6]
+        lds     si, [bp+8]
+        mov     cx, [bp+12]
+        cld
+        rep outsb
+        pop     ds
+        pop     si
+        pop     bp
+        retf
+
+ENTRY outsw
+        push    bp
+        mov     bp, sp
+        push    si
+        push    ds
+        mov     dx, [bp+6]
+        lds     si, [bp+8]
+        mov     cx, [bp+12]
+        cld
+        rep outsw
+        pop     ds
+        pop     si
+        pop     bp
         retf
 
 ; enable(), disable(): let interrupts in, keep them out.
@@ -143,8 +205,8 @@ ENTRY _insque
         mov     bx, sp
         push    si
         push    di
-        mov     si, [bx+4]      ; element
-        mov     di, [bx+6]      ; the one it follows
+        mov     si, [ss:bx+4]   ; element
+        mov     di, [ss:bx+6]   ; the one it follows
         mov     bx, [di]        ; the one it precedes
         mov     [si], bx
         mov     [si+2], di
@@ -158,7 +220,7 @@ ENTRY remque
 ENTRY _remque
         mov     bx, sp
         push    si
-        mov     si, [bx+4]
+        mov     si, [ss:bx+4]
         mov     bx, [si]        ; next
         mov     si, [si+2]      ; previous
         mov     [si], bx

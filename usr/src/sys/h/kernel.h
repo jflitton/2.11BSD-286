@@ -11,7 +11,9 @@
  */
 
 #ifdef SUPERVISOR
+#ifndef i286
 long	startnet;			/* start of network data space */
+#endif
 #else
 memaddr	malloc();
 

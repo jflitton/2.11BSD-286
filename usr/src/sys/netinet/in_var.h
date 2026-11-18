@@ -43,7 +43,7 @@ struct in_ifaddr {
 #define	IFA_ROUTE	0x01		/* routing entry installed */
 
 #ifdef	SUPERVISOR
-struct	in_ifaddr *in_ifaddr;
+extern struct	in_ifaddr *in_ifaddr;
 struct	in_ifaddr *in_iaonnetof();
-struct	ifqueue	ipintrq;		/* ip packet input queue */
+extern struct	ifqueue	ipintrq;		/* ip packet input queue */
 #endif

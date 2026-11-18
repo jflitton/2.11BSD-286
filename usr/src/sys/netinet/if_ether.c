@@ -101,10 +101,24 @@ arpwhohas(ac, addr)
 	register struct mbuf *m;
 	struct ether_header *eh;
 	register struct ether_arp *ea;
+#ifdef i286
+	/*
+	 * Not on the stack, where the network's locals are on the 286
+	 * (docs/network.md); at splimp, which in_arpinput, the other user
+	 * of its own, runs at too.
+	 */
+	static struct sockaddr sa;
+	int s = splimp();
+#else
 	struct sockaddr sa;
+#endif
 
-	if ((m = m_get(M_DONTWAIT, MT_DATA)) == NULL)
+	if ((m = m_get(M_DONTWAIT, MT_DATA)) == NULL) {
+#ifdef i286
+		splx(s);
+#endif
 		return;
+	}
 	m->m_len = sizeof *ea;
 	m->m_off = MMAXOFF - m->m_len;
 	ea = mtod(m, struct ether_arp *);
@@ -125,6 +139,9 @@ arpwhohas(ac, addr)
 	bcopy((caddr_t)addr, (caddr_t)ea->arp_tpa, sizeof(ea->arp_tpa));
 	sa.sa_family = AF_UNSPEC;
 	(*ac->ac_if.if_output)(&ac->ac_if, m, &sa);
+#ifdef i286
+	splx(s);
+#endif
 }
 
 int	useloopback = 1;	/* use loopback interface for local traffic */
@@ -147,17 +164,26 @@ arpresolve(ac, m, destip, desten, usetrailers)
 	register struct arpcom *ac;
 	struct mbuf *m;
 	register struct in_addr *destip;
+#ifdef i286
+	u_char ANYSPACE *desten;	/* the output routine's locals: */
+	int ANYSPACE *usetrailers;	/*   far pointers (if_ether.h) */
+#else
 	u_char *desten;
 	int *usetrailers;
+#endif
 {
 	register struct arptab *at;
+#ifdef i286
+	static struct sockaddr_in sin;	/* looutput reads only its family */
+#else
 	struct sockaddr_in sin;
+#endif
 	u_long lna;
 	int s;
 
 	*usetrailers = 0;
 	if (in_broadcast(*destip)) {	/* broadcast address */
-		bcopy((caddr_t)etherbroadcastaddr, (caddr_t)desten,
+		bcopy((caddr_t)etherbroadcastaddr, desten,
 		    sizeof(etherbroadcastaddr));
 		return (1);
 	}
@@ -183,7 +209,7 @@ arpresolve(ac, m, destip, desten, usetrailers)
 			 */
 			return (0);
 		} else {
-			bcopy((caddr_t)ac->ac_enaddr, (caddr_t)desten,
+			bcopy((caddr_t)ac->ac_enaddr, desten,
 			    sizeof(ac->ac_enaddr));
 			return (1);
 		}
@@ -192,7 +218,7 @@ arpresolve(ac, m, destip, desten, usetrailers)
 	at = arptab_look(destip->s_addr);
 	if (at == 0) {			/* not found */
 		if (ac->ac_if.if_flags & IFF_NOARP) {
-			bcopy((caddr_t)ac->ac_enaddr, (caddr_t)desten, 3);
+			bcopy((caddr_t)ac->ac_enaddr, desten, 3);
 			desten[3] = (lna >> 16) & 0x7f;
 			desten[4] = (lna >> 8) & 0xff;
 			desten[5] = lna & 0xff;
@@ -210,7 +236,7 @@ arpresolve(ac, m, destip, desten, usetrailers)
 	}
 	at->at_timer = 0;		/* restart the timer */
 	if (at->at_flags & ATF_COM) {	/* entry IS complete */
-		bcopy((caddr_t)at->at_enaddr, (caddr_t)desten, sizeof(at->at_enaddr));
+		bcopy((caddr_t)at->at_enaddr, desten, sizeof(at->at_enaddr));
 		splx(s);
 		return (1);
 	}
@@ -271,9 +297,22 @@ in_arpinput(ac, m)
 	register struct ether_arp *ea;
 	struct ether_header *eh;
 	register struct arptab *at;  /* same as "merge" flag */
+#ifdef i286
+	/*
+	 * Not on the stack, where the network's locals are on the 286
+	 * (docs/network.md): the addresses of these are passed as near
+	 * pointers.  This runs only at splimp, from an interface's
+	 * interrupt or its watchdog, so it is never entered again while it
+	 * runs.
+	 */
+	static struct sockaddr_in sin;
+	static struct sockaddr sa;
+	static struct in_addr isaddr, itaddr, myaddr;
+#else
 	struct sockaddr_in sin;
 	struct sockaddr sa;
 	struct in_addr isaddr, itaddr, myaddr;
+#endif
 	int proto, op, s;
 
 	myaddr = ac->ac_ipaddr;
@@ -287,7 +326,7 @@ in_arpinput(ac, m)
 		goto out;	/* it's from me, ignore it. */
 	if (!bcmp((caddr_t)ea->arp_sha, (caddr_t)etherbroadcastaddr,
 	    sizeof (ea->arp_sha))) {
-		printf("eth=bcast %x\n", ntohl(isaddr.s_addr));
+		printf("eth=bcast %X\n", ntohl(isaddr.s_addr));
 		goto out;
 	}
 	if (isaddr.s_addr == myaddr.s_addr) {

@@ -47,6 +47,10 @@ IPL_TTY         equ     5
 IPL_CLOCK       equ     6
 IPL_HIGH        equ     7
 
+; Software interrupts, bits of spending (machdep.c)
+SP_CLOCK        equ     1
+SP_NET          equ     2
+
 ENOENT          equ     2       ; h/errno.h
 EFAULT          equ     14
 

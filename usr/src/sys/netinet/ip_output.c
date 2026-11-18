@@ -54,11 +54,16 @@ ip_output(m0, opt, ro, flags)
 	register struct mbuf *m = m0;
 	register int hlen = sizeof (struct ip);
 	int len, off, error = 0;
-	struct route iproute;
+	/*
+	 * Not on the stack, which the network's pointers cannot reach
+	 * (docs/network.md).  ip_output is called at splnet and does not
+	 * sleep, so it cannot be in use twice at once.
+	 */
+	static struct route iproute;
 	struct sockaddr_in *dst;
 
 	if (opt) {
-		m = ip_insertoptions(m, opt, &len);
+		m = ip_insertoptions(m, opt, (int KSPACE *)&len);
 		hlen = len;
 	}
 	ip = mtod(m, struct ip *);
@@ -267,7 +272,7 @@ struct mbuf *
 ip_insertoptions(m, opt, phlen)
 	register struct mbuf *m;
 	struct mbuf *opt;
-	int *phlen;
+	int KSPACE *phlen;		/* ip_output's local */
 {
 	register struct ipoption *p = mtod(opt, struct ipoption *);
 	struct mbuf *n;
@@ -341,7 +346,7 @@ ip_ctloutput(op, so, level, optname, m)
 	int op;
 	struct socket *so;
 	int level, optname;
-	struct mbuf **m;
+	struct mbuf * KSPACE *m;	/* on the stack: sogetopt */
 {
 	int error = 0;
 	struct inpcb *inp = sotoinpcb(so);

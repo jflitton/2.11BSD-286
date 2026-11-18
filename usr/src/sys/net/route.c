@@ -48,7 +48,7 @@ rtalloc(ro)
 		return;				 /* XXX */
 	if (af >= AF_MAX)
 		return;
-	(*afswitch[af].af_hash)(dst, &h);
+	(*afswitch[af].af_hash)(dst, (struct afhash KSPACE *)&h);
 	match = afswitch[af].af_netmatch;
 	hash = h.afh_hosthash, table = rthost, doinghost = 1;
 	s = splnet();
@@ -118,7 +118,11 @@ rtredirect(dst, gateway, flags, src)
 	struct sockaddr *dst, *gateway, *src;
 	int flags;
 {
-	struct route ro;
+	/*
+	 * Not on the stack, which the network's pointers cannot reach
+	 * (docs/network.md); this is called at splnet, and does not sleep.
+	 */
+	static struct route ro;
 	register struct rtentry *rt;
 
 	/* verify the gateway is directly reachable */
@@ -225,7 +229,7 @@ rtrequest(req, entry)
 	af = entry->rt_dst.sa_family;
 	if (af >= AF_MAX)
 		return (EAFNOSUPPORT);
-	(*afswitch[af].af_hash)(&entry->rt_dst, &h);
+	(*afswitch[af].af_hash)(&entry->rt_dst, (struct afhash KSPACE *)&h);
 	if (entry->rt_flags & RTF_HOST) {
 		hash = h.afh_hosthash;
 		mprev = &rthost[RTHASHMOD(hash)];
@@ -329,14 +333,23 @@ bad:
  * for an interface.
  */
 rtinit(dst, gateway, cmd, flags)
-	struct sockaddr *dst, *gateway;
+	struct sockaddr ANYSPACE *dst, ANYSPACE *gateway;	/* route.h */
 	int cmd, flags;
 {
-	struct rtentry route;
+	register struct mbuf *m;
+	register struct rtentry *route;
 
-	bzero((caddr_t)&route, sizeof (route));
-	route.rt_dst = *dst;
-	route.rt_gateway = *gateway;
-	route.rt_flags = flags;
-	(void) rtrequest(cmd, &route);
+	/*
+	 * In an mbuf: the stack is out of the network's reach
+	 * (docs/network.md).
+	 */
+	m = m_getclr(M_WAIT, MT_DATA);
+	if (m == 0)
+		return;
+	route = mtod(m, struct rtentry *);
+	route->rt_dst = *dst;
+	route->rt_gateway = *gateway;
+	route->rt_flags = flags;
+	(void) rtrequest(cmd, route);
+	(void) m_free(m);
 }

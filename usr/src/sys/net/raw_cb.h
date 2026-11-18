@@ -57,5 +57,5 @@ struct raw_header {
 };
 
 #ifdef SUPERVISOR
-struct rawcb rawcb;			/* head of list */
+extern struct rawcb rawcb;			/* head of list */
 #endif

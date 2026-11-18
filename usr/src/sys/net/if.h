@@ -147,7 +147,7 @@ struct ifnet {
 	} \
 }
 
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 #define	IFQ_MAXLEN	15
 #else
 #define	IFQ_MAXLEN	50
@@ -203,11 +203,16 @@ struct	ifreq {
  * for machine (useful for programs which
  * must know all networks accessible).
  */
+/*
+ * The address of the buffer is far whatever the program's model, so
+ * that the structure the kernel is handed has one layout: unlike the
+ * iovec of a read, the library cannot convert what an ioctl passes.
+ */
 struct	ifconf {
 	int	ifc_len;		/* size of associated buffer */
 	union {
-		caddr_t	ifcu_buf;
-		struct	ifreq *ifcu_req;
+		char	__far *ifcu_buf;
+		struct	ifreq __far *ifcu_req;
 	} ifc_ifcu;
 #define	ifc_buf	ifc_ifcu.ifcu_buf	/* buffer address */
 #define	ifc_req	ifc_ifcu.ifcu_req	/* array of structures returned */
@@ -215,8 +220,8 @@ struct	ifconf {
 
 #ifdef SUPERVISOR
 #include "../net/if_arp.h"
-struct	ifqueue rawintrq;		/* raw packet input queue */
-struct	ifnet *ifnet;
+extern struct	ifqueue rawintrq;		/* raw packet input queue */
+extern struct	ifnet *ifnet;
 struct	ifaddr *ifa_ifwithaddr(), *ifa_ifwithnet();
 struct	ifaddr *ifa_ifwithdstaddr();
 #else KERNEL

@@ -316,7 +316,7 @@ tcp_ctloutput(op, so, level, optname, mp)
 	int op;
 	struct socket *so;
 	int level, optname;
-	struct mbuf **mp;
+	struct mbuf * KSPACE *mp;	/* on the stack: sogetopt */
 {
 	int error = 0;
 	struct inpcb *inp = sotoinpcb(so);

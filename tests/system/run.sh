@@ -2,10 +2,18 @@
 # Test the system: boot it from a hard disk to multi-user, log in on the
 # first serial port as root, use the shell, the C shell, the editor, tcsh
 # and some programs; log in on two of the console's screens with the
-# keyboard, and use the editor there; and halt it.  The kernel, /boot,
+# keyboard, and use the editor there; ping the loopback interface and log
+# in over it with telnet; set up its Ethernet interface with /etc/rc.conf
+# and /etc/netstart, ping the network's gateway, and log in from the host
+# with telnet, sending a file each way; and halt it.  The kernel, /boot,
 # the C library, the programs and the root file system are all built as
-# they would be for a real machine (usr/src/sys/PC,
-# usr/src/sys/i286stand, usr/src/lib/libc/i286, usr/src/i286).
+# they would be for a real machine (usr/src/sys/PC, usr/src/sys/i286stand,
+# usr/src/lib/libc/i286, usr/src/i286).
+#
+# The Ethernet card is 86Box's NETCARD, ne2k8 if it is not set: an NE2000
+# that is 8 bits wide, as the PicoMEM's is.  ne2k is one 16 bits wide,
+# and novell_ne1k an NE1000, with half the memory (tests/harness/runtest.py
+# says what they are, and docs/network.md how the driver finds out).
 # Run from the top of the repository after `. tools/env.sh`.
 set -e
 if [ "$EMU" = qemu ]; then
@@ -44,8 +52,12 @@ TAB=$(printf '\t')
 CTRLA=$(printf '\001')
 CTRLP=$(printf '\020')
 CTRLU=$(printf '\025')
-TIMEOUT=${TIMEOUT:-400} python3 -I "$top/tests/harness/runtest.py" \
-    --hd system.img,$geometry,xtide --until halting \
+CTRLD=$(printf '\004')
+# /etc/services three times, its last newline kept, for the host to send.
+services=$(cat "$top/usr/src/etc/services"; echo x)
+services=${services%x}
+TIMEOUT=${TIMEOUT:-500} python3 -I "$top/tests/harness/runtest.py" \
+    --hd system.img,$geometry,xtide --until halting --net ${NETCARD:-ne2k8} \
     --type "login: " "root" \
     --type "# " 'echo "she""ll-ok" $HOME' \
     --type "shell-ok /root" 'cd /tmp; mkdir dir; cd dir; pwd' \
@@ -103,7 +115,21 @@ TIMEOUT=${TIMEOUT:-400} python3 -I "$top/tests/harness/runtest.py" \
     --key "# " "echo wr${CTRLU}echo ri\"\"ght" \
     --key "# " "echo 'AZ!@#\$%^&*()_+{}|:<>?~'" \
     --key "# " '{Alt-F1}' \
-    --type "# " 'who; cat /tmp/k; echo "@ex""it 00"; sync; reboot -h' \
+    --type "# " 'ifconfig lo0' \
+    --type "netmask" 'ping -c 2 127.0.0.1' \
+    --type "packet loss" 'telnet 127.0.0.1' \
+    --type "login: " 'root' \
+    --type "# " 'echo "tel""net-in"; who' \
+    --type "telnet-in" "${CTRLD}" \
+    --type "foreign host" '. /etc/rc.conf; address=10.0.2.15 gateway=10.0.2.2; . /etc/netstart; ifconfig ne0' \
+    --type "broadcast 10.0.2.255" 'ping -c 3 10.0.2.2; route add default 10.0.2.2 1' \
+    --telnet "login: " 'root' \
+    --telnet "# " 'echo "over""-ne0"; who' \
+    --telnet "(10.0.2.2)" "cat >/tmp/in; echo \"in\"\"-done\"
+$services$services$services${CTRLD}" \
+    --telnet "in-done" 'cat /etc/services /etc/services /etc/services >/tmp/s3; cmp /tmp/s3 /tmp/in && echo "sa""me-in"; dd if=/etc/termcap bs=512 count=40 2>/dev/null; echo "dd""-done"' \
+    --telnet "dd-done" "${CTRLD}" \
+    --type "File exists" 'sleep 5; who; cat /tmp/k; echo "@ex""it 00"; sync; reboot -h' \
     --boot system
 
 serial=$top/obj/tests/system/serial.txt
@@ -116,6 +142,13 @@ for want in "shell-ok /root" "/tmp/dir" "same" "xa" "xb" "xc" "status 3" \
     "No files saved." \
     'e" 2 lines, 14 characters' "gamma epsilon" \
     "host-i286" "tcsh-edit" "view\\*" "Running *sleep 30" \
+    "lo0: flags=9<UP,LOOPBACK>" "inet 127.0.0.1 netmask 0xff000000" \
+    "2 packets transmitted, 2 packets received" "Connected to 127.0.0.1" \
+    "(ptyp0)" "telnet-in" "root  *ttyp0 .*(localhost)" \
+    "Connection closed by foreign host" \
+    "ne0 at 0x300 irq 3: " \
+    "inet 10.0.2.15 netmask 0xffffff00 broadcast 10.0.2.255" \
+    "3 packets transmitted, 3 packets received" "File exists" \
     "root  *console" "root  *ttyv1" "root  *tty00" "halting"; do
     if ! grep -q "$want" "$serial"; then
         echo "system: no \"$want\" in what the system wrote" >&2
@@ -127,6 +160,24 @@ if ! tr -d '\r' < "$serial" | grep -a -A2 '^zero$' | tr '\n' ' ' |
     echo "system: /tmp/k is not as vi on the console left it" >&2
     exit 1
 fi
+
+# What came over telnet from the host: the login, the file it sent, and
+# the first 20K of /etc/termcap, with the terminal's newlines, and its
+# tabs expanded if it was set to.
+python3 -I - "$out/telnet.txt" "$top/obj/root/termcap" <<'EOF'
+import re, sys
+text = open(sys.argv[1], encoding="latin-1").read().replace("\r\n", "\n")
+termcap = open(sys.argv[2], encoding="latin-1").read()[:20480]
+bad = [w for w in ("over-ne0", "same-in", "dd-done") if w not in text]
+if not re.search(r"root\s+ttyp\d.*\(10\.0\.2\.2\)", text):
+    bad.append("who on a pseudo-terminal")
+lines = termcap.split("\n")
+expanded = "\n".join(l.expandtabs(8) for l in lines)
+if termcap not in text and expanded not in text:
+    bad.append("/etc/termcap as it is")
+if bad:
+    sys.exit("system: telnet did not show %s" % ", ".join(bad))
+EOF
 
 # What the screens showed: vi's screen, all 25 lines of it, as the
 # console's terminal drew it, and what the keyboard typed, with the
@@ -150,4 +201,4 @@ if bad:
 EOF
 python3 -I "$top/tools/fsck.py" system.img
 python3 -I "$top/tools/fsck.py" -x /tmp/dir/m system.img | grep -q "for the 286"
-echo "system: logged in on a serial port and the screens, used sh, csh, vi and tcsh, and halted"
+echo "system: logged in on a serial port, the screens and over telnet by the loopback interface and the Ethernet card, used sh, csh, vi and tcsh, and halted"

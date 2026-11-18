@@ -251,6 +251,12 @@ main()
 	u.u_rdir = NULL;
 
 #ifdef INET
+#ifdef i286
+	/* the network is part of the kernel's image (docs/network.md) */
+	netoff = 0;
+	NETSETHZ();
+	NETSTART();
+#else
 	if (netoff = netinit())
 		printf("netinit failed\n");
 	else
@@ -258,6 +264,7 @@ main()
 		NETSETHZ();
 		NETSTART();
 		}
+#endif
 #endif
 
 /*
@@ -364,7 +371,7 @@ cinit()
 	}
 }
 
-#ifdef INET
+#if defined(INET) && !defined(i286)
 memaddr netdata;		/* click address of start of net data */
 
 /*

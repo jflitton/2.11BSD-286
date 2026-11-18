@@ -60,7 +60,7 @@ struct socket {
 		short	sb_timeo;	/* timeout (not used yet) */
 		short	sb_flags;	/* flags, see below */
 	} so_rcv, so_snd;
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 #define	SB_MAX		8192		/* max chars in sockbuf */
 #else
 #define	SB_MAX		(64*1024)	/* max chars in sockbuf */

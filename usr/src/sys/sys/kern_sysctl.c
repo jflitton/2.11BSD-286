@@ -423,7 +423,9 @@ NET_SYSCTL(name, namelen, oldp, oldlenp, newp, newlen)
 	void __far *newp;
 	size_t newlen;
 {
-	return(KScall(net_sysctl, 6 * sizeof (int),
+	return(KScall(net_sysctl, sizeof (int *) + sizeof (u_int) +
+			sizeof (void __far *) + sizeof (size_t *) +
+			sizeof (void __far *) + sizeof (size_t),
 			name, namelen, oldp, oldlenp, newp, newlen));
 }
 #endif
