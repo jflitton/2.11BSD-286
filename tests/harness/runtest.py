@@ -3,7 +3,7 @@
 
 usage: runtest.py NAME SOURCE...
        runtest.py [--hd IMAGE,CYLINDERS,HEADS,SECTORS[,BUS]] [--until TEXT]
-                  --boot NAME EXECUTABLE [FILESYSTEM]
+                  [--type AFTER TEXT]... --boot NAME [EXECUTABLE [FILESYSTEM]]
 
 The first form builds a small-model program that runs in real mode.  Each
 .c is compiled with tools/cc286 and each .s assembled with NASM; they are
@@ -16,15 +16,22 @@ it goes on the diskette after it, for the kernel to load as its RAM disk.
 With --hd the machine has a hard disk as well: IMAGE is its contents, as
 tools/mkdisk.py makes them, and is changed by whatever the program writes.
 BUS says what it is on: "ide", the default, the first drive of an AT disk
-controller; or "scsi:PORT:IRQ:DMA:ID:BIOS", an Adaptec AHA-1542CF at that
+controller; "xtide", the same with the XTIDE Universal BIOS beside it,
+since this machine's own BIOS does not boot from that controller; or "scsi:PORT:IRQ:DMA:ID:BIOS", an Adaptec AHA-1542CF at that
 I/O address (hexadecimal), interrupt request and DMA channel, the disk at
 that SCSI id, and the adapter's BIOS at that address (hexadecimal, such as
-DC000) or, with 0, off.  86Box only.  With --until the
-run does not end at the "@exit" line but when the program has written TEXT
-after it: a system has its disks to bring up to date before it stops, and
-says when it has.
+DC000) or, with 0, off.  86Box only.  With --hd and no EXECUTABLE there
+is no diskette, and the machine boots from the hard disk as it would by
+itself.
 
-Either way tools/mkfd.py puts the program on a diskette image behind the
+With --until the run does not end at the "@exit" line but when the program
+has written TEXT after it: a system has its disks to bring up to date
+before it stops, and says when it has.  With --type, once the machine has
+written AFTER to the serial port, TEXT and a carriage return are typed at
+it there; a second --type waits for its AFTER in what is written after
+that, and so on.
+
+A program given is put on a diskette image by tools/mkfd.py, behind the
 boot sector, usr/src/sys/i286stand/fdboot.s, and the emulator boots it.
 What the program writes to the serial port is printed.  The program ends by
 writing a line "@exit NN", two hex digits, which become the exit status;
@@ -133,6 +140,22 @@ def finished(text):
 
 
 UNTIL = None            # --until: what must follow the "@exit" line
+TYPE = []               # --type: [after, text] for each
+
+
+class Typist:
+    """Types each TEXT of --type when its AFTER has been written."""
+
+    def __init__(self):
+        self.todo = list(TYPE)
+        self.since = 0          # where in the output the last was typed
+
+    def next(self, text):
+        """What to type now that TEXT has been written, or None."""
+        if not self.todo or self.todo[0][0] not in text[self.since:]:
+            return None
+        self.since = len(text)
+        return (self.todo.pop(0)[1] + "\r").encode("latin-1")
 
 
 def ended(text):
@@ -189,20 +212,23 @@ HD = None               # --hd: (image, cylinders, heads, sectors, bus)
 
 def start_86box(box, img, out, com1, args=(), env=None):
     """Start 86Box on a copy of the harness's machine, with the diskette
-    image in drive A, COM1 as the configuration lines COM1 say, and the
-    hard disk HD if there is one.  Returns the process and the machine's
-    directory."""
+    image, if there is one, in drive A, COM1 as the configuration lines
+    COM1 say, and the hard disk HD if there is one.  Returns the process
+    and the machine's directory."""
     vm = os.path.join(out, "86box")
     shutil.rmtree(vm, ignore_errors=True)
     os.makedirs(os.path.join(vm, "nvr"))
     cfg = open(os.path.join(HARNESS, "86box.cfg")).read()
     scsi = HD[4].split(":")[1:] if HD and HD[4].startswith("scsi") else None
+    ide = "hdc_1 = ide_isa\n"
+    assert ide in cfg
     if scsi:
-        ide = "hdc_1 = ide_isa\n"
-        assert ide in cfg
         cfg = cfg.replace(ide, ide + "scsicard_1 = aha154xcf\n")
+    elif HD and HD[4] == "xtide":
+        cfg = cfg.replace(ide, "hdc_1 = xtide_at_ps2_1ch\n")
     with open(os.path.join(vm, "86box.cfg"), "w") as f:
-        f.write(cfg + "fdd_01_fn = %s\n\n[Ports (COM & LPT)]\n%s" % (img, com1))
+        f.write(cfg + ("fdd_01_fn = %s\n" % img if img else "")
+                + "\n[Ports (COM & LPT)]\n" + com1)
         if HD:
             f.write("\n[Hard disks]\nhdd_01_parameters = %d, %d, %d, 0, %s\n"
                     "hdd_01_fn = %s\n"
@@ -337,19 +363,26 @@ def run_86box_socket(box, img, out):
         auto = Automation(path, p)
         # The BIOS has done with its own exceptions and resets once the
         # boot sector is in memory.
-        with open(img, "rb") as f:
+        with open(img or HD[0], "rb") as f:
             boot = f.read(16).hex()
         if auto.ask("wait mem %d 0x7c00 %s" % (TIMEOUT * 1000, boot))["matched"]:
             mark = scan = events(auto, 1 << 62)[1]
         else:
             mark = None
-            seen = "the BIOS did not load the diskette\n" + describe(auto, None)
+            seen = ("the BIOS did not load the %s\n" % ("diskette" if img else "disk")
+                    + describe(auto, None))
         pos = 0
+        typist = Typist()
         while not seen and not ended(raw.decode("latin-1")):
             late = auto.ask("step 200")["ms"] >= TIMEOUT * 1000
             r = auto.ask("serial read 1 %d" % pos)
             raw += bytes.fromhex(r["data"])
             pos = r["next"]
+            # A character at a time, as a slow typist would: what reads
+            # it may be echoing each with the BIOS.
+            for c in typist.next(raw.decode("latin-1")) or b"":
+                auto.ask("serial write 1 %02x" % c)
+                auto.ask("step 20")
             evs, scan = events(auto, scan)
             if any(e["type"] == "reset" and not bios_move(e) for e in evs or []):
                 seen = "the machine was reset\n" + describe(auto, mark)
@@ -393,6 +426,7 @@ def run_86box_pty(box, img, out):
         attr[2] = termios.CS8 | termios.CREAD | termios.CLOCAL
         termios.tcsetattr(fd, termios.TCSANOW, attr)
         raw = b""
+        typist = Typist()
         while time.time() < deadline and p.poll() is None:
             try:
                 chunk = os.read(fd, 4096)
@@ -403,6 +437,9 @@ def run_86box_pty(box, img, out):
                 continue
             raw += chunk
             text = raw.decode("latin-1")
+            for c in typist.next(text) or b"":
+                os.write(fd, bytes([c]))
+                time.sleep(0.05)
             if ended(text):
                 break
         text = raw.decode("latin-1")
@@ -432,7 +469,8 @@ def main():
         try:
             image, c, h, s, bus = (sys.argv[2] + ",ide").split(",")[:5]
             HD = (image, int(c), int(h), int(s), bus)
-            if bus != "ide" and (bus.count(":") != 5 or not bus.startswith("scsi:")):
+            if bus not in ("ide", "xtide") and (
+                    bus.count(":") != 5 or not bus.startswith("scsi:")):
                 raise ValueError
         except ValueError:
             sys.exit(__doc__)
@@ -442,17 +480,22 @@ def main():
     if len(sys.argv) > 2 and sys.argv[1] == "--until":
         UNTIL = sys.argv[2]
         del sys.argv[1:3]
+    while len(sys.argv) > 3 and sys.argv[1] == "--type":
+        TYPE.append(sys.argv[2:4])
+        del sys.argv[1:4]
     if len(sys.argv) < 3:
         sys.exit(__doc__)
     if sys.argv[1] == "--boot":
-        if len(sys.argv) not in (4, 5):
+        if len(sys.argv) not in (4, 5) and not (len(sys.argv) == 3 and HD):
             sys.exit(__doc__)
         name = sys.argv[2]
         out = os.path.join(TOP, "obj", "tests", name)
         os.makedirs(out, exist_ok=True)
-        img = os.path.join(out, name + ".img")
-        mkfd(sys.argv[3], img, out,
-             *(["--rd", sys.argv[4]] if len(sys.argv) == 5 else []))
+        img = None
+        if len(sys.argv) > 3:
+            img = os.path.join(out, name + ".img")
+            mkfd(sys.argv[3], img, out,
+                 *(["--rd", sys.argv[4]] if len(sys.argv) == 5 else []))
     else:
         name, sources = sys.argv[1], sys.argv[2:]
         out = os.path.join(TOP, "obj", "tests", name)

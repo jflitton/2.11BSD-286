@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Make a hard disk image with a 2.11BSD disk label.
 
-usage: mkdisk.py [-g CYLINDERS,HEADS,SECTORS] [-p] [-o SECTOR] IMAGE
-                 PARTITION=WHAT ...
+usage: mkdisk.py [-g CYLINDERS,HEADS,SECTORS] [-p] [-o SECTOR] [-t TYPE]
+                 [-b BOOTBLOCK] [-m FIRSTSECTOR] IMAGE PARTITION=WHAT ...
 
 The image is a whole disk of the geometry given, by default 615,4,17: the
 20 MB drive of many a PC/AT.  With -p its first sector is a PC partition
@@ -12,6 +12,16 @@ comes before; without -p the whole disk is the system's.  Either way the
 label is the second sector of the system's part, and its partitions are
 counted from the start of that part (usr/src/sys/h/disklabel.h,
 usr/src/sys/i286at/pcdisk.h).
+
+TYPE is what the label says the disk is, "ide", the default, or "scsi".
+/boot goes by it to tell the kernel which driver has its root.
+
+To boot from the disk, -b puts BOOTBLOCK in the first sector of the
+system's part (usr/src/sys/i286stand/hdboot.s, assembled), which loads the
+file /boot of partition a; and on a disk with a partition table, -m gives
+the disk's first sector the program in FIRSTSECTOR (mbr.s), which loads
+that.  Both must be within the first 1024 cylinders, with /boot and the
+kernel: the BIOS reads no further.
 
 Only what is put on the disk is written to the image, so a big disk that
 is mostly empty takes little room where the host's file system allows.
@@ -34,7 +44,7 @@ import struct
 import sys
 
 DISKMAGIC = 0x82564557
-DTYPE_ESDI = 5
+DTYPE = {"ide": 5, "scsi": 4}       # DTYPE_ESDI, DTYPE_SCSI
 FS_UNUSED, FS_SWAP, FS_V71K = 0, 1, 5
 PCP_2BSD = 0xB9
 MAXPARTITIONS = 8
@@ -53,10 +63,26 @@ def main():
     cyls, heads, sectors = 615, 4, 17
     pc = False
     first = None
-    while args and args[0] in ("-g", "-p", "-o"):
+    dtype = "ide"
+    sector = {"-b": None, "-m": None}
+    while args and args[0] in ("-g", "-p", "-o", "-t", "-b", "-m"):
         if args[0] == "-p":
             pc = True
             del args[:1]
+        elif args[0] == "-t":
+            if len(args) < 2 or args[1] not in DTYPE:
+                sys.exit(__doc__)
+            dtype = args[1]
+            del args[:2]
+        elif args[0] in sector:
+            if len(args) < 2:
+                sys.exit(__doc__)
+            sector[args[0]] = open(args[1], "rb").read()
+            if len(sector[args[0]]) != 512 or sector[args[0]][510:] != b"\x55\xaa" \
+                    or any(sector[args[0]][446:510]):
+                sys.exit("%s: not a boot sector with the table's place empty"
+                         % args[1])
+            del args[:2]
         elif args[0] == "-o":
             if len(args) < 2 or not args[1].isdigit():
                 sys.exit(__doc__)
@@ -74,6 +100,9 @@ def main():
     total = cyls * heads * sectors
     if first is not None and not pc:
         sys.exit("-o needs -p")
+    if sector["-m"] and not pc:
+        sys.exit("-m needs -p: a disk that is all the system's starts with "
+                 "the boot block")
     start = (sectors if first is None else first) if pc else 0
     size = total - start
     if size < 16:
@@ -111,7 +140,7 @@ def main():
         fs = fstype == FS_V71K
         table += struct.pack("<LLHBB", psize, offset, 1024 if fs else 0,
                              fstype, 1 if fs else 0)
-    label = struct.pack("<LBB16s16s5HL3HH4BHH5L5LL", DISKMAGIC, DTYPE_ESDI, 0,
+    label = struct.pack("<LBB16s16s5HL3HH4BHH5L5LL", DISKMAGIC, DTYPE[dtype], 0,
                         b"image", b"",
                         512, sectors, heads, cyls, heads * sectors, size,
                         0, 0, 0,                # spares, alternate cylinders
@@ -129,12 +158,18 @@ def main():
     if any(a[512:1024]):
         sys.exit("partition a has something in its second sector, where the label goes")
     a[512:512 + len(label)] = label
+    if sector["-b"]:
+        if any(a[:512]):
+            sys.exit("partition a has something in its first sector, where "
+                     "the boot block goes")
+        a[:512] = sector["-b"]
     pieces[start] = bytes(a)
 
     if pc:
         entry = (b"\x80" + chs(start, heads, sectors) + bytes([PCP_2BSD])
                  + chs(total - 1, heads, sectors) + struct.pack("<LL", start, size))
-        pieces[0] = bytes(446) + entry + bytes(48) + b"\x55\xaa"
+        pieces[0] = ((sector["-m"] or bytes(512))[:446] + entry + bytes(48)
+                     + b"\x55\xaa")
     with open(image, "wb") as f:
         f.truncate(total * 512)
         for sector, data in pieces.items():

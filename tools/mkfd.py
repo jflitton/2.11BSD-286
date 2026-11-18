@@ -73,9 +73,9 @@ def main():
             sys.exit("%s: does not fit below 640K" % args[1])
     if rd and para > RDBUF:
         sys.exit("%s: too big to load a RAM disk image with" % args[1])
-    table = struct.pack("<HHHHHHHH", MAGIC, nseg, eseg, eoff, dseg, 0,
+    table = struct.pack("<HHHHHHHHH", MAGIC, nseg, eseg, eoff, dseg, 0,
                         (512 + len(body)) // 512 if rd else 0,
-                        len(rd) // 512) + table
+                        len(rd) // 512, 0) + table
     boot[INFO:INFO + len(table)] = table
     if 512 + len(body) + len(rd) > SIZE:
         sys.exit("%s: does not fit on the diskette" % args[1])

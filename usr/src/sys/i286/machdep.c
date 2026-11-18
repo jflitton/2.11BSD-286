@@ -62,8 +62,17 @@ startup()
 
 	cninit();
 	printf("\n%s\n", version);
-	/* The root is the RAM disk the boot program loaded, or a disk. */
-	bootdev = bootinfo.bi_rdsize ? makedev(0, 0) : diskroot;
+	/*
+	 * The root is the RAM disk the boot program loaded; or the disk
+	 * it says it loaded the kernel from; or, when it does not say,
+	 * diskroot.
+	 */
+	if (bootinfo.bi_rdsize)
+		bootdev = makedev(0, 0);
+	else if (bootinfo.bi_root)
+		bootdev = bootinfo.bi_root;
+	else
+		bootdev = diskroot;
 	/* (a null pointer would not do: converted to far it is still null) */
 	kdbase = fartophys(&kdbase) - (u_int)&kdbase;
 	ldtbase = fartophys(ldt);

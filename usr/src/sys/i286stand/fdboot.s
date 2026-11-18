@@ -34,6 +34,7 @@ dseg:   dw      0               ; the data segment, counting from 1
 drive:  dw      0               ; drive booted from; set here
         dw      0               ; a RAM disk image for the kernel to load:
         dw      0               ;   its first sector, and how many
+        dw      0               ; the root device, which is not known here
 segs:   times MAXSEG * 8 db 0   ; for each segment:
                                 ;   where it goes, as a real-mode segment
                                 ;   sectors of it on the diskette

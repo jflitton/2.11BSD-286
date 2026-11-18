@@ -37,7 +37,7 @@ Where the 286 code goes, beside its PDP-11 counterpart in each case:
 | `usr/src/sys/i286/` | `pdp/` | startup, traps, system calls, copy routines, segments, switching between processes, signals, the 287, the clock, a console on the serial port, a RAM disk |
 | `usr/src/sys/i286at/` | `pdpuba/` | AT-bus drivers: the Adaptec SCSI adapter and its disks, the AT disk controller (IDE), and the PC partition table; the display and keyboard to come |
 | `usr/src/sys/i286if/` | `pdpif/` | network interfaces; to come |
-| `usr/src/sys/i286stand/` | `pdpstand/`, `mdec/` | boot blocks and standalone programs; the diskette boot sector exists |
+| `usr/src/sys/i286stand/` | `pdpstand/`, `mdec/` | what loads the kernel: the diskette's boot sector, and for a hard disk its first sector, the boot block and `/boot`; `make -C usr/src/sys/i286stand` builds them in `obj/stand` |
 | `usr/src/sys/PC/` | `GENERIC/` | the kernel's configuration and Makefile: `make -C usr/src/sys/PC` builds `obj/PC/unix` |
 | `usr/src/lib/libc/i286/` | `lib/libc/pdp/` | libc's machine-dependent part; `crt/` exists, the rest is to come |
 
@@ -150,7 +150,7 @@ DOS and OS/2 user's guide with nothing on ports or interrupts; not kept.)
 | `tools/ne2aout.py` | turns the linker's output into the system's executable format; `--dump` prints one |
 | `tools/mkfd.py` | makes a bootable diskette image from an executable, with a file system image for the kernel's RAM disk if wanted |
 | `tools/mkfs.py` | makes a file system image from a list of files |
-| `tools/mkdisk.py` | makes a hard disk image: a partition table or none, a label, and partitions |
+| `tools/mkdisk.py` | makes a hard disk image: a partition table or none, a label, partitions, and the sectors that boot it |
 | `tools/fsck.py` | checks a file system in an image without changing it, or prints a file from it |
 | `tools/mkstubs.py` | writes a program's system call stubs from a table of the calls' arguments |
 | `tools/kpatch.py` | changes a variable in an executable file, by name |
@@ -164,7 +164,9 @@ DOS and OS/2 user's guide with nothing on ports or interrupts; not kept.)
 Tests run real 286 code in an emulator. `tests/harness/runtest.py` puts a
 program on a diskette image behind the boot sector
 (`usr/src/sys/i286stand/fdboot.s`), boots it, prints what it wrote to the
-serial port and takes the `@exit` line it ends with as the result.
+serial port and takes the `@exit` line it ends with as the result. It can
+also give the machine a hard disk, boot from that with no diskette, and
+type at the serial port.
 
 ```sh
 . tools/env.sh
@@ -200,7 +202,9 @@ tests/kernel/run.sh     # the kernel, with a test program as init, booted
   area on a hard disk, IDE and SCSI ([disks](docs/disks.md)), where the
   test also reads and writes a partition directly and keeps files of
   300K, and afterwards `tools/fsck.py` checks what the kernel left on
-  the disk.
+  the disk. Three of the five boot from the hard disk itself: the BIOS
+  starts the boot block, which loads `/boot`, which loads `/unix`
+  ([booting](docs/boot.md)).
 
 The emulator is [86Box](https://github.com/86Box/86Box), as an IBM PS/2
 Model 30 286 with a 287 (`tests/harness/86box.cfg`): a real 286, which
@@ -250,9 +254,9 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   far in protected mode. The three for `__huge` pointers are not written
   yet.
 - The kernel runs in the emulator ([booting](docs/boot.md),
-  [processes](docs/processes.md)). A diskette boot sector loads it; it
-  enters protected mode, loads a root file system into a RAM disk, and
-  starts `/etc/init`. Under it processes run in ring 3 with their segments
+  [processes](docs/processes.md)). A boot program loads it; it enters
+  protected mode, takes its root file system from a RAM disk or a hard
+  disk, and starts `/etc/init`. Under it processes run in ring 3 with their segments
   in local descriptor tables, and fork, execute programs, share code,
   grow, pipe to each other, take signals and are swapped. All of
   `sys/sys` that a kernel without networking needs is compiled in, 53
@@ -261,12 +265,17 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   ([disks](docs/disks.md)): there are drivers for SCSI disks on an
   Adaptec AHA-1540 or 1542 and for IDE drives on the AT's disk
   controller, and a disk may be shared with other systems through a PC
-  partition table. The kernel itself is still loaded from a diskette.
+  partition table.
+- The machine boots from that disk ([booting](docs/boot.md)): a boot
+  block finds `/boot` in the root file system, and `/boot` asks for a
+  kernel, by default `/unix`, loads it and tells it which disk its root
+  is on. A diskette is needed only where the BIOS cannot read the
+  system's part of the disk: past its 1024 cylinders, or on a controller
+  it does not know.
 - That is the state in an emulated PS/2 Model 30 286 only. Nothing has
   run on a real machine.
 - What the kernel does not have: a driver for the network card, a
-  console on the display and keyboard, a boot program for a hard disk,
-  pseudo-terminals
+  console on the display and keyboard, pseudo-terminals
   (the code is there and not yet compiled in), networking, quotas. The
   parts of it that no test reaches yet: `ptrace`, `select`, `sysctl`,
   terminal input, core dumps beyond being written, `fork` when memory is

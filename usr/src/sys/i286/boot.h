@@ -1,7 +1,8 @@
 /*
  * What the boot program hands the kernel: where it loaded each of the
- * kernel's segments.  The table is in the boot sector itself
- * (../i286stand/fdboot.s); docs/boot.md describes it.
+ * kernel's segments.  The diskette's boot sector has the table in
+ * itself (../i286stand/fdboot.s), and /boot makes one
+ * (../i286stand/boot.c); docs/boot.md describes it.
  */
 #define	BOOTMAGIC	0x0286
 #define	BOOTNSEG	16
@@ -22,6 +23,9 @@ struct bootinfo {
 	unsigned short	bi_drive;	/* the BIOS's drive number */
 	unsigned short	bi_rdsect;	/* a RAM disk image on that drive: */
 	unsigned short	bi_rdsize;	/*   first sector, and how many */
+	unsigned short	bi_root;	/* the device the kernel came from, as
+					   the kernel numbers them, or 0 if
+					   the boot program cannot say */
 	struct bootseg	bi_seg[BOOTNSEG];
 };
 

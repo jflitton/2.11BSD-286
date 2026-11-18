@@ -2,7 +2,8 @@
 
 What a disk looks like to the kernel on a PC, and the two drivers for
 real disks. They run in the emulator under `tests/kernel`, which boots
-the kernel with its root file system and swap area on a hard disk.
+the kernel with its root file system and swap area on a hard disk, and
+from the disk itself ([booting](boot.md)).
 
 ## Devices
 
@@ -52,19 +53,23 @@ Three things to know:
   that has not been checked against the lists people keep.
 - A disk that is all the system's must still leave the table's place in
   its first sector empty, or a boot program there could be read as a
-  table.
+  table. The system's boot block does.
 - There is no device for the whole of a shared disk, so the table cannot
   be read or written from inside the system.
 
 ## Where the root is
 
 If the boot program loaded a RAM disk image, that is the root, and the
-swap area is the second disk in memory. If it did not, the root is
-`diskroot` (`sys/i286/conf.c`), and the swap area is partition `b` of
-the same drive. `diskroot` is the first IDE drive's partition `a` unless
-the kernel file is changed with `tools/kpatch.py`: 512 makes it the
-first SCSI disk's. Having the boot program say which disk it loaded the
-kernel from waits for there to be a boot program for hard disks.
+swap area is the second disk in memory. If it did not, the root is the
+device the boot program says it loaded the kernel from, and the swap
+area is partition `b` of the same drive.
+
+`/boot`, which loads the kernel from a hard disk, says: [booting](boot.md)
+has how it decides, which begins with whether the disk's label calls it
+a SCSI disk. The diskette's boot sector does not say, and then the root
+is `diskroot` (`sys/i286/conf.c`): the first IDE drive's partition `a`
+unless the kernel file is changed with `tools/kpatch.py`, where 512
+makes it the first SCSI disk's.
 
 ## The AT disk controller (`sys/i286at/wd.c`)
 
@@ -127,22 +132,26 @@ adapter and `sd.c` the disks on it.
 ## Tools
 
 `tools/mkdisk.py` makes a disk image: a geometry, a partition table or
-none, a label, and partitions filled from file system images.
+none, a label, partitions filled from file system images, and the
+sectors that boot it.
 `tools/fsck.py` checks a file system in an image, or in a partition of a
 disk image, without changing it, and can print a file from it. It is how
 the tests see what the kernel left on a disk.
 
 ## Tested, and not
 
-`tests/kernel` boots from a hard disk five times.
+`tests/kernel` runs the kernel on a hard disk five times. Three of
+them boot from the disk with no diskette in the machine; the 2.6 GB
+ones have the system where no BIOS reads, and take the kernel from a
+diskette.
 
-| | the disk | the system's part | |
-|---|---|---|---|
-| IDE | 20 MB | from the second track, by a partition table | sectors by cylinder, head and sector, 16 to an interrupt |
-| IDE | 17 MB | all of it | sectors by number, one to an interrupt |
-| IDE | 2.6 GB | from sector 5,000,000 | sectors by number, 16 to an interrupt |
-| SCSI | 20 MB, id 0 | from the second track | adapter at 0x330, request 11, channel 5, its BIOS on |
-| SCSI | 2.6 GB, id 5 | from sector 5,000,000 | adapter at 0x334, request 10, channel 6; one interrupt ignored and one command never sent (`ahatest`), with the time limit at 5 seconds |
+| | the disk | the system's part | | the kernel comes from |
+|---|---|---|---|---|
+| IDE | 20 MB | from the second track, by a partition table | sectors by cylinder, head and sector, 16 to an interrupt | the disk; `/boot` left to itself |
+| IDE | 17 MB | all of it | sectors by number, one to an interrupt | the disk; `/boot` told a name that is no file, then `wd(0,0)sys/unix` |
+| IDE | 2.6 GB | from sector 5,000,000 | sectors by number, 16 to an interrupt | a diskette |
+| SCSI | 20 MB, id 0 | from the second track | adapter at 0x330, request 11, channel 5 | the disk, through the adapter's BIOS; `/boot` left to itself |
+| SCSI | 2.6 GB, id 5 | from sector 5,000,000 | adapter at 0x334, request 10, channel 6, its BIOS off; one interrupt ignored and one command never sent (`ahatest`), with the time limit at 5 seconds | a diskette, with `diskroot` changed |
 
 Each time the test program reads the label, writes and reads 20K
 straight to a partition from an odd address in its memory, reads the
@@ -153,6 +162,11 @@ halted, `fsck.py` must find nothing wrong with the file system and must
 find the last file the test wrote. On the last boot the driver must also
 have said that an interrupt did not arrive and that a command got no
 answer.
+
+The emulated machine's own BIOS, as the tests have it set up, does not
+boot from a drive on an IDE controller, so for the IDE boots the
+emulator is given the XTIDE Universal BIOS beside the controller. The
+kernel's driver does not use it.
 
 The emulator's adapter is a 1542CF. Its 1542CP answers only after
 something has configured it by Plug and Play, which the machine's BIOS
@@ -175,6 +189,6 @@ Not done, or not tested:
   and otherwise ignored.
 - Nothing is done about bad sectors.
 - No crash dump is written to a disk.
-- The machine cannot be booted from a hard disk: there is no boot
-  program for one. The kernel still comes from the diskette.
+- Nothing inside the system installs the boot block or `/boot`; only
+  `tools/mkdisk.py` does, on an image.
 - All of it has run in the emulator only.

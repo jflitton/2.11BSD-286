@@ -56,8 +56,8 @@ BI_DSEG         equ     8
 BI_DRIVE        equ     10
 BI_RDSECT       equ     12
 BI_RDSIZE       equ     14
-BI_SEG          equ     16
-BI_SIZE         equ     16 + 16 * 8
+BI_SEG          equ     18
+BI_SIZE         equ     18 + 16 * 8
 
 ; struct tss (seg.h)
 TS_SP0          equ     2
