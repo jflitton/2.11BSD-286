@@ -36,24 +36,32 @@ IFMT, IFDIR, IFCHR, IFBLK, IFREG, IFLNK = (
 SB = "<Hlh%dlh%dH4bllHhh12sHHH" % (NICFREE, NICINOD)
 
 
-def partition(img, letter):
-    """The file system's bytes: all of IMG, or a partition of its label."""
-    start = 0
-    if img[510:512] == b"\x55\xaa":
-        for k in range(4):
-            e = img[446 + 16 * k:462 + 16 * k]
-            if e[4] == PCP_2BSD:
-                start = struct.unpack_from("<L", e, 8)[0]
-                break
-    label = img[(start + 1) * 512:(start + 2) * 512]
-    if struct.unpack_from("<L", label)[0] != DISKMAGIC:
-        return img
-    npart = struct.unpack_from("<H", label, 114)[0]
-    k = ord(letter) - ord("a")
-    if k >= npart:
-        sys.exit("the label has no partition %s" % letter)
-    size, offset = struct.unpack_from("<LL", label, 120 + 12 * k)
-    return img[(start + offset) * 512:(start + offset + size) * 512]
+def partition(path, letter):
+    """The file system's bytes: all of the image, or a partition of its
+    label.  No more of the image is read than that."""
+    with open(path, "rb") as f:
+        def sectors(first, count):
+            f.seek(first * 512)
+            return f.read(count * 512)
+
+        start = 0
+        boot = sectors(0, 1)
+        if boot[510:512] == b"\x55\xaa":
+            for k in range(4):
+                e = boot[446 + 16 * k:462 + 16 * k]
+                if e[4] == PCP_2BSD:
+                    start = struct.unpack_from("<L", e, 8)[0]
+                    break
+        label = sectors(start + 1, 1)
+        if len(label) < 512 or struct.unpack_from("<L", label)[0] != DISKMAGIC:
+            f.seek(0)
+            return f.read()
+        npart = struct.unpack_from("<H", label, 114)[0]
+        k = ord(letter) - ord("a")
+        if k >= npart:
+            sys.exit("the label has no partition %s" % letter)
+        size, offset = struct.unpack_from("<LL", label, 120 + 12 * k)
+        return sectors(start + offset, size)
 
 
 class Fs:
@@ -245,7 +253,7 @@ def main():
         del args[:2]
     if len(args) != 1 or len(letter) != 1 or letter not in "abcdefgh":
         sys.exit(__doc__)
-    fs = Fs(partition(open(args[0], "rb").read(), letter))
+    fs = Fs(partition(args[0], letter))
     if path is not None:
         n = fs.lookup(path)
         if n is None:

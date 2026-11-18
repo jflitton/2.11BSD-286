@@ -35,7 +35,7 @@ Where the 286 code goes, beside its PDP-11 counterpart in each case:
 | new | beside | holds |
 |-----|--------|-------|
 | `usr/src/sys/i286/` | `pdp/` | startup, traps, system calls, copy routines, segments, switching between processes, signals, the 287, the clock, a console on the serial port, a RAM disk |
-| `usr/src/sys/i286at/` | `pdpuba/` | AT-bus drivers: the AT disk controller (IDE) and the PC partition table so far; SCSI and the display and keyboard to come |
+| `usr/src/sys/i286at/` | `pdpuba/` | AT-bus drivers: the Adaptec SCSI adapter and its disks, the AT disk controller (IDE), and the PC partition table; the display and keyboard to come |
 | `usr/src/sys/i286if/` | `pdpif/` | network interfaces; to come |
 | `usr/src/sys/i286stand/` | `pdpstand/`, `mdec/` | boot blocks and standalone programs; the diskette boot sector exists |
 | `usr/src/sys/PC/` | `GENERIC/` | the kernel's configuration and Makefile: `make -C usr/src/sys/PC` builds `obj/PC/unix` |
@@ -172,7 +172,7 @@ tests/crt/run.sh        # the compiler's helper routines: 5,161 checks
 tests/pm/run.sh         # the kernel's start-up and trap entry: 54 checks
 tests/user/run.sh       # a process in ring 3: 58 checks
 tests/kernel/run.sh     # the kernel, with a test program as init, booted
-                        # three times: 50, 67 and 67 checks
+                        # six times: 51 checks, then 67 on each of five disks
 ```
 
 - `tests/crt` is a small-model program in real mode, built through the
@@ -196,10 +196,11 @@ tests/kernel/run.sh     # the kernel, with a test program as init, booted
   `vfork`, `wait`, pipes, signals and faults, twelve processes at once in
   five slots, and 24 processes that need more memory between them than
   the kernel has been left, so that some are swapped out and in.
-  It then boots twice more with the root file system and the swap area
-  on a hard disk ([disks](docs/disks.md)), where the test also reads and
-  writes a partition directly and keeps files of 300K, and afterwards
-  `tools/fsck.py` checks what the kernel left on the disk.
+  It then boots five more times with the root file system and the swap
+  area on a hard disk, IDE and SCSI ([disks](docs/disks.md)), where the
+  test also reads and writes a partition directly and keeps files of
+  300K, and afterwards `tools/fsck.py` checks what the kernel left on
+  the disk.
 
 The emulator is [86Box](https://github.com/86Box/86Box), as an IBM PS/2
 Model 30 286 with a 287 (`tests/harness/86box.cfg`): a real 286, which
@@ -257,14 +258,15 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   `sys/sys` that a kernel without networking needs is compiled in, 53
   files, changed where it assumed the PDP-11's memory management.
 - The kernel can keep its root file system and swap area on a hard disk
-  ([disks](docs/disks.md)): there is a driver for IDE drives on the AT's
-  disk controller, and a disk may be shared with other systems through a
-  PC partition table. The kernel itself is still loaded from a diskette.
+  ([disks](docs/disks.md)): there are drivers for SCSI disks on an
+  Adaptec AHA-1540 or 1542 and for IDE drives on the AT's disk
+  controller, and a disk may be shared with other systems through a PC
+  partition table. The kernel itself is still loaded from a diskette.
 - That is the state in an emulated PS/2 Model 30 286 only. Nothing has
   run on a real machine.
-- What the kernel does not have: a driver for the SCSI adapter or for
-  the network card, a console on the display and keyboard, a boot
-  program for a hard disk, pseudo-terminals
+- What the kernel does not have: a driver for the network card, a
+  console on the display and keyboard, a boot program for a hard disk,
+  pseudo-terminals
   (the code is there and not yet compiled in), networking, quotas. The
   parts of it that no test reaches yet: `ptrace`, `select`, `sysctl`,
   terminal input, core dumps beyond being written, `fork` when memory is

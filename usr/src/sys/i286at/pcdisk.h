@@ -1,7 +1,8 @@
 /*
- * The partition table in the first sector of a PC's hard disk.
+ * What the drivers for a PC's hard disks share (pcdisk.c): the
+ * partition table in a disk's first sector, and the label.
  */
-#define	PCP_TABLE	446	/* where it is in the sector */
+#define	PCP_TABLE	446	/* where the table is in the sector */
 #define	PCP_NPART	4
 
 /*
@@ -24,6 +25,14 @@ struct pcpart {
 	u_long	pp_size;	/* how many sectors */
 };
 
-#ifdef KERNEL
-daddr_t	pcpart();
-#endif
+/*
+ * What a driver knows of a drive before anything has been read from
+ * it, for pcdkopen.
+ */
+struct pcgeom {
+	daddr_t	pg_size;	/* sectors on the whole drive */
+	u_int	pg_cyls;
+	u_int	pg_heads;
+	u_int	pg_sects;	/* per track */
+	int	pg_type;	/* DTYPE_... */
+};

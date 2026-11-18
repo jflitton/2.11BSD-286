@@ -13,11 +13,9 @@
 #include "user.h"
 #include "buf.h"
 #include "conf.h"
-#include "stat.h"
-#include "syslog.h"
 #include "disklabel.h"
 #include "disk.h"
-#include "pcpart.h"
+#include "pcdisk.h"
 
 #define	NWD		2
 #define	WD_IRQ		14
@@ -66,11 +64,12 @@
 struct wd {
 	struct	dkdevice wd_dk;
 	daddr_t	wd_start;	/* first sector of this system's part */
-	daddr_t	wd_size;	/* sectors on the whole drive */
-	u_int	wd_cyls;
-	u_int	wd_heads;
-	u_int	wd_sects;	/* per track */
-	u_int	wd_spc;		/* and per cylinder */
+	struct	pcgeom wd_geom;
+#define	wd_size		wd_geom.pg_size
+#define	wd_cyls		wd_geom.pg_cyls
+#define	wd_heads	wd_geom.pg_heads
+#define	wd_sects	wd_geom.pg_sects
+	u_int	wd_spc;		/* sectors per cylinder */
 	char	wd_multi;	/* sectors to an interrupt */
 	char	wd_lba;		/* sectors are named by number */
 	char	wd_state;
@@ -209,6 +208,7 @@ wdprobe(unit)
 		m &= m - 1;
 	if (m > 1 && wdsimple(unit, WDC_SETMULTI, m, 0) == 0)
 		wp->wd_multi = m;
+	wp->wd_geom.pg_type = DTYPE_ESDI;
 	wp->wd_state = WD_PRESENT;
 out:
 	(void) inb(WD_STATUS);
@@ -228,89 +228,17 @@ out:
 	}
 }
 
-/*
- * A label for a drive that has none, or before its own is read: one
- * partition, which is all of this system's part of the drive.
- */
-static
-wddfltlbl(wp, lp, size)
-	register struct wd *wp;
-	register struct disklabel *lp;
-	daddr_t size;
-{
-	register struct partition *pi = &lp->d_partitions[0];
-
-	bzero(lp, sizeof (*lp));
-	lp->d_type = DTYPE_ESDI;
-	lp->d_secsize = 512;
-	lp->d_nsectors = wp->wd_sects;
-	lp->d_ntracks = wp->wd_heads;
-	lp->d_ncylinders = wp->wd_cyls;
-	lp->d_secpercyl = wp->wd_spc;
-	lp->d_secperunit = size;
-	lp->d_npartitions = 1;
-	pi->p_size = size;
-	pi->p_fstype = FS_V71K;
-	pi->p_frag = 1;
-	pi->p_fsize = 1024;
-	bcopy(pi, wp->wd_dk.dk_parts, sizeof (lp->d_partitions));
-}
-
-/*
- * Find this system's part of the drive, and read its label.
- */
-static
-wdgetinfo(wp, dev)
-	register struct wd *wp;
-	dev_t dev;
-{
-	struct disklabel locallabel;
-	register struct disklabel *lp = &locallabel;
-	register struct partition *pi;
-	daddr_t start, size, psize;
-	char *msg;
-	int i;
-
-	dev &= ~7;			/* partition a */
-	wp->wd_start = 0;
-	size = wp->wd_size;
-	wddfltlbl(wp, lp, size);	/* the whole drive, to read its start */
-	start = pcpart(dev, wdstrategy, &psize);
-	if (start != 0 && start < size && psize <= size - start) {
-		wp->wd_start = start;
-		size = psize;
-		wddfltlbl(wp, lp, size);
-	}
-	msg = readdisklabel(dev, wdstrategy, lp);
-	/*
-	 * A partition that ran past the end of this system's part of the
-	 * drive would be over another system's.
-	 */
-	if (msg == 0)
-		for (pi = lp->d_partitions, i = 0; i < lp->d_npartitions;
-		    i++, pi++)
-			if (pi->p_offset > size || pi->p_size > size - pi->p_offset)
-				msg = "label does not fit";
-	if (msg != 0) {
-		log(LOG_NOTICE, "wd%da is entire disk: %s\n", dkunit(dev), msg);
-		wddfltlbl(wp, lp, size);
-	}
-	bcopy(lp, wp->wd_dk.dk_label, sizeof (struct disklabel));
-	bcopy(lp->d_partitions, wp->wd_dk.dk_parts, sizeof (lp->d_partitions));
-}
-
 wdopen(dev, flag, mode)
 	dev_t dev;
 	int flag, mode;
 {
 	register int unit = dkunit(dev);
 	register struct wd *wp;
-	int mask;
 
 	if (unit >= NWD)
 		return (ENXIO);
 	wp = &wd[unit];
-	while (wp->wd_dk.dk_flags & (DKF_OPENING | DKF_CLOSING))
+	while (wp->wd_dk.dk_flags & DKF_OPENING)
 		sleep((caddr_t)&wp->wd_dk, PRIBIO);
 	if (wp->wd_state == WD_UNKNOWN) {
 		wp->wd_dk.dk_flags |= DKF_OPENING;
@@ -321,46 +249,15 @@ wdopen(dev, flag, mode)
 	}
 	if (wp->wd_state != WD_PRESENT)
 		return (ENXIO);
-	wp->wd_dk.dk_flags |= DKF_ALIVE;
-	/*
-	 * On the first open read the label.  That may sleep, so other
-	 * opens wait.
-	 */
-	if (wp->wd_dk.dk_openmask == 0) {
-		wp->wd_dk.dk_flags |= DKF_OPENING;
-		wdgetinfo(wp, dev);
-		wp->wd_dk.dk_flags &= ~DKF_OPENING;
-		wakeup((caddr_t)&wp->wd_dk);
-	}
-	if (dkpart(dev) >= wp->wd_dk.dk_label->d_npartitions)
-		return (ENXIO);
-	mask = 1 << dkpart(dev);
-	dkoverlapchk(wp->wd_dk.dk_openmask, dev, wp->wd_dk.dk_label, "wd");
-	if (mode == S_IFCHR)
-		wp->wd_dk.dk_copenmask |= mask;
-	else if (mode == S_IFBLK)
-		wp->wd_dk.dk_bopenmask |= mask;
-	else
-		return (EINVAL);
-	wp->wd_dk.dk_openmask |= mask;
-	return (0);
+	return (pcdkopen(&wp->wd_dk, dev, mode, wdstrategy, "wd",
+	    &wp->wd_geom, &wp->wd_start));
 }
 
 wdclose(dev, flag, mode)
 	dev_t dev;
 	int flag, mode;
 {
-	register struct wd *wp = &wd[dkunit(dev)];
-	register int mask = 1 << dkpart(dev);
-
-	if (mode == S_IFCHR)
-		wp->wd_dk.dk_copenmask &= ~mask;
-	else if (mode == S_IFBLK)
-		wp->wd_dk.dk_bopenmask &= ~mask;
-	else
-		return (EINVAL);
-	wp->wd_dk.dk_openmask = wp->wd_dk.dk_bopenmask | wp->wd_dk.dk_copenmask;
-	return (0);
+	return (pcdkclose(&wd[dkunit(dev)].wd_dk, dev, mode));
 }
 
 daddr_t

@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
 """Make a hard disk image with a 2.11BSD disk label.
 
-usage: mkdisk.py [-g CYLINDERS,HEADS,SECTORS] [-p] IMAGE PARTITION=WHAT ...
+usage: mkdisk.py [-g CYLINDERS,HEADS,SECTORS] [-p] [-o SECTOR] IMAGE
+                 PARTITION=WHAT ...
 
 The image is a whole disk of the geometry given, by default 615,4,17: the
 20 MB drive of many a PC/AT.  With -p its first sector is a PC partition
 table with one entry, which gives the system everything from the second
-track on; without, the whole disk is the system's.  Either way the label
-is the second sector of the system's part, and its partitions are counted
-from the start of that part (usr/src/sys/h/disklabel.h,
-usr/src/sys/i286/pcpart.h).
+track on, or with -o from that sector on, as if another system had what
+comes before; without -p the whole disk is the system's.  Either way the
+label is the second sector of the system's part, and its partitions are
+counted from the start of that part (usr/src/sys/h/disklabel.h,
+usr/src/sys/i286at/pcdisk.h).
+
+Only what is put on the disk is written to the image, so a big disk that
+is mostly empty takes little room where the host's file system allows.
 
 Each PARTITION is a letter from a to h, and WHAT is one of
 
@@ -47,10 +52,16 @@ def main():
     args = sys.argv[1:]
     cyls, heads, sectors = 615, 4, 17
     pc = False
-    while args and args[0] in ("-g", "-p"):
+    first = None
+    while args and args[0] in ("-g", "-p", "-o"):
         if args[0] == "-p":
             pc = True
             del args[:1]
+        elif args[0] == "-o":
+            if len(args) < 2 or not args[1].isdigit():
+                sys.exit(__doc__)
+            first = int(args[1])
+            del args[:2]
         else:
             try:
                 cyls, heads, sectors = (int(n) for n in args[1].split(","))
@@ -61,9 +72,13 @@ def main():
         sys.exit(__doc__)
     image = args[0]
     total = cyls * heads * sectors
-    start = sectors if pc else 0
+    if first is not None and not pc:
+        sys.exit("-o needs -p")
+    start = (sectors if first is None else first) if pc else 0
     size = total - start
-    img = bytearray(total * 512)
+    if size < 16:
+        sys.exit("no room for the system on a disk of %d sectors" % total)
+    pieces = {}                 # sector on the disk: what is written there
 
     parts = {}                  # letter: (size, offset, fstype)
     where = 0
@@ -81,8 +96,7 @@ def main():
             data = open(what, "rb").read()
             data += b"\0" * (-len(data) % 512)
             psize, fstype = len(data) // 512, FS_V71K
-            at = (start + where) * 512
-            img[at:at + len(data)] = data
+            pieces[start + where] = data
         if where + psize > size:
             sys.exit("%s: no room: the disk has %d sectors for the system"
                      % (arg, size))
@@ -111,18 +125,21 @@ def main():
         check ^= w
     label += struct.pack("<H", check) + rest + table
     assert len(label) == 216
-    at = (start + 1) * 512
-    if any(img[at:at + 512]):
+    a = bytearray(pieces.get(start, bytes(1024)))
+    if any(a[512:1024]):
         sys.exit("partition a has something in its second sector, where the label goes")
-    img[at:at + len(label)] = label
+    a[512:512 + len(label)] = label
+    pieces[start] = bytes(a)
 
     if pc:
         entry = (b"\x80" + chs(start, heads, sectors) + bytes([PCP_2BSD])
                  + chs(total - 1, heads, sectors) + struct.pack("<LL", start, size))
-        img[446:446 + 16] = entry
-        img[510:512] = b"\x55\xaa"
+        pieces[0] = bytes(446) + entry + bytes(48) + b"\x55\xaa"
     with open(image, "wb") as f:
-        f.write(img)
+        f.truncate(total * 512)
+        for sector, data in pieces.items():
+            f.seek(sector * 512)
+            f.write(data)
     for letter in sorted(parts):
         psize, offset, fstype = parts[letter]
         print("%s: %s: %7d sectors from %7d  %s" % (

@@ -61,17 +61,19 @@ python3 -I "$top/tests/harness/runtest.py" --until halting \
 # disk: a file system with nothing wrong in it, the file the test wrote
 # last, and something in the swap area.
 #
-#       diskboot NAME "MKDISK OPTIONS" VARIABLE=VALUE ...
-(cat "$here/proto"; echo "f /etc/disk 644 motd") > proto.wd
-python3 -I "$top/tools/mkfs.py" -s 2000 proto.wd root.wd
+#       diskboot NAME DRIVER BUS "MKDISK OPTIONS" VARIABLE=VALUE ...
 diskboot() {
-    name=$1 options=$2
-    shift 2
+    name=$1 driver=$2 bus=$3 options=$4
+    shift 4
+    printf $driver > disk
+    (cat "$here/proto"; echo "f /etc/disk 644 disk") > proto.$driver
+    python3 -I "$top/tools/mkfs.py" -s 2000 proto.$driver root.$driver
     geometry=$(python3 -I "$top/tools/mkdisk.py" $options $name.img \
-        a=root.wd b=swap:6000 d=2000 | tail -1)
+        a=root.$driver b=swap:6000 d=2000 | tail -1)
     cp "$top/obj/PC/unix" unix.$name
     python3 -I "$top/tools/kpatch.py" unix.$name extlimit=384 "$@"
-    python3 -I "$top/tests/harness/runtest.py" --hd $name.img,$geometry \
+    python3 -I "$top/tests/harness/runtest.py" \
+        --hd $name.img,$geometry,$bus \
         --until halting --boot kernel-$name unix.$name
     python3 -I "$top/tools/fsck.py" $name.img
     python3 -I "$top/tools/fsck.py" -x /persist $name.img |
@@ -79,12 +81,30 @@ diskboot() {
     python3 -I "$here/swapused.py" $name.img
 }
 
-# A drive the size of a PC/AT's, shared by a partition table.  It names
-# sectors by cylinder, head and sector, and moves 16 to an interrupt.
-diskboot wd "-p"
+# An IDE drive the size of a PC/AT's, shared by a partition table.  It
+# names sectors by cylinder, head and sector, and moves 16 to an
+# interrupt.
+diskboot wd wd ide "-p"
 
-# A bigger one that is all the system's and names sectors by number,
+# A small one that is all the system's and names sectors by number,
 # moving one to an interrupt.
-diskboot wdlba "-g 1024,2,17" wdmulti=1
+diskboot wdlba wd ide "-g 1024,2,17" wdmulti=1
 
-echo "kernel: all three boots passed"
+# One of 2.6 GB, of which the system has the end, past the sectors whose
+# numbers fit in 16 bits and the bytes whose numbers fit in 31.
+diskboot wdbig wd ide "-g 5400,16,63 -p -o 5000000"
+
+# A SCSI disk on an Adaptec adapter set as it comes, shared by a
+# partition table.  diskroot is the device number of sd0a.
+diskboot sd sd scsi:330:11:5:0:DC000 "-p -g 20,64,32" diskroot=512
+
+# Another on an adapter set otherwise and at another SCSI id, of 2.6 GB
+# with the system at the end of it.  Here an interrupt is ignored and a
+# command is never given to the adapter, and the driver must notice both
+# and carry on.
+diskboot sdlost sd scsi:334:10:6:5:0 "-g 2600,64,32 -p -o 5000000" diskroot=512 \
+    ahatest=3 ahatimeout=5
+grep -q "aha: an interrupt did not arrive" "$top/obj/tests/kernel-sdlost/serial.txt"
+grep -q "aha: no answer in 5 seconds" "$top/obj/tests/kernel-sdlost/serial.txt"
+
+echo "kernel: all six boots passed"

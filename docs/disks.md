@@ -1,8 +1,8 @@
 # Disks
 
-What a disk looks like to the kernel on a PC, and the one driver for a
-real disk so far. It runs in the emulator under `tests/kernel`, which
-boots the kernel with its root file system and swap area on a hard disk.
+What a disk looks like to the kernel on a PC, and the two drivers for
+real disks. They run in the emulator under `tests/kernel`, which boots
+the kernel with its root file system and swap area on a hard disk.
 
 ## Devices
 
@@ -10,17 +10,19 @@ boots the kernel with its root file system and swap area on a hard disk.
 |-------|-----------|---|--------|
 | 0 | 7 | disks in memory: 0 the image the boot program loaded, 1 a swap area | `sys/i286/rd.c` |
 | 1 | 8 | hard disks on the AT disk controller | `sys/i286at/wd.c` |
+| 2 | 9 | SCSI disks on an Adaptec AHA-1540 or 1542 | `sys/i286at/sd.c`, `aha.c` |
 
 A hard disk's minor number is the drive in bits 3 and up and the
 partition, `a` to `h`, in the low three: `wd0a` is 0, `wd1c` is 10.
+What the two drivers do alike, which is everything in this section and
+the next, is in `sys/i286at/pcdisk.c`.
 
 ## Whose disk it is
 
 A PC's hard disk can be shared between systems by the table at the end
 of its first sector, which gives each of up to four systems a run of
 sectors and says by a number whose each run is. On the first open of a
-drive its driver calls `pcpart` (`sys/i286at/pcpart.c`), which reads that
-sector.
+drive that sector is read.
 
 - If the table has an entry with 2.11BSD's number, the system keeps to
   that run of sectors.
@@ -58,8 +60,11 @@ Three things to know:
 
 If the boot program loaded a RAM disk image, that is the root, and the
 swap area is the second disk in memory. If it did not, the root is
-`diskroot` (`sys/i286/conf.c`), which is the first hard disk's partition
-`a`, and the swap area is partition `b` of the same drive.
+`diskroot` (`sys/i286/conf.c`), and the swap area is partition `b` of
+the same drive. `diskroot` is the first IDE drive's partition `a` unless
+the kernel file is changed with `tools/kpatch.py`: 512 makes it the
+first SCSI disk's. Having the boot program say which disk it loaded the
+kernel from waits for there to be a boot program for hard disks.
 
 ## The AT disk controller (`sys/i286at/wd.c`)
 
@@ -87,6 +92,38 @@ purpose at it. A buffer of the pool, a process's memory during raw I/O
 and a segment being swapped are all the same to the driver, and none is
 copied on the way.
 
+## The Adaptec SCSI adapter (`sys/i286at/aha.c`, `sd.c`)
+
+For the AHA-1540 and 1542, models B, C, CF and CP. `aha.c` is the
+adapter and `sd.c` the disks on it.
+
+- The adapter is looked for at each of the six I/O addresses it can be
+  set to. Its interrupt request and DMA channel are read from it, so
+  nothing about it is configured in the kernel.
+- A C, CF or CP whose BIOS is set for disks over 1 GB keeps its
+  mailboxes locked against drivers that do not know of that, and is
+  unlocked.
+- The adapter is a master of the AT bus: it moves the data itself,
+  between the SCSI bus and any memory it is given the physical address
+  of. The driver gives it the address of the buffer, or of the process's
+  memory, or of the segment being swapped, and nothing is copied. The
+  DMA channel is only how it asks for the bus.
+- The SCSI bus is looked over when a disk is first opened. Each disk
+  found, in order of SCSI id, is the next drive: `sd0`, `sd1`, up to
+  four. Only unit 0 of a target, and only 512-byte sectors.
+- A disk has no cylinders or heads of its own. Its label is given the
+  ones the adapter's BIOS makes up (64 heads and 32 sectors, or 255 and
+  63 on a disk over 1 GB when the adapter is set so), because the
+  partition table and whatever boots the machine count in those.
+- One command is out at a time, for the whole of a transfer.
+- A transfer that fails is tried four times, unless the target has
+  understood it and refused, or is not there.
+- Once a second the driver looks at a command that is still out. If the
+  adapter says it has finished, the interrupt was lost, and the driver
+  carries on and says so once. If it has been out 30 seconds
+  (`ahatimeout`), the adapter and the SCSI bus are reset and the command
+  is sent again.
+
 ## Tools
 
 `tools/mkdisk.py` makes a disk image: a geometry, a partition table or
@@ -97,13 +134,15 @@ the tests see what the kernel left on a disk.
 
 ## Tested, and not
 
-`tests/kernel` boots from a hard disk twice.
+`tests/kernel` boots from a hard disk five times.
 
-| | first | second |
-|---|---|---|
-| the disk | 615 cylinders, 4 heads, 17 sectors, with a partition table | 1,024 cylinders, 2 heads, 17 sectors, all the system's |
-| sectors named by | cylinder, head and sector | number |
-| sectors to an interrupt | 16 | 1 |
+| | the disk | the system's part | |
+|---|---|---|---|
+| IDE | 20 MB | from the second track, by a partition table | sectors by cylinder, head and sector, 16 to an interrupt |
+| IDE | 17 MB | all of it | sectors by number, one to an interrupt |
+| IDE | 2.6 GB | from sector 5,000,000 | sectors by number, 16 to an interrupt |
+| SCSI | 20 MB, id 0 | from the second track | adapter at 0x330, request 11, channel 5, its BIOS on |
+| SCSI | 2.6 GB, id 5 | from sector 5,000,000 | adapter at 0x334, request 10, channel 6; one interrupt ignored and one command never sent (`ahatest`), with the time limit at 5 seconds |
 
 Each time the test program reads the label, writes and reads 20K
 straight to a partition from an odd address in its memory, reads the
@@ -111,16 +150,29 @@ same through the buffer pool, reads and writes across the end of the
 partition, and writes, reads and removes files of 300K. Its 24 processes
 that do not fit in memory are swapped to the disk. After the kernel has
 halted, `fsck.py` must find nothing wrong with the file system and must
-find the last file the test wrote.
+find the last file the test wrote. On the last boot the driver must also
+have said that an interrupt did not arrive and that a command got no
+answer.
+
+The emulator's adapter is a 1542CF. Its 1542CP answers only after
+something has configured it by Plug and Play, which the machine's BIOS
+does not do and this kernel does not either. A real CP in such a machine
+uses the settings on its switches, by its installation guide, and takes
+the same commands as a CF; no real one has been tried.
 
 Not done, or not tested:
 
-- A drive that stops answering is waited for with the processor, for
-  some seconds, and an interrupt that never comes is waited for for
-  ever: there are no timeouts.
-- No test makes a transfer fail, so the retries and the error report
-  have not run.
-- A second drive has only been found absent.
+- No test makes a transfer fail with an error, so the retries after an
+  error and the error reports have not run. On SCSI the retry after a
+  reset has.
+- The IDE driver has no time limits: a drive that stops answering is
+  waited for with the processor, for some seconds, and an interrupt
+  that never comes is waited for for ever.
+- A second drive has only been found absent, on either.
+- A SCSI disk that is not spinning is not started, and one that takes
+  its time after a reset is not waited for beyond the four tries.
+- SCSI devices that are not disks are named when the bus is looked over
+  and otherwise ignored.
 - Nothing is done about bad sectors.
 - No crash dump is written to a disk.
 - The machine cannot be booted from a hard disk: there is no boot

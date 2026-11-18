@@ -314,7 +314,8 @@ hogs()
 /*
  * A hard disk.  run.sh boots the kernel again from one that
  * tools/mkdisk.py made, with this file system in partition a, the swap
- * area in b and nothing in d, and says so with the file /etc/disk.
+ * area in b and nothing in d, and names the driver in the file
+ * /etc/disk: "wd" or "sd".
  */
 #define	DIOCGDINFO	0x40D86465L	/* _IOR('d', 101, struct disklabel) */
 #define	RAWSIZE		20480		/* more than the drive moves at once */
@@ -338,12 +339,21 @@ disk()
 	long size;
 	char *m;
 
-	if (open("/etc/disk", O_RDONLY, 0) < 0) {
+	static char rawd[] = "/dev/rXX0d", blkd[] = "/dev/XX0d";
+	static char raw1[] = "/dev/rXX1a";
+
+	if ((fd = open("/etc/disk", O_RDONLY, 0)) < 0) {
 		check(open("/dev/rwd0d", O_RDWR, 0) == -1 && errno == ENXIO,
 		    "there is no hard disk");
+		check(open("/dev/rsd0d", O_RDWR, 0) == -1 && errno == ENXIO,
+		    "and no SCSI adapter");
 		return;
 	}
-	raw = open("/dev/rwd0d", O_RDWR, 0);
+	read(fd, rawd + 6, 2);
+	close(fd);
+	blkd[5] = raw1[6] = rawd[6];
+	blkd[6] = raw1[7] = rawd[7];
+	raw = open(rawd, O_RDWR, 0);
 	check(raw >= 0, "open a partition of the hard disk");
 	check(ioctl(raw, DIOCGDINFO, &label) == 0 &&
 	    label.d_magic == 0x82564557L && label.d_npartitions == 4,
@@ -369,7 +379,7 @@ disk()
 		if (m[RAWSIZE + 1 + k] != (char)(k * 3 + (k >> 8)))
 			break;
 	check(k == RAWSIZE, "and it is what was written");
-	blk = open("/dev/wd0d", O_RDWR, 0);
+	blk = open(blkd, O_RDWR, 0);
 	check(blk >= 0 && lseek(blk, 5120L, 0) == 5120L &&
 	    read(blk, m + RAWSIZE + 1, 3000) == 3000,
 	    "read the partition as a block device");
@@ -389,7 +399,7 @@ disk()
 	close(raw);
 	close(blk);
 	sbrk(-(2 * RAWSIZE + 2));
-	check(open("/dev/rwd1a", O_RDONLY, 0) == -1 && errno == ENXIO,
+	check(open(raw1, O_RDONLY, 0) == -1 && errno == ENXIO,
 	    "there is no second drive");
 
 	/* A file big enough to need the second level of indirect blocks. */

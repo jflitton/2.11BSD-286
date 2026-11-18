@@ -2,7 +2,7 @@
 """Run a test program in an emulator.
 
 usage: runtest.py NAME SOURCE...
-       runtest.py [--hd IMAGE,CYLINDERS,HEADS,SECTORS] [--until TEXT]
+       runtest.py [--hd IMAGE,CYLINDERS,HEADS,SECTORS[,BUS]] [--until TEXT]
                   --boot NAME EXECUTABLE [FILESYSTEM]
 
 The first form builds a small-model program that runs in real mode.  Each
@@ -13,9 +13,13 @@ any program is.
 The second takes an executable already built, such as a kernel, that
 starts itself as docs/boot.md describes.  A file system image given with
 it goes on the diskette after it, for the kernel to load as its RAM disk.
-With --hd the machine has a hard disk as well, the first drive of an AT
-disk controller: IMAGE is its contents, as tools/mkdisk.py makes them, and
-is changed by whatever the program writes.  86Box only.  With --until the
+With --hd the machine has a hard disk as well: IMAGE is its contents, as
+tools/mkdisk.py makes them, and is changed by whatever the program writes.
+BUS says what it is on: "ide", the default, the first drive of an AT disk
+controller; or "scsi:PORT:IRQ:DMA:ID:BIOS", an Adaptec AHA-1542CF at that
+I/O address (hexadecimal), interrupt request and DMA channel, the disk at
+that SCSI id, and the adapter's BIOS at that address (hexadecimal, such as
+DC000) or, with 0, off.  86Box only.  With --until the
 run does not end at the "@exit" line but when the program has written TEXT
 after it: a system has its disks to bring up to date before it stops, and
 says when it has.
@@ -180,7 +184,7 @@ def has_automation(box):
         return m.find(b"--automation-hold") >= 0
 
 
-HD = None               # --hd: (image, cylinders, heads, sectors)
+HD = None               # --hd: (image, cylinders, heads, sectors, bus)
 
 
 def start_86box(box, img, out, com1, args=(), env=None):
@@ -192,12 +196,26 @@ def start_86box(box, img, out, com1, args=(), env=None):
     shutil.rmtree(vm, ignore_errors=True)
     os.makedirs(os.path.join(vm, "nvr"))
     cfg = open(os.path.join(HARNESS, "86box.cfg")).read()
+    scsi = HD[4].split(":")[1:] if HD and HD[4].startswith("scsi") else None
+    if scsi:
+        ide = "hdc_1 = ide_isa\n"
+        assert ide in cfg
+        cfg = cfg.replace(ide, ide + "scsicard_1 = aha154xcf\n")
     with open(os.path.join(vm, "86box.cfg"), "w") as f:
         f.write(cfg + "fdd_01_fn = %s\n\n[Ports (COM & LPT)]\n%s" % (img, com1))
         if HD:
-            f.write("\n[Hard disks]\nhdd_01_parameters = %d, %d, %d, 0, ide\n"
-                    "hdd_01_fn = %s\nhdd_01_ide_channel = 0:0\n"
-                    % (HD[3], HD[2], HD[1], os.path.abspath(HD[0])))
+            f.write("\n[Hard disks]\nhdd_01_parameters = %d, %d, %d, 0, %s\n"
+                    "hdd_01_fn = %s\n"
+                    % (HD[3], HD[2], HD[1], "scsi" if scsi else "ide",
+                       os.path.abspath(HD[0])))
+            if scsi:
+                f.write("hdd_01_scsi_location = 0:%02d\n\n"
+                        "[Adaptec AHA-154xCF #1]\nbase = %04X\nirq = %d\n"
+                        "dma = %d\nbios_addr = %05X\n"
+                        % (int(scsi[3]), int(scsi[0], 16), int(scsi[1]),
+                           int(scsi[2]), int(scsi[4], 16)))
+            else:
+                f.write("hdd_01_ide_channel = 0:0\n")
     shutil.copy(os.path.join(HARNESS, "ibmps2_m30_286.nvr"), os.path.join(vm, "nvr"))
     with open(os.path.join(vm, "86box.out"), "w") as o:
         p = subprocess.Popen([box, "-N", "-P", vm, "-L", os.path.join(vm, "86box.log")]
@@ -412,8 +430,10 @@ def main():
         sys.exit("EMU must be 86box or qemu")
     if len(sys.argv) > 2 and sys.argv[1] == "--hd":
         try:
-            image, c, h, s = sys.argv[2].split(",")
-            HD = (image, int(c), int(h), int(s))
+            image, c, h, s, bus = (sys.argv[2] + ",ide").split(",")[:5]
+            HD = (image, int(c), int(h), int(s), bus)
+            if bus != "ide" and (bus.count(":") != 5 or not bus.startswith("scsi:")):
+                raise ValueError
         except ValueError:
             sys.exit(__doc__)
         if emu != "86box" or os.path.getsize(image) != HD[1] * HD[2] * HD[3] * 512:
