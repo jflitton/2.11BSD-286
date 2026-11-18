@@ -1,4 +1,8 @@
-; Start-up and console for test programs (NASM, object file).
+; Start-up and console for real-mode test programs (NASM, object file).
+;
+; The boot sector (usr/src/sys/i286stand/fdboot.s) enters here with DS the
+; data segment, which tools/mkfd.py --spread gave a full 64K; the stack
+; goes at the top of it.
 ;
 ; When main returns, its value is reported on the console as a line
 ; "@exit NN" (two hex digits), which is what tests/harness/runtest.py waits
@@ -13,6 +17,10 @@
         segment _TEXT public align=2 class=CODE
 
 ..start:
+        mov     ax, ds
+        mov     es, ax
+        mov     ss, ax          ; interrupts are held off for one instruction
+        mov     sp, 0xFFFE
         fninit
         mov     dx, 0x3F8 + 3   ; COM1: 8 bits, no parity, 115200
         mov     al, 0x80

@@ -1,14 +1,22 @@
 #!/usr/bin/env python3
-"""Build a small-model test program and run it in an emulator.
+"""Run a test program in an emulator.
 
 usage: runtest.py NAME SOURCE...
+       runtest.py --boot NAME EXECUTABLE
 
-Each .c is compiled with tools/cc286 and each .s assembled with NASM; they
-are linked behind tests/harness/start.s and converted with tools/ne2aout.py,
-as any program is.  The code and data segments are then put on a diskette
-image after tests/harness/boot.s, which loads them and runs the program in
-real mode.  What the program writes to the serial port is printed, and the
-value main returns becomes the exit status.  Everything built goes to
+The first form builds a small-model program that runs in real mode.  Each
+.c is compiled with tools/cc286 and each .s assembled with NASM; they are
+linked behind tests/harness/start.s and converted with tools/ne2aout.py, as
+any program is.
+
+The second takes an executable already built, such as a kernel, that
+starts itself as docs/boot.md describes.
+
+Either way tools/mkfd.py puts the program on a diskette image behind the
+boot sector, usr/src/sys/i286stand/fdboot.s, and the emulator boots it.
+What the program writes to the serial port is printed.  The program ends by
+writing a line "@exit NN", two hex digits, which become the exit status;
+start.s writes it with the value main returns.  Everything built goes to
 obj/tests/NAME.
 
 The emulator is chosen by the environment variable EMU:
@@ -84,21 +92,18 @@ def build(name, sources, out):
     if nseg != 2 or (eseg, eoff) != (1, 0):
         sys.exit("%s: want two segments and entry 1:0000, have %d and %d:%04x"
                  % (name, nseg, eseg, eoff))
-    sizes = [struct.unpack_from("<L", b, 24 + 12 * i + 4)[0] for i in range(2)]
-    off = 24 + 12 * 2
-    bootbin = os.path.join(out, "boot.bin")
-    run("nasm", "-f", "bin", "-o", bootbin, os.path.join(HARNESS, "boot.s"))
-    boot = bytearray(open(bootbin, "rb").read())
-    sectors = [(size + 511) // 512 for size in sizes]
-    struct.pack_into("<HH", boot, 3, *sectors)
     img = os.path.join(out, name + ".img")
-    with open(img, "wb") as f:
-        f.write(boot)
-        for size, n in zip(sizes, sectors):
-            f.write(b[off:off + size].ljust(n * 512, b"\0"))
-            off += size + (size & 1)
-        f.truncate(1474560)
+    mkfd(exe, img, out, "--spread")
     return img
+
+
+def mkfd(exe, img, out, *options):
+    """Make the diskette image IMG that boots the executable EXE."""
+    bootbin = os.path.join(out, "fdboot.bin")
+    run("nasm", "-f", "bin", "-o", bootbin,
+        os.path.join(TOP, "usr", "src", "sys", "i286stand", "fdboot.s"))
+    run(sys.executable, "-I", os.path.join(TOP, "tools", "mkfd.py"),
+        *options, bootbin, exe, img)
 
 
 def finished(text):
@@ -366,13 +371,22 @@ def run_86box(img, out):
 def main():
     if len(sys.argv) < 3:
         sys.exit(__doc__)
-    name, sources = sys.argv[1], sys.argv[2:]
     emu = os.environ.get("EMU", "86box")
     if emu not in ("86box", "qemu"):
         sys.exit("EMU must be 86box or qemu")
-    out = os.path.join(TOP, "obj", "tests", name)
-    os.makedirs(out, exist_ok=True)
-    img = build(name, sources, out)
+    if sys.argv[1] == "--boot":
+        if len(sys.argv) != 4:
+            sys.exit(__doc__)
+        name = sys.argv[2]
+        out = os.path.join(TOP, "obj", "tests", name)
+        os.makedirs(out, exist_ok=True)
+        img = os.path.join(out, name + ".img")
+        mkfd(sys.argv[3], img, out)
+    else:
+        name, sources = sys.argv[1], sys.argv[2:]
+        out = os.path.join(TOP, "obj", "tests", name)
+        os.makedirs(out, exist_ok=True)
+        img = build(name, sources, out)
     # The program's output, and what the emulator can say of a failure.
     text, seen = run_86box(img, out) if emu == "86box" else (run_qemu(img, out), None)
     sys.stdout.write(text.replace("\r", ""))

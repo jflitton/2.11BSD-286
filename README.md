@@ -30,15 +30,15 @@ has file names that differ only by case.
 | `toolchain/` | the installed cross-compiler | no |
 | `obj/`, `images/`, `vm/` | build output, disk images, emulator state (none yet) | no |
 
-Where the 286 code will go, beside its PDP-11 counterpart in each case:
+Where the 286 code goes, beside its PDP-11 counterpart in each case:
 
 | new | beside | holds |
 |-----|--------|-------|
-| `usr/src/sys/i286/` | `pdp/` | startup, traps, segments and tasks, 287, copy routines |
-| `usr/src/sys/i286at/` | `pdpuba/` | AT-bus drivers: SCSI, console, serial, clock |
-| `usr/src/sys/i286if/` | `pdpif/` | network interfaces |
-| `usr/src/sys/i286stand/` | `pdpstand/`, `mdec/` | boot blocks and standalone programs |
-| `usr/src/sys/PS2_30/` | `GENERIC/` | the kernel configuration |
+| `usr/src/sys/i286/` | `pdp/` | startup, traps, segments and tasks, 287, copy routines; the first two exist |
+| `usr/src/sys/i286at/` | `pdpuba/` | AT-bus drivers: SCSI, console, serial, clock; to come |
+| `usr/src/sys/i286if/` | `pdpif/` | network interfaces; to come |
+| `usr/src/sys/i286stand/` | `pdpstand/`, `mdec/` | boot blocks and standalone programs; the diskette boot sector exists |
+| `usr/src/sys/PS2_30/` | `GENERIC/` | the kernel configuration; to come |
 | `usr/src/lib/libc/i286/` | `lib/libc/pdp/` | libc's machine-dependent part; `crt/` exists, the rest is to come |
 
 The kernel picks its machine through the link `usr/src/sys/machine`, which
@@ -145,28 +145,40 @@ DOS and OS/2 user's guide with nothing on ports or interrupts; not kept.)
 | `tools/env.sh` | sourced, puts the toolchain on `PATH` |
 | `tools/cc286`, `tools/cc286.h` | compile one C file with the system's memory model and calling convention |
 | `tools/ne2aout.py` | turns the linker's output into the system's executable format; `--dump` prints one |
+| `tools/mkfd.py` | makes a bootable diskette image from an executable |
 | `tools/untap.py` | splits a SimH `.tap` tape image into its files |
 | `tools/tar2git.py` | commits tar archives to a branch without unpacking them |
 | `tools/import-upstream.sh` | rebuilds the `upstream` import from the tape, to check it |
 
 ## Tests
 
-Tests run real 286 code in an emulator, in real mode for now.
-`tests/harness/` has a boot sector that loads a small-model program's two
-segments from a diskette image, start-up code with a serial console, and
-`runtest.py`, which builds a program through the normal path (`cc286`,
-`wlink`, `ne2aout.py`), boots it, prints what it wrote to the serial port
-and takes main's return value as the result.
+Tests run real 286 code in an emulator. `tests/harness/runtest.py` puts a
+program on a diskette image behind the boot sector
+(`usr/src/sys/i286stand/fdboot.s`), boots it, prints what it wrote to the
+serial port and takes the `@exit` line it ends with as the result.
 
 ```sh
 . tools/env.sh
 tests/crt/run.sh        # the compiler's helper routines: 5,161 checks
+tests/pm/run.sh         # the kernel's start-up and trap entry: 52 checks
 ```
+
+- `tests/crt` is a small-model program in real mode, built through the
+  normal path (`cc286`, `wlink`, `ne2aout.py`) behind the start-up code in
+  `tests/harness/start.s`.
+- `tests/pm` is a medium-model program that takes the place of the
+  kernel's `main` and `trap`, linked with the kernel's own start-up
+  (`usr/src/sys/i286`). It checks the descriptor tables, far calls between
+  code segments, the far versions of the helper routines, that each kind of
+  protection fault arrives as the right exception and can be returned from,
+  memory above 1M, the clock interrupt and the 287.
 
 The emulator is [86Box](https://github.com/86Box/86Box), as an IBM PS/2
 Model 30 286 with a 287 (`tests/harness/86box.cfg`): a real 286, which
 faults on anything a 286 lacks. `EMU=qemu` uses `qemu-system-i386` instead,
-which is a later processor and so proves less.
+which proves less: it runs 386 instructions, and it does not enforce
+segment limits or the write protection of code segments. `tests/pm` checks
+all three and so refuses to run there.
 
 `runtest.py` works with a released 86Box, which opens a window and runs in
 real time. It does better with one built with the automation socket, an
@@ -193,16 +205,24 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
 - `upstream` holds patch level 500, checked file by file against the tape.
 - Reference material is listed and fetched.
 - The cross-compiler is chosen and installs from the manifest (see
-  Toolchain). Nothing compiled with it has been run yet.
+  Toolchain).
 - The design is decided and written down:
   [memory model](docs/memory-model.md),
   [calling convention and kernel interface](docs/abi.md),
-  [executable format](docs/executable-format.md).
+  [executable format](docs/executable-format.md),
+  [booting](docs/boot.md).
 - A C program can be compiled, linked, converted to the executable format
-  and run in an emulated PS/2 Model 30 286, in real mode.
+  and run in an emulated PS/2 Model 30 286.
 - The helper routines compiled code calls for 32-bit multiply and divide
   and for float-to-integer conversion are written
-  (`usr/src/lib/libc/i286/crt`) and pass their tests. The three for
-  `__huge` pointers are not written yet.
-- Nothing of the system itself is ported yet. Next: a kernel skeleton that
-  reaches protected mode in an emulator.
+  (`usr/src/lib/libc/i286/crt`) and pass their tests, near in real mode and
+  far in protected mode. The three for `__huge` pointers are not written
+  yet.
+- The kernel's first layer runs in the emulator: a diskette boot sector
+  loads a multi-segment executable, and the start-up code enters protected
+  mode with the descriptor tables in place, takes exceptions and
+  interrupts, and calls C ([booting](docs/boot.md)). The diskette boot
+  sector and the start-up have not run on the real machine.
+- Nothing machine-independent is ported yet. Next: enter and leave ring 3
+  (a process's segments in a local descriptor table, system call entry),
+  then compile `sys/sys` against the new machine headers.

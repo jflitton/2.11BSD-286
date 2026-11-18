@@ -1,8 +1,9 @@
 # Calling convention and kernel interface
 
 Decided November 2026. The calling convention and the helper routines run
-under the tests in `tests/crt`, in real mode; the system call interface and
-the user address type are not implemented yet.
+under the tests: `tests/crt` in real mode with near calls, `tests/pm` in
+protected mode with far ones. The system call interface and the user
+address type are not implemented yet.
 
 ## C calling convention
 
@@ -55,6 +56,10 @@ Those are all that 338 compiled files of the tree referred to. The first
 five are in `usr/src/lib/libc/i286/crt`, beside the PDP-11's `lmul.s` and
 `ldiv.s` in `lib/libc/pdp/crt`; assembled with `-DFAR` they return far, for
 the medium and large models. The `__huge` three are not written yet.
+
+The compiler turns a call that is the last thing a function does into a
+jump. Assembly that looks at its caller's return address sees the
+caller's caller in that case.
 
 ## System calls
 
