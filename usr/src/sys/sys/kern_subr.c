@@ -16,13 +16,14 @@
 
 /* copied, for supervisory networking, to sys_net.c */
 uiomove(cp, n, uio)
-	caddr_t cp;
+	void __far *cp;
 	u_int n;
 	register struct uio *uio;
 {
 	register struct iovec *iov;
-	int error = 0;
 	register u_int cnt;
+	char __far *p = cp;
+	int error = 0;
 
 	while (n > 0 && uio->uio_resid) {
 		iov = uio->uio_iov;
@@ -37,46 +38,27 @@ uiomove(cp, n, uio)
 		switch (uio->uio_segflg) {
 
 		case UIO_USERSPACE:
-			if (cnt > 100 && cp + cnt < SEG6)
-				error = uiofmove(cp, cnt, uio, iov);
-			else if ((cnt | (int)cp | (int)iov->iov_base) & 1)
-				if (uio->uio_rw == UIO_READ)
-					error = vcopyout(cp,iov->iov_base, cnt);
-				else
-					error = vcopyin(iov->iov_base, cp, cnt);
-			else {
-				if (uio->uio_rw == UIO_READ)
-					error = copyout(cp, iov->iov_base, cnt);
-				else
-					error = copyin(iov->iov_base, cp, cnt);
-			}
-			if (error)
-				return (error);
-			break;
-
 		case UIO_USERISPACE:
-			if (cnt > 100 && cp + cnt < SEG6)
-				error = uiofmove(cp, cnt, uio, iov);
-			else if (uio->uio_rw == UIO_READ)
-				error = copyiout(cp, iov->iov_base, cnt);
+			if (uio->uio_rw == UIO_READ)
+				error = copyout(p, iov->iov_base, cnt);
 			else
-				error = copyiin(iov->iov_base, cp, cnt);
+				error = copyin(iov->iov_base, p, cnt);
 			if (error)
 				return (error);
 			break;
 
 		case UIO_SYSSPACE:
 			if (uio->uio_rw == UIO_READ)
-				bcopy((caddr_t)cp, iov->iov_base, cnt);
+				bcopy(p, iov->iov_base, cnt);
 			else
-				bcopy(iov->iov_base, (caddr_t)cp, cnt);
+				bcopy(iov->iov_base, p, cnt);
 			break;
 		}
 		iov->iov_base += cnt;
 		iov->iov_len -= cnt;
 		uio->uio_resid -= cnt;
 		uio->uio_offset += cnt;
-		cp += cnt;
+		p += cnt;
 		n -= cnt;
 	}
 	return (error);
@@ -167,59 +149,4 @@ again:
 	uio->uio_resid--;
 	uio->uio_offset++;
 	return (c & 0377);
-}
-
-/*
- * Copy bytes to/from the kernel and the user.  Uiofmove assumes the kernel
- * area being copied to or from does not overlap segment 6 - the assembly
- * language helper routine, fmove, uses segment register 6 to map in the
- * user's memory.
- */
-uiofmove(cp, n, uio, iov)
-	caddr_t cp;
-	register int n;
-	struct uio *uio;
-	struct iovec *iov;
-{
-	register short c;
-	short on;
-	register short segr;		/* seg register (0 - 7) */
-	u_short *segd;			/* PDR map array */
-	u_short *sega;			/* PAR map array */
-	int error;
-
-#ifdef NONSEPARATE
-	segd = UISD;
-	sega = UISA;
-#else
-	if (uio->uio_segflg == UIO_USERSPACE && u.u_sep) {
-		segd = UDSD;
-		sega = UDSA;
-	}
-	else {
-		segd = UISD;
-		sega = UISA;
-	}
-#endif
-
-	segr = (short)iov->iov_base >> 13 & 07;
-	on = (short)iov->iov_base & 017777;
-	c = MIN(n, 8192-on);
-	for (;;) {
-		if (uio->uio_rw == UIO_READ)
-			error = fmove(sega[segr], segd[segr], cp, SEG6+on, c);
-		else
-			error = fmove(sega[segr], segd[segr], SEG6+on, cp, c);
-		if (error)
-			return(error);
-		n -= c;
-		if (!n)
-			return(0);
-		cp += c;
-		segr++;
-		segr &= 07;
-		on = 0;
-		c = MIN(n, 8192);
-	}
-	/*NOTREACHED*/
 }

@@ -2,8 +2,9 @@
 
 How programs and the kernel use the 286's segments. Decided November 2026;
 the numbers are from compiling this tree with Open Watcom and from the clock
-counts in Intel's *80286 and 80287 Programmer's Reference Manual*. Nothing
-here has been run yet, so the performance figures are estimates.
+counts in Intel's *80286 and 80287 Programmer's Reference Manual*. The
+kernel described here runs, but nothing has been timed, so the
+performance figures are still estimates.
 
 ## What the 286 charges for
 
@@ -106,15 +107,19 @@ The design is **slots**:
 - `u` is a macro for `*up`, where `up` is a near pointer. None of the
   references to `u` change.
 - The kernel's data segment holds several slots, each with one process's
-  user area and kernel stack, about 3K.
-- A process that still holds a slot is switched to by changing `up` and
-  the stack pointer. Nothing is copied.
-- A process without a slot takes one from the least recently run holder.
-  Only then are a user area and stack copied: the evicted one out to its
-  own memory, the new one in.
-- The number of slots is set at boot from the kernel data left over. With
-  one slot this is the plain copy at every switch, which is where the
-  implementation starts.
+  user area and kernel stack: 3,584 bytes as built, 878 of them the user
+  area.
+- A process is given a slot when it is made and runs only there, because
+  its kernel stack holds pointers into itself. Processes with different
+  slots are switched between by changing `uptr` and the stack pointer.
+  Nothing is copied.
+- Processes that share a slot are copied in and out of it as they take
+  turns, each to and from memory of its own, and only the user area and
+  the used part of the stack.
+- The number of slots is a parameter of the kernel (6 as configured, one
+  of them the swapper's).
+
+[Processes](processes.md) describes it as built.
 
 Slots compete with the process, inode and file tables for the 64K. Each
 active telnet user keeps two processes busy, so the count wants to be about

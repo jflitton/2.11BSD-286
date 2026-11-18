@@ -9,9 +9,11 @@
 
 GDT_TSS         equ     1
 GDT_LDT         equ     2
+GDT_TMP1        equ     3
+GDT_TMP2        equ     4
 GDT_KERNEL      equ     16
 NKSEG           equ     16
-NGDT            equ     GDT_KERNEL + NKSEG
+NGDT            equ     64
 
 SD_CODE         equ     0x9B
 SD_DATA         equ     0x93
@@ -26,15 +28,35 @@ T_IRQ0          equ     32      ; the 16 interrupt requests
 T_SYSCALL       equ     48
 NIDT            equ     49
 
-TF_SIZE         equ     32      ; struct trapframe (frame.h)
+; struct trapframe (frame.h)
+TF_VEC          equ     18
+TF_IP           equ     22
+TF_CS           equ     24
+TF_SIZE         equ     32
 
-EFAULT          equ     14      ; h/errno.h
+UBYTES          equ     7 * 512 ; machparam.h
+INTSTACK        equ     3072    ; size of the stack interrupts run on
+
+; Interrupt priority levels (machparam.h)
+IPL_SOFTCLOCK   equ     1
+IPL_NET         equ     2
+IPL_BIO         equ     3
+IPL_IMP         equ     4
+IPL_TTY         equ     5
+IPL_CLOCK       equ     6
+IPL_HIGH        equ     7
+
+ENOENT          equ     2       ; h/errno.h
+EFAULT          equ     14
 
 ; struct bootinfo (boot.h)
 BI_NSEG         equ     2
 BI_DSEG         equ     8
-BI_SEG          equ     12
-BI_SIZE         equ     12 + 16 * 8
+BI_DRIVE        equ     10
+BI_RDSECT       equ     12
+BI_RDSIZE       equ     14
+BI_SEG          equ     16
+BI_SIZE         equ     16 + 16 * 8
 
 ; struct tss (seg.h)
 TS_SP0          equ     2

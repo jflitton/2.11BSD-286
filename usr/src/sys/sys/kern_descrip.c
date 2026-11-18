@@ -235,7 +235,7 @@ fstat()
 	register struct file *fp;
 	register struct a {
 		int	fdes;
-		struct	stat *sb;
+		struct	stat __far *sb;
 	} *uap;
 	struct stat ub;
 
@@ -261,7 +261,7 @@ fstat()
 		break;
 	}
 	if (u.u_error == 0)
-		u.u_error = copyout((caddr_t)&ub, (caddr_t)uap->sb,
+		u.u_error = copyout((caddr_t)&ub, uap->sb,
 		    sizeof (ub));
 }
 
@@ -377,23 +377,23 @@ flock()
 	int error;
 
 	if ((fp = getf(uap->fd)) == NULL)
-		return;
+		return (0);
 	if (fp->f_type != DTYPE_INODE) {
 		u.u_error = EOPNOTSUPP;
-		return;
+		return (0);
 	}
 	if (uap->how & LOCK_UN) {
 		ino_unlock(fp, FSHLOCK | FEXLOCK);
-		return;
+		return (0);
 	}
 	if ((uap->how & (LOCK_SH | LOCK_EX)) == 0)
-		return;					/* error? */
+		return (0);					/* error? */
 	if (uap->how & LOCK_EX)
 		uap->how &= ~LOCK_SH;
 	/* avoid work... */
 	if ((fp->f_flag & FEXLOCK) && (uap->how & LOCK_EX) ||
 	    (fp->f_flag & FSHLOCK) && (uap->how & LOCK_SH))
-		return;
+		return (0);
 	error = ino_lock(fp, uap->how);
 	return(u.u_error = error);
 }
@@ -432,7 +432,7 @@ dupfdopen(indx, dfd, mode, error)
 	int mode;
 	int error;
 	{
-	register register struct file *wfp;
+	register struct file *wfp;
 	struct file *fp;
 	
 	/*

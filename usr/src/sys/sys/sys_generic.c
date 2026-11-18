@@ -40,13 +40,13 @@ read()
 {
 	register struct a {
 		int	fdes;
-		char	*cbuf;
+		char __far *cbuf;
 		unsigned count;
 	} *uap = (struct a *)u.u_ap;
 	struct uio auio;
 	struct iovec aiov;
 
-	aiov.iov_base = (caddr_t)uap->cbuf;
+	aiov.iov_base = uap->cbuf;
 	aiov.iov_len = uap->count;
 	auio.uio_iov = &aiov;
 	auio.uio_iovcnt = 1;
@@ -58,7 +58,7 @@ readv()
 {
 	register struct a {
 		int	fdes;
-		struct	iovec *iovp;
+		struct	iovec __far *iovp;
 		unsigned iovcnt;
 	} *uap = (struct a *)u.u_ap;
 	struct uio auio;
@@ -71,7 +71,7 @@ readv()
 	auio.uio_iov = aiov;
 	auio.uio_iovcnt = uap->iovcnt;
 	auio.uio_rw = UIO_READ;
-	u.u_error = copyin((caddr_t)uap->iovp, (caddr_t)aiov,
+	u.u_error = copyin(uap->iovp, (caddr_t)aiov,
 	    uap->iovcnt * sizeof (struct iovec));
 	if (u.u_error)
 		return;
@@ -85,7 +85,7 @@ write()
 {
 	register struct a {
 		int	fdes;
-		char	*cbuf;
+		char __far *cbuf;
 		unsigned count;
 	} *uap = (struct a *)u.u_ap;
 	struct uio auio;
@@ -103,7 +103,7 @@ writev()
 {
 	register struct a {
 		int	fdes;
-		struct	iovec *iovp;
+		struct	iovec __far *iovp;
 		unsigned iovcnt;
 	} *uap = (struct a *)u.u_ap;
 	struct uio auio;
@@ -116,7 +116,7 @@ writev()
 	auio.uio_iov = aiov;
 	auio.uio_iovcnt = uap->iovcnt;
 	auio.uio_rw = UIO_WRITE;
-	u.u_error = copyin((caddr_t)uap->iovp, (caddr_t)aiov,
+	u.u_error = copyin(uap->iovp, (caddr_t)aiov,
 	    uap->iovcnt * sizeof (struct iovec));
 	if (u.u_error)
 		return;
@@ -147,8 +147,10 @@ rwuio(uio)
 		total += iov->iov_len;
 
 	uio->uio_resid = total;
-	if	(uio->uio_resid != total)	/* check wraparound */
-		return(u.u_error = EINVAL);
+	if	(uio->uio_resid != total) {	/* check wraparound */
+		u.u_error = EINVAL;
+		return;
+	}
 
 	count = uio->uio_resid;
 	if	(setjmp(&u.u_qsave))
@@ -179,7 +181,7 @@ ioctl()
 	register struct a {
 		int	fdes;
 		long	cmd;
-		caddr_t	cmarg;
+		uaddr_t	cmarg;
 	} *uap;
 	long com;
 	u_int k_com;
@@ -219,16 +221,11 @@ ioctl()
 	}
 	if (com&IOC_IN) {
 		if (size) {
-			if (((u_int)uap->cmarg|size)&1)
-			    u.u_error =
-				vcopyin(uap->cmarg, (caddr_t)data, size);
-			else
-			    u.u_error =
-				copyin(uap->cmarg, (caddr_t)data, size);
+			u.u_error = copyin(uap->cmarg, (caddr_t)data, size);
 			if (u.u_error)
 				return;
 		} else
-			*(caddr_t *)data = uap->cmarg;
+			*(uaddr_t *)data = uap->cmarg;
 	} else if ((com&IOC_OUT) && size)
 		/*
 		 * Zero the buffer on the stack so the user
@@ -236,7 +233,7 @@ ioctl()
 		 */
 		bzero((caddr_t)data, size);
 	else if (com&IOC_VOID)
-		*(caddr_t *)data = uap->cmarg;
+		*(uaddr_t *)data = uap->cmarg;
 
 	switch (k_com) {
 
@@ -262,10 +259,7 @@ ioctl()
 	 * already set and checked above.
 	 */
 	if (u.u_error == 0 && (com&IOC_OUT) && size)
-		if (((u_int)uap->cmarg|size)&1)
-			u.u_error = vcopyout(data, uap->cmarg, size);
-		else
-			u.u_error = copyout(data, uap->cmarg, size);
+		u.u_error = copyout(data, uap->cmarg, size);
 }
 
 int	nselcoll;
@@ -273,11 +267,11 @@ int	nselcoll;
 struct	pselect_args
 	{
 	int		nd;
-	fd_set		*in;
-	fd_set		*ou;
-	fd_set		*ex;
-	struct	timespec *ts;
-	sigset_t	*maskp;
+	fd_set __far *in;
+	fd_set __far *ou;
+	fd_set __far *ex;
+	struct	timespec __far *ts;
+	sigset_t __far *maskp;
 	};
 
 /*
@@ -289,8 +283,8 @@ select()
 	struct uap
 		{
 		int	nd;
-		fd_set	*in, *ou, *ex;
-		struct	timeval *tv;
+		fd_set __far *in, __far *ou, __far *ex;
+		struct	timeval __far *tv;
 		} *uap = (struct uap *)u.u_ap;
 	register struct pselect_args *pselargs = (struct pselect_args *)uap;
 
@@ -339,7 +333,7 @@ select1(uap, is_pselect)
 
 #define	getbits(name, x) \
 	if (uap->name) { \
-		error = copyin((caddr_t)uap->name, (caddr_t)&ibits[x], \
+		error = copyin(uap->name, (caddr_t)&ibits[x], \
 		    (unsigned)(ni * sizeof(fd_mask))); \
 		if (error) \
 			goto done; \
@@ -358,7 +352,7 @@ select1(uap, is_pselect)
 		}
 	if	(uap->ts)
 		{
-		error = copyin((caddr_t)uap->ts, (caddr_t)&atv, sizeof (atv));
+		error = copyin(uap->ts, (caddr_t)&atv, sizeof (atv));
 		if	(error)
 			goto done;
 /*
@@ -505,9 +499,7 @@ selwakeup(p, coll)
 	register struct proc *p;
 	long coll;
 {
-	mapinfo map;
 
-	savemap(map);
 	if (coll) {
 		nselcoll++;
 		wakeup((caddr_t)&selwait);
@@ -523,7 +515,6 @@ selwakeup(p, coll)
 			p->p_flag &= ~P_SELECT;
 		splx(s);
 	}
-	restormap(map);
 }
 
 sorw(fp, uio)

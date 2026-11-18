@@ -112,7 +112,7 @@ sched()
 				l_maxsize = 1;
 				break;
 			}
-			size = rp->p_dsize + rp->p_ssize
+			size = rp->p_dsize
 			    + (rp->p_slptime - maxslp << 4);
 			if (l_maxsize < size) {
 				p = rp;
@@ -134,7 +134,6 @@ sched()
 	}
 
 	(void)_spl0();
-	noop();
 	(void)_splhigh();
 	/*
 	 * Swap found user out if sleeping interruptibly, or if he has spent at
@@ -225,9 +224,9 @@ vmtotal()
 		if (p->p_stat) {
 #ifdef UCB_METER
 			if (p->p_stat != SZOMB) {
-				total.t_vm += p->p_dsize + p->p_ssize + USIZE;
+				total.t_vm += p->p_dsize + USIZE;
 				if (p->p_flag & SLOAD)
-					total.t_rm += p->p_dsize + p->p_ssize
+					total.t_rm += p->p_dsize
 					    + USIZE;
 			}
 #endif
@@ -259,9 +258,9 @@ vmtotal()
 				else
 					total.t_sw++;
 active:
-				total.t_avm += p->p_dsize + p->p_ssize + USIZE;
+				total.t_avm += p->p_dsize + USIZE;
 				if (p->p_flag & SLOAD)
-					total.t_arm += p->p_dsize + p->p_ssize
+					total.t_arm += p->p_dsize
 					    + USIZE;
 				if (p->p_textp) switch (p->p_stat) {
 

@@ -76,7 +76,7 @@ register struct uio *uio;
 rdwri(rw, ip, base, len, offset, segflg, ioflg, aresid)
 	enum uio_rw rw;
 	struct inode *ip;
-	caddr_t base;
+	void __far *base;
 	int len;
 	off_t offset;
 	enum uio_seg segflg;
@@ -469,7 +469,7 @@ closei(ip, flag)
 /* MOUNT TABLE SHOULD HOLD INODE */
 			for (mp = mount; mp < &mount[NMOUNT]; mp++)
 				if (mp->m_inodp != NULL && mp->m_dev == dev)
-					return;
+					return (0);
 			cfunc = bdevsw[major(dev)].d_close;
 			break;
 		default:

@@ -22,8 +22,8 @@
 gettimeofday()
 {
 	register struct a {
-		struct	timeval *tp;
-		struct	timezone *tzp;
+		struct	timeval __far *tp;
+		struct	timezone __far *tzp;
 	} *uap = (struct a *)u.u_ap;
 	struct timeval atv;
 	int s;
@@ -36,27 +36,27 @@ gettimeofday()
 		 */
 		s = splhigh(); atv = time; ms = lbolt; splx(s);
 		atv.tv_usec = (long)ms * mshz;
-		u.u_error = copyout((caddr_t)&atv, (caddr_t)(uap->tp),
+		u.u_error = copyout((caddr_t)&atv, uap->tp,
 			sizeof(atv));
 		if (u.u_error)
 			return;
 	}
 	if (uap->tzp)
-		u.u_error = copyout((caddr_t)&tz, (caddr_t)uap->tzp,
+		u.u_error = copyout((caddr_t)&tz, uap->tzp,
  			sizeof (tz));
 }
 
 settimeofday()
 {
 	register struct a {
-		struct	timeval *tv;
-		struct	timezone *tzp;
+		struct	timeval __far *tv;
+		struct	timezone __far *tzp;
 	} *uap = (struct a *)u.u_ap;
 	struct timeval atv;
 	struct timezone atz;
 
 	if (uap->tv) {
-		u.u_error = copyin((caddr_t)uap->tv, (caddr_t)&atv,
+		u.u_error = copyin(uap->tv, (caddr_t)&atv,
 			sizeof (struct timeval));
 		if (u.u_error)
 			return;
@@ -65,7 +65,7 @@ settimeofday()
 			return;
 	}
 	if (uap->tzp && suser()) {
-		u.u_error = copyin((caddr_t)uap->tzp, (caddr_t)&atz,
+		u.u_error = copyin(uap->tzp, (caddr_t)&atz,
 			sizeof (atz));
 		if (u.u_error == 0)
 			tz = atz;
@@ -113,8 +113,8 @@ setthetime(tv)
 adjtime()
 {
 	register struct a {
-		struct timeval *delta;
-		struct timeval *olddelta;
+		struct timeval __far *delta;
+		struct timeval __far *olddelta;
 	} *uap = (struct a *)u.u_ap;
 	struct timeval atv;
 	register int s;
@@ -122,7 +122,7 @@ adjtime()
 
 	if (!suser()) 
 		return;
-	u.u_error = copyin((caddr_t)uap->delta, (caddr_t)&atv,
+	u.u_error = copyin(uap->delta, (caddr_t)&atv,
 		sizeof (struct timeval));
 	if (u.u_error)
 		return;
@@ -149,7 +149,7 @@ adjtime()
 		atv.tv_usec = (adjdelta % hz) * mshz;
 		adjdelta = adjust;
 	}
-	(void) copyout((caddr_t)&atv, (caddr_t)uap->olddelta,
+	(void) copyout((caddr_t)&atv, uap->olddelta,
 	    sizeof (struct timeval));
 }
 
@@ -157,7 +157,7 @@ getitimer()
 {
 	register struct a {
 		u_int	which;
-		struct	itimerval *itv;
+		struct	itimerval __far *itv;
 	} *uap = (struct a *)u.u_ap;
 	struct itimerval aitv;
 	register int s;
@@ -182,7 +182,7 @@ getitimer()
 		aitv.it_value.tv_sec = t->it_value / hz;
 	}
 	splx(s);
-	u.u_error = copyout((caddr_t)&aitv, (caddr_t)uap->itv,
+	u.u_error = copyout((caddr_t)&aitv, uap->itv,
 	    sizeof (struct itimerval));
 }
 
@@ -190,10 +190,10 @@ setitimer()
 {
 	register struct a {
 		u_int	which;
-		struct	itimerval *itv, *oitv;
+		struct	itimerval __far *itv, __far *oitv;
 	} *uap = (struct a *)u.u_ap;
 	struct itimerval aitv;
-	register struct itimerval *aitvp;
+	register struct itimerval __far *aitvp;
 	int s;
 
 	if (uap->which > ITIMER_PROF) {
@@ -207,7 +207,7 @@ setitimer()
 	}
 	if (aitvp == 0)
 		return;
-	u.u_error = copyin((caddr_t)aitvp, (caddr_t)&aitv,
+	u.u_error = copyin(aitvp, (caddr_t)&aitv,
 	    sizeof (struct itimerval));
 	if (u.u_error)
 		return;

@@ -67,8 +67,8 @@ sigaction()
 	register struct a {
 		int	(*sigtramp)();
 		int	signum;
-		struct	sigaction *nsa;
-		struct	sigaction *osa;
+		struct	sigaction __far *nsa;
+		struct	sigaction __far *osa;
 		} *uap = (struct a *)u.u_ap;
 	struct sigaction vec;
 	register struct sigaction *sa;
@@ -212,8 +212,8 @@ sigprocmask()
 {
 	register struct a {
 		int how;
-		sigset_t *set;
-		sigset_t *oset;
+		sigset_t __far *set;
+		sigset_t __far *oset;
 		} *uap = (struct a *)u.u_ap;
 	int error = 0;
 	sigset_t oldmask, newmask;
@@ -257,13 +257,13 @@ sigpending()
 	{
 	register struct a
 		{
-		struct sigset_t *set;
+		struct sigset_t __far *set;
 		} *uap = (struct a *)u.u_ap;
 	register int error = 0;
 	struct	proc *p = u.u_procp;
 
 	if	(uap->set)
-		error = copyout((caddr_t)&p->p_sig, (caddr_t)uap->set, 
+		error = copyout((caddr_t)&p->p_sig, uap->set, 
 				sizeof (p->p_sig));
 	else
 		error = EINVAL;
@@ -280,7 +280,7 @@ sigsuspend()
 	{
 	register struct a
 		{
-		struct sigset_t *set;
+		struct sigset_t __far *set;
 		} *uap = (struct a *)u.u_ap;
 	sigset_t nmask;
 	struct proc *p = u.u_procp;
@@ -306,8 +306,8 @@ int
 sigaltstack()
 {
 	register struct a {
-		struct sigaltstack * nss;
-		struct sigaltstack * oss;
+		struct sigaltstack __far *nss;
+		struct sigaltstack __far *oss;
 	} *uap = (struct a *)u.u_ap;
 	struct sigaltstack ss;
 	int error = 0;
@@ -315,7 +315,7 @@ sigaltstack()
 	if ((u.u_psflags & SAS_ALTSTACK) == 0)
 		u.u_sigstk.ss_flags |= SA_DISABLE;
 	if (uap->oss && (error = copyout((caddr_t)&u.u_sigstk,
-	    (caddr_t)uap->oss, sizeof (struct sigaltstack))))
+	    uap->oss, sizeof (struct sigaltstack))))
 		goto out;
 	if (uap->nss == 0)
 		goto out;
@@ -346,8 +346,8 @@ int
 sigwait()
 	{
 	register struct a {
-		sigset_t *set;
-		int *sig;
+		sigset_t __far *set;
+		int __far *sig;
 		} *uap = (struct a *)u.u_ap;
 	sigset_t wanted, sigsavail;
 	register struct proc *p = u.u_procp;

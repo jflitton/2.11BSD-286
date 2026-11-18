@@ -50,6 +50,7 @@
 	int	Acctopen;
 
 	struct	msgbuf	msgbuf[NLOG];
+	static	char __far logbuf[NLOG][MSG_BSIZE];
 	static	struct logsoftc
 		{
 		int	sc_state;	/* see above for possibilities */
@@ -163,9 +164,7 @@ logread(dev, uio, flag)
 			}
 		l = MIN(l, uio->uio_resid);
 		l = MIN(l, sizeof buf);
-		mapseg5(mp->msg_click, (btoc(MSG_BSIZE) << 8) | RW);
 		bcopy(&mp->msg_bufc[mp->msg_bufr], buf, l);
-		normalseg5();
 		error = uiomove(buf, l, uio);
 		if	(error)
 			break;
@@ -285,7 +284,6 @@ logwrt(buf,len,log)
 	int	len;
 	int	log;
 	{
-	segm	s5;
 	register struct msgbuf *mp = &msgbuf[log];
 	struct	logsoftc *lp = &logsoftc[log];
 	register int	infront;
@@ -293,7 +291,6 @@ logwrt(buf,len,log)
 
 	if	(mp->msg_magic != MSG_MAGIC || (len > MSG_BSIZE))
 		return(-1);
-	saveseg5(s5);
 /*
  * Hate to do this but since this can be called from anywhere in the kernel
  * we have to hold off any interrupt service routines so they don't change
@@ -333,9 +330,7 @@ again:		infront = MSG_BSIZE - mp->msg_bufx;
 			}
 		if	(infront > len)
 			infront = len;
-		mapseg5(mp->msg_click, (btoc(MSG_BSIZE) << 8) | RW);  /* XXX */
 		bcopy(buf, &mp->msg_bufc[mp->msg_bufx], infront);
-		restorseg5(s5);
 		mp->msg_bufx += infront;
 		len -= infront;
 		buf += infront;
@@ -355,11 +350,8 @@ register struct msgbuf *mp;
 
 	for	(mp = &msgbuf[0]; mp < &msgbuf[NLOG]; mp++)
 		{
-		mp->msg_click = malloc(coremap,btoc(MSG_BSIZE));
-		if	(!mp->msg_click)
-			return(-1);
 		mp->msg_magic = MSG_MAGIC;
-		mp->msg_bufc = SEG5;
+		mp->msg_bufc = logbuf[mp - msgbuf];
 		mp->msg_bufx = mp->msg_bufr = 0;
 		}
 	return(0);

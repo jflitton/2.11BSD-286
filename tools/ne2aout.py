@@ -129,6 +129,13 @@ def read_map(path, segs):
 
 
 def write_out(path, model, info, segs, syms, stack):
+    # Zeros at the end of a data segment need not be in the file: whatever
+    # loads the program clears what the file does not cover.  The linker
+    # leaves out a program's own uninitialized data already; this does
+    # the same for far data, which it writes in full.
+    for s in segs:
+        if s["is_data"]:
+            s["data"] = s["data"].rstrip(b"\0")
     strtab = bytearray(struct.pack("<L", 0))
     symtab = bytearray()
     for name, ntype, seg, off in syms:

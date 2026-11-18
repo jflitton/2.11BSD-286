@@ -2,7 +2,7 @@
 """Run a test program in an emulator.
 
 usage: runtest.py NAME SOURCE...
-       runtest.py --boot NAME EXECUTABLE
+       runtest.py --boot NAME EXECUTABLE [FILESYSTEM]
 
 The first form builds a small-model program that runs in real mode.  Each
 .c is compiled with tools/cc286 and each .s assembled with NASM; they are
@@ -10,7 +10,8 @@ linked behind tests/harness/start.s and converted with tools/ne2aout.py, as
 any program is.
 
 The second takes an executable already built, such as a kernel, that
-starts itself as docs/boot.md describes.
+starts itself as docs/boot.md describes.  A file system image given with
+it goes on the diskette after it, for the kernel to load as its RAM disk.
 
 Either way tools/mkfd.py puts the program on a diskette image behind the
 boot sector, usr/src/sys/i286stand/fdboot.s, and the emulator boots it.
@@ -34,6 +35,8 @@ The emulator is chosen by the environment variable EMU:
          runs in real time and has COM1 on a pseudo-terminal.
   qemu   qemu-system-i386: a later processor, so it proves less.
 
+TIMEOUT in the environment changes the limit on a run from 120 seconds.
+
 Needs `. tools/env.sh` and nasm.
 """
 import json
@@ -51,7 +54,8 @@ import time
 
 TOP = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 HARNESS = os.path.join(TOP, "tests", "harness")
-TIMEOUT = 120           # seconds: emulated ones where the emulator counts them
+# Seconds: emulated ones where the emulator counts them.
+TIMEOUT = int(os.environ.get("TIMEOUT", "120"))
 MAC_86BOX = "86Box.app/Contents/MacOS/86Box"
 
 
@@ -230,6 +234,14 @@ def events(box, since):
     return r["events"], r["next"]
 
 
+def bios_move(e):
+    """Is this reset the BIOS's own way back to real mode, after moving a
+    block of extended memory for a program (INT 15h, AH = 87h)?  A 286
+    has no other way back.  The BIOS does it from the code segment that
+    call has it make, the fifth descriptor of the caller's table."""
+    return e["cs"] == 0x20 and e.get("source") == "kbc"
+
+
 def describe(box, mark):
     """What can be seen of a machine that gave no result.  MARK is where
     the program's events start, or None."""
@@ -296,7 +308,7 @@ def run_86box_socket(box, img, out):
             raw += bytes.fromhex(r["data"])
             pos = r["next"]
             evs, scan = events(auto, scan)
-            if any(e["type"] == "reset" for e in evs or []):
+            if any(e["type"] == "reset" and not bios_move(e) for e in evs or []):
                 seen = "the machine was reset\n" + describe(auto, mark)
             elif late:
                 seen = describe(auto, mark)
@@ -375,13 +387,14 @@ def main():
     if emu not in ("86box", "qemu"):
         sys.exit("EMU must be 86box or qemu")
     if sys.argv[1] == "--boot":
-        if len(sys.argv) != 4:
+        if len(sys.argv) not in (4, 5):
             sys.exit(__doc__)
         name = sys.argv[2]
         out = os.path.join(TOP, "obj", "tests", name)
         os.makedirs(out, exist_ok=True)
         img = os.path.join(out, name + ".img")
-        mkfd(sys.argv[3], img, out)
+        mkfd(sys.argv[3], img, out,
+             *(["--rd", sys.argv[4]] if len(sys.argv) == 5 else []))
     else:
         name, sources = sys.argv[1], sys.argv[2:]
         out = os.path.join(TOP, "obj", "tests", name)

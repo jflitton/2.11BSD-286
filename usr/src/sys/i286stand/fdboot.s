@@ -11,6 +11,9 @@
 ;       DL      the BIOS's number for the drive booted from
 ;       SS:SP   a small stack below this sector; interrupts are on
 ;
+; The drive's motor is left running.  A program that takes over the clock
+; interrupt, from which the BIOS would have stopped it, must stop it.
+;
 ; The same sector starts the kernel and the real-mode test programs of
 ; tests/harness.  docs/boot.md describes the table.
 
@@ -29,6 +32,8 @@ eseg:   dw      0               ; entry point: segment, counting from 1
 eoff:   dw      0               ;              offset
 dseg:   dw      0               ; the data segment, counting from 1
 drive:  dw      0               ; drive booted from; set here
+        dw      0               ; a RAM disk image for the kernel to load:
+        dw      0               ;   its first sector, and how many
 segs:   times MAXSEG * 8 db 0   ; for each segment:
                                 ;   where it goes, as a real-mode segment
                                 ;   sectors of it on the diskette
@@ -62,10 +67,6 @@ start:  cli
         pop     cx
         add     bx, 8
         loop    .each
-
-        mov     dx, 0x3F2       ; stop the drive's motor: the program may
-        mov     al, 0x0C        ; take the clock interrupt the BIOS would
-        out     dx, al          ; have stopped it from
 
         mov     bx, [eseg]
         dec     bx

@@ -1,0 +1,14 @@
+# The root file system of the kernel's test: tools/mkfs.py makes it.
+d /etc 755
+d /bin 755
+d /dev 755
+f /etc/init 755 init
+f /etc/motd 644 motd
+f /bin/child 755 child
+c /dev/console 622 0 0
+c /dev/tty 666 2 0
+c /dev/mem 640 1 0
+c /dev/kmem 640 1 1
+c /dev/null 666 1 2
+b /dev/rd0 600 0 0
+b /dev/rd1 600 0 1

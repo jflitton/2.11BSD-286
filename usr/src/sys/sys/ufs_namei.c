@@ -118,7 +118,7 @@ namei(ndp)
 	struct namecache *ncp;		/* cache slot for entry */
 	struct fs *fs;			/* file system that directory is in */
 	struct buf *bp = 0;		/* a buffer of directory entries */
-	struct direct *ep;		/* the current directory entry */
+	struct direct __far *ep;	/* the current directory entry */
 	int  entryoffsetinblock;	/* offset of ep in bp's buffer */
 /* these variables hold information about the search for a slot */
 	enum {NONE, COMPACT, FOUND} slotstatus;
@@ -143,8 +143,6 @@ register int i;
 	int flag;			/* op ie, LOOKUP, CREATE, or DELETE */
 	off_t enduseful;		/* pointer past last used dir slot */
 	char	path[MAXPATHLEN];	/* current path */
-	segm	seg5;			/* save area for kernel seg5 */
-
 	lockparent = ndp->ni_nameiop & LOCKPARENT;
 	docache = (ndp->ni_nameiop & NOCACHE) ^ NOCACHE;
 	flag = ndp->ni_nameiop &~ (LOCKPARENT|NOCACHE|FOLLOW);
@@ -245,8 +243,6 @@ dirloop2:
 	 * holding long names (which would either waste space, or
 	 * add greatly to the complexity).
 	 */
-	saveseg5(seg5);
-	mapseg5(nmidesc.se_addr, nmidesc.se_desc);
 	if (ndp->ni_dent.d_namlen > NCHNAMLEN) {
 		nchstats.ncs_long++;
 		makeentry = 0;
@@ -299,15 +295,11 @@ dirloop2:
 				if (pdp == dp)
 					dp->i_count++;
 				else if (isdotdot) {
-					restorseg5(seg5);
 					IUNLOCK(pdp);
 					igrab(dp);
-					mapseg5(nmidesc.se_addr,nmidesc.se_desc);
 				} else {
-					restorseg5(seg5);
 					igrab(dp);
 					IUNLOCK(pdp);
-					mapseg5(nmidesc.se_addr,nmidesc.se_desc);
 				}
 
 				/*
@@ -316,17 +308,14 @@ dirloop2:
 				 * for it to be locked.
 				 */
 				if (ncp->nc_id != ncp->nc_ip->i_id) {
-					restorseg5(seg5);
 					iput(dp);
 					ILOCK(pdp);
-					mapseg5(nmidesc.se_addr,nmidesc.se_desc);
 					dp = pdp;
 					nchstats.ncs_falsehits++;
 				} else {
 					ndp->ni_dent.d_ino = dp->i_number;
 					/* ni_dent.d_reclen is garbage ... */
 					nchstats.ncs_goodhits++;
-					restorseg5(seg5);
 					goto haveino;
 				}
 			}
@@ -354,7 +343,6 @@ dirloop2:
 			ncp = NULL;
 		}
 	}
-	restorseg5(seg5);
 
 	/*
 	 * Suppress search for slots unless creating
@@ -388,7 +376,7 @@ dirloop2:
 		ndp->ni_offset = u.u_ncache.nc_prevoffset;
 		entryoffsetinblock = blkoff(ndp->ni_offset);
 		if (entryoffsetinblock != 0) {
-			bp = blkatoff(dp, ndp->ni_offset, (char **)0);
+			bp = blkatoff(dp, ndp->ni_offset, (char __far **)0);
 			if (bp == 0)
 				goto bad;
 		}
@@ -410,7 +398,7 @@ searchloop:
 				mapout(bp);
 				brelse(bp);
 			}
-			bp = blkatoff(dp, ndp->ni_offset, (char **)0);
+			bp = blkatoff(dp, ndp->ni_offset, (char __far **)0);
 			if (bp == 0)
 				goto bad;
 			entryoffsetinblock = 0;
@@ -432,7 +420,7 @@ searchloop:
 		 * "dirchk" to be true.
 		 */
 		mapout(bp);	/* XXX - avoid double mapin */
-		ep = (struct direct *)((caddr_t)mapin(bp)+ entryoffsetinblock);
+		ep = (struct direct __far *)(mapin(bp)+ entryoffsetinblock);
 		if (ep->d_reclen == 0 ||
 		    dirchk && dirbadentry(ep, entryoffsetinblock)) {
 			dirbad(dp, ndp->ni_offset, "mangled entry");
@@ -730,8 +718,6 @@ found:
 		 * Free the cache slot at head of lru chain.
 		 */
 		if (ncp = nchhead) {
-			saveseg5(seg5);
-			mapseg5(nmidesc.se_addr, nmidesc.se_desc);
 			/* remove from lru chain */
 			*ncp->nc_prev = ncp->nc_nxt;
 			if (ncp->nc_nxt)
@@ -756,7 +742,6 @@ found:
 			nchtail = &ncp->nc_nxt;
 			/* and insert on hash chain */
 			insque(ncp, nhp);
-			restorseg5(seg5);
 		}
 	}
 
@@ -863,7 +848,7 @@ dirbad(ip, offset, how)
  *	name must be as long as advertised, and null terminated
  */
 dirbadentry(ep, entryoffsetinblock)
-	register struct direct *ep;
+	register struct direct __far *ep;
 	int entryoffsetinblock;
 {
 	register int i;
@@ -890,13 +875,13 @@ direnter(ip, ndp)
 	struct inode *ip;
 	register struct nameidata *ndp;
 {
-	register struct direct *ep, *nep;
+	register struct direct __far *ep, __far *nep;
 	register struct inode *dp = ndp->ni_pdir;
 	struct buf *bp;
 	int loc, spacefree, error = 0;
 	u_int dsize;
 	int newentrysize;
-	char *dirbuf;
+	char __far *dirbuf;
 
 	ndp->ni_dent.d_ino = ip->i_number;
 	newentrysize = DIRSIZ(&ndp->ni_dent);
@@ -940,7 +925,7 @@ direnter(ip, ndp)
 	 * Get the block containing the space for the new directory
 	 * entry.  Should return error by result instead of u.u_error.
 	 */
-	bp = blkatoff(dp, ndp->ni_offset, (char **)&dirbuf);
+	bp = blkatoff(dp, ndp->ni_offset, &dirbuf);
 	if (bp == 0) {
 		iput(dp);
 		return (u.u_error);
@@ -951,15 +936,15 @@ direnter(ip, ndp)
 	 * not, then namei arranged that compacting the region
 	 * ndp->ni_offset to ndp->ni_offset+ndp->ni_count would yield the space.
 	 */
-	ep = (struct direct *)dirbuf;
+	ep = (struct direct __far *)dirbuf;
 	dsize = DIRSIZ(ep);
 	spacefree = ep->d_reclen - dsize;
 	for (loc = ep->d_reclen; loc < ndp->ni_count; ) {
-		nep = (struct direct *)(dirbuf + loc);
+		nep = (struct direct __far *)(dirbuf + loc);
 		if (ep->d_ino) {
 			/* trim the existing slot */
 			ep->d_reclen = dsize;
-			ep = (struct direct *)((char *)ep + dsize);
+			ep = (struct direct __far *)((char __far *)ep + dsize);
 		} else {
 			/* overwrite; nothing there; header is ours */
 			spacefree += dsize;	
@@ -967,7 +952,7 @@ direnter(ip, ndp)
 		dsize = DIRSIZ(nep);
 		spacefree += nep->d_reclen - dsize;
 		loc += nep->d_reclen;
-		bcopy((caddr_t)nep, (caddr_t)ep, dsize);
+		bcopy(nep, ep, dsize);
 	}
 	/*
 	 * Update the pointer fields in the previous entry (if any),
@@ -982,9 +967,9 @@ direnter(ip, ndp)
 			panic("wdir: compact2");
 		ndp->ni_dent.d_reclen = spacefree;
 		ep->d_reclen = dsize;
-		ep = (struct direct *)((char *)ep + dsize);
+		ep = (struct direct __far *)((char __far *)ep + dsize);
 	}
-	bcopy((caddr_t)&ndp->ni_dent, (caddr_t)ep, (u_int)newentrysize);
+	bcopy((caddr_t)&ndp->ni_dent, ep, (u_int)newentrysize);
 	mapout(bp);
 	bwrite(bp);
 	dp->i_flag |= IUPD|ICHG;
@@ -1011,7 +996,7 @@ dirremove(ndp)
 {
 	register struct inode *dp = ndp->ni_pdir;
 	register struct buf *bp;
-	struct direct *ep;
+	struct direct __far *ep;
 
 	if (ndp->ni_count == 0) {
 		/*
@@ -1025,7 +1010,8 @@ dirremove(ndp)
 		/*
 		 * Collapse new free space into previous entry.
 		 */
-		bp = blkatoff(dp, ndp->ni_offset - ndp->ni_count, (char **)&ep);
+		bp = blkatoff(dp, ndp->ni_offset - ndp->ni_count,
+			(char __far **)&ep);
 		if (bp == 0)
 			return (0);
 		ep->d_reclen += ndp->ni_dent.d_reclen;
@@ -1067,13 +1053,13 @@ struct buf *
 blkatoff(ip, offset, res)
 	struct inode *ip;
 	off_t offset;
-	char **res;
+	char __far **res;
 {
 	register struct fs *fs = ip->i_fs;
 	daddr_t lbn = lblkno(offset);
 	register struct buf *bp;
 	daddr_t bn;
-	char *junk;
+	char __far *junk;
 
 	bn = bmap(ip, lbn, B_READ, 0);
 	if (u.u_error)
@@ -1087,7 +1073,7 @@ blkatoff(ip, offset, res)
 		brelse(bp);
 		return (0);
 	}
-	junk = (caddr_t)mapin(bp);
+	junk = mapin(bp);
 	if (res)
 		*res = junk + (u_int)blkoff(offset);
 	return (bp);
@@ -1211,10 +1197,6 @@ nchinit()
 {
 	register union nchash *nchp;
 	register struct namecache *ncp;
-	segm	seg5;
-
-	saveseg5(seg5);
-	mapseg5(nmidesc.se_addr,nmidesc.se_desc);
 	nchhead = 0;
 	nchtail = &nchhead;
 	for (ncp = namecache; ncp < &namecache[nchsize]; ncp++) {
@@ -1230,7 +1212,6 @@ nchinit()
 		nchp->nch_head[0] = nchp;
 		nchp->nch_head[1] = nchp;
 	}
-	restorseg5(seg5);
 }
 
 /*
@@ -1245,10 +1226,6 @@ nchinval(dev)
 	register dev_t dev;
 {
 	register struct namecache *ncp, *nxtcp;
-	segm	seg5;
-
-	saveseg5(seg5);
-	mapseg5(nmidesc.se_addr,nmidesc.se_desc);
 	for (ncp = nchhead; ncp; ncp = nxtcp) {
 		nxtcp = ncp->nc_nxt;
 		if (ncp->nc_ip == NULL ||
@@ -1277,7 +1254,6 @@ nchinval(dev)
 		nxtcp->nc_prev = &ncp->nc_nxt;
 		nchhead = ncp;
 	}
-	restorseg5(seg5);
 }
 
 /*
@@ -1286,11 +1262,6 @@ nchinval(dev)
 cacheinvalall()
 {
 	register struct namecache *ncp, *encp = &namecache[nchsize];
-	segm	seg5;
-
-	saveseg5(seg5);
-	mapseg5(nmidesc.se_addr, nmidesc.se_desc);
 	for (ncp = namecache; ncp < encp; ncp++)
 		ncp->nc_id = 0;
-	restorseg5(seg5);
 }

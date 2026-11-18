@@ -55,7 +55,6 @@ struct	mount
 #define	m_flags	m_filsys.fs_flags
 	struct	inode *m_inodp;	/* pointer to mounted on inode */
 	struct	inode *m_qinod; /* QUOTA: pointer to quota file */
-	memaddr	m_extern;	/* click address of mount table extension */
 };
 
 struct	xmount
@@ -66,7 +65,6 @@ struct	xmount
 					*/
 	};
 
-#define	XMOUNTDESC	(((btoc(sizeof (struct xmount)) - 1) << 8) | RW)
 
 /*
  * Mount flags.
@@ -108,5 +106,10 @@ int	umount(const char *);
 #endif
 
 #if defined(KERNEL) && !defined(SUPERVISOR)
-struct	mount mount[NMOUNT];
+extern struct	mount mount[NMOUNT];
+/*
+ * The names are kept outside the kernel's data segment, one for each
+ * entry of mount.
+ */
+extern struct	xmount __far xmount[NMOUNT];
 #endif

@@ -69,34 +69,44 @@ fork1(isvfork)
 		u.u_error = EAGAIN;
 		goto out;
 	}
-	p1 = u.u_procp;
-	if (newproc(isvfork)) {
-		u.u_r.r_val1 = p1->p_pid;
-#ifndef pdp11
-		u.u_r.r_val2 = 1;  /* child */
-#endif
-		u.u_start = time.tv_sec;
-		/* set forked but preserve suid/gid state */
-		u.u_acflag = AFORK | (u.u_acflag & ASUGID); 
-		bzero(&u.u_ru, sizeof(u.u_ru));
-		bzero(&u.u_cru, sizeof(u.u_cru));
-		return;
+	if ((p2 = newproc(isvfork)) == NULL) {
+		u.u_error = ENOMEM;
+		goto out;
 	}
 	u.u_r.r_val1 = p2->p_pid;
 
 out:
-#ifdef pdp11			/* see libc/pdp/sys/fork.s */
-	u.u_ar0[R7] += NBPW;
-#else
 	u.u_r.r_val2 = 0;
-#endif
 }
+
+/*
+ * What a new process does first.  It does not come out of newproc as
+ * its parent does: it starts on a kernel stack of its own, at the
+ * machine's entry for a new process, which calls this and then goes on
+ * to the program with the result of fork that a child gets.
+ */
+forkchild()
+{
+	u.u_start = time.tv_sec;
+	/* set forked but preserve suid/gid state */
+	u.u_acflag = AFORK | (u.u_acflag & ASUGID); 
+	bzero(&u.u_ru, sizeof(u.u_ru));
+	bzero(&u.u_cru, sizeof(u.u_cru));
+}
+
+/*
+ * Is this slot of a process's table a segment of its own, with memory?
+ */
+#define	OWNSEG(sp) \
+	(((sp)->ps_flag & (PS_USED|PS_TEXT)) == PS_USED && (sp)->ps_size)
 
 /*
  * newproc --
  *	Create a new process -- the internal version of system call fork.
- *	It returns 1 in the new process, 0 in the old.
+ *	It returns the new process, to the old one; or NULL if there
+ *	is no memory for the new one's user structure.
  */
+struct proc *
 newproc(isvfork)
 	int isvfork;
 {
@@ -104,8 +114,17 @@ newproc(isvfork)
 	register int n;
 	static int pidchecked = 0;
 	struct file *fp;
-	int a1, s;
-	memaddr a[3];
+	int s, swapped;
+	memaddr a, a2;
+	register struct pseg __far *sp;
+	struct pseg __far *psp, __far *csp;
+
+	/*
+	 * The new process's user structure and kernel stack must be in
+	 * memory, whatever becomes of the rest of it.
+	 */
+	if ((a = malloc(coremap, USIZE)) == NULL)
+		return (NULL);
 
 	/*
 	 * First, just locate a slot for a process
@@ -180,10 +199,10 @@ again:
 #ifdef UCB_METER
 	if (isvfork) {
 		forkstat.cntvfork++;
-		forkstat.sizvfork += rip->p_dsize + rip->p_ssize;
+		forkstat.sizvfork += rip->p_dsize;
 	} else {
 		forkstat.cntfork++;
-		forkstat.sizfork += rip->p_dsize + rip->p_ssize;
+		forkstat.sizfork += rip->p_dsize;
 	}
 #endif
 	rpp->p_wchan = 0;
@@ -223,55 +242,59 @@ again:
 		u.u_rdir->i_count++;
 
 	/*
-	 * When the longjmp is executed for the new process,
-	 * here's where it will resume.
+	 * The new process's memory.  A vfork child has the parent's, and
+	 * the parent goes without until the child is done with it.  Any
+	 * other gets a copy of each of the parent's own segments; if there
+	 * is not the memory for all of them, the copies are made on the
+	 * swap device and the child starts life swapped out.
 	 */
-	if (setjmp(&u.u_ssave)) {
-		sureg();
-		return(1);
-	}
-
+	rpp->p_addr = a;
+	psp = PSEG(rip);
+	csp = PSEG(rpp);
+	bcopy(psp, csp, NSEG * sizeof (struct pseg));
 	rpp->p_dsize = rip->p_dsize;
-	rpp->p_ssize = rip->p_ssize;
-	rpp->p_daddr = rip->p_daddr;
-	rpp->p_saddr = rip->p_saddr;
-	a1 = rip->p_addr;
-	if (isvfork)
-		a[2] = malloc(coremap,USIZE);
-	else
-		a[2] = malloc3(coremap, rip->p_dsize, rip->p_ssize, USIZE, a);
+	swapped = 0;
+	if (!isvfork) {
+		for (sp = csp, n = 0; n < NSEG; n++, sp++) {
+			if (!OWNSEG(sp))
+				continue;
+			a2 = malloc(coremap, (size_t)sp->ps_size);
+			if (a2 == NULL)
+				break;
+			copy(sp->ps_addr, a2, (u_int)sp->ps_size);
+			sp->ps_addr = a2;
+		}
+		if (n < NSEG) {
+			while (--n >= 0) {
+				--sp;
+				if (OWNSEG(sp)) {
+					mfree(coremap, (size_t)sp->ps_size,
+					    sp->ps_addr);
+					sp->ps_addr = psp[n].ps_addr;
+				}
+			}
+			swapped = 1;
+		}
+	}
+	for (n = 0; n < NSEG; n++)
+		setldt(rpp, n);
 
 	/*
-	 * Partially simulate the environment of the new process so that
-	 * when it is actually created (by copying) it will look right.
+	 * Its user structure is a copy of this one, and it starts with
+	 * the registers this process came into the kernel with.
 	 */
-	u.u_procp = rpp;
+	unew(rpp);
 
-	/*
-	 * If there is not enough core for the new process, swap out the
-	 * current process to generate the copy.
-	 */
-	if (a[2] == NULL) {
+	if (swapped) {
+		/*
+		 * There was not enough core for the new process: write its
+		 * image from this one's memory.
+		 */
 		rip->p_stat = SIDL;
-		rpp->p_addr = a1;
 		rpp->p_stat = SRUN;
 		swapout(rpp, X_DONTFREE, X_OLDSIZE, X_OLDSIZE);
 		rip->p_stat = SRUN;
-		u.u_procp = rip;
-	}
-	else {
-		/*
-		 * There is core, so just copy.
-		 */
-		rpp->p_addr = a[2];
-		copy(a1, rpp->p_addr, USIZE);
-		u.u_procp = rip;
-		if (isvfork == 0) {
-			rpp->p_daddr = a[0];
-			copy(rip->p_daddr, rpp->p_daddr, rpp->p_dsize);
-			rpp->p_saddr = a[1];
-			copy(rip->p_saddr, rpp->p_saddr, rpp->p_ssize);
-		}
+	} else {
 		s = splhigh();
 		rpp->p_stat = SRUN;
 		setrq(rpp);
@@ -280,17 +303,12 @@ again:
 	rpp->p_flag |= SSWAP;
 	if (isvfork) {
 		/*
-		 *  Set the parent's sizes to 0, since the child now
-		 *  has the data and stack.
-		 *  (If we had to swap, just free parent resources.)
-		 *  Then wait for the child to finish with it.
+		 *  Empty the parent's table, since the child now
+		 *  has the segments.
+		 *  Then wait for the child to finish with them.
 		 */
-		if (a[2] == NULL) {
-			mfree(coremap,rip->p_dsize,rip->p_daddr);
-			mfree(coremap,rip->p_ssize,rip->p_saddr);
-		}
+		bzero(psp, NSEG * sizeof (struct pseg));
 		rip->p_dsize = 0;
-		rip->p_ssize = 0;
 		rip->p_textp = NULL;
 		rpp->p_flag |= SVFORK;
 		rip->p_flag |= SVFPRNT;
@@ -298,19 +316,19 @@ again:
 			sleep((caddr_t)rpp,PSWP+1);
 		if ((rpp->p_flag & SLOAD) == 0)
 			panic("newproc vfork");
+		bcopy(csp, psp, NSEG * sizeof (struct pseg));
+		bzero(csp, NSEG * sizeof (struct pseg));
+		for (n = 0; n < NSEG; n++)
+			setldt(rpp, n);
 		u.u_dsize = rip->p_dsize = rpp->p_dsize;
-		rip->p_daddr = rpp->p_daddr;
 		rpp->p_dsize = 0;
-		u.u_ssize = rip->p_ssize = rpp->p_ssize;
-		rip->p_saddr = rpp->p_saddr;
-		rpp->p_ssize = 0;
 		rip->p_textp = rpp->p_textp;
 		rpp->p_textp = NULL;
 		rpp->p_flag |= SVFDONE;
 		wakeup((caddr_t)rip);
-		/* must do estabur if dsize/ssize are different */
-		estabur(u.u_tsize,u.u_dsize,u.u_ssize,u.u_sep,RO);
+		/* everything may have moved while the child had it */
+		sureg();
 		rip->p_flag &= ~SVFPRNT;
 	}
-	return(0);
+	return (rpp);
 }

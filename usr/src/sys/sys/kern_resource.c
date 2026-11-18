@@ -145,7 +145,7 @@ setrlimit()
 {
 	register struct a {
 		u_int	which;
-		struct	rlimit *lim;
+		struct	rlimit __far *lim;
 	} *uap = (struct a *)u.u_ap;
 	struct rlimit alim;
 	register struct rlimit *alimp;
@@ -156,7 +156,7 @@ setrlimit()
 		return;
 	}
 	alimp = &u.u_rlimit[uap->which];
-	u.u_error = copyin((caddr_t)uap->lim, (caddr_t)&alim,
+	u.u_error = copyin(uap->lim, (caddr_t)&alim,
 		sizeof (struct rlimit));
 	if (u.u_error)
 		return;
@@ -184,7 +184,7 @@ getrlimit()
 {
 	register struct a {
 		u_int	which;
-		struct	rlimit *rlp;
+		struct	rlimit __far *rlp;
 	} *uap = (struct a *)u.u_ap;
 
 	if (uap->which >= RLIM_NLIMITS) {
@@ -200,17 +200,17 @@ getrlimit()
 		if (alim.rlim_max != RLIM_INFINITY)
 			alim.rlim_max = alim.rlim_max / hz;
 		u.u_error = copyout((caddr_t)&alim,
-		    (caddr_t)uap->rlp,sizeof (struct rlimit));
+		    uap->rlp,sizeof (struct rlimit));
 	}
 	else u.u_error = copyout((caddr_t)&u.u_rlimit[uap->which],
-	    (caddr_t)uap->rlp,sizeof (struct rlimit));
+	    uap->rlp,sizeof (struct rlimit));
 }
 
 getrusage()
 {
 	register struct a {
 		int	who;
-		struct	rusage *rusage;
+		struct	rusage __far *rusage;
 	} *uap = (struct a *)u.u_ap;
 	register struct k_rusage *rup;
 	struct rusage ru;
@@ -230,7 +230,7 @@ getrusage()
 		return;
 	}
 	rucvt(&ru,rup);
-	u.u_error = copyout((caddr_t)&ru, (caddr_t)uap->rusage,
+	u.u_error = copyout((caddr_t)&ru, uap->rusage,
 		sizeof (struct rusage));
 }
 

@@ -21,7 +21,11 @@
  * minimize space allocated on the kernel stack.
  */
 struct nameidata {
+#ifdef KERNEL
+	char __far *ni_dirp;		/* pathname pointer */
+#else
 	caddr_t	ni_dirp;		/* pathname pointer */
+#endif
 	short	ni_nameiop;		/* see below */
 	short	ni_error;		/* error return if any */
 	off_t	ni_endoff;		/* end of useful stuff in directory */
@@ -69,10 +73,8 @@ struct	namecache {
 	char	nc_name[NCHNAMLEN];	/* segment name */
 };
 #if	defined(KERNEL) && !defined(SUPERVISOR)
-struct	namecache *namecache;
-int	nchsize;
-#include <machine/seg.h>
-segm	nmidesc;
+extern struct	namecache namecache[];
+extern int	nchsize;
 #endif
 
 /*

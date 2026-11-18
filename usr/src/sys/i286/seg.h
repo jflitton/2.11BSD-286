@@ -1,28 +1,39 @@
 /*
- * Segments: the layout of the global descriptor table.  mch_defs.inc says
- * the same to the assembler; change both.
- *
- * The kernel's own segments have fixed places in the table, because
- * tools/ne2aout.py writes their selectors into the kernel when it is
- * linked (--gdt GDT_KERNEL): segment N of the executable, counting from 1,
- * is slot GDT_KERNEL + N - 1.
+ * Segments: the global descriptor table, a process's segments, and how
+ * the kernel reaches memory outside its own data segment.
+ * mch_defs.inc says some of this to the assembler; change both.
+ */
+#ifndef _SEG_
+#define	_SEG_
+
+/*
+ * The global descriptor table.  The kernel's own segments have fixed
+ * places in it, because tools/ne2aout.py writes their selectors into the
+ * kernel when it is linked (--gdt GDT_KERNEL): segment N of the
+ * executable, counting from 1, is slot GDT_KERNEL + N - 1.
  */
 #define	GDT_NULL	0	/* the processor wants this one empty */
 #define	GDT_TSS		1	/* the task state segment */
 #define	GDT_LDT		2	/* the running process's descriptor table */
-				/* 3 to 15: kept for later */
+#define	GDT_TMP1	3	/* copy and clear point these two at the */
+#define	GDT_TMP2	4	/*   memory they are working on */
+				/* 5 to 15: kept for later */
 #define	GDT_KERNEL	16	/* the first of the kernel's segments */
 #define	NKSEG		16	/* how many of them there may be */
-#define	NGDT		(GDT_KERNEL + NKSEG)
+#define	GDT_DYN		(GDT_KERNEL + NKSEG)	/* handed out by gdtalloc */
+#define	NGDT		64
 
 #define	SEL(slot)	((slot) << 3)	/* slot to selector, ring 0 */
 
 /*
  * A process's segments are in its own local descriptor table, and their
  * selectors are written into the program when it is linked: segment N of
- * the executable, counting from 1, is slot N.
+ * the executable, counting from 1, is slot N.  Slot 0 is not used.
  */
+#define	NSEG		32	/* slots in a process's table */
 #define	LSEL(slot)	(((slot) << 3) | 7)	/* in the LDT, ring 3 */
+#define	LSLOT(sel)	((unsigned)(sel) >> 3)
+#define	ISLSEL(sel)	(((sel) & 7) == 7)	/* could be a process's own */
 
 /*
  * An address in a process: a selector and an offset.  The kernel's own
@@ -77,7 +88,75 @@ struct tss {
 	unsigned short	ts_ldt;
 };
 
-#ifdef KERNEL
+/*
+ * What the kernel keeps for each slot of a process's descriptor table.
+ * A process's memory is this list of segments.  The code segments of a
+ * program are shared: they lie one after another in the memory of its
+ * text structure (text.h), and ps_addr is where in it.  Every other
+ * segment is the process's own piece of memory.
+ */
+struct pseg {
+	unsigned short	ps_addr;	/* where it is in memory, in clicks */
+	unsigned short	ps_swap;	/* where on the swap device, while
+					   the process is swapped out */
+	unsigned short	ps_limit;	/* size in bytes, less one */
+	unsigned char	ps_flag;
+	unsigned char	ps_size;	/* size in clicks */
+};
+
+/* ps_flag */
+#define	PS_USED		0x01		/* the slot holds a segment */
+#define	PS_TEXT		0x02		/* shared code, part of p_textp */
+#define	PS_WTEXT	0x04		/* code that is writable for now:
+					   being loaded, or traced */
+#define	PS_CODE		0x08		/* the process's own, but code */
+
+#if defined(KERNEL) && !defined(LOCORE)
 extern struct segdesc	gdt[NGDT];
 extern struct tss	ktss;
+
+/*
+ * The tables of every process's segments and descriptors, NSEG entries a
+ * process, in segments of the kernel's of their own (param.c).
+ */
+extern struct pseg __far	pseg[];
+extern struct segdesc __far	ldt[];
+#define	PSEG(p)		(&pseg[((p) - proc) * NSEG])
+#define	PLDT(p)		(&ldt[((p) - proc) * NSEG])
+
+/*
+ * Memory outside the kernel's data segment is reached through far
+ * pointers.  A buffer's data is at the far pointer in its header; nothing
+ * is mapped in or out.
+ */
+#define	mapin(bp)	((bp)->b_kaddr)
+#define	mapout(bp)
+
+/*
+ * These take far pointers, so every caller must have seen these
+ * declarations: param.h includes this file for that reason.  The
+ * address in the process is the from of copyin and copyinstr, the to of
+ * copyout and copyoutstr, and the addr of the fetches and stores.
+ * bcopy, bzero and bcmp are for memory of the kernel's own, in its data
+ * segment or out of it.
+ */
+int	copyin(void __far *from, void __far *to, unsigned n);
+int	copyout(void __far *from, void __far *to, unsigned n);
+int	copyinstr(void __far *from, void __far *to, unsigned max,
+	    unsigned *done);
+int	copyoutstr(void __far *from, void __far *to, unsigned max,
+	    unsigned *done);
+int	copystr(void __far *from, void __far *to, unsigned max,
+	    unsigned *done);
+int	fubyte(void __far *addr);
+int	fuword(void __far *addr);
+int	subyte(void __far *addr, int c);
+int	suword(void __far *addr, int w);
+void	bcopy(void __far *from, void __far *to, unsigned n);
+void	bzero(void __far *p, unsigned n);
+int	bcmp(void __far *a, void __far *b, unsigned n);
+long	fartophys(void __far *p);
+unsigned gdtalloc(long paddr, unsigned limit);
 #endif
+
+#endif /* _SEG_ */

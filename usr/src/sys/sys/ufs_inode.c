@@ -105,7 +105,7 @@ iget(dev, fs, ino)
 	register struct inode *ip;
 	union ihead *ih;
 	struct buf *bp;
-	struct dinode *dp;
+	struct dinode __far *dp;
 #ifdef EXTERNALITIMES
 	struct icommon2 xic2;
 #endif
@@ -224,7 +224,7 @@ loop:
 		iput(ip);
 		return(NULL);
 	}
-	dp = (struct dinode *)mapin(bp);
+	dp = (struct dinode __far *)mapin(bp);
 	dp += itoo(ino);
 	ip->i_ic1 = dp->di_ic1;
 	ip->i_flags = dp->di_flags;
@@ -366,7 +366,7 @@ iupdat(ip, ta, tm, waitfor)
 	int waitfor;
 {
 	register struct buf *bp;
-	register struct dinode *dp;
+	register struct dinode __far *dp;
 #ifdef EXTERNALITIMES
 	struct icommon2 xic2, *xicp2;
 #endif
@@ -401,7 +401,7 @@ iupdat(ip, ta, tm, waitfor)
 		tip->i_ctime = time.tv_sec;
 #endif
 	tip->i_flag &= ~(IUPD|IACC|ICHG|IMOD);
-	dp = (struct dinode *)mapin(bp) + itoo(tip->i_number);
+	dp = (struct dinode __far *)mapin(bp) + itoo(tip->i_number);
 	dp->di_ic1 = tip->i_ic1;
 	dp->di_flags = tip->i_flags;
 #ifdef EXTERNALITIMES
@@ -628,7 +628,7 @@ indirtrunc(ip, bn, lastbn, level, aflags)
 	 * and update on disk copy first.
 	 */
 	{
-		register daddr_t *bap;
+		register daddr_t __far *bap;
 		register struct buf *cpy;
 
 		bp = bread(ip->i_dev, bn);
@@ -638,8 +638,8 @@ indirtrunc(ip, bn, lastbn, level, aflags)
 		}
 		cpy = geteblk();
 		copy(bftopaddr(bp), bftopaddr(cpy), btoc(DEV_BSIZE));
-		bap = (daddr_t *)mapin(bp);
-		bzero((caddr_t)&bap[last + 1],
+		bap = (daddr_t __far *)mapin(bp);
+		bzero(&bap[last + 1],
 		    (u_int)(NINDIR - (last + 1)) * sizeof(daddr_t));
 		mapout(bp);
 		if (aflags & B_SYNC)
@@ -660,9 +660,9 @@ indirtrunc(ip, bn, lastbn, level, aflags)
 	if (level == SINGLE)
 		trsingle(ip, bp, last, aflags);
 	else {
-		register daddr_t *bstart, *bstop;
+		register daddr_t __far *bstart, __far *bstop;
 
-		bstart = (daddr_t *)mapin(bp);
+		bstart = (daddr_t __far *)mapin(bp);
 		bstop = &bstart[last];
 		bstart += NINDIR - 1;
 		/*
@@ -698,7 +698,7 @@ indirtrunc(ip, bn, lastbn, level, aflags)
 static
 trsingle(ip, bp,last, aflags)
 	register struct inode *ip;
-	caddr_t bp;
+	struct buf *bp;
 	daddr_t last;
 	int aflags;
 {

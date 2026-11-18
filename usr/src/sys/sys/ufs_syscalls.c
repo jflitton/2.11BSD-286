@@ -74,7 +74,7 @@ chdirec(ipp)
 {
 	register struct inode *ip;
 	struct a {
-		char	*fname;
+		char __far *fname;
 	} *uap = (struct a *)u.u_ap;
 	struct	nameidata nd;
 	register struct	nameidata *ndp = &nd;
@@ -105,7 +105,7 @@ bad:
 open()
 {
 	register struct a {
-		char	*fname;
+		char __far *fname;
 		int	mode;
 		int	crtmode;
 	} *uap = (struct a *) u.u_ap;
@@ -121,7 +121,7 @@ static int
 copen(mode, arg, fname)
 	int mode;
 	int arg;
-	caddr_t fname;
+	uaddr_t fname;
 	{
 	register struct inode *ip;
 	register struct file *fp;
@@ -195,7 +195,7 @@ mknod()
 {
 	register struct inode *ip;
 	register struct a {
-		char	*fname;
+		char __far *fname;
 		int	fmode;
 		int	dev;
 	} *uap = (struct a *)u.u_ap;
@@ -241,8 +241,8 @@ link()
 {
 	register struct inode *ip, *xp;
 	register struct a {
-		char	*target;
-		char	*linkname;
+		char __far *target;
+		char __far *linkname;
 	} *uap = (struct a *)u.u_ap;
 	struct	nameidata nd;
 	register struct	nameidata *ndp = &nd;
@@ -265,7 +265,7 @@ link()
 	iupdat(ip, &time, &time, 1);
 	iunlock(ip);
 	ndp->ni_nameiop = CREATE;
-	ndp->ni_dirp = (caddr_t)uap->linkname;
+	ndp->ni_dirp = uap->linkname;
 	xp = namei(ndp);
 	if (xp != NULL) {
 		u.u_error = EEXIST;
@@ -294,11 +294,11 @@ out:
 symlink()
 {
 	register struct a {
-		char	*target;
-		char	*linkname;
+		char __far *target;
+		char __far *linkname;
 	} *uap = (struct a *)u.u_ap;
 	register struct inode *ip;
-	char *tp;
+	char __far *tp;
 	int c, nc;
 	struct	nameidata nd;
 	register struct	nameidata *ndp = &nd;
@@ -339,7 +339,7 @@ symlink()
 unlink()
 {
 	register struct a {
-		char	*fname;
+		char __far *fname;
 	} *uap = (struct a *)u.u_ap;
 	register struct inode *ip, *dp;
 	struct	nameidata nd;
@@ -386,7 +386,7 @@ saccess()
 	gid_t t_gid;
 	register struct inode *ip;
 	register struct a {
-		char	*fname;
+		char __far *fname;
 		int	fmode;
 	} *uap = (struct a *)u.u_ap;
 	struct	nameidata nd;
@@ -435,8 +435,8 @@ stat1(follow)
 {
 	register struct inode *ip;
 	register struct a {
-		char	*fname;
-		struct stat *ub;
+		char __far *fname;
+		struct stat __far *ub;
 	} *uap = (struct a *)u.u_ap;
 	struct stat sb;
 	struct	nameidata nd;
@@ -448,7 +448,7 @@ stat1(follow)
 		return;
 	(void) ino_stat(ip, &sb);
 	iput(ip);
-	u.u_error = copyout((caddr_t)&sb, (caddr_t)uap->ub, sizeof (sb));
+	u.u_error = copyout((caddr_t)&sb, uap->ub, sizeof (sb));
 }
 
 /*
@@ -458,8 +458,8 @@ readlink()
 {
 	register struct inode *ip;
 	register struct a {
-		char	*name;
-		char	*buf;
+		char __far *name;
+		char __far *buf;
 		int	count;
 	} *uap = (struct a *)u.u_ap;
 	struct	nameidata nd;
@@ -488,7 +488,7 @@ chflags()
 	{
 	register struct inode *ip;
 	register struct a {
-		char	*fname;
+		char __far *fname;
 		u_short	flags;
 	} *uap = (struct a *)u.u_ap;
 	struct	nameidata nd;
@@ -537,7 +537,7 @@ chmod()
 {
 	register struct inode *ip;
 	register struct a {
-		char	*fname;
+		char __far *fname;
 		int	fmode;
 	} *uap = (struct a *)u.u_ap;
 	struct	vattr	vattr;
@@ -607,7 +607,7 @@ chown()
 {
 	register struct inode *ip;
 	register struct a {
-		char	*fname;
+		char __far *fname;
 		int	uid;
 		int	gid;
 	} *uap = (struct a *)u.u_ap;
@@ -710,7 +710,7 @@ chown1(ip, uid, gid)
 truncate()
 {
 	register struct a {
-		char	*fname;
+		char __far *fname;
 		off_t	length;
 	} *uap = (struct a *)u.u_ap;
 	register struct inode *ip;
@@ -788,8 +788,8 @@ ftruncate()
 rename()
 {
 	struct a {
-		char	*from;
-		char	*to;
+		char __far *from;
+		char __far *to;
 	} *uap = (struct a *)u.u_ap;
 	register struct inode *ip, *xp, *dp;
 	struct dirtemplate dirbuf;
@@ -857,7 +857,7 @@ rename()
 	 * and target inodes are returned locked.
 	 */
 	ndp->ni_nameiop = CREATE | LOCKPARENT | NOCACHE;
-	ndp->ni_dirp = (caddr_t)uap->to;
+	ndp->ni_dirp = uap->to;
 	xp = namei(ndp);
 	if (u.u_error) {
 		error = u.u_error;
@@ -1150,7 +1150,7 @@ struct dirtemplate mastertemplate = {
 mkdir()
 {
 	register struct a {
-		char	*name;
+		char __far *name;
 		int	dmode;
 	} *uap = (struct a *)u.u_ap;
 	register struct inode *ip, *dp;
@@ -1264,7 +1264,7 @@ bad:
 rmdir()
 {
 	struct a {
-		char	*name;
+		char __far *name;
 	} *uap = (struct a *)u.u_ap;
 	register struct inode *ip, *dp;
 	struct	nameidata nd;

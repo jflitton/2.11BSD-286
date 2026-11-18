@@ -52,6 +52,8 @@ struct buf
 	} b_un;
 	daddr_t	b_blkno;		/* block # on device */
 	u_short	b_resid;		/* words not transferred after error */
+	char __far *b_kaddr;		/* a buffer in the pool: its data, to
+					   the kernel (mapin) */
 #define	b_cylin b_resid			/* disksort */
 #define	b_errcnt b_resid		/* while i/o in progress: # retries */
 };
@@ -74,7 +76,9 @@ struct buf
 
 #define	bawrite(bp)	{(bp)->b_flags |= B_ASYNC; bwrite(bp);}
 #define	bfree(bp)	(bp)->b_bcount = 0
-#define	bftopaddr(bp)	((u_int)(bp)->b_un.b_addr >> 6 | (bp)->b_xmem << 10)
+/* b_un.b_addr and b_xmem are the physical address of the data. */
+#define	bftopaddr(bp)	((u_int)(bp)->b_un.b_addr >> 9 | (u_char)(bp)->b_xmem << 7)
+#define	bfpaddr(bp)	((long)(u_char)(bp)->b_xmem << 16 | (u_int)(bp)->b_un.b_addr)
 
 #if defined(KERNEL) && !defined(SUPERVISOR)
 #define	BUFHSZ	16	/* must be power of 2 */

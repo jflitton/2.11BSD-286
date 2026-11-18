@@ -9,38 +9,43 @@
 #ifndef _EXEC_
 #define _EXEC_
 /*
- * Header prepended to each a.out file.
+ * Header prepended to each a.out file.  All of the file is: this header,
+ * a struct exseg for each of the a_nseg segments, the contents of each
+ * segment in turn, each made up to an even length, the symbol table, and
+ * the string table.
+ *
+ * Segments are numbered from 1, and a running program addresses segment
+ * N with a selector that is fixed when the file is made (LSEL(N),
+ * machine/seg.h).
  */
 struct	exec {
-	int	a_magic;	/* magic number */
-unsigned int	a_text;		/* size of text segment */
-unsigned int	a_data;		/* size of initialized data */
-unsigned int	a_bss;		/* size of uninitialized data */
-unsigned int	a_syms;		/* size of symbol table */
-unsigned int	a_entry; 	/* entry point */
-unsigned int	a_unused;	/* not used */
-unsigned int	a_flag; 	/* relocation info stripped */
+unsigned short	a_magic;	/* magic number */
+unsigned short	a_model;	/* memory model */
+unsigned short	a_nseg;		/* number of segments */
+unsigned short	a_eseg;		/* entry point: segment, */
+unsigned short	a_entry;	/*	and offset */
+unsigned short	a_dseg;		/* the segment DS and SS start as */
+unsigned short	a_stack;	/* size of the stack, which follows that
+				   segment's data */
+unsigned short	a_unused;	/* not used */
+unsigned long	a_syms;		/* size of symbol table */
+unsigned long	a_strs;		/* size of string table */
 };
 
-#define	NOVL	15		/* number of overlays */
-struct	ovlhdr {
-	int	max_ovl;	/* maximum overlay size */
-unsigned int	ov_siz[NOVL];	/* size of i'th overlay */
+struct	exseg {
+unsigned short	xs_type;	/* XS_CODE or XS_DATA */
+unsigned short	xs_unused;	/* not used */
+unsigned long	xs_filesz;	/* bytes of it in the file */
+unsigned long	xs_memsz;	/* bytes in memory: the rest are zero */
 };
 
-/*
- * eXtended header definition for use with the new macros in a.out.h
-*/
-struct	xexec {
-	struct	exec	e;
-	struct	ovlhdr	o;
-	};
+#define	A_MAGIC		0x0286
 
-#define	A_MAGIC1	0407	/* normal */
-#define	A_MAGIC2	0410	/* read-only text */
-#define	A_MAGIC3	0411	/* separated I&D */
-#define	A_MAGIC4	0405	/* overlay */
-#define	A_MAGIC5	0430	/* auto-overlay (nonseparate) */
-#define	A_MAGIC6	0431	/* auto-overlay (separate) */
+#define	A_SMALL		1	/* one code segment, near data */
+#define	A_MEDIUM	2	/* many code segments, near data */
+#define	A_LARGE		3	/* many of both: pointers are far */
+
+#define	XS_CODE		1
+#define	XS_DATA		2
 
 #endif

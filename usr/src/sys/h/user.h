@@ -21,10 +21,13 @@
 #endif
 
 /*
- * data that doesn't need to be referenced while the process is swapped.
- * The user block is USIZE*64 bytes long; resides at virtual kernel loc
- * 0140000; contains the system stack (and possibly network stack) per
- * user; is cross referenced with the proc structure for the same process.
+ * Per-process data that the kernel needs only while the process runs.
+ * The user structure and the process's kernel stack are one piece of
+ * USIZE clicks, the stack growing down from the top toward the structure.
+ * A process runs with them in one of the kernel's slots (machdep.c) and
+ * uptr pointing there, so that u is the running process's; while another
+ * process has the slot they are kept at p_addr.  It is cross referenced
+ * with the proc structure for the same process.
  */
 #define	MAXCOMLEN	MAXNAMLEN	/* <= MAXNAMLEN, >= sizeof(ac_comm) */
 
@@ -33,8 +36,7 @@ struct	pcb {			/* fake pcb structure */
 };
 
 struct	fps {
-	short	u_fpsr;		/* FP status register */
-	double	u_fpregs[6];	/* FP registers */
+	short	u_fpstate[47];	/* the 287, as FSAVE leaves it */
 };
 
 struct user {
@@ -47,7 +49,7 @@ struct user {
 	char	u_comm[MAXCOMLEN + 1];
 
 /* syscall parameters, results and catches */
-	int	u_arg[6];		/* arguments to current system call */
+	int	u_arg[12];		/* arguments to current system call */
 	int	*u_ap;			/* pointer to arglist */
 	label_t	u_qsave;		/* for non-local gotos on interrupts */
 	union {				/* syscall return values */
@@ -78,18 +80,12 @@ struct user {
 	size_t	u_ssize;		/* stack size (clicks) */
 	label_t	u_ssave;		/* label variable for swapping */
 	label_t	u_rsave;		/* save info when exchanging stacks */
-	short	u_uisa[16];		/* segmentation address prototypes */
-	short	u_uisd[16];		/* segmentation descriptor prototypes */
-	char	u_sep;			/* flag for I and D separation */
-	char	dummy1;			/* room for another char */
-					/* overlay information */
-	struct	u_ovd {			/* automatic overlay data */
-		short	uo_curov;	/* current overlay */
-		short	uo_ovbase;	/* base of overlay area, seg. */
-		u_short	uo_dbase;	/* start of data, clicks */
-		u_short	uo_ov_offst[NOVL+1];	/* overlay offsets in text */
-		short	uo_nseg;	/* number of overlay seg. regs. */
-	} u_ovdata;
+	short	u_dseg;			/* the segment that holds the stack,
+					   the data and the break */
+	u_short	u_stack0;		/* size of the stack at its bottom */
+	u_short	u_break;		/* the break: its size in bytes
+					   (0 is 65536) */
+	short	u_model;		/* memory model of the program */
 
 /* 1.3 - signal management */
 	int	(*u_signal[NSIG])();	/* disposition of signals */
@@ -123,7 +119,7 @@ struct user {
 	char	u_dupfd;		/* XXX - see kern_descrip.c/fdopen */
 
 	struct uprof {			/* profile arguments */
-		short	*pr_base;	/* buffer base */
+		short __far *pr_base;	/* buffer base */
 		unsigned pr_size;	/* buffer size */
 		unsigned pr_off;	/* pc offset */
 		unsigned pr_scale;	/* pc scaling */
@@ -150,5 +146,6 @@ struct user {
 #include <sys/errno.h>
 
 #ifdef KERNEL
-extern	struct user u;
+extern	struct user *uptr;	/* the running process's */
+#define	u	(*uptr)
 #endif

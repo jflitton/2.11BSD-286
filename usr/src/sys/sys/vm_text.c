@@ -136,16 +136,14 @@ xfree()
  * bit is set to force it to be written out as appropriate.  If it is
  * not available from core, a swap has to be done to get it back.
  */
-xalloc(ip, ep)
+xalloc(ip, ep, ts)
 	struct exec *ep;
 	register struct inode *ip;
+	size_t ts;
 {
 	register struct text *xp;
-	register u_int	count;
-	off_t	offset;
-	size_t ts;
 
-	if (ep->a_text == 0)
+	if (ts == 0)
 		return;
 #ifdef UCB_METER
 	xstats.alloc++;
@@ -196,11 +194,7 @@ xalloc(ip, ep)
 		xuntext(xp);
 	}
 	xp->x_flag = XLOAD|XLOCK;
-	ts = btoc(ep->a_text);
-	if (u.u_ovdata.uo_ovbase)
-		xp->x_size = u.u_ovdata.uo_ov_offst[NOVL];
-	else
-		xp->x_size = ts;
+	xp->x_size = ts;
 	if ((xp->x_daddr = malloc(swapmap, (size_t)ctod(xp->x_size))) == NULL) {
 		swkill(u.u_procp, "xalloc");
 		return;
@@ -213,32 +207,12 @@ xalloc(ip, ep)
 	ip->i_count++;
 	u.u_procp->p_textp = xp;
 	xexpand(xp);
-	estabur(ts, (u_int)0, (u_int)0, 0, RW);
-	offset = sizeof(struct exec);
-	if (u.u_ovdata.uo_ovbase)
-		offset += (NOVL + 1) * sizeof(u_int);
+	/*
+	 * The file's code segments are read through the process's own
+	 * descriptors for them (xread, kern_exec.c).
+	 */
 	u.u_procp->p_flag |= SLOCK;
-	u.u_error = rdwri(UIO_READ, ip, (caddr_t)0, ep->a_text & ~1,
-			offset, UIO_USERISPACE, IO_UNIT, (int *)0);
-
-	if (u.u_ovdata.uo_ovbase) {	/* read in overlays if necessary */
-		register int i;
-
-		offset += (off_t)(ep->a_text & ~1);
-		for (i = 1; i <= NOVL; i++) {
-			u.u_ovdata.uo_curov = i;
-			count = ctob(u.u_ovdata.uo_ov_offst[i] - u.u_ovdata.uo_ov_offst[i-1]);
-			if (count) {
-				choverlay(RW);
-				u.u_error = rdwri(UIO_READ, ip,
-				    (caddr_t)(ctob(stoc(u.u_ovdata.uo_ovbase))),
-					count, offset, UIO_USERISPACE,
-					IO_UNIT, (int *)0);
-				offset += (off_t) count;
-			}
-		}
-	}
-	u.u_ovdata.uo_curov = 0;
+	u.u_error = xread(ip, ep);
 	u.u_procp->p_flag &= ~SLOCK;
 	xp->x_flag |= XWRIT;
 	xp->x_flag &= ~XLOAD;

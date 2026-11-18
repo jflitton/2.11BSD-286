@@ -29,6 +29,6 @@ struct	callout {
 	struct	callout *c_next;
 };
 #if defined(KERNEL) && !defined(SUPERVISOR)
-struct	callout *callfree, callout[], calltodo;
-int	ncallout;
+extern struct	callout *callfree, callout[], calltodo;
+extern int	ncallout;
 #endif

@@ -1,9 +1,10 @@
 # Processes and the kernel
 
-How a process is confined to ring 3, how it enters the kernel, and how the
-kernel reaches its memory. Running under `tests/user`, with one process
-and a stand-in for the kernel's `trap` and `syscall`; fork, exec, signals
-and switching between processes are not written yet.
+How a process is confined to ring 3, how it enters the kernel, what its
+memory is, and how the kernel switches between processes. All of this
+runs in the emulator under `tests/kernel`, which boots the kernel with a
+test program as `/etc/init`; `tests/user` checks the protection of a
+process more closely, under a stand-in for the kernel.
 
 ## A process's segments
 
@@ -12,9 +13,30 @@ slot N, so its selector is `(N << 3) | 7`, the value the linker step wrote
 into the program ([executable format](executable-format.md)). A small-model
 program runs with CS = 0x0F and DS = SS = ES = 0x17.
 
-Code segments are ring 3, readable, not writable. Data segments are ring 3
-and writable. A descriptor's limit is the segment's exact size. The global
-table has one slot, `GDT_LDT`, that names the running process's table.
+A process's memory is that list of segments, 32 at most, and nothing else:
+there is no fixed text, data and stack as on the PDP-11. The kernel keeps
+two tables with an entry for every slot of every process (`pseg` and `ldt`,
+`sys/i286/seg.h`): what it knows about the segment, and the descriptor the
+processor uses. Both are far arrays outside the kernel's data segment.
+
+- **Code segments are shared.** All the code segments of one executable
+  lie one after another in a single piece of memory, which belongs to the
+  file's text structure, as a PDP-11 program's text and overlays do. Every
+  process running the program has descriptors that point into it. They are
+  ring 3, readable, not writable.
+- **Every other segment is the process's own**: a piece of memory of its
+  own, ring 3, writable, copied at `fork`.
+- A descriptor's limit is the segment's exact size in bytes.
+
+The segment the executable names as its data segment holds the program's
+data, then its stack, of the fixed size the executable gives, and above
+that the break. `sbrk` moves the end of that one segment, to the byte: the
+segment grows in place if the memory after it is free, and is moved if
+not. Nothing a program can address lies past the break, so a stray
+reference there is a fault. Where the stack sits is not settled (below).
+
+The global table has one slot, `GDT_LDT`, that names the running process's
+table.
 
 A process runs with interrupts on and I/O privilege level 0. What the
 processor then refuses it, each as a fault that arrives in the kernel:
@@ -41,11 +63,15 @@ pushes the rest, to make a `struct trapframe` (`sys/i286/frame.h`).
 The kernel stack is empty whenever the process is running, so the
 process's frame is always at the top of its kernel stack. That is where
 the kernel finds a process's registers, and how a process is started: the
-kernel fills in the frame as if the process had been interrupted at its
-first instruction, and returns through it. `main` does that for the first
-process, and the start-up code resumes the frame when `main` returns.
+kernel makes the frame what it would be had the process been interrupted
+at its first instruction, and returns through it.
 
 `USERMODE(tf->tf_cs)` says whether a frame is a process's.
+
+On the way back to a process the kernel reloads the selectors in the
+frame. If one of them is no longer good, the fault that follows is in the
+kernel; `trap` knows the three instructions it can happen at, gives DS or
+ES the null selector, and sends the process a segmentation violation.
 
 ## System calls
 
@@ -58,43 +84,68 @@ process, and the start-up code resumes the frame when `main` returns.
 Arguments are in registers, a word each, in the order BX, CX, DX, SI, DI,
 BP. A `long` is two words, low word first. A pointer is two words, offset
 and then selector, in every memory model: a small-model program's stub
-passes DS as the selector. The kernel therefore sees one argument layout
-and never needs to know a program's model to find or widen an argument.
+passes DS as the selector, or 0 with a null pointer. The kernel therefore
+sees one argument layout and never needs to know a program's model to
+find or widen an argument.
 
 `mch_trap.s` pushes the registers one at a time so that those six are
-next to each other in the frame, in argument order. A system call's
-argument structure is laid over them where they are: nothing is fetched
-from the process's stack and nothing is copied. Next to `PUSHA` and
-`POPA` that costs about 20 clocks a trap; fetching three words from the
-process's stack with `copyin` costs several times that on every call.
-(Both from the manual's clock counts, not measured.)
+next to each other in the frame, in argument order, and `syscall` copies
+the six words from there to `u.u_arg`. It copies them, where it could have
+used them in place, because the kernel's system call code changes its
+arguments as it goes, and a call that is interrupted and started again
+must find the process's registers as the process left them.
 
 A call with more than six words of arguments takes one argument instead,
-a pointer to them, and the kernel copies them in. Of 2.11BSD's 139 system
-calls, 11 have four or more arguments, and those are the candidates.
+the far address of them all, and the kernel copies them in. Seven calls
+do: `select`, `pselect`, `sigaction`, `sysctl`, `sendto`, `recvfrom` and
+`getsockopt`.
 
 The kernel returns with the carry flag clear and the result in AX, or
 DX:AX for a `long` or a second value; or with carry set and the error
-number in AX, which the stub stores in `errno` before returning -1. All
-other registers come back unchanged, except that the kernel may alter the
-ones that carried arguments; a stub puts back SI, DI and BP, which belong
-to its C caller.
+number in AX, which the stub stores in `errno` before returning -1. Every
+other register comes back as it was.
 
 The gate leaves interrupts on. It is the only gate besides 3 (breakpoint)
 and 4 (`INTO`) that a process may use.
 
-libc's stubs differ by memory model, as libc itself does: where the
-arguments are on the stack, and whether a pointer there is one word or
-two. They are regular enough to generate from a table of each call's
-argument types.
+A structure a program hands the kernel has the same layout whatever the
+program's model: a pointer in it is far. So far that is `struct iovec`,
+`struct sigaction` and `struct sigaltstack`; a library for a model with
+near pointers converts them. The one exception is the
+lists of arguments and environment given to `execve`, which may be long:
+the kernel reads them as the calling program's model has them, near
+pointers in the list's own segment or far ones.
+
+Stubs are written from a table of each call's arguments by
+`tools/mkstubs.py`, for the small model so far. `vfork` needs a stub of
+its own: the child runs on its parent's stack until it executes another
+program, so the stub leaves nothing there, and keeps its return address
+in a register across the call.
+
+## A program's start
+
+`execve` reads the executable's header and table of segments, attaches or
+loads the code, makes each data segment and reads its contents, and
+copies the arguments and environment to the top of the stack. The
+program starts with:
+
+| | |
+|---|---|
+| CS:IP | the entry point |
+| DS, ES, SS | the data segment |
+| SP | pointing at the count of arguments; after it the pointers to them, a null, the pointers to the environment and a null, each the size of a data pointer in the program's model |
+| BX | the break |
+| the rest | 0 |
+
+A program's start-up code must leave the first bytes of its data segment
+unused. An object at offset 0 would have the address a null pointer has,
+and its address passed to the kernel would arrive as a null pointer.
 
 ## The process's memory, from the kernel
 
 An address in a process is a selector and an offset, 32 bits, where the
 kernel's own pointers are 16. Its type is `uaddr_t` (`sys/i286/seg.h`), a
-far pointer that the kernel never dereferences itself. A kernel address
-converts to one by assignment, so one field can hold either, which
-`struct uio` needs.
+far pointer that the kernel never dereferences itself.
 
 `copyin` and `copyout` (`sys/i286/mch_copy.s`) do the work, and they
 check nothing themselves:
@@ -116,21 +167,117 @@ system calls that read and write through them, and all are refused. With
 the one instruction that sets the privilege bits removed, the same test
 has the process overwrite the kernel.
 
+The kernel's side of a copy is a far pointer too, so the same routines
+serve the kernel's data segment and the memory outside it; so are the
+arguments of `bcopy`, `bzero` and `bcmp`. [The ABI notes](abi.md) say what
+that costs in care.
+
+## Slots: the user structure and kernel stack
+
+A process's user structure and kernel stack are one piece of memory,
+3,584 bytes: the structure, 878 bytes, at the bottom, and the stack
+growing down toward it from the top. While the process runs, that piece
+is in the kernel's data segment, in a *slot*, and `u` is `*uptr`, with
+`uptr` pointing at it. The kernel has a few slots (6 as configured,
+`sys/PC/param.c`). The first is the swapper's alone.
+
+A kernel stack is full of pointers into itself and into the user
+structure, so a process can only ever run in the slot it was given when
+it was made. Processes that have different slots switch with no copying
+at all. Processes given the same slot take turns in it: when one is to
+run and another is there, the one there is copied out to memory of its
+own (`p_addr`) and the one wanted is copied in, each no more than its
+user structure and the part of its stack in use. A new process gets the
+slot with the fewest processes.
+
+`swtch` goes from one process to another by way of the swapper, as
+2.11BSD does everywhere. That is what makes the copying safe: it is done
+by the swapper, whose stack is in a slot nothing is ever copied over.
+
+Switching is `setjmp` and `longjmp` (`sys/i286/mch_swtch.s`), which save
+and restore SI, DI, BP, SP and a return address. `longjmp` to another
+process changes `uptr`, the kernel stack pointer in the task state
+segment and, if the process is not the last to have run, the local
+descriptor table.
+
+### A new process
+
+A child cannot start on a copy of its parent's kernel stack, as it does
+on the PDP-11, where every process's stack is at one address: the copy
+would be in a different slot, and every pointer in it would point into
+the parent's. So a child starts on a stack that holds one thing, a copy
+of the frame its parent entered the kernel with. Its first act is
+`childret` (`sys/i286/trap.c`), which puts `fork`'s result for a child in
+that frame and returns through it. `newproc` therefore returns once, in
+the parent.
+
+The first process has no parent's frame. It is given `icode`, a few
+instructions that execute `/etc/init`, as a code segment of its own.
+
+## Swapping
+
+A process is swapped as a whole, as in 2.11BSD: each of its own segments
+is written to the swap device and its memory freed, and the code is
+released if no other process in memory is using it. The user structure
+and kernel stack stay in memory, 7 clicks a process, so the kernel always
+has the process's table of segments to hand.
+
+A process that cannot get memory to grow a segment, or to load a
+program's code, swaps itself out and is brought back when there is room,
+with the segment at its new size. `fork` without memory for the child
+writes the child's segments straight to the swap device from the
+parent's.
+
+Memory is counted in clicks of 512 bytes, one sector of the swap device.
+
+## Interrupts and their priority
+
+The 286 has no interrupt priority levels of its own. `cpl` is a
+variable; the `spl` routines change it and nothing else, which makes
+them a handful of instructions. An interrupt request whose level is not
+above `cpl` is put off: its line is shut at the interrupt controller and
+noted in `ipending`, and its handler runs when `splx` or `spl0` lowers
+the level far enough. The clock's deferred work (`softclock`) is
+requested and run the same way.
+
+Handlers run on a stack of their own, so that a process's kernel stack
+need not have room for them. On the way back to a process, if another
+process should run, the kernel switches then.
+
+## Signals
+
+The kernel continues a process in the trampoline code it named when it
+installed the handler (its library's, for its memory model), with the
+address of the handler in DX:AX and on the process's stack the signal's
+number, a code, the far address of a `struct sigcontext`, and that
+context: all the registers the process had. The trampoline calls the
+handler and then `sigreturn` with the context.
+
+`sigreturn` takes the registers back from the process, which may have
+changed them. It refuses a context whose CS is not code of the process's
+own, whose SS is not writable data of its own, or whose DS or ES is
+neither null nor something it can read, and it does not let the flags
+turn interrupts off or give the process the I/O ports.
+
+## The 287
+
+Its registers belong to the last process that used it. A process that is
+switched to has the processor told to trap on the next 287 instruction,
+unless it is that process, and the trap is where the registers are saved
+for the one and loaded for the other. A process that never touches the
+287 costs nothing at a switch.
+
 ## Not settled
 
-- Where local descriptor tables live. In the test it is an array in the
-  kernel's data, which at 8 bytes a segment for every process would crowd
-  the 64K. A table can be a segment of the process's own memory instead.
-- Pointers inside structures a program hands the kernel: `struct iovec`,
-  `struct msghdr`, the argument and environment arrays of `execve`, the
-  handler in `struct sigaction`. A small-model program's are 16 bits.
-  Either libc converts them before the call, or the kernel reads them
-  according to the model in the executable's header.
+- Where the stack sits in the data segment. It follows the data now, so a
+  stack that overflows runs into the data without a fault. At the bottom
+  of the segment an overflow would fault, and the break would be the end
+  of the program's data, which the program knows; the kernel passes the
+  break in BX only because, as things are, it does not.
+- More data segments for a program that asks for them, by a system call.
 - A segment that is not in memory. The fault it causes, 11, is the hook
-  for bringing a swapped-out segment back, in the process and in
-  `copyin` and `copyout` alike.
-- What the kernel must check in a frame it did not build itself, when a
-  signal handler returns.
-- The 287's registers at a switch between processes. The task-switched
-  flag and exception 7 are what will save and restore them only for the
-  processes that use it; `tests/pm` exercises that trap.
+  for bringing one segment back instead of a whole process.
+- 287 errors, which reach an AT-compatible machine as interrupt request
+  13 and not as exception 16.
+- Whether a process's kernel stack is big enough is not checked; nothing
+  notices one that overflows into the user structure.

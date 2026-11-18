@@ -37,7 +37,7 @@ bmap(ip, bn, rwflg, flags)
 	register struct buf *bp;
 	struct buf *nbp;
 	int j, sh;
-	daddr_t nb, *bap, ra;
+	daddr_t nb, __far *bap, ra;
 	int async = ip->i_fs->fs_flags & MNT_ASYNC;
 
 	if (bn < 0) {
@@ -123,7 +123,7 @@ bmap(ip, bn, rwflg, flags)
 			brelse(bp);
 			return((daddr_t)0);
 		}
-		bap = (daddr_t *) mapin(bp);
+		bap = (daddr_t __far *)mapin(bp);
 		sh -= NSHIFT;
 		i = (bn>>sh) & NMASK;
 		nb = bap[i];
@@ -149,7 +149,7 @@ bmap(ip, bn, rwflg, flags)
 				bwrite(nbp);
 			else
 				bdwrite(nbp);
-			bap = (daddr_t *) mapin(bp);
+			bap = (daddr_t __far *)mapin(bp);
 			bap[i] = nb;
 			mapout(bp);
 			bdwrite(bp);

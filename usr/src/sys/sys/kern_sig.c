@@ -59,8 +59,8 @@ sigstack()
 	{
 	register struct a
 		{
-		struct	sigstack *nss;
-		struct	sigstack *oss;
+		struct	sigstack __far *nss;
+		struct	sigstack __far *oss;
 		} *uap = (struct a *)u.u_ap;
 	struct sigstack ss;
 	register int error = 0;
@@ -68,9 +68,9 @@ sigstack()
 	ss.ss_sp = u.u_sigstk.ss_base;
 	ss.ss_onstack = u.u_sigstk.ss_flags & SA_ONSTACK;
 	if	(uap->oss && (error = copyout((caddr_t)&ss,
-					(caddr_t)uap->oss, sizeof (ss))))
+					uap->oss, sizeof (ss))))
 		goto out;
-	if	(uap->nss && (error = copyin((caddr_t)uap->nss, (caddr_t)&ss, 
+	if	(uap->nss && (error = copyin(uap->nss, (caddr_t)&ss, 
 					sizeof (ss))) == 0)
 		{
 		u.u_sigstk.ss_base = ss.ss_sp;
@@ -188,16 +188,13 @@ gsignal(pgrp, sig)
 	register int pgrp;
 {
 	register struct proc *p;
-	mapinfo	map;
 
 	if (pgrp == 0)
 		return;
-	savemap(map);
 
 	for (p = allproc; p != NULL; p = p->p_nxt)
 		if (p->p_pgrp == pgrp)
 			psignal(p, sig);
-	restormap(map);
 }
 
 /*
@@ -560,11 +557,6 @@ postsig(sig)
 	long mask = sigmask(sig), returnmask;
 	register int (*action)();
 
-	if (u.u_fpsaved == 0) {
-		savfp(&u.u_fps);
-		u.u_fpsaved = 1;
-	}
-
 	p->p_sig &= ~mask;
 	action = u.u_signal[sig];
 
@@ -611,9 +603,11 @@ postsig(sig)
  * there are probably a wealth of them here
  * when this occurs to a suid command.
  *
- * It writes UPAGES (USIZE for pdp11) block of the
- * user.h area followed by the entire
- * data+stack segments.
+ * It writes the USIZE clicks of the user.h area and the kernel stack,
+ * at the top of which are the process's registers (machine/frame.h);
+ * then the process's table of segments (machine/seg.h); then the
+ * contents of each segment of its own in the table's order, which is
+ * everything but the shared code.
  */
 core()
 {
@@ -622,6 +616,11 @@ core()
 	register struct	nameidata *ndp = &nd;
 	register char *np;
 	char	*cp, name[MAXCOMLEN + 6];
+	register struct pseg __far *sp;
+	register int n;
+	off_t	off;
+	long	size;
+	u_int	count, done;
 
 	/*
 	 * Don't dump if not root and the process has used set user or
@@ -629,7 +628,7 @@ core()
 	*/
 	if	(u.u_acflag & ASUGID && !suser())
 		return(0);
-	if (ctob(USIZE+u.u_dsize+u.u_ssize) >=
+	if (ctob((long)USIZE+u.u_dsize) >=
 	    u.u_rlimit[RLIMIT_CORE].rlim_cur)
 		return (0);
 	if (u.u_procp->p_textp && access(u.u_procp->p_textp->x_iptr, IREAD))
@@ -660,20 +659,30 @@ core()
 	}
 	itrunc(ip, (u_long)0, 0);
 	u.u_acflag |= ACORE;
-	u.u_error = rdwri(UIO_WRITE, ip, &u, ctob(USIZE), (off_t)0,
+	fpsync();
+	u.u_error = rdwri(UIO_WRITE, ip, &u, UBYTES, (off_t)0,
 			UIO_SYSSPACE, IO_UNIT, (int *)0);
 	if (u.u_error)
 		goto out;
-
-	estabur((u_int)0, u.u_dsize, u.u_ssize, 0, RO);
-	u.u_error = rdwri(UIO_WRITE, ip, 0, ctob(u.u_dsize), (off_t)ctob(USIZE),
-			UIO_USERSPACE, IO_UNIT, (int *)0);
-	if (u.u_error)
-		goto out;
-
-	u.u_error = rdwri(UIO_WRITE, ip, (caddr_t)(-(ctob(u.u_ssize))), ctob(u.u_ssize),
-			(off_t)ctob(USIZE) + (off_t)ctob(u.u_dsize),
-			 UIO_USERSPACE, IO_UNIT, (int *)0);
+	off = UBYTES;
+	sp = PSEG(u.u_procp);
+	u.u_error = rdwri(UIO_WRITE, ip, sp, NSEG * sizeof (*sp), off,
+			UIO_SYSSPACE, IO_UNIT, (int *)0);
+	off += NSEG * sizeof (*sp);
+	for (n = 0; n < NSEG && u.u_error == 0; n++, sp++) {
+		if ((sp->ps_flag & (PS_USED|PS_TEXT)) != PS_USED)
+			continue;
+		/* a whole segment is more than one count can say */
+		size = (long)sp->ps_limit + 1;
+		for (done = 0; size && u.u_error == 0; size -= count) {
+			count = size > 0x8000 ? 0x8000 : size;
+			u.u_error = rdwri(UIO_WRITE, ip, UADDR(LSEL(n), done),
+			    (int)count, off, UIO_USERSPACE, IO_UNIT,
+			    (int *)0);
+			done += count;
+			off += count;
+		}
+	}
 out:
 	iput(ip);
 	return (u.u_error == 0);

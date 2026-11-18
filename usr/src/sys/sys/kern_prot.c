@@ -82,7 +82,7 @@ getgroups()
 {
 	register struct	a {
 		u_int	gidsetsize;
-		int	*gidset;
+		int __far *gidset;
 	} *uap = (struct a *)u.u_ap;
 	register gid_t *gp;
 
@@ -94,7 +94,7 @@ getgroups()
 		return;
 	}
 	uap->gidsetsize = gp - u.u_groups;
-	u.u_error = copyout((caddr_t)u.u_groups, (caddr_t)uap->gidset,
+	u.u_error = copyout((caddr_t)u.u_groups, uap->gidset,
 	    uap->gidsetsize * sizeof(u.u_groups[0]));
 	if (u.u_error)
 		return;
@@ -128,7 +128,7 @@ setgroups()
 {
 	register struct	a {
 		u_int	gidsetsize;
-		int	*gidset;
+		int __far *gidset;
 	} *uap = (struct a *)u.u_ap;
 	register gid_t *gp;
 
@@ -138,7 +138,7 @@ setgroups()
 		u.u_error = EINVAL;
 		return;
 	}
-	u.u_error = copyin((caddr_t)uap->gidset, (caddr_t)u.u_groups,
+	u.u_error = copyin(uap->gidset, (caddr_t)u.u_groups,
 	uap->gidsetsize * sizeof (u.u_groups[0]));
 	if (u.u_error)
 		return;
@@ -168,7 +168,7 @@ getlogin()
 	{
 	register struct a
 		{
-		char *namebuf;
+		char __far *namebuf;
 		u_int namelen;
 		} *uap = (struct a *)u.u_ap;
 	register int error;
@@ -192,7 +192,7 @@ setlogin()
 	{
 	register struct a
 		{
-		char *namebuf;
+		char __far *namebuf;
 		} *uap = (struct a *)u.u_ap;
 	register int error;
 	char	newname[MAXLOGNAME + 1];

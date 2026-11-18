@@ -22,7 +22,7 @@ extern u_int clstdesc;		/* PDR for clist segment when mapped */
 #else
 extern struct cblock cfree[];
 #endif
-int	nclist;
-struct	cblock *cfreelist;
-int	cfreecount;
+extern int	nclist;
+extern struct	cblock *cfreelist;
+extern int	cfreecount;
 #endif

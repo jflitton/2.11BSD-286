@@ -9,6 +9,8 @@
 #include "param.h"
 #include "../machine/reg.h"
 #include "../machine/seg.h"
+#include "../machine/psl.h"
+#include "../machine/frame.h"
 
 #include "systm.h"
 #include "map.h"
@@ -29,10 +31,44 @@ extern	char	sigprop[];	/* XXX */
  * exec system call, with and without environments.
  */
 struct execa {
-	char	*fname;
-	char	**argp;
-	char	**envp;
+	char __far *fname;
+	char __far *argp;
+	char __far *envp;
 };
+
+/*
+ * A pointer in the lists of arguments and environment is the size of a
+ * data pointer in the program concerned: an offset alone, in the same
+ * segment as the list, or an offset and a selector.
+ */
+#define	PTRSIZE(model)	((model) == A_LARGE ? 2 * NBPW : NBPW)
+#define	BADPTR		((uaddr_t)-1L)
+
+static uaddr_t
+fuptr(addr, psz)
+	uaddr_t addr;
+	int psz;
+{
+	register int off, sel;
+
+	if ((off = fuword(addr)) == -1)
+		return (BADPTR);
+	if (psz == NBPW)
+		return (off ? UADDR(USEL(addr), off) : (uaddr_t)NULL);
+	if ((sel = fuword(addr + NBPW)) == -1)
+		return (BADPTR);
+	return (UADDR(sel, off));
+}
+
+static
+suptr(addr, ptr, psz)
+	uaddr_t addr, ptr;
+	int psz;
+{
+	(void) suword(addr, UOFF(ptr));
+	if (psz != NBPW)
+		(void) suword(addr + NBPW, USEL(ptr));
+}
 
 execv()
 {
@@ -43,13 +79,14 @@ execv()
 execve()
 {
 	int nc;
-	register char *cp;
+	register char __far *cp;
 	register struct buf *bp;
 	struct execa *uap = (struct execa *)u.u_ap;
-	int na, ne, ucp, ap;
+	int na, ne;
+	uaddr_t ap, ucp;
 	register int cc;
 	unsigned len;
-	int indir, uid, gid;
+	int indir, uid, gid, psz;
 	char *sharg;
 	struct inode *ip;
 	memaddr bno;
@@ -94,13 +131,8 @@ execve()
 	}
 
 	/*
-	 * Read in first few bytes of file for segment sizes, magic number:
-	 *	407 = plain executable
-	 *	410 = RO text
-	 *	411 = separated I/D
-	 *	405 = text overlay
-	 *	430 = auto-overlay (nonseparate)
-	 *	431 = auto-overlay (separate)
+	 * Read in first few bytes of file for the magic number and the
+	 * rest of the header (exec.h).
 	 * Also an ASCII line beginning with #! is
 	 * the file name of a ``shell'' and arguments may be prepended
 	 * to the argument list if given here.
@@ -121,17 +153,7 @@ execve()
 		goto bad;
 	}
 
-	switch((int)exdata.ex_exec.a_magic) {
-
-	case A_MAGIC1:
-	case A_MAGIC2:
-	case A_MAGIC3:
-	case A_MAGIC4:
-	case A_MAGIC5:
-	case A_MAGIC6:
-		break;
-
-	default:
+	if (exdata.ex_exec.a_magic != A_MAGIC) {
 		if (exdata.ex_shell[0] != '#' ||
 		    exdata.ex_shell[1] != '!' ||
 		    indir) {
@@ -144,6 +166,9 @@ execve()
  *		u.u_uid = uid;
  *		u.u_gid = u_groups[0];
 */
+		{
+		register char *cp;
+
 		cp = &exdata.ex_shell[2];		/* skip "#!" */
 		while (cp < &exdata.ex_shell[SHSIZE]) {
 			if (*cp == '\t')
@@ -172,6 +197,7 @@ execve()
 			if (*cp)
 				bcopy((caddr_t)cp, (caddr_t)cfarg, SHSIZE);
 		}
+		}
 		indir = 1;
 		iput(ip);
 		ndp->ni_nameiop = LOOKUP | FOLLOW;
@@ -191,6 +217,7 @@ execve()
 	ne = 0;
 	nc = 0;
 	cc = 0;
+	psz = PTRSIZE(u.u_model);
 	bno = malloc(swapmap, ctod((int)btoc(NCARGS + MAXBSIZE)));
 	if (bno == 0) {
 		swkill(u.u_procp, "exec");
@@ -204,26 +231,26 @@ execve()
 		sharg = NULL;
 		if (indir && na == 0) {
 			sharg = cfname;
-			ap = (int)sharg;
-			uap->argp++;		/* ignore argv[0] */
+			ap = (uaddr_t)sharg;
+			uap->argp += psz;	/* ignore argv[0] */
 		} else if (indir && (na == 1 && cfarg[0])) {
 			sharg = cfarg;
-			ap = (int)sharg;
+			ap = (uaddr_t)sharg;
 		} else if (indir && (na == 1 || na == 2 && cfarg[0]))
-			ap = (int)uap->fname;
+			ap = uap->fname;
 		else if (uap->argp) {
-			ap = fuword((caddr_t)uap->argp);
-			uap->argp++;
+			ap = fuptr(uap->argp, psz);
+			uap->argp += psz;
 		}
 		if (ap == NULL && uap->envp) {
 			uap->argp = NULL;
-			if ((ap = fuword((caddr_t)uap->envp)) != NULL)
-				uap->envp++, ne++;
+			if ((ap = fuptr(uap->envp, psz)) != NULL)
+				uap->envp += psz, ne++;
 		}
 		if (ap == NULL)
 			break;
 		na++;
-		if (ap == -1) {
+		if (ap == BADPTR) {
 			u.u_error = EFAULT;
 			break;
 		}
@@ -250,8 +277,7 @@ execve()
 				error = copystr(sharg, cp, (unsigned)cc, &len);
 				sharg += len;
 			} else {
-				error = copyinstr((caddr_t)ap, cp, (unsigned)cc,
-				    &len);
+				error = copyinstr(ap, cp, (unsigned)cc, &len);
 				ap += len;
 			}
 			cp += len;
@@ -276,7 +302,10 @@ execve()
 	}
 	bp = 0;
 	nc = (nc + NBPW-1) & ~(NBPW-1);
-	getxfile(ip, &exdata.ex_exec, nc + (na+4)*NBPW, uid, gid);
+	psz = PTRSIZE(exdata.ex_exec.a_model);
+	if (u.u_error == 0)
+		getxfile(ip, &exdata.ex_exec, nc + (na+2)*psz + 2*NBPW, uid,
+		    gid);
 	if (u.u_error) {
 badarg:
 		for (cc = 0;cc < nc; cc += CLSIZE * NBPG) {
@@ -297,23 +326,27 @@ badarg:
 	ip = NULL;
 
 	/*
-	 * Copy back arglist.
+	 * Copy back arglist: at the top of the stack a word of zero, below
+	 * it the strings, below them the count of arguments, the pointers
+	 * to them, a null, the pointers to the environment and a null.
+	 * getxfile left the stack pointer at the top of the stack.
 	 */
-	ucp = -nc - NBPW;
-	ap = ucp - na*NBPW - 3*NBPW;
-	u.u_ar0[R6] = ap;
-	(void) suword((caddr_t)ap, na-ne);
+	ucp = UADDR(u.u_ar0[SS], u.u_ar0[SP] - nc - NBPW);
+	ap = ucp - na*psz - 2*psz - NBPW;
+	u.u_ar0[SP] = UOFF(ap);
+	(void) suword(ap, na-ne);
+	ap += NBPW;
 	nc = 0;
 	cc = 0;
 	for (;;) {
-		ap += NBPW;
 		if (na == ne) {
-			(void) suword((caddr_t)ap, 0);
-			ap += NBPW;
+			suptr(ap, (uaddr_t)NULL, psz);
+			ap += psz;
 		}
 		if (--na < 0)
 			break;
-		(void) suword((caddr_t)ap, ucp);
+		suptr(ap, ucp, psz);
+		ap += psz;
 		do {
 			if (cc <= 0) {
 				if (bp) {
@@ -326,8 +359,7 @@ badarg:
 				bp->b_flags &= ~B_DELWRI;	/* cancel io */
 				cp = mapin(bp);
 			}
-			error = copyoutstr(cp, (caddr_t)ucp, (unsigned)cc,
-			    &len);
+			error = copyoutstr(cp, ucp, (unsigned)cc, &len);
 			ucp += len;
 			cp += len;
 			nc += len;
@@ -336,8 +368,7 @@ badarg:
 		if (error == EFAULT)
 			panic("exec: EFAULT");
 	}
-	(void) suword((caddr_t)ap, 0);
-	(void) suword((caddr_t)(-NBPW), 0);
+	suptr(ap, (uaddr_t)NULL, psz);
 	if (bp) {
 		mapout(bp);
 		bp->b_flags |= B_AGE;
@@ -345,6 +376,9 @@ badarg:
 		bp = NULL;
 	}
 	execsigs(u.u_procp);
+	{
+	register char *cp;
+
 	for	(cp = u.u_pofile, cc = 0; cc <= u.u_lastfile; cc++, cp++)
 		{
 		if	(*cp & UF_EXCLOSE)
@@ -354,17 +388,9 @@ badarg:
 			*cp = 0;
 			}
 		}
+	}
 	while (u.u_lastfile >= 0 && u.u_ofile[u.u_lastfile] == NULL)
 		u.u_lastfile--;
-
-	/*
-	 * inline expansion of setregs(), found
-	 * in ../pdp/machdep.c
-	 *
-	 * setregs(exdata.ex_exec.a_entry);
-	 */
-	u.u_ar0[PC] = exdata.ex_exec.a_entry & ~01;
-	u.u_fps.u_fpsr = 0;
 
 	/*
 	 * Remember file name for accounting.
@@ -374,6 +400,11 @@ badarg:
 		bcopy((caddr_t)cfname, (caddr_t)u.u_comm, MAXCOMLEN);
 	else
 		bcopy((caddr_t)ndp->ni_dent.d_name, (caddr_t)u.u_comm, MAXCOMLEN);
+	/*
+	 * The system call returns to the new program: it is not to have
+	 * the registers a result would be put in.
+	 */
+	u.u_error = EJUSTRETURN;
 bad:
 	if (bp) {
 		mapout(bp);
@@ -424,53 +455,83 @@ execsigs(p)
 	u.u_psflags = 0;
 }
 /*
+ * Read the table entry for segment n of an executable file.
+ */
+static
+getxseg(ip, n, xs)
+	struct inode *ip;
+	int n;
+	register struct exseg *xs;
+{
+	return (rdwri(UIO_READ, ip, xs, sizeof (*xs),
+	    (off_t)sizeof (struct exec) + (off_t)(n - 1) * sizeof (*xs),
+	    UIO_SYSSPACE, IO_UNIT, (int *)0));
+}
+
+/*
+ * Read size bytes of an executable file, from offset, into segment n of
+ * the running process.  A whole segment is one byte more than a count
+ * can say, so it goes in two pieces.
+ */
+static
+getxdata(ip, n, size, offset)
+	struct inode *ip;
+	int n;
+	long size;
+	off_t offset;
+{
+	register u_int count;
+	register int error;
+	u_int done = 0;
+
+	while (size) {
+		count = size > 0x8000 ? 0x8000 : size;
+		if (error = rdwri(UIO_READ, ip, UADDR(LSEL(n), done),
+		    (int)count, offset, UIO_USERSPACE, IO_UNIT, (int *)0))
+			return (error);
+		done += count;
+		offset += count;
+		size -= count;
+	}
+	return (0);
+}
+
+/*
  * Read in and set up memory for executed file.
  * u.u_error set on error
+ *
+ * The program's code segments become, or already are, the memory of the
+ * file's text structure, one after another, and the process's table
+ * says where in it each is.  Every data segment is a segment of the
+ * process's own.  The one the header names holds the stack as well,
+ * after the data, and above that is where the break starts.
  */
 getxfile(ip, ep, nargc, uid, gid)
-	struct inode *ip;
+	register struct inode *ip;
 	register struct exec *ep;
 	int nargc, uid, gid;
 {
-	struct u_ovd sovdata;
-	long lsize;
-	off_t	offset;
-	u_int ds, ts, ss;
-	u_int ovhead[NOVL + 1];
-	int sep, overlay, ovflag, ovmax, resid;
+	register struct proc *p = u.u_procp;
+	register struct pseg __far *sp;
+	register struct trapframe *tf;
+	struct exseg xs;
+	register int n;
+	u_int ts, startc;
+	long size, total;
+	off_t offset;
 
-	overlay = sep = ovflag = 0;
-	switch(ep->a_magic) {
-		case A_MAGIC1:
-			lsize = (long)ep->a_data + ep->a_text;
-			ep->a_data = (u_int)lsize;
-			if (lsize != ep->a_data) {	/* check overflow */
-				u.u_error = ENOMEM;
-				return;
-			}
-			ep->a_text = 0;
-			break;
-		case A_MAGIC3:
-			sep++;
-			break;
-		case A_MAGIC4:
-			overlay++;
-			break;
-		case A_MAGIC5:
-			ovflag++;
-			break;
-		case A_MAGIC6:
-			sep++;
-			ovflag++;
-			break;
+	if (ep->a_nseg == 0 || ep->a_nseg >= NSEG ||
+	    ep->a_eseg == 0 || ep->a_eseg > ep->a_nseg ||
+	    ep->a_dseg == 0 || ep->a_dseg > ep->a_nseg ||
+	    ep->a_model < A_SMALL || ep->a_model > A_LARGE) {
+		u.u_error = ENOEXEC;
+		return;
 	}
-
 	if (ip->i_text && (ip->i_text->x_flag & XTRC)) {
 		u.u_error = ETXTBSY;
 		return;
 	}
-	if (ep->a_text != 0 && (ip->i_flag&ITEXT) == 0 &&
-	    ip->i_count != 1) {
+	if ((ip->i_flag&ITEXT) == 0 && ip->i_count != 1) {
 		register struct file *fp;
 
 		for (fp = file; fp < fileNFILE; fp++) {
@@ -488,134 +549,161 @@ getxfile(ip, ep, nargc, uid, gid)
 	 * find text and data sizes try; them out for possible
 	 * overflow of max sizes
 	 */
-	ts = btoc(ep->a_text);
-	lsize = (long)ep->a_data + ep->a_bss;
-	if (lsize != (u_int)lsize) {
+	ts = 0;
+	total = 0;
+	for (n = 1; n <= ep->a_nseg; n++) {
+		if (u.u_error = getxseg(ip, n, &xs))
+			return;
+		size = xs.xs_memsz;
+		if (n == ep->a_dseg) {
+			size += ep->a_stack;
+			if (xs.xs_type != XS_DATA)
+				size = 0;
+			else if (ep->a_stack < nargc) {
+				u.u_error = E2BIG;
+				return;
+			}
+		}
+		if (size == 0 || size > 0x10000L || xs.xs_filesz > xs.xs_memsz ||
+		    (xs.xs_type != XS_CODE && xs.xs_type != XS_DATA) ||
+		    (n == ep->a_eseg && xs.xs_type != XS_CODE)) {
+			u.u_error = ENOEXEC;
+			return;
+		}
+		if (xs.xs_type == XS_CODE)
+			ts += btoc(size);
+		total += btoc(size);
+	}
+	if (total + USIZE > maxmem) {
 		u.u_error = ENOMEM;
 		return;
 	}
-	ds = btoc(lsize);
-	ss = SSIZE + btoc(nargc);
 
 	/*
-	 * if auto overlay get second header
+	 * allocate and clear core at this point, committed
+	 * to the new image
 	 */
-	sovdata = u.u_ovdata;
-	u.u_ovdata.uo_ovbase = 0;
-	u.u_ovdata.uo_curov = 0;
-	if (ovflag) {
-		u.u_error = rdwri(UIO_READ, ip, ovhead, sizeof(ovhead), 
-			(off_t)sizeof(struct exec), UIO_SYSSPACE, IO_UNIT, &resid);
-		if (resid != 0)
-			u.u_error = ENOEXEC;
-		if (u.u_error) {
-			u.u_ovdata = sovdata;
-			return;
-		}
-		/* set beginning of overlay segment */
-		u.u_ovdata.uo_ovbase = ctos(ts);
-
-		/* 0th entry is max size of the overlays */
-		ovmax = btoc(ovhead[0]);
-
-		/* set max number of segm. registers to be used */
-		u.u_ovdata.uo_nseg = ctos(ovmax);
-
-		/* set base of data space */
-		u.u_ovdata.uo_dbase = stoc(u.u_ovdata.uo_ovbase +
-		    u.u_ovdata.uo_nseg);
-
-		/*
-		 * Set up a table of offsets to each of the overlay
-		 * segements. The ith overlay runs from ov_offst[i-1]
-		 * to ov_offst[i].
-		 */
-		u.u_ovdata.uo_ov_offst[0] = ts;
-		{
-			register int t, i;
-
-			/* check if any overlay is larger than ovmax */
-			for (i = 1; i <= NOVL; i++) {
-				if ((t = btoc(ovhead[i])) > ovmax) {
-					u.u_error = ENOEXEC;
-					u.u_ovdata = sovdata;
-					return;
-				}
-				u.u_ovdata.uo_ov_offst[i] =
-					t + u.u_ovdata.uo_ov_offst[i - 1];
-			}
-		}
-	}
-	if (overlay) {
-		if (u.u_sep == 0 && ctos(ts) != ctos(u.u_tsize) || nargc) {
-			u.u_error = ENOMEM;
-			return;
-		}
-		ds = u.u_dsize;
-		ss = u.u_ssize;
-		sep = u.u_sep;
+	u.u_prof.pr_scale = 0;
+	if (p->p_flag & SVFORK)
+		endvfork();
+	else
 		xfree();
-		xalloc(ip,ep);
-		u.u_ar0[PC] = ep->a_entry & ~01;
-	} else {
-		if (estabur(ts, ds, ss, sep, RO)) {
-			u.u_ovdata = sovdata;
-			return;
+	for (n = 1; n < NSEG; n++)
+		segfree(n);
+	fpdrop();
+
+	offset = sizeof (struct exec) + ep->a_nseg * (off_t)sizeof (xs);
+	ts = 0;
+	for (n = 1; n <= ep->a_nseg; n++) {
+		if (u.u_error = getxseg(ip, n, &xs))
+			goto dead;
+		sp = &PSEG(p)[n];
+		size = xs.xs_memsz;
+		if (xs.xs_type == XS_CODE) {
+			sp->ps_addr = ts;
+			sp->ps_size = btoc(size);
+			sp->ps_limit = size - 1;
+			sp->ps_flag = PS_USED | PS_TEXT;
+			ts += sp->ps_size;
+		} else {
+			if (n == ep->a_dseg)
+				size += ep->a_stack;
+			expand((int)btoc(size), n);
+			sp->ps_limit = size - 1;
+			sp->ps_flag = PS_USED;
+			setldt(p, n);
+			/* clear what the file does not have */
+			startc = xs.xs_filesz >> PGSHIFT;
+			clear(sp->ps_addr + startc, sp->ps_size - startc);
+			if (u.u_error = getxdata(ip, n, xs.xs_filesz, offset))
+				goto dead;
 		}
-
-		/*
-		 * allocate and clear core at this point, committed
-		 * to the new image
-		 */
-		u.u_prof.pr_scale = 0;
-		if (u.u_procp->p_flag & SVFORK)
-			endvfork();
-		else
-			xfree();
-		expand(ds, S_DATA);
-		{
-			register u_int numc, startc;
-
-			startc = btoc(ep->a_data);	/* clear BSS only */
-			if (startc != 0)
-				startc--;
-			numc = ds - startc;
-			clear(u.u_procp->p_daddr + startc, numc);
-		}
-		expand(ss, S_STACK);
-		clear(u.u_procp->p_saddr, ss);
-		xalloc(ip, ep);
-
-		/*
-		 * read in data segment
-		 */
-		estabur((u_int)0, ds, (u_int)0, 0, RO);
-		offset = sizeof(struct exec);
-		if (ovflag) {
-			offset += sizeof(ovhead);
-			offset += (((long)u.u_ovdata.uo_ov_offst[NOVL]) << 6);
-		}
-		else
-			offset += ep->a_text;
-		rdwri(UIO_READ, ip, (caddr_t) 0, ep->a_data, offset,
-			UIO_USERSPACE, IO_UNIT, (int *)0);
-
-		/*
-		 * set SUID/SGID protections, if no tracing
-		 */
-		if ((u.u_procp->p_flag & P_TRACED)==0) {
-			u.u_uid = uid;
-			u.u_procp->p_uid = uid;
-			u.u_groups[0] = gid;
-		} else
-			psignal(u.u_procp, SIGTRAP);
-		u.u_svuid = u.u_uid;
-		u.u_svgid = u.u_groups[0];
-		u.u_acflag &= ~ASUGID;	/* start fresh setuid/gid priv use */
+		offset += (xs.xs_filesz + 1) & ~1L;
 	}
+	if (ts) {
+		xalloc(ip, ep, ts);
+		if (u.u_error)
+			goto dead;
+	}
+	sureg();
+
+	/*
+	 * set SUID/SGID protections, if no tracing
+	 */
+	if ((p->p_flag & P_TRACED)==0) {
+		u.u_uid = uid;
+		p->p_uid = uid;
+		u.u_groups[0] = gid;
+	} else
+		psignal(p, SIGTRAP);
+	u.u_svuid = u.u_uid;
+	u.u_svgid = u.u_groups[0];
+	u.u_acflag &= ~ASUGID;	/* start fresh setuid/gid priv use */
+
 	u.u_tsize = ts;
-	u.u_dsize = ds;
-	u.u_ssize = ss;
-	u.u_sep = sep;
-	estabur(ts, ds, ss, sep, RO);
+	u.u_dsize = p->p_dsize;
+	u.u_ssize = btoc(ep->a_stack);
+	u.u_model = ep->a_model;
+	u.u_dseg = ep->a_dseg;
+	sp = &PSEG(p)[ep->a_dseg];
+	u.u_break = sp->ps_limit + 1;
+	u.u_stack0 = u.u_break - ep->a_stack;
+
+	/*
+	 * The registers the program starts with.  BX is the break, which
+	 * the program has no other way to know while its stack lies
+	 * between its data and the break.
+	 */
+	tf = (struct trapframe *)u.u_ar0;
+	bzero((caddr_t)tf, sizeof (*tf));
+	tf->tf_bx = u.u_break;
+	tf->tf_cs = LSEL(ep->a_eseg);
+	tf->tf_ip = ep->a_entry;
+	tf->tf_ds = tf->tf_es = tf->tf_ss = LSEL(ep->a_dseg);
+	tf->tf_sp = u.u_break;
+	tf->tf_flags = PSL_USERSET;
+	return;
+
+dead:
+	/*
+	 * There is no going back to the old program, and the new one is
+	 * not all there.
+	 */
+	psignal(p, SIGKILL);
+}
+
+/*
+ * Read a program's code into the memory of its text structure, which is
+ * new.  The process's table already says where each code segment is in
+ * it.  The descriptor for each is made writable data while the segment
+ * is read.  Called by xalloc.
+ */
+xread(ip, ep)
+	struct inode *ip;
+	register struct exec *ep;
+{
+	register struct proc *p = u.u_procp;
+	register struct pseg __far *sp;
+	struct exseg xs;
+	register int n;
+	off_t offset;
+	int error;
+
+	offset = sizeof (struct exec) + ep->a_nseg * (off_t)sizeof (xs);
+	for (n = 1; n <= ep->a_nseg; n++) {
+		if (error = getxseg(ip, n, &xs))
+			return (error);
+		if (xs.xs_type == XS_CODE) {
+			sp = &PSEG(p)[n];
+			sp->ps_flag |= PS_WTEXT;
+			setldt(p, n);
+			error = getxdata(ip, n, xs.xs_filesz, offset);
+			sp->ps_flag &= ~PS_WTEXT;
+			setldt(p, n);
+			if (error)
+				return (error);
+		}
+		offset += (xs.xs_filesz + 1) & ~1L;
+	}
+	return (0);
 }

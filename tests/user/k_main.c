@@ -28,7 +28,7 @@ struct xseg {
 };
 
 #define	NLDT	8
-struct segdesc	ldt[NLDT];
+struct segdesc	uldt[NLDT];	/* the process's descriptor table */
 
 extern unsigned char userprog[];
 extern unsigned	nofault;
@@ -109,7 +109,7 @@ load()
 	int i, error = 0;
 
 	check(xh->x_magic == 0x0286 && xh->x_nseg < NLDT, "the program's header");
-	setdesc(&gdt[GDT_LDT], physaddr((unsigned)ldt), sizeof ldt - 1, SD_LDT);
+	setdesc(&gdt[GDT_LDT], physaddr((unsigned)uldt), sizeof uldt - 1, SD_LDT);
 	lldt(SEL(GDT_LDT));
 	for (i = 1; i <= xh->x_nseg; i++, xs++) {
 		size = xs->xs_memsz;
@@ -120,14 +120,14 @@ load()
 		}
 		sel = LSEL(i);
 		/* As data while it is filled; code cannot be written. */
-		setdesc(&ldt[i], mem, size - 1, SD_UDATA);
+		setdesc(&uldt[i], mem, size - 1, SD_UDATA);
 		error |= copyout(p, UADDR(sel, 0), (unsigned)xs->xs_filesz);
 		for (off = xs->xs_filesz; off < size; off += n) {
 			n = size - off < sizeof zeros ? size - off : sizeof zeros;
 			error |= copyout(zeros, UADDR(sel, off), n);
 		}
 		if (xs->xs_type == 1)
-			ldt[i].sd_access = SD_UCODE;
+			uldt[i].sd_access = SD_UCODE;
 		p += (xs->xs_filesz + 1) & ~1;
 		mem += ((long)size + 1) & ~1;
 	}

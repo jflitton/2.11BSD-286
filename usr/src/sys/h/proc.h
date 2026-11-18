@@ -51,10 +51,10 @@ struct	proc {
 		short	P_pgrp;		/* name of process group leader */
 		struct	proc *P_link;	/* linked list of running processes */
 		memaddr	P_addr;		/* address of u. area */
-		memaddr	P_daddr;	/* address of data area */
-		memaddr	P_saddr;	/* address of stack area */
-		size_t	P_dsize;	/* size of data area (clicks) */
-		size_t	P_ssize;	/* size of stack segment (clicks) */
+		size_t	P_dsize;	/* size of its own segments (clicks),
+					   which machine/seg.h lists */
+		char	P_slot;		/* the slot it runs in */
+		char	P_dummy2;
 		caddr_t	P_wchan;	/* event process is awaiting */
 		struct	text *P_textp;	/* pointer to text structure */
 		struct	k_itimerval P_realtimer;
@@ -78,10 +78,8 @@ struct	proc {
 #define	p_pgrp		p_un.p_alive.P_pgrp
 #define	p_link		p_un.p_alive.P_link
 #define	p_addr		p_un.p_alive.P_addr
-#define	p_daddr		p_un.p_alive.P_daddr
-#define	p_saddr		p_un.p_alive.P_saddr
 #define	p_dsize		p_un.p_alive.P_dsize
-#define	p_ssize		p_un.p_alive.P_ssize
+#define	p_slot		p_un.p_alive.P_slot
 #define	p_wchan		p_un.p_alive.P_wchan
 #define	p_textp		p_un.p_alive.P_textp
 #define	p_realtimer	p_un.p_alive.P_realtimer
@@ -94,12 +92,12 @@ struct	proc {
 #define	PIDHASH(pid)	((pid) & (PIDHSZ - 1))
 
 #if defined(KERNEL) && !defined(SUPERVISOR)
-struct	proc *pidhash[PIDHSZ];
-struct	proc *pfind();
-struct	proc proc[], *procNPROC;	/* the proc table itself */
-struct	proc *freeproc, *zombproc, *allproc, *qs;
+extern struct	proc *pidhash[PIDHSZ];
+struct	proc *pfind(), *newproc();
+extern struct	proc proc[], *procNPROC;	/* the proc table itself */
+extern struct	proc *freeproc, *zombproc, *allproc, *qs;
 			/* lists of procs in various states */
-int	nproc;
+extern int	nproc;
 #endif
 
 /* stat codes */
@@ -128,7 +126,5 @@ int	nproc;
 #define	P_SELECT	0x4000	/* selecting; wakeup/waiting danger */
 	/*		0x8000	/* unused */
 
-#define	S_DATA	0		/* specified segment */
-#define	S_STACK	1
 
 #endif	/* !_SYS_PROC_H_ */

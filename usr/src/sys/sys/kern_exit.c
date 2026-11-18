@@ -89,11 +89,14 @@ exit(rv)
 	if (p->p_flag & SVFORK)
 		endvfork();
 	else {
+		register int n;
+
 		xfree();
-		mfree(coremap, p->p_dsize, p->p_daddr);
-		mfree(coremap, p->p_ssize, p->p_saddr);
+		for (n = 1; n < NSEG; n++)
+			segfree(n);
 	}
 	mfree(coremap, USIZE, p->p_addr);
+	ufree(p);
 
 	if (p->p_pid == 1)
 		panic("init died");
@@ -158,9 +161,9 @@ again:
 	struct	args
 		{
 		int pid;
-		int *status;
+		int __far *status;
 		int options;
-		struct rusage *rusage;
+		struct rusage __far *rusage;
 		int compat;
 		};
 
@@ -212,7 +215,7 @@ loop:
 		retval[0] = p->p_pid;
 		retval[1] = p->p_xstat;
 		if (uap->status && (error = copyout(&p->p_xstat, uap->status,
-						sizeof (uap->status))))
+						sizeof (p->p_xstat))))
 			return(error);
 		if (uap->rusage) {
 			rucvt(&ru, &p->p_ru);
@@ -289,9 +292,9 @@ endvfork()
 	while(!(rpp->p_flag&SVFDONE))
 		sleep((caddr_t)rip,PZERO-1);
 	/*
-	 * The parent has taken back our data+stack, set our sizes to 0.
+	 * The parent has taken back our segments, set our sizes to 0.
 	 */
 	u.u_dsize = rpp->p_dsize = 0;
-	u.u_ssize = rpp->p_ssize = 0;
+	u.u_ssize = 0;
 	rpp->p_flag &= ~(SVFDONE | SLOCK);
 }

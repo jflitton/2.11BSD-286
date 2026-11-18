@@ -35,5 +35,6 @@ fi
 #  -fi         the calling convention
 #  -Drestrict= the headers use restrict; other files use inline as a name,
 #              so C99 keywords cannot simply be switched on
+#  -Di286      the machine, as the tree's code asks (#ifdef pdp11, vax)
 exec wcc -q $model -2 -fpi87 -fp2 -s $opt -zl -zls -bt=none \
-    -fi="$here/cc286.h" -Drestrict= $args -fo="$out"
+    -fi="$here/cc286.h" -Drestrict= -Di286 $args -fo="$out"

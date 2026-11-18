@@ -98,6 +98,41 @@ again:
 }
 
 /*
+ * Allocate 'size' units from the given map at exactly 'addr', if they are
+ * all free.  Returns addr, or NULL.  This is how something already
+ * allocated grows where it is: a free piece that follows it begins at
+ * its end.
+ */
+memaddr
+mallocat(mp, size, addr)
+	struct map *mp;
+	register size_t size;
+	register memaddr addr;
+{
+	register struct mapent *bp, *ep;
+
+	for (bp = mp->m_map; bp->m_size && bp->m_addr <= addr; ++bp)
+		if (bp->m_addr == addr) {
+			if (bp->m_size < size)
+				break;
+			bp->m_size -= size;
+			if (bp->m_size)
+				bp->m_addr += size;
+			else for (ep = bp;; ++ep) {
+				*ep = *++bp;
+				if (!bp->m_size)
+					break;
+			}
+#ifdef UCB_METER
+			if (mp == coremap)
+				freemem -= size;
+#endif
+			return (addr);
+		}
+	return ((memaddr)NULL);
+}
+
+/*
  * Free the previously allocated size units at addr into the specified
  * map.  Sort addr into map and combine on one or both ends if possible.
  */

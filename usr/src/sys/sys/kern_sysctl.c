@@ -83,11 +83,11 @@ static struct sysctl_lock {
 } memlock;
 
 struct sysctl_args {
-	int	*name;
+	int __far *name;
 	u_int	namelen;
-	void	*old;
-	size_t	*oldlenp;
-	void	*new;
+	void __far *old;
+	size_t __far *oldlenp;
+	void __far *new;
 	size_t	newlen;
 };
 
@@ -203,9 +203,9 @@ __sysctl()
 kern_sysctl(name, namelen, oldp, oldlenp, newp, newlen)
 	int *name;
 	u_int namelen;
-	void *oldp;
+	void __far *oldp;
 	size_t *oldlenp;
-	void *newp;
+	void __far *newp;
 	size_t newlen;
 {
 	int error, level, tmphz;
@@ -316,9 +316,9 @@ kern_sysctl(name, namelen, oldp, oldlenp, newp, newlen)
 hw_sysctl(name, namelen, oldp, oldlenp, newp, newlen)
 	int *name;
 	u_int namelen;
-	void *oldp;
+	void __far *oldp;
 	size_t *oldlenp;
-	void *newp;
+	void __far *newp;
 	size_t newlen;
 {
 	char c[10];
@@ -331,10 +331,9 @@ hw_sysctl(name, namelen, oldp, oldlenp, newp, newlen)
 
 	switch (name[0]) {
 	case HW_MACHINE:
-		return (sysctl_rdstring(oldp, oldlenp, newp, "pdp11"));
+		return (sysctl_rdstring(oldp, oldlenp, newp, "i286"));
 	case HW_MODEL:
-		return (sysctl_rdstring(oldp, oldlenp, newp,
-				cpu2str(c,sizeof (c))));
+		return (sysctl_rdstring(oldp, oldlenp, newp, "80286"));
 	case HW_NCPU:
 		return (sysctl_rdint(oldp, oldlenp, newp, 1));	/* XXX */
 	case HW_BYTEORDER:
@@ -356,22 +355,6 @@ hw_sysctl(name, namelen, oldp, oldlenp, newp, newlen)
 	/* NOTREACHED */
 }
 
-static char *
-cpu2str(buf, len)
-	char	*buf;
-	int	len;
-	{
-	register char *cp = buf + len;
-	register int i = cputype;
-
-	*--cp = '\0';
-	do
-		{
-		*--cp = (i % 10) + '0';
-		} while (i /= 10);
-	return(cp);
-	}
-
 #ifdef DEBUG
 /*
  * Debugging related system variables.
@@ -390,9 +373,9 @@ int
 debug_sysctl(name, namelen, oldp, oldlenp, newp, newlen)
 	int *name;
 	u_int namelen;
-	void *oldp;
+	void __far *oldp;
 	size_t *oldlenp;
-	void *newp;
+	void __far *newp;
 	size_t newlen;
 {
 	struct ctldebug *cdp;
@@ -435,9 +418,9 @@ int
 NET_SYSCTL(name, namelen, oldp, oldlenp, newp, newlen)
 	int *name;
 	u_int namelen;
-	void *oldp;
+	void __far *oldp;
 	size_t *oldlenp;
-	void *newp;
+	void __far *newp;
 	size_t newlen;
 {
 	return(KScall(net_sysctl, 6 * sizeof (int),
@@ -462,9 +445,9 @@ int
 vm_sysctl(name, namelen, oldp, oldlenp, newp, newlen)
 	int *name;
 	u_int namelen;
-	void *oldp;
+	void __far *oldp;
 	size_t *oldlenp;
-	void *newp;
+	void __far *newp;
 	size_t newlen;
 {
 	struct	loadavg averunnable;	/* loadavg in resource.h */
@@ -526,9 +509,9 @@ vm_sysctl(name, namelen, oldp, oldlenp, newp, newlen)
  * for an integer-valued sysctl function.
  */
 sysctl_int(oldp, oldlenp, newp, newlen, valp)
-	void *oldp;
+	void __far *oldp;
 	size_t *oldlenp;
-	void *newp;
+	void __far *newp;
 	size_t newlen;
 	int *valp;
 {
@@ -548,9 +531,9 @@ sysctl_int(oldp, oldlenp, newp, newlen, valp)
  * As above, but read-only.
  */
 sysctl_rdint(oldp, oldlenp, newp, val)
-	void *oldp;
+	void __far *oldp;
 	size_t *oldlenp;
-	void *newp;
+	void __far *newp;
 	int val;
 {
 	int error = 0;
@@ -568,9 +551,9 @@ sysctl_rdint(oldp, oldlenp, newp, val)
  * for an long-valued sysctl function.
  */
 sysctl_long(oldp, oldlenp, newp, newlen, valp)
-	void *oldp;
+	void __far *oldp;
 	size_t *oldlenp;
-	void *newp;
+	void __far *newp;
 	size_t newlen;
 	long *valp;
 {
@@ -590,9 +573,9 @@ sysctl_long(oldp, oldlenp, newp, newlen, valp)
  * As above, but read-only.
  */
 sysctl_rdlong(oldp, oldlenp, newp, val)
-	void *oldp;
+	void __far *oldp;
 	size_t *oldlenp;
-	void *newp;
+	void __far *newp;
 	long val;
 {
 	int error = 0;
@@ -610,9 +593,9 @@ sysctl_rdlong(oldp, oldlenp, newp, val)
  * for a string-valued sysctl function.
  */
 sysctl_string(oldp, oldlenp, newp, newlen, str, maxlen)
-	void *oldp;
+	void __far *oldp;
 	size_t *oldlenp;
-	void *newp;
+	void __far *newp;
 	size_t newlen;
 	char *str;
 	int maxlen;
@@ -623,10 +606,10 @@ sysctl_string(oldp, oldlenp, newp, newlen, str, maxlen)
 	if (newp && newlen >= maxlen)
 		return (EINVAL);
 	if (oldp) {
-		error = vcopyout(str, oldp, MIN(len, *oldlenp));
+		error = copyout(str, oldp, MIN(len, *oldlenp));
 	}
 	if (error == 0 && newp) {
-		error = vcopyin(newp, str, newlen);
+		error = copyin(newp, str, newlen);
 		str[newlen] = 0;
 	}
 	*oldlenp = len;
@@ -637,9 +620,9 @@ sysctl_string(oldp, oldlenp, newp, newlen, str, maxlen)
  * As above, but read-only.
  */
 sysctl_rdstring(oldp, oldlenp, newp, str)
-	void *oldp;
+	void __far *oldp;
 	size_t *oldlenp;
-	void *newp;
+	void __far *newp;
 	char *str;
 {
 	int len, error = 0;
@@ -648,7 +631,7 @@ sysctl_rdstring(oldp, oldlenp, newp, str)
 	if (newp)
 		return (EPERM);
 	if (oldp)
-		error = vcopyout(str, oldp, MIN(len, *oldlenp));
+		error = copyout(str, oldp, MIN(len, *oldlenp));
 	*oldlenp = len;
 	return (error);
 }
@@ -658,9 +641,9 @@ sysctl_rdstring(oldp, oldlenp, newp, str)
  * for a structure oriented sysctl function.
  */
 sysctl_struct(oldp, oldlenp, newp, newlen, sp, len)
-	void *oldp;
+	void __far *oldp;
 	size_t *oldlenp;
-	void *newp;
+	void __far *newp;
 	size_t newlen;
 	void *sp;
 	int len;
@@ -683,9 +666,10 @@ sysctl_struct(oldp, oldlenp, newp, newlen, sp, len)
  * for a structure oriented sysctl function.
  */
 sysctl_rdstruct(oldp, oldlenp, newp, sp, len)
-	void *oldp;
+	void __far *oldp;
 	size_t *oldlenp;
-	void *newp, *sp;
+	void __far *newp;
+	void *sp;
 	int len;
 {
 	int error = 0;
@@ -702,13 +686,13 @@ sysctl_rdstruct(oldp, oldlenp, newp, sp, len)
  * Get file structures.
  */
 sysctl_file(where, sizep)
-	char *where;
+	char __far *where;
 	size_t *sizep;
 {
 	int buflen, error;
 	register struct file *fp;
 	struct	file *fpp;
-	char *start = where;
+	char __far *start = where;
 	register int i;
 
 	buflen = *sizep;
@@ -754,7 +738,7 @@ sysctl_file(where, sizep)
 
 int
 sysctl_clockrate(where, sizep)
-	char *where;
+	char __far *where;
 	size_t *sizep;
 {
 	struct	clockinfo clkinfo;
@@ -775,13 +759,13 @@ sysctl_clockrate(where, sizep)
  */
 /* ARGSUSED */
 sysctl_inode(where, sizep)
-	char *where;
+	char __far *where;
 	size_t *sizep;
 {
 	register struct inode *ip;
-	register char *bp = where;
+	register char __far *bp = where;
 	struct inode *ipp;
-	char *ewhere;
+	char __far *ewhere;
 	int error, numi;
 
 	for (numi = 0, ip = inode; ip < inodeNINODE; ip++)
@@ -818,13 +802,13 @@ sysctl_inode(where, sizep)
  * to be extensible...
  */
 sysctl_text(where, sizep)
-	char *where;
+	char __far *where;
 	size_t *sizep;
 {
 	int buflen, error;
 	register struct text *xp;
 	struct	text *xpp;
-	char *start = where;
+	char __far *start = where;
 	register int i;
 
 	buflen = *sizep;
@@ -871,11 +855,11 @@ sysctl_text(where, sizep)
 sysctl_doproc(name, namelen, where, sizep)
 	int *name;
 	u_int namelen;
-	char *where;
+	char __far *where;
 	size_t *sizep;
 {
 	register struct proc *p;
-	register struct kinfo_proc *dp = (struct kinfo_proc *)where;
+	register struct kinfo_proc __far *dp = (struct kinfo_proc __far *)where;
 	int needed = 0;
 	int buflen = where != NULL ? *sizep : 0;
 	int doingzomb;
@@ -955,7 +939,7 @@ again:
 		goto again;
 	}
 	if (where != NULL) {
-		*sizep = (caddr_t)dp - where;
+		*sizep = (char __far *)dp - where;
 		if (needed > *sizep)
 			return (ENOMEM);
 	} else {
@@ -989,15 +973,7 @@ fill_eproc(p, ep)
 /*
  * Three pieces of information we need about a process are not kept in
  * the proc table: real uid, controlling terminal device, and controlling
- * terminal tty struct pointer.  For these we must look in either the u
- * area or the swap area.  If the process is still in memory this is
- * easy but if the process has been swapped out we have to read in the
- * u area.
- *
- * XXX - We rely on the fact that u_ttyp, u_ttyd, and u_ruid are all within
- * XXX - the first 1kb of the u area.  If this ever changes the logic below
- * XXX - will break (and badly).  At the present time (97/9/2) the u area
- * XXX - is 856 bytes long.
+ * terminal tty struct pointer.  For these we must look in the u area.
 */
 
 fill_from_u(p, rup, ttp, tdp)
@@ -1006,11 +982,9 @@ fill_from_u(p, rup, ttp, tdp)
 	struct	tty	**ttp;
 	dev_t	*tdp;
 	{
-	register struct	buf	*bp;
 	dev_t	ttyd;
 	uid_t	ruid;
 	struct	tty	*ttyp;
-	struct	user	*up;
 
 	if	(p->p_stat == SZOMB)
 		{
@@ -1019,43 +993,13 @@ fill_from_u(p, rup, ttp, tdp)
 		ttyd = NODEV;
 		goto out;
 		}
-	if	(p->p_flag & SLOAD)
-		{
-		mapseg5(p->p_addr, (((USIZE - 1) << 8) | RO));
-		ttyd = ((struct user *)SEG5)->u_ttyd;
-		ttyp = ((struct user *)SEG5)->u_ttyp;
-		ruid = ((struct user *)SEG5)->u_ruid;
-		normalseg5();
-		}
-	else
-		{
-		bp = geteblk();
-		bp->b_dev = swapdev;
-		bp->b_blkno = (daddr_t)p->p_addr;
-		bp->b_bcount = DEV_BSIZE;	/* XXX */
-		bp->b_flags = B_READ;
-
-		(*bdevsw[major(swapdev)].d_strategy)(bp);
-		biowait(bp);
-
-		if	(u.u_error)
-			{
-			ttyd = NODEV;
-			ttyp = NULL;
-			ruid = (uid_t)-2;
-			}
-		else
-			{
-			up = (struct user *)mapin(bp);
-			ruid = up->u_ruid;	/* u_ruid = offset 164 */
-			ttyd = up->u_ttyd;	/* u_ttyd = offset 654 */
-			ttyp = up->u_ttyp;	/* u_ttyp = offset 652 */
-			mapout(bp);
-			}
-		bp->b_flags |= B_AGE;
-		brelse(bp);
-		u.u_error = 0;		/* XXX */
-		}
+	/*
+	 * A process's user structure stays in memory when the process is
+	 * swapped out, in its slot or at p_addr: the machine knows which.
+	 */
+	ucopy(p, offsetof(struct user, u_ttyd), (caddr_t)&ttyd, sizeof (ttyd));
+	ucopy(p, offsetof(struct user, u_ttyp), (caddr_t)&ttyp, sizeof (ttyp));
+	ucopy(p, offsetof(struct user, u_ruid), (caddr_t)&ruid, sizeof (ruid));
 out:
 	if	(rup)
 		*rup = ruid;

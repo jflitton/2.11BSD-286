@@ -14,96 +14,75 @@
 #include "kernel.h"
 
 /*
- * Change the size of the data+stack regions of the process.
+ * Change the size of one of the running process's own segments: seg is
+ * its place in the process's table (machine/seg.h), newsize its new size
+ * in clicks.  A segment that was not there has size 0.
  * If the size is shrinking, it's easy -- just release the extra core.
- * If it's growing, and there is core, just allocate it and copy the
- * image, taking care to reset registers to account for the fact that
- * the system's stack has moved.  If there is no core, arrange for the
- * process to be swapped out after adjusting the size requirement -- when
- * it comes in, enough core will be allocated.  After the expansion, the
- * caller will take care of copying the user's stack towards or away from
- * the data area.  The data and stack segments are separated from each
- * other.  The second argument to expand specifies which to change.  The
- * stack segment will not have to be copied again after expansion.
+ * If it's growing, the memory that follows it is taken if that is free.
+ * Otherwise, if there is core, just allocate it and copy the image.  If
+ * there is no core, arrange for the process to be swapped out after
+ * adjusting the size requirement -- when it comes in, enough core will
+ * be allocated.
+ *
+ * The caller sets the segment's limit and flags, clears what is new,
+ * and has its descriptor remade.
  */
-expand(newsize,segment)
-	int newsize, segment;
+expand(newsize, seg)
+	int newsize, seg;
 {
 	register struct proc *p;
-	register int i, n;
-	int a1, a2;
+	register struct pseg __far *sp;
+	register int n;
+	memaddr a1, a2;
 
 	p = u.u_procp;
-	if (segment == S_DATA) {
-		n = p->p_dsize;
-		p->p_dsize = newsize;
-		a1 = p->p_daddr;
-		if(n >= newsize) {
-			n -= newsize;
-			mfree(coremap, n, a1+newsize);
-			return;
-		}
-	} else {
-		n = p->p_ssize;
-		p->p_ssize = newsize;
-		a1 = p->p_saddr;
-		if(n >= newsize) {
-			n -= newsize;
-			p->p_saddr += n;
-			mfree(coremap, n, a1);
-			/*
-			 *  Since the base of stack is different,
-			 *  segmentation registers must be repointed.
-			 */
-			sureg();
-			return;
-		}
+	sp = &PSEG(p)[seg];
+	n = sp->ps_size;
+	sp->ps_size = newsize;
+	if (newsize)
+		sp->ps_flag = PS_USED;
+	p->p_dsize += newsize - n;
+	a1 = sp->ps_addr;
+	if (n >= newsize) {
+		mfree(coremap, n - newsize, a1 + newsize);
+		return;
 	}
+	if (n && mallocat(coremap, newsize - n, a1 + n))
+		return;
 	if (setjmp(&u.u_ssave)) {
 		/*
-		 * If we had to swap, the stack needs moving up.
+		 * Swapped out and in again: everything is somewhere else.
 		 */
-		if (segment == S_STACK) {
-			a1 = p->p_saddr;
-			i = newsize - n;
-			a2 = a1 + i;
-			/*
-			 * i is the amount of growth.  Copy i clicks
-			 * at a time, from the top; do the remainder
-			 * (n % i) separately.
-			 */
-			while (n >= i) {
-				n -= i;
-				copy(a1+n, a2+n, i);
-			}
-			copy(a1, a2, n);
-		}
 		sureg();
 		return;
 	}
-	if (u.u_fpsaved == 0) {
-		savfp(&u.u_fps);
-		u.u_fpsaved = 1;
-	}
 	a2 = malloc(coremap, newsize);
 	if (a2 == NULL) {
-		if (segment == S_DATA)
-			swapout(p, X_FREECORE, n, X_OLDSIZE);
-		else
-			swapout(p, X_FREECORE, X_OLDSIZE, n);
+		swapout(p, X_FREECORE, seg, n);
 		p->p_flag |= SSWAP;
 		swtch();
 		/* NOTREACHED */
 	}
-	if (segment == S_STACK) {
-		p->p_saddr = a2;
-		/*
-		 * Make the copy put the stack at the top of the new area.
-		 */
-		a2 += newsize - n;
-	} else
-		p->p_daddr = a2;
-	copy(a1, a2, n);
-	mfree(coremap, n, a1);
-	sureg();
+	sp->ps_addr = a2;
+	if (n) {
+		copy(a1, a2, n);
+		mfree(coremap, n, a1);
+	}
+}
+
+/*
+ * Take a segment out of the running process's table: free it if it is
+ * the process's own, forget it if it is part of the text.
+ */
+segfree(seg)
+	int seg;
+{
+	register struct pseg __far *sp;
+
+	sp = &PSEG(u.u_procp)[seg];
+	if ((sp->ps_flag & PS_USED) && (sp->ps_flag & PS_TEXT) == 0)
+		expand(0, seg);
+	sp->ps_flag = 0;
+	sp->ps_size = 0;
+	setldt(u.u_procp, seg);
 }

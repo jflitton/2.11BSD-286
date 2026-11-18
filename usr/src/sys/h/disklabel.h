@@ -259,7 +259,11 @@ struct format_op {
  * information about a partition on a disk.
  */
 struct partinfo {
+#ifdef KERNEL
+	struct disklabel __far *disklab;
+#else
 	struct disklabel *disklab;
+#endif
 	struct partition *part;
 };
 
@@ -287,8 +291,8 @@ struct disklabel *getdiskbyname();
 #endif
 
 #if	defined(KERNEL) && !defined(SUPERVISOR)
-memaddr	disklabelalloc();
-#define	LABELDESC	(((btoc(sizeof (struct disklabel)) - 1) << 8) | RW)
+struct disklabel __far *disklabelalloc();
+int	dkcksum(struct disklabel __far *lp);
 #endif
 
 #endif	/* !_SYS_DISKLABEL_H_ */

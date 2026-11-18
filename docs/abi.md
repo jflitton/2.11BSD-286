@@ -3,8 +3,8 @@
 Decided November 2026. The calling convention and the helper routines run
 under the tests: `tests/crt` in real mode with near calls, `tests/pm` in
 protected mode with far ones. The system call entry and the user address
-type run under `tests/user`, with a stand-in for the kernel's system call
-table; [processes](processes.md) describes them as built.
+type run in the kernel itself, under `tests/kernel`;
+[processes](processes.md) describes them as built.
 
 ## C calling convention
 
@@ -72,9 +72,10 @@ the carry flag clear, or an error number in AX with it set.
 
 Arguments were first left on the program's stack, as 2.11BSD has them on
 the PDP-11, for the kernel to copy in. Registers are the better fit here:
-the kernel gets the arguments for nothing, already in the frame it saves,
-and it no longer needs to know a program's memory model to find them or to
-widen a 16-bit pointer.
+the arguments are already in the frame the kernel saves, six words to
+move and nothing to fetch from the process, and the kernel no longer
+needs to know a program's memory model to find them or to widen a 16-bit
+pointer.
 
 A 286 call gate was the alternative to the interrupt. It can copy
 arguments to the kernel stack itself, but with arguments in registers
@@ -120,3 +121,42 @@ address into one by assignment. The kernel does not dereference it:
 This is done from the start. The kernel has 93 system call argument
 structures and about 144 calls to the copy routines; introducing the type
 later would mean touching each of them twice.
+
+## Far pointers in the kernel, and what the compiler does not check
+
+The kernel is compiled with near data pointers, and a far pointer is the
+exception: an address in a process, a buffer's data (`mapin(bp)` is a far
+pointer kept in the buffer's header; nothing is mapped), a table that was
+moved out of the kernel's data segment. Old-style C gives the compiler
+little to check such a mixture with, and three things turned out to
+matter.
+
+- A function that takes a far pointer must be declared, with a
+  prototype, wherever it is called. Without one the caller pushes a near
+  pointer as two bytes where the function expects four. The copy routines
+  and `bcopy`, `bzero` and `bcmp`, which take far pointers so that one
+  routine serves memory inside and outside the data segment, are declared
+  in `machine/seg.h`, which `param.h` includes for every file.
+- The compiler warns when a far pointer is narrowed implicitly, and the
+  kernel's Makefile makes that warning an error. It says nothing about a
+  cast, and the tree is full of `(caddr_t)` casts that were harmless when
+  every pointer was 16 bits. Nor does it check a far argument to a
+  function with no prototype. `tools/farlint.py` looks for both by
+  pattern.
+- `sizeof` a pointer is no longer `sizeof (int)`. One system call copied
+  out `sizeof (uap->status)` bytes and so wrote four bytes over a
+  two-byte variable in the process.
+
+Two more things are the compiler's own:
+
+- It has no common storage. A variable declared in a header without
+  `extern` is defined in every file that includes the header, the linker
+  keeps one definition and warns, and if the definitions differ in size
+  the wrong one may win. The kernel's headers now say `extern`, the
+  variables are defined once (most in `sys/sys/init_main.c`), and the
+  Makefile makes the linker's warning an error.
+- A null near pointer converted to far is a null far pointer, not offset
+  0 of the data segment. So the address of an object at offset 0 of a
+  program's data segment cannot be passed to the kernel, and a program's
+  start-up code keeps the first bytes of that segment unused
+  ([processes](processes.md)).

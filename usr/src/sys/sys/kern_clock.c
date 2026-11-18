@@ -28,18 +28,14 @@
  *	maintain date
  *	profile
  */
-/*ARGSUSED*/
-hardclock(dev,sp,r1,ov,nps,r0,pc,ps)
-	dev_t dev;
-	caddr_t sp, pc;
-	int r1, ov, nps, r0, ps;
+hardclock(pc, ps)
+	u_int pc;
+	int ps;
 {
 	register struct callout *p1;
 	register struct proc *p;
 	register int needsoft = 0;
-	mapinfo map;
 
-	savemap(map);		/* ensure normal mapping of kernel data */
 
 	/*
 	 * Update real-time timeout queue.
@@ -67,7 +63,7 @@ hardclock(dev,sp,r1,ov,nps,r0,pc,ps)
 	 * assuming that the current state has been around at least
 	 * one tick.
 	 */
-	if (USERMODE(ps)) {
+	if (ps & CLK_USER) {
 		if (u.u_prof.pr_scale)
 			needsoft = 1;
 		/*
@@ -139,11 +135,8 @@ hardclock(dev,sp,r1,ov,nps,r0,pc,ps)
 		++time.tv_sec;
 	}
 
-	if (needsoft && BASEPRI(ps)) {	/* if ps is high, just return */
-		(void) _splsoftclock();
-		softclock(pc,ps);
-	}
-	restormap(map);
+	if (needsoft)
+		setsoftclock(pc, ps);
 }
 
 #ifdef UCB_METER
@@ -158,7 +151,7 @@ int	dk_ndrive = DK_NDRIVE;
  */
 /*ARGSUSED*/
 gatherstats(pc, ps)
-	caddr_t pc;
+	u_int pc;
 	int ps;
 {
 	register int cpstate, s;
@@ -166,7 +159,7 @@ gatherstats(pc, ps)
 	/*
 	 * Determine what state the cpu is in.
 	 */
-	if (USERMODE(ps)) {
+	if (ps & CLK_USER) {
 		/*
 		 * CPU was in user state.
 		 */
@@ -187,7 +180,7 @@ gatherstats(pc, ps)
 		 * timers makes doing anything else difficult.
 		 */
 		cpstate = CP_SYS;
-		if (noproc && BASEPRI(ps))
+		if (noproc && (ps & CLK_BASE))
 			cpstate = CP_IDLE;
 	}
 	/*
@@ -207,7 +200,7 @@ gatherstats(pc, ps)
  * Run periodic events from timeout queue.
  */
 softclock(pc, ps)
-	caddr_t pc;
+	u_int pc;
 	int ps;
 {
 	for (;;) {
@@ -238,7 +231,7 @@ softclock(pc, ps)
 	 * If trapped user-mode and profiling, give it
 	 * a profiling tick.
 	 */
-	if (USERMODE(ps)) {
+	if (ps & CLK_USER) {
 		register struct proc *p = u.u_procp;
 
 		if (u.u_prof.pr_scale)
@@ -315,7 +308,7 @@ untimeout(fun, arg)
 profil()
 {
 	register struct a {
-		short	*bufbase;
+		short __far *bufbase;
 		unsigned bufsize;
 		unsigned pcoffset;
 		unsigned pcscale;

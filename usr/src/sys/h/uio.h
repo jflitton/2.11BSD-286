@@ -44,8 +44,16 @@
  * XXX
  * iov_base should be a void *.
  */
+/*
+ * The kernel's is always the first form: a program in a model with near
+ * data pointers has its library pass the kernel far ones.
+ */
 struct iovec {
+#ifdef KERNEL
+	char __far *iov_base;	/* Base address. */
+#else
 	char	*iov_base;	/* Base address. */
+#endif
 	size_t	 iov_len;	/* Length. */
 };
 
@@ -66,4 +74,11 @@ struct uio {
 	enum	uio_seg uio_segflg;
 	enum	uio_rw uio_rw;
 };
+#ifdef KERNEL
+struct inode;
+int	uiomove(void __far *cp, u_int n, struct uio *uio);
+int	rdwri(enum uio_rw rw, struct inode *ip, void __far *base, int len,
+	    off_t offset, enum uio_seg segflg, int ioflg, int *aresid);
+#endif
+
 #endif /* !_SYS_UIO_H_ */

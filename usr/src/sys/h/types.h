@@ -34,6 +34,13 @@ typedef	struct	label_t	{
 	int	val[8];			/* regs 2-7, __ovno and super SP */
 } label_t;
 #endif
+
+#ifdef i286
+typedef	struct	_physadr { short r[1]; } *physadr;
+typedef	struct	label_t	{
+	int	val[6];			/* SI, DI, BP, SP, far return address */
+} label_t;
+#endif
 typedef	struct	_quad { long val[2]; } quad;
 typedef	long	daddr_t;
 typedef	char *	caddr_t;

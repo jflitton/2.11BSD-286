@@ -31,7 +31,7 @@ struct text
 
 #if defined(KERNEL) && !defined(SUPERVISOR)
 extern struct	text text[], *textNTEXT;
-int	ntext;
+extern int	ntext;
 #endif
 
 #define	XTRC	0x01		/* Text may be written, exclusive use */

@@ -13,8 +13,12 @@ struct	msgbuf {
 	long	msg_magic;
 	int	msg_bufx;
 	int	msg_bufr;
-	u_short	msg_click;
-	char	*msg_bufc;
+	u_short	msg_click;	/* not used */
+#ifdef KERNEL
+	char __far *msg_bufc;	/* outside the kernel's data segment */
+#else
+	u_long	msg_bufc;
+#endif
 };
 
 #define	logMSG	0		/* /dev/klog */

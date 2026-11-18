@@ -28,21 +28,21 @@ has file names that differ only by case.
 | `reference/prior-art/` | MINIX, RetroBSD, DiscoBSD, ELKS, Coherent sources | no |
 | `reference/toolchain/` | the cross-compiler's distribution archive | no |
 | `toolchain/` | the installed cross-compiler | no |
-| `obj/`, `images/`, `vm/` | build output, disk images, emulator state (none yet) | no |
+| `obj/`, `images/`, `vm/` | build output, disk images, emulator state | no |
 
 Where the 286 code goes, beside its PDP-11 counterpart in each case:
 
 | new | beside | holds |
 |-----|--------|-------|
-| `usr/src/sys/i286/` | `pdp/` | startup, traps, system call entry, copy routines, segments and tasks, 287; the first four exist |
+| `usr/src/sys/i286/` | `pdp/` | startup, traps, system calls, copy routines, segments, switching between processes, signals, the 287, the clock, a console on the serial port, a RAM disk |
 | `usr/src/sys/i286at/` | `pdpuba/` | AT-bus drivers: SCSI, console, serial, clock; to come |
 | `usr/src/sys/i286if/` | `pdpif/` | network interfaces; to come |
 | `usr/src/sys/i286stand/` | `pdpstand/`, `mdec/` | boot blocks and standalone programs; the diskette boot sector exists |
-| `usr/src/sys/PS2_30/` | `GENERIC/` | the kernel configuration; to come |
+| `usr/src/sys/PC/` | `GENERIC/` | the kernel's configuration and Makefile: `make -C usr/src/sys/PC` builds `obj/PC/unix` |
 | `usr/src/lib/libc/i286/` | `lib/libc/pdp/` | libc's machine-dependent part; `crt/` exists, the rest is to come |
 
 The kernel picks its machine through the link `usr/src/sys/machine`, which
-points at `pdp` upstream.
+points at `pdp` upstream and at `i286` here, as does `usr/include/machine`.
 
 ## Branches
 
@@ -145,7 +145,11 @@ DOS and OS/2 user's guide with nothing on ports or interrupts; not kept.)
 | `tools/env.sh` | sourced, puts the toolchain on `PATH` |
 | `tools/cc286`, `tools/cc286.h` | compile one C file with the system's memory model and calling convention |
 | `tools/ne2aout.py` | turns the linker's output into the system's executable format; `--dump` prints one |
-| `tools/mkfd.py` | makes a bootable diskette image from an executable |
+| `tools/mkfd.py` | makes a bootable diskette image from an executable, with a file system image for the kernel's RAM disk if wanted |
+| `tools/mkfs.py` | makes a file system image from a list of files |
+| `tools/mkstubs.py` | writes a program's system call stubs from a table of the calls' arguments |
+| `tools/kpatch.py` | changes a variable in an executable file, by name |
+| `tools/farlint.py` | looks for far pointers that kernel code truncates without the compiler noticing |
 | `tools/untap.py` | splits a SimH `.tap` tape image into its files |
 | `tools/tar2git.py` | commits tar archives to a branch without unpacking them |
 | `tools/import-upstream.sh` | rebuilds the `upstream` import from the tape, to check it |
@@ -160,8 +164,9 @@ serial port and takes the `@exit` line it ends with as the result.
 ```sh
 . tools/env.sh
 tests/crt/run.sh        # the compiler's helper routines: 5,161 checks
-tests/pm/run.sh         # the kernel's start-up and trap entry: 52 checks
+tests/pm/run.sh         # the kernel's start-up and trap entry: 54 checks
 tests/user/run.sh       # a process in ring 3: 58 checks
+tests/kernel/run.sh     # the kernel, with a test program as init: 49 checks
 ```
 
 - `tests/crt` is a small-model program in real mode, built through the
@@ -178,7 +183,13 @@ tests/user/run.sh       # a process in ring 3: 58 checks
   right to, and tries everything a process must not do. A medium-model
   one is the kernel under it, with the kernel's own entry and copy
   routines and a stand-in for `trap` and `syscall`; it carries the first
-  as data, there being no file system yet.
+  as data.
+- `tests/kernel` builds the kernel and boots it with a root file system
+  made by `tools/mkfs.py`, which the kernel loads as its RAM disk. Its
+  `/etc/init` is a test program: files, the break, `fork`, `execve`,
+  `vfork`, `wait`, pipes, signals and faults, twelve processes at once in
+  five slots, and 24 processes that need more memory between them than
+  the kernel has been left, so that some are swapped out and in.
 
 The emulator is [86Box](https://github.com/86Box/86Box), as an IBM PS/2
 Model 30 286 with a 287 (`tests/harness/86box.cfg`): a real 286, which
@@ -226,16 +237,22 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   (`usr/src/lib/libc/i286/crt`) and pass their tests, near in real mode and
   far in protected mode. The three for `__huge` pointers are not written
   yet.
-- The kernel's first layer runs in the emulator: a diskette boot sector
-  loads a multi-segment executable, and the start-up code enters protected
-  mode with the descriptor tables in place, takes exceptions and
-  interrupts, and calls C ([booting](docs/boot.md)). The diskette boot
-  sector and the start-up have not run on the real machine.
-- A process runs in ring 3 with its segments in a local descriptor table,
-  makes system calls, and is stopped by the processor from everything it
-  must not do; the kernel copies to and from it with the process's own
-  privilege ([processes](docs/processes.md)). One process, and a stand-in
-  for the system call table.
-- Nothing machine-independent is ported yet. Next: compile `sys/sys`
-  against the new machine headers, starting with the user address type in
-  the system call argument structures.
+- The kernel runs in the emulator ([booting](docs/boot.md),
+  [processes](docs/processes.md)). A diskette boot sector loads it; it
+  enters protected mode, loads a root file system into a RAM disk, and
+  starts `/etc/init`. Under it processes run in ring 3 with their segments
+  in local descriptor tables, and fork, execute programs, share code,
+  grow, pipe to each other, take signals and are swapped. All of
+  `sys/sys` that a kernel without networking needs is compiled in, 53
+  files, changed where it assumed the PDP-11's memory management.
+- That is the state in an emulated PS/2 Model 30 286 only. Nothing has
+  run on a real machine.
+- What the kernel does not have: a driver for any real disk or for the
+  network card, a console on the display and keyboard, pseudo-terminals
+  (the code is there and not yet compiled in), networking, quotas. The
+  parts of it that no test reaches yet: `ptrace`, `select`, `sysctl`,
+  terminal input, core dumps beyond being written, `fork` when memory is
+  short, and swapping of shared code.
+- There is no C library and no program but the tests: the next step in
+  user space is `libc`'s machine-dependent part and system call stubs,
+  then `init` and a shell.

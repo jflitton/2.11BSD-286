@@ -31,7 +31,7 @@ struct
 {
 	int	ip_lock;
 	int	ip_req;
-	int	*ip_addr;
+	char __far *ip_addr;
 	int	ip_data;
 } ipc;
 
@@ -44,7 +44,7 @@ ptrace()
 	register struct a {
 		int	req;
 		int	pid;
-		int	*addr;
+		int __far *addr;
 		int	data;
 	} *uap;
 
@@ -63,7 +63,7 @@ ptrace()
 		sleep((caddr_t)&ipc, PZERO);
 	ipc.ip_lock = p->p_pid;
 	ipc.ip_data = uap->data;
-	ipc.ip_addr = uap->addr;
+	ipc.ip_addr = (char __far *)uap->addr;
 	ipc.ip_req = uap->req;
 	p->p_flag &= ~P_WAITED;
 	setrun(p);
@@ -86,6 +86,7 @@ procxmt()
 	register int i;
 	register *p;
 	register struct text *xp;
+	register struct pseg __far *sp;
 
 	if (ipc.ip_lock != u.u_procp->p_pid)
 		return(0);
@@ -96,25 +97,18 @@ procxmt()
 	switch (i) {
 
 	/* read user I */
-	case PT_READ_I:
-#ifndef NONSEPARATE
-		if (fuibyte((caddr_t)ipc.ip_addr) == -1)
-			goto error;
-		ipc.ip_data = fuiword((caddr_t)ipc.ip_addr);
-		break;
-#endif /* !NONSEPARATE */
-
 	/* read user D */
+	case PT_READ_I:
 	case PT_READ_D:
-		if (fubyte((caddr_t)ipc.ip_addr) == -1)
+		if (fubyte(ipc.ip_addr) == -1)
 			goto error;
-		ipc.ip_data = fuword((caddr_t)ipc.ip_addr);
+		ipc.ip_data = fuword(ipc.ip_addr);
 		break;
 
 	/* read u */
 	case PT_READ_U:
-		i = (int)ipc.ip_addr;
-		if (i<0 || i >= ctob(USIZE))
+		i = UOFF(ipc.ip_addr);
+		if (i<0 || i >= UBYTES)
 			goto error;
 		ipc.ip_data = ((physadr)&u)->r[i/sizeof(int)];
 		break;
@@ -130,10 +124,24 @@ procxmt()
 				goto error;
 			xp->x_flag |= XTRC;
 		}
-		estabur(u.u_tsize, u.u_dsize, u.u_ssize, u.u_sep, RW);
-		i = suiword((caddr_t)ipc.ip_addr, 0);
-		suiword((caddr_t)ipc.ip_addr, ipc.ip_data);
-		estabur(u.u_tsize, u.u_dsize, u.u_ssize, u.u_sep, RO);
+		/*
+		 * A code segment is made writable data while it is
+		 * written.
+		 */
+		i = LSLOT(USEL(ipc.ip_addr));
+		if (!ISLSEL(USEL(ipc.ip_addr)) || i >= NSEG)
+			goto error;
+		sp = &PSEG(u.u_procp)[i];
+		if (sp->ps_flag & PS_TEXT) {
+			sp->ps_flag |= PS_WTEXT;
+			setldt(u.u_procp, i);
+		}
+		if ((i = suword(ipc.ip_addr, 0)) >= 0)
+			suword(ipc.ip_addr, ipc.ip_data);
+		if (sp->ps_flag & PS_TEXT) {
+			sp->ps_flag &= ~PS_WTEXT;
+			setldt(u.u_procp, LSLOT(USEL(ipc.ip_addr)));
+		}
 		if (i<0)
 			goto error;
 		if (xp)
@@ -142,30 +150,43 @@ procxmt()
 
 	/* write user D */
 	case PT_WRITE_D:
-		if (suword((caddr_t)ipc.ip_addr, 0) < 0)
+		if (suword(ipc.ip_addr, 0) < 0)
 			goto error;
-		suword((caddr_t)ipc.ip_addr, ipc.ip_data);
+		suword(ipc.ip_addr, ipc.ip_data);
 		break;
 
 	/* write u */
+	/* the 287's registers, and the process's own in its frame */
 	case PT_WRITE_U:
-		i = (int)ipc.ip_addr;
+		i = UOFF(ipc.ip_addr);
+		if (i<0 || i >= UBYTES)
+			goto error;
 		p = (int *)&((physadr)&u)->r[i/sizeof(int)];
-		if (p >= (int *)&u.u_fps && p < (int *)&u.u_fps.u_fpregs[6])
+		if (p >= (int *)&u.u_fps && p < (int *)(&u.u_fps + 1))
 			goto ok;
-		for (i=0; i<8; i++)
-			if (p == &u.u_ar0[regloc[i]])
-				goto ok;
-		if (p == &u.u_ar0[RPS]) {
-			ipc.ip_data |= PSL_USERSET;	/* user space */
-			ipc.ip_data &= ~PSL_USERCLR;	/* priority 0 */
+		if (p < u.u_ar0 || p > &u.u_ar0[SS])
+			goto error;
+		switch (p - u.u_ar0) {
+		case CS:
+			if (!selok(ipc.ip_data, 1))
+				goto error;
 			goto ok;
-		}
-		if ((p == (int *)&u.u_ovdata.uo_curov) && ((ipc.ip_data >= 0) &&
-		    (ipc.ip_data <= NOVL) && u.u_ovdata.uo_ovbase)) {
-			u.u_ovdata.uo_curov = ipc.ip_data;
-			choverlay(RW);
-			break;
+		case SS:
+			if (!selok(ipc.ip_data, 2))
+				goto error;
+			goto ok;
+		case DS:
+		case ES:
+			if (ipc.ip_data && !selok(ipc.ip_data, 0))
+				goto error;
+			goto ok;
+		case FLAGS:
+			ipc.ip_data |= PSL_USERSET;	/* interrupts on */
+			ipc.ip_data &= ~PSL_USERCLR;	/* no I/O */
+			goto ok;
+		case BX: case CX: case DX: case SI: case DI: case BP:
+		case AX: case IP: case SP:
+			goto ok;
 		}
 		goto error;
 
@@ -179,8 +200,12 @@ procxmt()
 		u.u_ar0[RPS] |= PSL_T;
 		/* FALL THROUGH TO ... */
 	case PT_CONTINUE:
-		if ((int)ipc.ip_addr != 1)
-			u.u_ar0[PC] = (int)ipc.ip_addr;
+		if (ipc.ip_addr != (char __far *)1) {
+			if (!selok(USEL(ipc.ip_addr), 1))
+				goto error;
+			u.u_ar0[CS] = USEL(ipc.ip_addr);
+			u.u_ar0[PC] = UOFF(ipc.ip_addr);
+		}
 		if (ipc.ip_data > NSIG)
 			goto error;
 		u.u_procp->p_ptracesig = ipc.ip_data;

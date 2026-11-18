@@ -128,9 +128,8 @@ tsleep(ident, priority, timo)
  * another panic.
 */
 		(void)_splnet();
-		noop();
 		splx(s);
-		return;
+		return (0);
 		}
 #ifdef	DIAGNOSTIC
 	if	(ident == NULL || p->p_stat != SRUN)
@@ -255,7 +254,7 @@ sleep(chan, pri)
  * EINTR - put into u_error for trap.c to find (interrupted syscall)
  * ERESTART - system call to be restared
 */
-	longjmp(u.u_procp->p_addr, &u.u_qsave);
+	longjmp(u.u_procp, &u.u_qsave);
 	/*NOTREACHED*/
 	}
 
@@ -288,13 +287,11 @@ wakeup(chan)
 	register struct proc *p, **q;
 	struct proc **qp;
 	int s;
-	mapinfo map;
 
 	/*
 	 * Since we are called at interrupt time, must insure normal
 	 * kernel mapping to access proc.
 	 */
-	savemap(map);
 	s = splclock();
 	qp = &slpque[HASH(chan)];
 restart:
@@ -331,7 +328,6 @@ restart:
 			q = &p->p_link;
 	}
 	splx(s);
-	restormap(map);
 }
 
 /*
@@ -423,15 +419,9 @@ swtch()
 #endif
 	/* If not the idle process, resume the idle process. */
 	if (u.u_procp != &proc[0]) {
-		if (setjmp(&u.u_rsave)) {
-			sureg();
+		if (setjmp(&u.u_rsave))
 			return;
-		}
-		if (u.u_fpsaved == 0) {
-			savfp(&u.u_fps);
-			u.u_fpsaved = 1;
-		}
-		longjmp(proc[0].p_addr, &u.u_qsave);
+		longjmp(&proc[0], &u.u_qsave);
 	}
 	/*
 	 * The first save returns nonzero when proc 0 is resumed
@@ -489,7 +479,7 @@ loop:
 	 */
 	n = p->p_flag & SSWAP;
 	p->p_flag &= ~SSWAP;
-	longjmp(p->p_addr, n ? &u.u_ssave: &u.u_rsave);
+	longjmp(p, n ? &u.u_ssave: &u.u_rsave);
 }
 
 setrq(p)

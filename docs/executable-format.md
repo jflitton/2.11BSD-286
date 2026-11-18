@@ -1,9 +1,10 @@
 # Executable format
 
 The format of programs and of the kernel image. `tools/ne2aout.py` writes
-it and is, for now, its definition. Only `tools/mkfd.py` reads it so far,
-to make a diskette the boot sector can load ([booting](boot.md)), so the
-layout can still change.
+it. The kernel's `execve` reads it (`sys/h/exec.h`,
+`sys/sys/kern_exec.c`), and `tools/mkfd.py` does, to make a diskette the
+boot sector can load ([booting](boot.md)). Nothing outside this tree
+depends on it, so the layout can still change.
 
 ## How an executable is made
 
@@ -58,7 +59,7 @@ Header, 24 bytes:
 | 6 | 2 | entry point: segment |
 | 8 | 2 | entry point: offset |
 | 10 | 2 | the data segment that DS and SS start out as |
-| 12 | 2 | stack size |
+| 12 | 2 | stack size: the kernel adds this much to that segment, after its data |
 | 14 | 2 | reserved, zero |
 | 16 | 4 | size of the symbol table, bytes |
 | 20 | 4 | size of the string table, bytes |
@@ -73,7 +74,9 @@ Then one 12-byte entry per segment:
 | 8 | 4 | bytes in memory; the excess over the file is zero-filled |
 
 The sizes are 32 bits because a full segment is 65,536 bytes, one more
-than 16 bits hold.
+than 16 bits hold. The converter leaves the zeros at the end of a data
+segment out of the file, so a far array that starts out all zero takes
+no room in it.
 
 Then the contents of each segment in order, each padded to an even length;
 then the symbol table; then the string table.
@@ -93,11 +96,9 @@ own length in 4 bytes, as in 2.11BSD.
 
 - Where the stack sits in a small-model data segment. A 286 segment has no
   holes, so the PDP-11's stack at the top of the address space with free
-  space below it is not available. Putting a fixed-size stack at the bottom
-  of the segment would turn overflow into a fault instead of silent damage
-  to the data above it.
-- A far data segment that is all zeros is stored in full. The compiler
-  marks such segments in the object file; the converter does not use that
-  yet.
+  space below it is not available. The kernel puts a stack of fixed size
+  after the data, with the break above it. Putting it at the bottom of the
+  segment instead would turn overflow into a fault instead of silent
+  damage to the data below it.
 - Whether code segments should be packed toward 64K or kept one per source
   file. wlink packs them by default.

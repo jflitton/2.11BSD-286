@@ -345,11 +345,25 @@ extern struct ctldebug debug15, debug16, debug17, debug18, debug19;
  */
 typedef int (sysctlfn)();
 
-int sysctl_int();
-int sysctl_rdint();
-int sysctl_string();
-int sysctl_rdstring();
-int sysctl_rdstruct();
+/*
+ * oldp and newp are addresses in the process that called, so these must
+ * be declared wherever they are called.
+ */
+int sysctl_int(void __far *oldp, size_t *oldlenp, void __far *newp,
+	size_t newlen, int *valp);
+int sysctl_rdint(void __far *oldp, size_t *oldlenp, void __far *newp, int val);
+int sysctl_long(void __far *oldp, size_t *oldlenp, void __far *newp,
+	size_t newlen, long *valp);
+int sysctl_rdlong(void __far *oldp, size_t *oldlenp, void __far *newp,
+	long val);
+int sysctl_string(void __far *oldp, size_t *oldlenp, void __far *newp,
+	size_t newlen, char *str, int maxlen);
+int sysctl_rdstring(void __far *oldp, size_t *oldlenp, void __far *newp,
+	char *str);
+int sysctl_struct(void __far *oldp, size_t *oldlenp, void __far *newp,
+	size_t newlen, void *sp, int len);
+int sysctl_rdstruct(void __far *oldp, size_t *oldlenp, void __far *newp,
+	void *sp, int len);
 void fill_eproc();
 
 #else	/* !KERNEL */

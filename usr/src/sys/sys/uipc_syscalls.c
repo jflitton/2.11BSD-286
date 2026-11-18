@@ -76,7 +76,7 @@ bind()
 {
 	register struct a {
 		int	s;
-		caddr_t	name;
+		uaddr_t	name;
 		u_int	namelen;
 	} *uap = (struct a *)u.u_ap;
 	register struct file *fp;
@@ -118,8 +118,8 @@ accept()
 {
 	register struct a {
 		int	s;
-		caddr_t	name;
-		int	*anamelen;
+		uaddr_t	name;
+		int __far *anamelen;
 	} *uap = (struct a *)u.u_ap;
 	register struct file *fp;
 	struct mbuf *nam;
@@ -132,7 +132,7 @@ accept()
 		return(u.u_error = ENETDOWN);
 	if (uap->name == 0)
 		goto noname;
-	u.u_error = copyin((caddr_t)uap->anamelen, (caddr_t)&namelen,
+	u.u_error = copyin(uap->anamelen, (caddr_t)&namelen,
 		sizeof (namelen));
 	if (u.u_error)
 		return;
@@ -168,9 +168,9 @@ noname:
 		if (namelen > nam->m_len)
 			namelen = nam->m_len;
 		/* SHOULD COPY OUT A CHAIN HERE */
-		(void) copyout(mtod(nam, caddr_t), (caddr_t)uap->name,
+		(void) copyout(mtod(nam, caddr_t), uap->name,
 		    (u_int)namelen);
-		(void) copyout((caddr_t)&namelen, (caddr_t)uap->anamelen,
+		(void) copyout((caddr_t)&namelen, uap->anamelen,
 		    sizeof (*uap->anamelen));
 	}
 	splx(s);
@@ -180,7 +180,7 @@ connect()
 {
 	register struct a {
 		int	s;
-		caddr_t	name;
+		uaddr_t	name;
 		u_int	namelen;
 	} *uap = (struct a *)u.u_ap;
 	register struct file *fp;
@@ -234,7 +234,7 @@ socketpair()
 		int	domain;
 		int	type;
 		int	protocol;
-		int	*rsv;
+		int __far *rsv;
 	} *uap = (struct a *)u.u_ap;
 	register struct file *fp1, *fp2;
 	struct socket *so1, *so2;
@@ -274,7 +274,7 @@ socketpair()
 			goto free4;
 	}
 	u.u_r.r_val1 = 0;
-	(void) copyout((caddr_t)sv, (caddr_t)uap->rsv, 2 * sizeof (int));
+	(void) copyout((caddr_t)sv, uap->rsv, 2 * sizeof (int));
 	return;
 free4:
 	fp2->f_count = 0;
@@ -292,10 +292,10 @@ sendto()
 {
 	register struct a {
 		int	s;
-		caddr_t	buf;
+		uaddr_t	buf;
 		int	len;
 		int	flags;
-		caddr_t	to;
+		uaddr_t	to;
 		int	tolen;
 	} *uap = (struct a *)u.u_ap;
 	struct msghdr msg;
@@ -316,7 +316,7 @@ send()
 {
 	register struct a {
 		int	s;
-		caddr_t	buf;
+		uaddr_t	buf;
 		int	len;
 		int	flags;
 	} *uap = (struct a *)u.u_ap;
@@ -338,7 +338,7 @@ sendmsg()
 {
 	register struct a {
 		int	s;
-		caddr_t	msg;
+		uaddr_t	msg;
 		int	flags;
 	} *uap = (struct a *)u.u_ap;
 	struct msghdr msg;
@@ -428,17 +428,17 @@ recvfrom()
 {
 	register struct a {
 		int	s;
-		caddr_t	buf;
+		uaddr_t	buf;
 		int	len;
 		int	flags;
-		caddr_t	from;
-		int	*fromlenaddr;
+		uaddr_t	from;
+		int __far *fromlenaddr;
 	} *uap = (struct a *)u.u_ap;
 	struct msghdr msg;
 	struct iovec aiov;
 	int len;
 
-	u.u_error = copyin((caddr_t)uap->fromlenaddr, (caddr_t)&len,
+	u.u_error = copyin(uap->fromlenaddr, (caddr_t)&len,
 	   sizeof (len));
 	if (u.u_error)
 		return;
@@ -450,14 +450,14 @@ recvfrom()
 	aiov.iov_len = uap->len;
 	msg.msg_accrights = 0;
 	msg.msg_accrightslen = 0;
-	recvit(uap->s, &msg, uap->flags, (caddr_t)uap->fromlenaddr, (caddr_t)0);
+	recvit(uap->s, &msg, uap->flags, uap->fromlenaddr, (caddr_t)0);
 }
 
 recv()
 {
 	register struct a {
 		int	s;
-		caddr_t	buf;
+		uaddr_t	buf;
 		int	len;
 		int	flags;
 	} *uap = (struct a *)u.u_ap;
@@ -479,13 +479,13 @@ recvmsg()
 {
 	register struct a {
 		int	s;
-		struct	msghdr *msg;
+		struct	msghdr __far *msg;
 		int	flags;
 	} *uap = (struct a *)u.u_ap;
 	struct msghdr msg;
 	struct iovec aiov[MSG_MAXIOVLEN];
 
-	u.u_error = copyin((caddr_t)uap->msg, (caddr_t)&msg, sizeof (msg));
+	u.u_error = copyin(uap->msg, (caddr_t)&msg, sizeof (msg));
 	if (u.u_error)
 		return;
 	if ((u_int)msg.msg_iovlen >= sizeof (aiov) / sizeof (aiov[0])) {
@@ -591,7 +591,7 @@ setsockopt()
 		int	s;
 		int	level;
 		int	name;
-		caddr_t	val;
+		uaddr_t	val;
 		u_int	valsize;
 	} *uap = (struct a *)u.u_ap;
 	register struct file *fp;
@@ -624,8 +624,8 @@ getsockopt()
 		int	s;
 		int	level;
 		int	name;
-		caddr_t	val;
-		int	*avalsize;
+		uaddr_t	val;
+		int __far *avalsize;
 	} *uap = (struct a *)u.u_ap;
 	register struct file *fp;
 	struct mbuf *m = NULL;
@@ -637,7 +637,7 @@ getsockopt()
 	if (fp == 0)
 		return;
 	if (uap->val) {
-		u.u_error = copyin((caddr_t)uap->avalsize, (caddr_t)&valsize,
+		u.u_error = copyin(uap->avalsize, (caddr_t)&valsize,
 			sizeof (valsize));
 		if (u.u_error)
 			return;
@@ -650,7 +650,7 @@ getsockopt()
 		u.u_error = NETCOPYOUT(m, uap->val, &valsize);
 		if (u.u_error)
 			goto bad;
-		u.u_error = copyout((caddr_t)&valsize, (caddr_t)uap->avalsize,
+		u.u_error = copyout((caddr_t)&valsize, uap->avalsize,
 		    sizeof (valsize));
 	}
 bad:
@@ -665,8 +665,8 @@ getsockname()
 {
 	register struct a {
 		int	fdes;
-		caddr_t	asa;
-		int	*alen;
+		uaddr_t	asa;
+		int __far *alen;
 	} *uap = (struct a *)u.u_ap;
 	register struct file *fp;
 	struct mbuf *m;
@@ -678,7 +678,7 @@ getsockname()
 	fp = gtsockf(uap->fdes);
 	if (fp == 0)
 		return;
-	u.u_error = copyin((caddr_t)uap->alen, (caddr_t)&len, sizeof (len));
+	u.u_error = copyin(uap->alen, (caddr_t)&len, sizeof (len));
 	if (u.u_error)
 		return;
 	m = (struct mbuf *)sabuf;
@@ -688,10 +688,10 @@ getsockname()
 		return;
 	if (len > m->m_len)
 		len = m->m_len;
-	u.u_error = copyout(mtod(m, caddr_t), (caddr_t)uap->asa, (u_int)len);
+	u.u_error = copyout(mtod(m, caddr_t), uap->asa, (u_int)len);
 	if (u.u_error)
 		return;
-	u.u_error = copyout((caddr_t)&len, (caddr_t)uap->alen, sizeof (len));
+	u.u_error = copyout((caddr_t)&len, uap->alen, sizeof (len));
 }
 
 /*
@@ -701,8 +701,8 @@ getpeername()
 {
 	register struct a {
 		int	fdes;
-		caddr_t	asa;
-		int	*alen;
+		uaddr_t	asa;
+		int __far *alen;
 	} *uap = (struct a *)u.u_ap;
 	register struct file *fp;
 	struct mbuf *m;
@@ -716,7 +716,7 @@ getpeername()
 		return;
 	m = (struct mbuf *)sabuf;
 	MBZAP(m, 0, MT_SONAME);
-	u.u_error = copyin((caddr_t)uap->alen, (caddr_t)&len, sizeof (len));
+	u.u_error = copyin(uap->alen, (caddr_t)&len, sizeof (len));
 	if (u.u_error)
 		return;
 	u.u_error = SOGETPEER(fp->f_socket, m);
@@ -724,10 +724,10 @@ getpeername()
 		return;
 	if (len > m->m_len)
 		len = m->m_len;
-	u.u_error = copyout(mtod(m, caddr_t), (caddr_t)uap->asa, (u_int)len);
+	u.u_error = copyout(mtod(m, caddr_t), uap->asa, (u_int)len);
 	if (u.u_error)
 		return;
-	u.u_error = copyout((caddr_t)&len, (caddr_t)uap->alen, sizeof (len));
+	u.u_error = copyout((caddr_t)&len, uap->alen, sizeof (len));
 }
 
 struct file *

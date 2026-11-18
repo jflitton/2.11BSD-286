@@ -19,7 +19,7 @@
 #include "quota.h"
 #endif
 
-typedef	struct fblk *FBLKP;
+typedef	struct fblk __far *FBLKP;
 
 /*
  * Allocate a block in the file system.
@@ -60,7 +60,7 @@ balloc(ip, flags)
 		fs->fs_flock++;
 		bp = bread(ip->i_dev, bno);
 		if (((bp->b_flags&B_ERROR) == 0) && (bp->b_resid==0)) {
-			register struct fblk *fbp;
+			register struct fblk __far *fbp;
 
 			fbp = (FBLKP) mapin(bp);
 			*((FBLKP)&fs->fs_nfree) = *fbp;
@@ -77,9 +77,9 @@ balloc(ip, flags)
 		bp = getblk(ip->i_dev, SUPERB);
 		fs->fs_fmod = 0;
 		{
-			register struct fs *fps;
+			register struct fs __far *fps;
 
-			fps = (struct fs *)mapin(bp);
+			fps = (struct fs __far *)mapin(bp);
 			*fps = *fs;
 		}
 		mapout(bp);
@@ -132,7 +132,7 @@ ialloc(pip)
 	register struct buf *bp;
 	register struct inode *ip;
 	int i;
-	struct dinode *dp;
+	struct dinode __far *dp;
 	ino_t ino;
 	daddr_t adr;
 	ino_t inobas;
@@ -192,7 +192,7 @@ fromtop:
 			ino += INOPB;
 			continue;
 		}
-		dp = (struct dinode *)mapin(bp);
+		dp = (struct dinode __far *)mapin(bp);
 		for (i = 0; i < INOPB; i++, ino++, dp++) {
 			if (dp->di_mode != 0)
 				continue;
@@ -247,7 +247,7 @@ free(ip, bno)
 {
 	register struct fs *fs;
 	register struct buf *bp;
-	struct fblk *fbp;
+	struct fblk __far *fbp;
 
 	fs = ip->i_fs;
 	if (badblock(fs, bno)) {

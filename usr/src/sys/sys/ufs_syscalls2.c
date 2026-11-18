@@ -20,8 +20,8 @@ statfs()
 	{
 	register struct a
 		{
-		char	*path;
-		struct	statfs	*buf;
+		char __far *path;
+		struct	statfs __far *buf;
 		} *uap = (struct a *)u.u_ap;
 	register struct	inode	*ip;
 	struct	nameidata nd;
@@ -43,7 +43,7 @@ fstatfs()
 	register struct a
 		{
 		int	fd;
-		struct	statfs *buf;
+		struct	statfs __far *buf;
 		} *uap = (struct a *)u.u_ap;
 	register struct inode *ip;
 	struct	mount *mp;
@@ -58,11 +58,11 @@ fstatfs()
 
 statfs1(mp, sbp)
 	struct	mount	*mp;
-	struct	statfs	*sbp;
+	struct	statfs	__far *sbp;
 	{
 	struct	statfs	sfs;
 	register struct	statfs	*sfsp;
-	struct	xmount	*xmp = (struct xmount *)SEG5;
+	struct	xmount	__far *xmp = &xmount[mp - mount];
 	struct	fs	*fs = &mp->m_filsys;
 
 	sfsp = &sfs;
@@ -75,10 +75,8 @@ statfs1(mp, sbp)
 	sfsp->f_files = (fs->fs_isize - 2) * INOPB;
 	sfsp->f_ffree = fs->fs_tinode;
 
-	mapseg5(mp->m_extern, XMOUNTDESC);
 	bcopy(xmp->xm_mnton, sfsp->f_mntonname, MNAMELEN);
 	bcopy(xmp->xm_mntfrom, sfsp->f_mntfromname, MNAMELEN);
-	normalseg5();
 	sfsp->f_flags = mp->m_flags & MNT_VISFLAGMASK;
 	return(copyout(sfsp, sbp, sizeof (struct statfs)));
 	}
@@ -87,16 +85,16 @@ getfsstat()
 	{
 	register struct a
 		{
-		struct	statfs	*buf;
+		struct	statfs __far *buf;
 		int	bufsize;
 		u_int	flags;
 		} *uap = (struct a *)u.u_ap;
 	register struct	mount *mp;
-	caddr_t	sfsp;
+	uaddr_t	sfsp;
 	int	count, maxcount, error;
 
 	maxcount = uap->bufsize / sizeof (struct statfs);
-	sfsp = (caddr_t)uap->buf;
+	sfsp = (uaddr_t)uap->buf;
 	count = 0;
 	for	(mp = mount; mp < &mount[NMOUNT]; mp++)
 		{
@@ -104,7 +102,7 @@ getfsstat()
 			continue;
 		if	(count < maxcount)
 			{
-			if	(error = statfs1(mp, sfsp))
+			if	(error = statfs1(mp, (struct statfs __far *)sfsp))
 				return(u.u_error = error);
 			sfsp += sizeof (struct statfs);
 			}
@@ -260,8 +258,8 @@ fsync()
 utimes()
 {
 	register struct a {
-		char	*fname;
-		struct	timeval *tptr;
+		char __far *fname;
+		struct	timeval __far *tptr;
 	} *uap = (struct a *)u.u_ap;
 	register struct inode *ip;
 	struct	nameidata nd;
@@ -273,7 +271,7 @@ utimes()
 	if (uap->tptr == NULL) {
 		tv[0].tv_sec = tv[1].tv_sec = time.tv_sec;
 		vattr.va_vaflags |= VA_UTIMES_NULL;
-	} else if (u.u_error = copyin((caddr_t)uap->tptr,(caddr_t)tv,sizeof(tv)))
+	} else if (u.u_error = copyin(uap->tptr,(caddr_t)tv,sizeof(tv)))
 		return;
 	NDINIT(ndp, LOOKUP, FOLLOW, UIO_USERSPACE, uap->fname);
 	if ((ip = namei(ndp)) == NULL)

@@ -33,11 +33,8 @@ netpsignal(p, sig)		/* XXX? sosend, sohasoutofband, sowakeup */
 	struct proc *p;		/* if necessary, wrap psignal in save/restor */
 	int sig;
 {
-	mapinfo map;
 
-	savemap(map);
 	psignal(p, sig);
-	restormap(map);
 }
 
 struct proc *
@@ -45,11 +42,8 @@ netpfind(pid)
 	int pid;
 {
 	register struct proc *p;
-	mapinfo map;
 
-	savemap(map);
 	p = pfind(pid);
-	restormap(map);
 	return(p);
 }
 

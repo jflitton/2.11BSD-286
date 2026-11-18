@@ -43,7 +43,8 @@ for f in "$sys/mch_start.s" "$sys/mch_trap.s" "$sys/mch_xxx.s" "$sys/mch_copy.s"
     nasm -f obj -DFAR -I "$sys/" -I "$crt/" -o "$o" "$f"
     objs="$objs,$o"
 done
-for f in "$sys/cons.c" "$top/tests/harness/printf.c" "$here/k_main.c"; do
+for f in "$top/tests/harness/cons.c" "$top/tests/harness/kern.c" \
+    "$top/tests/harness/printf.c" "$here/k_main.c"; do
     o=$(basename "$f" .c).o
     "$top/tools/cc286" -mm -wcd=131 -wcd=107 -I"$sys" -o "$o" "$f"
     objs="$objs,$o"

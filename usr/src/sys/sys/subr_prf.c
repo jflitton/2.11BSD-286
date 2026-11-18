@@ -17,6 +17,7 @@
 #include "reboot.h"
 #include "systm.h"
 #include "syslog.h"
+#include <stdarg.h>
 
 #define TOCONS	0x1
 #define TOTTY	0x2
@@ -49,11 +50,13 @@ char	*panicstr;
  */
 
 /*VARARGS1*/
-printf(fmt, x1)
-	char *fmt;
-	unsigned x1;
+printf(char *fmt, ...)
 {
-	prf(fmt, &x1, TOCONS | TOLOG, (struct tty *)0);
+	va_list ap;
+
+	va_start(ap, fmt);
+	prf(fmt, (u_int *)ap, TOCONS | TOLOG, (struct tty *)0);
+	va_end(ap);
 }
 
 /*
@@ -66,18 +69,18 @@ printf(fmt, x1)
  * a savemap/restormap would be needed here or in putchar if uprintf
  * was to be used at interrupt time.
  */
-/*VARARGS1*/
-uprintf(fmt, x1)
-	char	*fmt;
-	unsigned x1;
+uprintf(char *fmt, ...)
 {
 	register struct tty *tp;
+	va_list ap;
 
 	if ((tp = u.u_ttyp) == NULL)
 		return;
 
+	va_start(ap, fmt);
 	if (ttycheckoutq(tp, 1))
-		prf(fmt, &x1, TOTTY, tp);
+		prf(fmt, (u_int *)ap, TOTTY, tp);
+	va_end(ap);
 }
 
 /*
@@ -86,21 +89,20 @@ uprintf(fmt, x1)
  * single-open devices, and may be called from interrupt level
  * (does not sleep).
  */
-/*VARARGS2*/
-tprintf(tp, fmt, x1)
-	register struct tty *tp;
-	char *fmt;
-	unsigned x1;
+tprintf(struct tty *tp, char *fmt, ...)
 {
 	int flags = TOTTY | TOLOG;
-	extern struct tty cons;
+	extern struct tty cons[];
+	va_list ap;
 
 	logpri(LOG_INFO);
 	if (tp == (struct tty *)NULL)
-		tp = &cons;
+		tp = &cons[0];
 	if (ttycheckoutq(tp, 0) == 0)
 		flags = TOLOG;
-	prf(fmt, &x1, flags, tp);
+	va_start(ap, fmt);
+	prf(fmt, (u_int *)ap, flags, tp);
+	va_end(ap);
 	logwakeup(logMSG);
 }
 
@@ -109,18 +111,18 @@ tprintf(tp, fmt, x1)
  * and guarantees not to sleep (so can be called by interrupt routines).
  * If there is no process reading the log yet, it writes to the console also.
  */
-/*VARARGS2*/
-log(level, fmt, x1)
-	char *fmt;
-	unsigned x1;
+log(int level, char *fmt, ...)
 {
 	register s = splhigh();
+	va_list ap;
 
 	logpri(level);
-	prf(fmt, &x1, TOLOG, (struct tty *)0);
+	va_start(ap, fmt);
+	prf(fmt, (u_int *)ap, TOLOG, (struct tty *)0);
 	splx(s);
 	if (!logisopen(logMSG))
-		prf(fmt, &x1, TOCONS, (struct tty *)0);
+		prf(fmt, (u_int *)ap, TOCONS, (struct tty *)0);
+	va_end(ap);
 	logwakeup(logMSG);
 }
 

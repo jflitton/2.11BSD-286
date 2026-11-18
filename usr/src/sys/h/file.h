@@ -40,7 +40,7 @@ struct	fileops {
 
 #ifndef SUPERVISOR
 extern struct	file file[], *fileNFILE;
-int	nfile;
+extern int	nfile;
 #endif
 
 struct	file *getf();

@@ -124,7 +124,7 @@
 /*
  * MAXMEM is the maximum core per process is allowed.  First number is Kb.
 */
-#define	MAXMEM		(300*16)
+#define	MAXMEM		(2048*2)
 
 /*
  * MAXLOGNAME should be >= UT_NAMESIZE (see <utmp.h>)

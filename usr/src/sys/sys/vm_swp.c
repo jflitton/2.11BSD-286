@@ -29,6 +29,7 @@ swap(blkno, coreaddr, count, rdflg)
 	register struct buf *bp;
 	register int tcount;
 	int s;
+	long paddr;
 
 #ifdef UCB_METER
 	if (rdflg) {
@@ -46,12 +47,13 @@ swap(blkno, coreaddr, count, rdflg)
 		bp->b_flags = B_BUSY | B_PHYS | B_INVAL | rdflg;
 		bp->b_dev = swapdev;
 		tcount = count;
-		if (tcount >= 01700)	/* prevent byte-count wrap */
-			tcount = 01700;
+		if (tcount >= 64)	/* prevent byte-count wrap */
+			tcount = 64;
 		bp->b_bcount = ctob(tcount);
 		bp->b_blkno = blkno;
-		bp->b_un.b_addr = (caddr_t)(coreaddr<<6);
-		bp->b_xmem = (coreaddr>>10) & 077;
+		paddr = ctob((long)coreaddr);
+		bp->b_un.b_addr = (caddr_t)loint(paddr);
+		bp->b_xmem = hiint(paddr);
 		trace(TR_SWAPIO);
 		(*bdevsw[major(swapdev)].d_strategy)(bp);
 		s = splbio();
@@ -127,8 +129,11 @@ physio(strat, bp, dev, rw, uio)
 	int rw;
 	register struct uio *uio;
 {
-	int error = 0, s, nb, ts, c, allocbuf = 0;
+	int error = 0, s, c, allocbuf = 0;
 	register struct iovec *iov;
+	register struct pseg __far *sp;
+	u_int sel, off;
+	long paddr;
 
 	if (!bp) {
 		allocbuf++;
@@ -137,31 +142,21 @@ physio(strat, bp, dev, rw, uio)
 	u.u_procp->p_flag |= SLOCK;
 	for ( ; uio->uio_iovcnt; uio->uio_iov++, uio->uio_iovcnt--) {
 		iov = uio->uio_iov;
-		if (iov->iov_base >= iov->iov_base + iov->iov_len) {
-			error = EFAULT;
-			break;
-		}
-		if (u.u_sep)
-			ts = 0;
-		else
-			ts = (u.u_tsize + 127) & ~0177;
-		nb = ((int)iov->iov_base >> 6) & 01777;
+		if (iov->iov_len == 0)
+			continue;
 		/*
-		 * Check overlap with text. (ts and nb now
-		 * in 64-byte clicks)
+		 * The transfer is to or from the process's memory itself,
+		 * by its physical address.  It must lie in one segment,
+		 * and that one of the process's own: not its code, which
+		 * others share.
 		 */
-		if (nb < ts) {
-			error = EFAULT;
-			break;
-		}
-		/*
-		 * Check that transfer is either entirely in the
-		 * data or in the stack: that is, either
-		 * the end is in the data or the start is in the stack
-		 * (remember wraparound was already checked).
-		 */
-		if (((((int)iov->iov_base + iov->iov_len) >> 6) & 01777) >= 
-			ts + u.u_dsize && nb < 1024 - u.u_ssize) {
+		sel = USEL(iov->iov_base);
+		off = UOFF(iov->iov_base);
+		sp = &PSEG(u.u_procp)[LSLOT(sel)];
+		if (!ISLSEL(sel) || LSLOT(sel) >= NSEG ||
+		    (sp->ps_flag & (PS_USED|PS_TEXT)) != PS_USED ||
+		    off > sp->ps_limit ||
+		    iov->iov_len - 1 > sp->ps_limit - off) {
 			error = EFAULT;
 			break;
 		}
@@ -177,10 +172,9 @@ physio(strat, bp, dev, rw, uio)
 		while (iov->iov_len) {
 			bp->b_flags = B_BUSY|B_PHYS|B_INVAL|rw;
 			bp->b_dev = dev;
-			nb = ((int)iov->iov_base >> 6) & 01777;
-			ts = (u.u_sep ? UDSA : UISA)[nb >> 7] + (nb & 0177);
-			bp->b_un.b_addr = (caddr_t)((ts << 6) + ((int)iov->iov_base & 077));
-			bp->b_xmem = (ts >> 10) & 077;
+			paddr = ctob((long)sp->ps_addr) + UOFF(iov->iov_base);
+			bp->b_un.b_addr = (caddr_t)loint(paddr);
+			bp->b_xmem = hiint(paddr);
 			bp->b_blkno = uio->uio_offset >> PGSHIFT;
 			bp->b_bcount = iov->iov_len;
 			c = bp->b_bcount;

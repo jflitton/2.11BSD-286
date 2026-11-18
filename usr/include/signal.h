@@ -85,7 +85,11 @@ struct	sigaction {
  * Structure used in sigaltstack call.
  */
 struct	sigaltstack {
+#ifdef KERNEL
+	char __far *ss_base;		/* signal stack base */
+#else
 	char	*ss_base;		/* signal stack base */
+#endif
 	int	ss_size;		/* signal stack length */
 	int	ss_flags;		/* SA_DISABLE and/or SA_ONSTACK */
 };
@@ -110,7 +114,11 @@ struct	sigvec {
  * Structure used in sigstack call.
  */
 struct	sigstack {
+#ifdef KERNEL
+	char __far *ss_sp;		/* signal stack pointer */
+#else
 	char	*ss_sp;			/* signal stack pointer */
+#endif
 	int	ss_onstack;		/* current status */
 };
 
@@ -124,13 +132,20 @@ struct	sigstack {
 struct	sigcontext {
 	int	sc_onstack;		/* sigstack state to restore */
 	long	sc_mask;		/* signal mask to restore */
-	int	sc_sp;			/* sp to restore */
-	int	sc_fp;			/* fp to restore */
-	int	sc_r1;			/* r1 to restore */
-	int	sc_r0;			/* r0 to restore */
-	int	sc_pc;			/* pc to restore */
-	int	sc_ps;			/* psl to restore */
-	int	sc_ovno			/* overlay to restore */
+	int	sc_ax;			/* the registers to restore */
+	int	sc_bx;
+	int	sc_cx;
+	int	sc_dx;
+	int	sc_si;
+	int	sc_di;
+	int	sc_bp;
+	int	sc_ds;
+	int	sc_es;
+	int	sc_ip;
+	int	sc_cs;
+	int	sc_flags;
+	int	sc_sp;
+	int	sc_ss;
 };
 
 /*

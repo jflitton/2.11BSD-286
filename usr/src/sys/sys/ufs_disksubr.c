@@ -64,7 +64,7 @@ readdisklabel(dev, strat, lp)
 	register struct disklabel *lp;
 	{
 	register struct buf *bp;
-	struct disklabel *dlp;
+	struct disklabel __far *dlp;
 	char *msg = NULL;
 
 	if	(lp->d_secperunit == 0)
@@ -86,7 +86,7 @@ readdisklabel(dev, strat, lp)
 		msg = "I/O error";
 	else
 		{
-		dlp = (struct disklabel *)mapin(bp);
+		dlp = (struct disklabel __far *)mapin(bp);
 		if	(dlp->d_magic != DISKMAGIC || 
 				dlp->d_magic2 != DISKMAGIC)
 			{
@@ -157,7 +157,7 @@ writedisklabel(dev, strat, lp)
 	register struct disklabel *lp;
 {
 	struct buf *bp;
-	struct disklabel *dlp;
+	struct disklabel __far *dlp;
 	int labelpart;
 	int error = 0;
 
@@ -176,7 +176,7 @@ writedisklabel(dev, strat, lp)
 	biowait(bp);
 	if (u.u_error)
 		goto done;
-	dlp = (struct disklabel *)mapin(bp);
+	dlp = (struct disklabel __far *)mapin(bp);
 	if (dlp->d_magic == DISKMAGIC && dlp->d_magic2 == DISKMAGIC &&
 	    dkcksum(dlp) == 0) {
 		bcopy(lp, dlp, sizeof (struct disklabel));
@@ -198,13 +198,13 @@ done:
  * Compute checksum for disk label.
  */
 dkcksum(lp)
-	struct disklabel *lp;
+	struct disklabel __far *lp;
 {
-	register u_short *start, *end;
+	register u_short __far *start, __far *end;
 	register u_short sum = 0;
 
-	start = (u_short *)lp;
-	end = (u_short *)&lp->d_partitions[lp->d_npartitions];
+	start = (u_short __far *)lp;
+	end = (u_short __far *)&lp->d_partitions[lp->d_npartitions];
 	while (start < end)
 		sum ^= *start++;
 	return (sum);
@@ -224,7 +224,7 @@ dkcksum(lp)
 dkoverlapchk(openmask, dev, label, name)
 	int	openmask;
 	dev_t	dev;
-	memaddr	label;
+	struct disklabel __far *label;
 	char	*name;
 	{
 	int	unit = dkunit(dev);
@@ -232,12 +232,11 @@ dkoverlapchk(openmask, dev, label, name)
 	int	partmask = 1 << part;
 	int	i;
 	daddr_t	start, end;
-	register struct disklabel *lp = (struct disklabel *)SEG5;
-	register struct partition *pp;
+	register struct disklabel __far *lp = label;
+	register struct partition __far *pp;
 
 	if	((openmask & partmask) == 0 && part != RAWPART)
 		{
-		mapseg5(label, LABELDESC);
 		pp = &lp->d_partitions[part];
 		start = pp->p_offset;
 		end = pp->p_offset + pp->p_size;
@@ -252,7 +251,6 @@ dkoverlapchk(openmask, dev, label, name)
 					"%s%d%c: overlaps open part (%c)\n",
 					name, unit, part + 'a', i + 'a');
 			}
-		normalseg5();
 		}
 	return(0);
 	}
@@ -277,12 +275,10 @@ ioctldisklabel(dev, cmd, data, flag, disk, strat)
 	int	flags;
 
 /*
- * Copy in mapped out label to the local copy on the stack.  We're in the
- * high kernel at this point so saving the mapping is not necessary.
+ * Copy in the label, which is outside the kernel's data segment, to the
+ * local copy on the stack.
 */
-	mapseg5(disk->dk_label, LABELDESC);
-	bcopy((struct disklabel *)SEG5, lp, sizeof (*lp));
-	normalseg5();
+	bcopy(disk->dk_label, lp, sizeof (*lp));
 
 	switch	(cmd)
 		{
@@ -293,11 +289,10 @@ ioctldisklabel(dev, cmd, data, flag, disk, strat)
  * Used internally by the kernel in init_main to verify that 'swapdev'
  * is indeed a FS_SWAP partition.
  *
- * NOTE: the label address is the external click address!
+ * NOTE: the label address is a far pointer!
 */
 		case	DIOCGPART:
-			((struct partinfo *)data)->disklab = 
-					(struct disklabel *)disk->dk_label;
+			((struct partinfo *)data)->disklab = disk->dk_label;
 			((struct partinfo *)data)->part = 
 						&disk->dk_parts[dkpart(dev)];
 			return(0);
@@ -322,9 +317,7 @@ ioctldisklabel(dev, cmd, data, flag, disk, strat)
 */
 			if	(error == 0)
 				{
-				mapseg5(disk->dk_label, LABELDESC);
-				bcopy(lp,(struct disklabel *)SEG5,sizeof (*lp));
-				normalseg5();
+				bcopy(lp, disk->dk_label, sizeof (*lp));
 				bcopy(&lp->d_partitions, &disk->dk_parts, 
 					sizeof (lp->d_partitions));
 				}
@@ -341,9 +334,7 @@ ioctldisklabel(dev, cmd, data, flag, disk, strat)
  * Copy to external label.  Ah - need to also update the kernel resident
  * partition tables!
 */
-			mapseg5(disk->dk_label, LABELDESC);
-			bcopy(lp,(struct disklabel *)SEG5,sizeof (*lp));
-			normalseg5();
+			bcopy(lp, disk->dk_label, sizeof (*lp));
 			bcopy(&lp->d_partitions, &disk->dk_parts, 
 				sizeof (lp->d_partitions));
 

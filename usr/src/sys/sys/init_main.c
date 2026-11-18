@@ -21,6 +21,7 @@
 #include "fcntl.h"
 #include "vm.h"
 #include "clist.h"
+#include "callout.h"
 #include "uba.h"
 #include "reboot.h"
 #include "systm.h"
@@ -35,6 +36,48 @@
 int	netoff = 1;
 int	cmask = CMASK;
 int	securelevel;
+
+/*
+ * The variables that headers declare for the whole kernel, and that no
+ * one file owns, are defined here.
+ */
+int	adjdelta;
+struct proc	*allproc;
+short	avenrun[3];
+int	boothowto;
+struct timeval	boottime;
+struct callout	*callfree;
+struct callout	calltodo;
+int	cfreecount;
+struct cblock	*cfreelist;
+char	curpri;
+dev_t	dumpdev;
+size_t	freemem;
+struct proc	*freeproc;
+long	hostid;
+char	hostname[MAXHOSTNAMELEN];
+int	hostnamelen;
+int	lbolt;
+u_int	maxmem;
+int	mpid;
+u_short	nextinodeid;
+int	noproc;
+u_int	nswap;
+struct proc	*pidhash[PIDHSZ];
+dev_t	pipedev;
+struct proc	*qs;
+daddr_t	rablock;
+dev_t	rootdev;
+struct inode	*rootdir;
+char	runin;
+char	runout;
+int	runrun;
+int	selwait;
+dev_t	swapdev;
+struct timeval	time;
+struct vmtotal	total;
+int	updlock;
+struct proc	*zombproc;
 
 extern	size_t physmem;
 extern	struct	mapent _coremap[];
@@ -70,7 +113,6 @@ main()
 	 * set up system process 0 (swapper)
 	 */
 	p = &proc[0];
-	p->p_addr = *ka6;
 	p->p_stat = SRUN;
 	p->p_flag |= SLOAD|SSYS;
 	p->p_nice = NZERO;
@@ -98,7 +140,6 @@ main()
 	ihinit();
 	bhinit();
 	binit();
-	ubinit();
 #ifdef QUOTA
 	QUOTAMAP();
 	qtinit();
@@ -227,31 +268,26 @@ main()
  * safe) assumption is made that no 'free' calls are made so that the
  * size in the first entry of the core map is correct.
 */
+	{
+	register struct mapent *mp;
+	long avail = 0;
+
+	for (mp = _coremap; mp->m_size; mp++)
+		avail += mp->m_size;
 	printf("\nphys mem  = %D\n", ctob((long)physmem));
-	printf("avail mem = %D\n", ctob((long)_coremap[0].m_size));
+	printf("avail mem = %D\n", ctob(avail));
 	maxmem = MAXMEM;
 	printf("user mem  = %D\n", ctob((long)MAXMEM));
-#if NRAM > 0
-	printf("ram disk  = %D\n", ctob((long)ramsize));
-#endif
 	printf("\n");
+	}
 
 	/*
-	 * make init process
+	 * make init process: it starts with the machine's icode, which
+	 * executes /etc/init.  This one becomes the swapper.
 	 */
-	if (newproc(0)) {
-		expand((int)btoc(szicode), S_DATA);
-		expand((int)1, S_STACK);	/* one click of stack */
-		estabur((u_int)0, (u_int)btoc(szicode), (u_int)1, 0, RO);
-		copyout((caddr_t)icode, (caddr_t)0, szicode);
-		/*
-		 * return goes to location 0 of user init code
-		 * just copied out.
-		 */
-		return;
-	}
-	else
-		sched();
+	if (newproc(0) == NULL)
+		panic("no init");
+	sched();
 }
 
 /*
@@ -277,17 +313,32 @@ binit()
 {
 	register struct buf *bp;
 	register int i;
-	long paddr;
+	long paddr, left;
+	u_int sel;
 
 	for (bp = bfreelist; bp < &bfreelist[BQUEUES]; bp++)
 		bp->b_forw = bp->b_back = bp->av_forw = bp->av_back = bp;
-	paddr = ((long)bpaddr) << 6;
+	/*
+	 * The buffers' data is outside the kernel's data segment, so
+	 * each 64K of it is made a segment, and a buffer's header has both
+	 * the physical address of its data, for the drivers, and a far
+	 * pointer to it, for the kernel.
+	 */
+	paddr = ctob((long)bpaddr);
+	left = (long)nbuf * MAXBSIZE;
 	for (i = 0; i < nbuf; i++, paddr += MAXBSIZE) {
 		bp = &buf[i];
 		bp->b_dev = NODEV;
 		bp->b_bcount = 0;
 		bp->b_un.b_addr = (caddr_t)loint(paddr);
 		bp->b_xmem = hiint(paddr);
+		if (i % (int)(0x10000L / MAXBSIZE) == 0) {
+			sel = gdtalloc(paddr,
+			    (u_int)(left > 0x10000L ? 0xFFFF : left - 1));
+			left -= 0x10000L;
+		}
+		bp->b_kaddr = UADDR(sel, (i % (int)(0x10000L / MAXBSIZE)) *
+		    MAXBSIZE);
 		binshash(bp, &bfreelist[BQ_AGE]);
 		bp->b_flags = B_BUSY|B_INVAL;
 		brelse(bp);
@@ -305,19 +356,12 @@ cinit()
 	register struct cblock *cp;
 
 	ccp = (int)cfree;
-#ifdef UCB_CLIST
-	mapseg5(clststrt, clstdesc);	/* don't save, we know it's normal */
-#else
 	ccp = (ccp + CROUND) & ~CROUND;
-#endif
 	for (cp = (struct cblock *)ccp; cp <= &cfree[nclist - 1]; cp++) {
 		cp->c_next = cfreelist;
 		cfreelist = cp;
 		cfreecount += CBSIZE;
 	}
-#ifdef UCB_CLIST
-	normalseg5();
-#endif
 }
 
 #ifdef INET

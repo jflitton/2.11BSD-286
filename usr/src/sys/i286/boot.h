@@ -20,6 +20,8 @@ struct bootinfo {
 	unsigned short	bi_eoff;	/*		offset */
 	unsigned short	bi_dseg;	/* the data segment, from 1 */
 	unsigned short	bi_drive;	/* the BIOS's drive number */
+	unsigned short	bi_rdsect;	/* a RAM disk image on that drive: */
+	unsigned short	bi_rdsize;	/*   first sector, and how many */
 	struct bootseg	bi_seg[BOOTNSEG];
 };
 

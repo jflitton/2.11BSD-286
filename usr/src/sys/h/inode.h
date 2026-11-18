@@ -155,17 +155,17 @@ struct dinode {
 	if (nextinodeid == 0) \
 		cacheinvalall();
 
-u_short	nextinodeid;		/* unique id generator */
+extern u_short	nextinodeid;		/* unique id generator */
 
 #ifdef EXTERNALITIMES
-memaddr	xitimes;
-u_int	xitdesc;
+extern memaddr	xitimes;
+extern u_int	xitdesc;
 #endif
-struct inode inode[];		/* the inode table itself */
-struct inode *inodeNINODE;	/* the end of the inode table */
-int	ninode;			/* the number of slots in the table */
+extern struct inode inode[];		/* the inode table itself */
+extern struct inode *inodeNINODE;	/* the end of the inode table */
+extern int	ninode;			/* the number of slots in the table */
 
-struct	inode *rootdir;			/* pointer to inode of root directory */
+extern struct	inode *rootdir;			/* pointer to inode of root directory */
 
 struct	inode *getinode();
 struct	inode *ialloc();

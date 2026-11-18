@@ -29,8 +29,8 @@
 smount()
 {
 	register struct a {
-		char	*fspec;
-		char	*freg;
+		char __far *fspec;
+		char __far *freg;
 		int	flags;
 	} *uap = (struct a *)u.u_ap;
 	dev_t dev;
@@ -44,10 +44,10 @@ smount()
 	char	mnton[MNAMELEN], mntfrom[MNAMELEN];
 
 	if	(u.u_error = getmdev(&dev, uap->fspec))
-		return;
+		return (0);
 	NDINIT(ndp, LOOKUP, FOLLOW, UIO_USERSPACE, uap->freg);
 	if	((ip = namei(ndp)) == NULL)
-		return;
+		return (0);
 	if ((ip->i_mode&IFMT) != IFDIR) {
 		error = ENOTDIR;
 		goto	cmnout;
@@ -122,7 +122,7 @@ smount()
 			}
 		fs = mountfs(dev, uap->flags, ip);
 		if	(fs == 0)
-			return;
+			return (0);
 		}
 /*
  * Lastly, both for new mounts and updates of existing mounts, update the
@@ -130,7 +130,7 @@ smount()
 */
 updname:
 	mount_updname(fs, mnton, mntfrom, lenon, lenfrom);
-	return;
+	return (0);
 cmnout:
 	iput(ip);
 	return(u.u_error = error);
@@ -142,17 +142,15 @@ mount_updname(fs, on, from, lenon, lenfrom)
 	int	lenon, lenfrom;
 	{
 	struct	mount	*mp;
-	register struct	xmount	*xmp;
+	register struct	xmount	__far *xmp;
 
 	bzero(fs->fs_fsmnt, sizeof (fs->fs_fsmnt));
 	bcopy(on, fs->fs_fsmnt, sizeof (fs->fs_fsmnt) - 1);
 	mp = (struct mount *)((int)fs - offsetof(struct mount, m_filsys));
-	xmp = (struct xmount *)SEG5;
-	mapseg5(mp->m_extern, XMOUNTDESC);
+	xmp = &xmount[mp - mount];
 	bzero(xmp, sizeof (struct xmount));
 	bcopy(on, xmp->xm_mnton, lenon);
 	bcopy(from, xmp->xm_mntfrom, lenfrom);
-	normalseg5();
 	}
 
 /* this routine has races if running twice */
@@ -259,14 +257,14 @@ out:
 umount()
 {
 	struct a {
-		char	*fspec;
+		char __far *fspec;
 	} *uap = (struct a *)u.u_ap;
 
 	u.u_error = unmount1(uap->fspec);
 }
 
 unmount1(fname)
-	caddr_t fname;
+	uaddr_t fname;
 {
 	dev_t dev;
 	register struct mount *mp;
@@ -334,7 +332,7 @@ found:
  * thing on which to mount, otherwise return error.
  */
 getmdev(pdev, fname)
-	caddr_t fname;
+	uaddr_t fname;
 	dev_t *pdev;
 {
 	register dev_t dev;

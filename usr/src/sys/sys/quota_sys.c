@@ -27,8 +27,8 @@
 setquota()
 {
 	register struct a {
-		char	*fblk;
-		char	*fname;
+		char __far *fblk;
+		char __far *fname;
 	} *uap = (struct a *)u.u_ap;
 	register struct mount *mp;
 	dev_t dev;
@@ -49,7 +49,7 @@ setquota()
 			if (uap->fname == NULL)
 				closedq(mp);
 			else
-				opendq(mp, (caddr_t)uap->fname);
+				opendq(mp, uap->fname);
 #ifdef pdp11
 			QUOTAUNMAP();
 #endif
@@ -71,7 +71,7 @@ qquota()
 		int	cmd;
 		int	uid;
 		int	arg;
-		caddr_t	addr;
+		uaddr_t	addr;
 	} *uap = (struct a *)u.u_ap;
 	register struct quota *q;
 
