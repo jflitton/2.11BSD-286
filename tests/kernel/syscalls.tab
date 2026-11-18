@@ -2,34 +2,34 @@
 # turns this into their stubs.  Names beginning with an underscore are
 # the calls as the kernel has them, where a C library would put a
 # function of its own in front.
-_exit		1	i
-fork		2	-	fork
-read		3	ipi
-write		4	ipi
-open		5	pii
-close		6	i
-wait4		7	ipip
-link		9	pp
-unlink		10	p
-chdir		12	p
-mknod		14	pii
-lseek		19	ili
-getpid		20	-
-getppid		27	-
-_sigaction	31	fipp
-sync		36	-
-kill		37	ii
-stat		38	pp
-dup		41	i
-_pipe		42	p	pair
-ioctl		54	ilp
-reboot		55	i
-execve		59	ppp
-fstat		62	ip
-vfork		66	-	vfork
-_brk		69	p
-dup2		90	ii
-_select		93	ipppp
-_sigreturn	103	p
-mkdir		136	pi
-rmdir		137	p
+_exit=exit	i
+fork	-	fork
+read	ipi
+write	ipi
+open	pii
+close	i
+wait4	ipip
+link	pp
+unlink	p
+chdir	p
+mknod	pii
+lseek	ili
+getpid	-
+getppid	-
+_sigaction=sigaction	fipp
+sync	-
+kill	ii
+stat	pp
+dup	i
+_pipe=pipe	p	pair
+ioctl	ilp
+reboot	i
+execve	ppp
+fstat	ip
+vfork	-	vfork
+_brk=sbrk	p
+dup2	ii
+_select=select	ipppp
+_sigreturn=sigreturn	p
+mkdir	pi
+rmdir	p

@@ -20,7 +20,7 @@
 #define	BIG_ENDIAN	4321	/* most-significant byte first (IBM, net) */
 #define	PDP_ENDIAN	3412	/* LSB first in word, MSW first in long (pdp) */
 
-#ifdef vax
+#if defined(vax) || defined(i286)
 #define	BYTE_ORDER	LITTLE_ENDIAN
 #else
 #ifdef pdp11

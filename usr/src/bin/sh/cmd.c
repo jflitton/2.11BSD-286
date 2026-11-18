@@ -260,7 +260,7 @@ LOCAL TREPTR	item(flag)
 		   p=getstak(PARTYPE);
 		   p->partre=cmd(')',NLFLG);
 		   p->partyp=TPAR;
-		   t=makefork(0,p);
+		   t=makefork(0,(TREPTR)p);
 		   break;
 		END
 

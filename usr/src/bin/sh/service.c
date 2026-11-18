@@ -382,7 +382,7 @@ LOCAL INT	split(s)
 		ELIF c==0
 		THEN	s--;
 		FI
-		IF c=expand((argp=endstak(argp))->argval,0)
+		IF c=expand(((ARGPTR)(argp=endstak(argp)))->argval,0)
 		THEN	count += c;
 		ELSE	/* assign(&fngnod, argp->argval); */
 			makearg(argp); count++;

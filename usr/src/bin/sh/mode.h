@@ -54,8 +54,7 @@ STRUCT sysnod	SYSTAB[];
  * into an Rvalue so two cheats
  * are necessary, one for each context.
  */
-union { int _cheat;};
-#define Lcheat(a)	((a)._cheat)
+#define Lcheat(a)	(*(int *)&(a))
 #define Rcheat(a)	((int)(a))
 
 
@@ -117,10 +116,32 @@ struct sysnod {
 };
 
 /* this node is a proforma for those that follow */
+#ifdef i286
+/*
+ * PCC let a member's name be used with a pointer to any structure, and
+ * the shell reaches every kind of node through a TREPTR.  Here the
+ * proforma has each kind's members, at their own offsets, so that it can.
+ */
+struct trenod {
+	union {
+		struct { INT tretyp; IOPTR treio; };
+		struct { INT forktyp; IOPTR forkio; TREPTR forktre; };
+		struct { INT comtyp; IOPTR comio; ARGPTR comarg; ARGPTR comset; };
+		struct { INT iftyp; TREPTR iftre; TREPTR thtre; TREPTR eltre; };
+		struct { INT whtyp; TREPTR whtre; TREPTR dotre; };
+		struct { INT fortyp; TREPTR fortre; STRING fornam; COMPTR forlst; };
+		struct { INT swtyp; STRING swarg; REGPTR swlst; };
+		struct { INT partyp; TREPTR partre; };
+		struct { INT lsttyp; TREPTR lstlef; TREPTR lstrit; };
+		struct { ARGPTR regptr; TREPTR regcom; REGPTR regnxt; };
+	};
+};
+#else
 struct trenod {
 	INT	tretyp;
 	IOPTR	treio;
 };
+#endif
 
 /* dummy for access only */
 struct argnod {

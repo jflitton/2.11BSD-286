@@ -36,6 +36,11 @@ main(c, v)
 
 	/* initialise storage allocation */
 	stdsigs();
+	/*
+	 * The arena starts at the break, which need not be at end: on the
+	 * 286 the stack lies between them.
+	 */
+	arena=bloktop=BLK(round(sbrk(0),BYTESPERWORD));
 	setbrk(BRKINCR);
 	addblok((POS)0);
 
@@ -156,7 +161,7 @@ BOOL		prof;
 		IF eof
 		THEN	return;
 		FI
-		execute(cmd(NL,MTFLG),0);
+		execute(cmd(NL,MTFLG),0, (INT *)0, (INT *)0);
 		eof |= (flags&oneflg);
 	POOL
 }

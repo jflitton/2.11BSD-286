@@ -70,7 +70,7 @@ execute(argt, execflg, pf1, pf2)
 	
 						IF (f=pathopen(getpath(a1), a1)) < 0
 						THEN failed(a1,notfound);
-						ELSE execexp(0,f);
+						ELSE execexp((STRING)0,f);
 						FI
 					FI
 					break;
@@ -195,7 +195,7 @@ execute(argt, execflg, pf1, pf2)
 	
 				case SYSEVAL:
 					IF a1
-					THEN	execexp(a1,&com[2]);
+					THEN	execexp(a1,(UFD)&com[2]);
 					FI
 					break;
 
@@ -288,7 +288,7 @@ execute(argt, execflg, pf1, pf2)
 				/* io redirection */
 				initio(t->treio);
 				IF type!=TCOM
-				THEN	execute(t->forktre,1);
+				THEN	execute(t->forktre,1, (INT *)0, (INT *)0);
 				ELIF com[0]!=ENDARGS
 				THEN	setlist(t->comset,N_EXPORT);
 					execa(com);
@@ -298,7 +298,7 @@ execute(argt, execflg, pf1, pf2)
 
 		case TPAR:
 			rename(dup(2),output);
-			execute(t->partre,execflg);
+			execute(t->partre,execflg, (INT *)0, (INT *)0);
 			done();
 
 		case TFIL:
@@ -312,19 +312,19 @@ execute(argt, execflg, pf1, pf2)
 			break;
 
 		case TLST:
-			execute(t->lstlef,0);
-			execute(t->lstrit,execflg);
+			execute(t->lstlef,0, (INT *)0, (INT *)0);
+			execute(t->lstrit,execflg, (INT *)0, (INT *)0);
 			break;
 
 		case TAND:
-			IF execute(t->lstlef,0)==0
-			THEN	execute(t->lstrit,execflg);
+			IF execute(t->lstlef,0, (INT *)0, (INT *)0)==0
+			THEN	execute(t->lstrit,execflg, (INT *)0, (INT *)0);
 			FI
 			break;
 
 		case TORF:
-			IF execute(t->lstlef,0)!=0
-			THEN	execute(t->lstrit,execflg);
+			IF execute(t->lstlef,0, (INT *)0, (INT *)0)!=0
+			THEN	execute(t->lstrit,execflg, (INT *)0, (INT *)0);
 			FI
 			break;
 
@@ -345,7 +345,7 @@ execute(argt, execflg, pf1, pf2)
 			   loopcnt++;
 			   WHILE *args!=ENDARGS ANDF execbrk==0
 			   DO	assign(n,*args++);
-				execute(t->fortre,0);
+				execute(t->fortre,0, (INT *)0, (INT *)0);
 				IF execbrk<0 THEN execbrk=0 FI
 			   OD
 			   IF breakcnt THEN breakcnt-- FI
@@ -360,8 +360,8 @@ execute(argt, execflg, pf1, pf2)
 			   INT		i=0;
 
 			   loopcnt++;
-			   WHILE execbrk==0 ANDF (execute(t->whtre,0)==0)==(type==TWH)
-			   DO i=execute(t->dotre,0);
+			   WHILE execbrk==0 ANDF (execute(t->whtre,0, (INT *)0, (INT *)0)==0)==(type==TWH)
+			   DO i=execute(t->dotre,0, (INT *)0, (INT *)0);
 			      IF execbrk<0 THEN execbrk=0 FI
 			   OD
 			   IF breakcnt THEN breakcnt-- FI
@@ -370,9 +370,9 @@ execute(argt, execflg, pf1, pf2)
 			break;
 
 		case TIF:
-			IF execute(t->iftre,0)==0
-			THEN	execute(t->thtre,execflg);
-			ELSE	execute(t->eltre,execflg);
+			IF execute(t->iftre,0, (INT *)0, (INT *)0)==0
+			THEN	execute(t->thtre,execflg, (INT *)0, (INT *)0);
+			ELSE	execute(t->eltre,execflg, (INT *)0, (INT *)0);
 			FI
 			break;
 
@@ -385,7 +385,7 @@ execute(argt, execflg, pf1, pf2)
 				WHILE rex
 				DO	REG STRING	s;
 					IF gmatch(r,s=macro(rex->argval)) ORF (trim(s), eq(r,s))
-					THEN	execute(t->regcom,0);
+					THEN	execute(t->regcom,0, (INT *)0, (INT *)0);
 						t=0; break;
 					ELSE	rex=rex->argnxt;
 					FI
@@ -415,6 +415,6 @@ execexp(s,f)
 	ELIF f>=0
 	THEN	initf(f);
 	FI
-	execute(cmd(NL, NLFLG|MTFLG),0);
+	execute(cmd(NL, NLFLG|MTFLG),0, (INT *)0, (INT *)0);
 	pop();
 }

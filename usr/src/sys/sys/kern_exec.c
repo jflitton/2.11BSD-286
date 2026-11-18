@@ -504,7 +504,10 @@ getxdata(ip, n, size, offset)
  * file's text structure, one after another, and the process's table
  * says where in it each is.  Every data segment is a segment of the
  * process's own.  The one the header names holds the stack as well,
- * after the data, and above that is where the break starts.
+ * after the data, and above that is where the break starts.  The stack
+ * is the size the header gives with nargc bytes more for the arguments
+ * and environment, which execve copies to the top of it, rounded up to
+ * a click.
  */
 getxfile(ip, ep, nargc, uid, gid)
 	register struct inode *ip;
@@ -517,7 +520,7 @@ getxfile(ip, ep, nargc, uid, gid)
 	struct exseg xs;
 	register int n;
 	u_int ts, startc;
-	long size, total;
+	long size, total, stack;
 	off_t offset;
 
 	if (ep->a_nseg == 0 || ep->a_nseg >= NSEG ||
@@ -549,6 +552,7 @@ getxfile(ip, ep, nargc, uid, gid)
 	 * find text and data sizes try; them out for possible
 	 * overflow of max sizes
 	 */
+	stack = ctob(btoc((long)ep->a_stack + nargc));
 	ts = 0;
 	total = 0;
 	for (n = 1; n <= ep->a_nseg; n++) {
@@ -556,13 +560,14 @@ getxfile(ip, ep, nargc, uid, gid)
 			return;
 		size = xs.xs_memsz;
 		if (n == ep->a_dseg) {
-			size += ep->a_stack;
 			if (xs.xs_type != XS_DATA)
 				size = 0;
-			else if (ep->a_stack < nargc) {
+			else if (size + ep->a_stack <= 0x10000L &&
+			    size + stack > 0x10000L) {
 				u.u_error = E2BIG;
 				return;
 			}
+			size += stack;
 		}
 		if (size == 0 || size > 0x10000L || xs.xs_filesz > xs.xs_memsz ||
 		    (xs.xs_type != XS_CODE && xs.xs_type != XS_DATA) ||
@@ -607,7 +612,7 @@ getxfile(ip, ep, nargc, uid, gid)
 			ts += sp->ps_size;
 		} else {
 			if (n == ep->a_dseg)
-				size += ep->a_stack;
+				size += stack;
 			expand((int)btoc(size), n);
 			sp->ps_limit = size - 1;
 			sp->ps_flag = PS_USED;
@@ -642,12 +647,12 @@ getxfile(ip, ep, nargc, uid, gid)
 
 	u.u_tsize = ts;
 	u.u_dsize = p->p_dsize;
-	u.u_ssize = btoc(ep->a_stack);
+	u.u_ssize = btoc(stack);
 	u.u_model = ep->a_model;
 	u.u_dseg = ep->a_dseg;
 	sp = &PSEG(p)[ep->a_dseg];
 	u.u_break = sp->ps_limit + 1;
-	u.u_stack0 = u.u_break - ep->a_stack;
+	u.u_stack0 = u.u_break - stack;
 
 	/*
 	 * The registers the program starts with.  BX is the break, which

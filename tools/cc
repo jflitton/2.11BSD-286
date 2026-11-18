@@ -1,0 +1,210 @@
+#!/usr/bin/env python3
+"""Compile and link C programs for 2.11BSD on the 286, as cc(1) would.
+
+usage: cc [-c] [-o OUT] [-O] [-s] [-ms] [-Dname[=val]] [-Uname] [-Idir]
+          [-Ldir] [-lname] [-stack N] FILE ...
+
+FILE is a C source (.c), assembly for NASM (.s), an object (.o) or a
+library (.lib).  Each .c and .s is compiled; with -c that is all, each
+to a .o of the same name in the current directory (or OUT, with one
+file).  Without -c the objects are linked into OUT, by default a.out,
+with the start-up code first and the C library last, and the result made
+into the system's executable format (tools/ne2aout.py,
+docs/executable-format.md).
+
+The C is compiled as the tree's expects (docs/userland.md): each
+variable a file defines without a value gets common storage
+(tools/commonize.py), and the compiler's own keywords that old programs
+use as names, such as inline, far and interrupt, are names again.  A
+variable defined twice with a value is an error.
+
+    -O          optimize; the compiler always does, for size
+    -s          leave out the symbol table
+    -lname      the library obj/lib/s/libname.lib, or libname.lib in a
+                directory given by -L
+    -stack N    the program's stack, in bytes (default 8192); execve
+                adds room for the arguments and environment above it
+    -ms         the small model, the only one there is yet
+
+These PDP-11 flags are accepted and ignored: -i and -n (separate
+instruction and data space, and shared text, which every program here
+has), -z, -V, -X and -x.  Anything else beginning with -f, -w or -z is
+passed to the compiler.  Needs `. tools/env.sh`.
+"""
+import os
+import subprocess
+import sys
+import tempfile
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import commonize        # noqa: E402
+
+TOOLS = os.path.dirname(os.path.abspath(__file__))
+TOP = os.path.dirname(TOOLS)
+LIB = os.path.join(TOP, "obj", "lib", "s")
+IGNORED = {"-i", "-n", "-z", "-V", "-X", "-x", "-g"}
+# Names old programs use that the compiler takes for its own: cat has a
+# variable inline, which is a keyword, and getty a function interrupt,
+# which the compiler predefines as a macro for __interrupt, as it does
+# the others here.  The system's headers write the keywords with two
+# underscores, __far and the rest, when they mean them.
+MACROS = ["interrupt", "far", "near", "huge", "cdecl", "pascal", "fortran"]
+
+
+def fail(msg):
+    sys.stderr.write("cc: %s\n" % msg)
+    sys.exit(1)
+
+
+def run(argv):
+    r = subprocess.run(argv)
+    if r.returncode != 0:
+        sys.exit(r.returncode)
+
+
+def compile_c(src, obj, cflags):
+    """cc286, which prints the compiler's messages; an error is fatal."""
+    r = subprocess.run([os.path.join(TOOLS, "cc286"), "-ms"] + cflags +
+                       ["-o", obj, src], capture_output=True, text=True)
+    out = r.stdout + r.stderr
+    sys.stderr.write(out)
+    if r.returncode != 0 or "Error!" in out:
+        try:
+            os.unlink(obj)
+        except OSError:
+            pass
+        sys.exit(1)
+    commonize.commonize(obj)
+
+
+def main():
+    args = sys.argv[1:]
+    compile_only = False
+    out = None
+    strip = False
+    stack = 8192
+    cflags = []
+    libdirs = []
+    files = []          # (path, kind)
+    libs = []
+    i = 0
+    while i < len(args):
+        a = args[i]
+        i += 1
+
+        def value():
+            nonlocal i
+            if len(a) > 2:
+                return a[2:]
+            if i >= len(args):
+                fail("%s needs an argument" % a)
+            i += 1
+            return args[i - 1]
+
+        if a == "-c":
+            compile_only = True
+        elif a == "-o":
+            if i >= len(args):
+                fail("-o needs an argument")
+            out = args[i]
+            i += 1
+        elif a == "-O" or a.startswith("-O"):
+            pass
+        elif a == "-s":
+            strip = True
+        elif a == "-stack":
+            if i >= len(args):
+                fail("-stack needs an argument")
+            stack = int(args[i], 0)
+            i += 1
+        elif a == "-ms":
+            pass
+        elif a in ("-mm", "-ml"):
+            fail("%s: only the small model has a library yet" % a)
+        elif a[:2] in ("-D", "-U", "-I"):
+            v = value()
+            cflags.append(a[:2] + v)
+        elif a[:2] == "-L":
+            libdirs.append(value())
+        elif a[:2] == "-l":
+            libs.append(value())
+        elif a in IGNORED:
+            pass
+        elif a[:2] in ("-f", "-w", "-z"):
+            cflags.append(a)
+        elif a.startswith("-"):
+            fail("unknown flag %s" % a)
+        else:
+            ext = os.path.splitext(a)[1]
+            if ext not in (".c", ".s", ".o", ".lib", ".a"):
+                fail("%s: not a .c, .s, .o or .lib" % a)
+            files.append(a)
+    if not files:
+        sys.exit(__doc__)
+    cflags = ["-I" + os.path.join(TOP, "usr", "include")] + cflags + \
+        ["-wcd=131", "-wcd=107", "-wcd=121"] + \
+        ["-U" + k for k in MACROS] + ["-Dinline=inline_"]
+    sources = [f for f in files if f.endswith((".c", ".s"))]
+    if compile_only and out and len(sources) > 1:
+        fail("-o with -c and more than one file")
+
+    tmp = tempfile.mkdtemp(prefix="cc286.")
+    objs = []
+    try:
+        for f in files:
+            if not f.endswith((".c", ".s")):
+                objs.append(f)
+                continue
+            base = os.path.splitext(os.path.basename(f))[0] + ".o"
+            if compile_only:
+                obj = out or base
+            else:
+                obj = os.path.join(tmp, "%d-%s" % (len(objs), base))
+            if f.endswith(".c"):
+                compile_c(f, obj, cflags)
+            else:
+                run(["nasm", "-f", "obj", "-o", obj, f])
+            objs.append(obj)
+        if compile_only:
+            return
+        libpaths = []
+        for name in libs:
+            for d in libdirs + [LIB]:
+                p = os.path.join(d, "lib%s.lib" % name)
+                if os.path.exists(p):
+                    libpaths.append(p)
+                    break
+            else:
+                fail("no library %s" % name)
+        libpaths.append(os.path.join(LIB, "libc.lib"))
+        out = out or "a.out"
+        ne = os.path.join(tmp, "a.ne")
+        mapf = os.path.join(tmp, "a.map")
+        cmd = ["wlink", "op", "q", "format", "os2", "name", ne,
+               "disable", "1014", "op",
+               "nodefaultlibs,stack=%d,map=%s" % (stack, mapf),
+               "file", ",".join([os.path.join(LIB, "crt0.o")] + objs)]
+        for p in libpaths:
+            cmd += ["library", p]
+        r = subprocess.run(cmd, capture_output=True, text=True)
+        msg = r.stdout + r.stderr
+        sys.stderr.write(msg)
+        # W1027 is a variable defined twice.  Uninitialized ones share
+        # storage (tools/commonize.py), so this is two with values.
+        if r.returncode != 0 or "Error!" in msg or "W1027" in msg or \
+                not os.path.exists(ne):
+            sys.exit(1)
+        conv = [sys.executable, "-I", os.path.join(TOOLS, "ne2aout.py"),
+                "--model", "s", "--stack", str(stack)]
+        if not strip:
+            conv += ["--map", mapf]
+        run(conv + [ne, out])
+        os.chmod(out, 0o755)
+    finally:
+        for f in os.listdir(tmp):
+            os.unlink(os.path.join(tmp, f))
+        os.rmdir(tmp)
+
+
+if __name__ == "__main__":
+    main()

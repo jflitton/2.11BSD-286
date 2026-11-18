@@ -146,7 +146,7 @@ cont:
 		exit(1);
 	}
 	alarm(0);
-	sigs(eof);
+	sigs((sig_t)eof);
 	{ char hostname[32];
 	  gethostname(hostname, sizeof (hostname));
 	  fprintf(tf,
@@ -224,7 +224,7 @@ ex(bp)
 	if (i == 0) {
 		fclose(tf);		/* Close his terminal */
 		setgid(getgid());	/* Give up effective group privs */
-		sigs((int (*)())0);
+		sigs((sig_t)0);
 		execl(getenv("SHELL") ?
 		    getenv("SHELL") : "/bin/sh", "sh", "-c", bp+1, 0);
 		exit(0);
@@ -233,7 +233,7 @@ ex(bp)
 		;
 	printf("!\n");
 out:
-	sigs(eof);
+	sigs((sig_t)eof);
 }
 
 sigs(sig)

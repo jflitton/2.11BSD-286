@@ -27,6 +27,7 @@ int	cflag;
 int	fflag;
 
 char	*string;
+unsigned long number(unsigned long);
 char	*ifile;
 char	*ofile;
 char	*ibuf;

@@ -39,7 +39,8 @@ Where the 286 code goes, beside its PDP-11 counterpart in each case:
 | `usr/src/sys/i286if/` | `pdpif/` | network interfaces; to come |
 | `usr/src/sys/i286stand/` | `pdpstand/`, `mdec/` | what loads the kernel: the diskette's boot sector, and for a hard disk its first sector, the boot block and `/boot`; `make -C usr/src/sys/i286stand` builds them in `obj/stand` |
 | `usr/src/sys/PC/` | `GENERIC/` | the kernel's configuration and Makefile: `make -C usr/src/sys/PC` builds `obj/PC/unix` |
-| `usr/src/lib/libc/i286/` | `lib/libc/pdp/` | libc's machine-dependent part; `crt/` exists, the rest is to come |
+| `usr/src/lib/libc/i286/` | `lib/libc/pdp/` | libc's machine-dependent part, and the Makefile that builds the library from it and the tree's portable C: `make -C usr/src/lib/libc/i286` makes `obj/lib/s/libc.lib` |
+| `usr/src/i286/` | the tree's own Makefiles | the list of programs built and the Makefile that builds them in `obj/bin`; the root file system's contents and `/etc` files, which `make -C usr/src/i286 root` makes into `obj/root/root.fs` ([the C library and programs](docs/userland.md)) |
 
 The kernel picks its machine through the link `usr/src/sys/machine`, which
 points at `pdp` upstream and at `i286` here, as does `usr/include/machine`.
@@ -147,12 +148,15 @@ DOS and OS/2 user's guide with nothing on ports or interrupts; not kept.)
 | `tools/install-watcom.sh` | installs the cross-compiler for this host into `toolchain/` |
 | `tools/env.sh` | sourced, puts the toolchain on `PATH` |
 | `tools/cc286`, `tools/cc286.h` | compile one C file with the system's memory model and calling convention |
+| `tools/cc` | compiles and links programs against the C library, as `cc` would |
+| `tools/commonize.py` | gives an object's uninitialized variables common storage, as the tree's C expects |
+| `tools/mkerrlst.py` | makes `/etc/syserrlst`, the system's error messages |
 | `tools/ne2aout.py` | turns the linker's output into the system's executable format; `--dump` prints one |
 | `tools/mkfd.py` | makes a bootable diskette image from an executable, with a file system image for the kernel's RAM disk if wanted |
 | `tools/mkfs.py` | makes a file system image from a list of files |
 | `tools/mkdisk.py` | makes a hard disk image: a partition table or none, a label, partitions, and the sectors that boot it |
 | `tools/fsck.py` | checks a file system in an image without changing it, or prints a file from it |
-| `tools/mkstubs.py` | writes a program's system call stubs from a table of the calls' arguments |
+| `tools/mkstubs.py` | writes system call stubs from a table of the calls' arguments, checked against the kernel's |
 | `tools/kpatch.py` | changes a variable in an executable file, by name |
 | `tools/farlint.py` | looks for far pointers that kernel code truncates without the compiler noticing |
 | `tools/untap.py` | splits a SimH `.tap` tape image into its files |
@@ -175,6 +179,9 @@ tests/pm/run.sh         # the kernel's start-up and trap entry: 54 checks
 tests/user/run.sh       # a process in ring 3: 58 checks
 tests/kernel/run.sh     # the kernel, with a test program as init, booted
                         # six times: 51 checks, then 67 on each of five disks
+tests/libc/run.sh       # the C library, with a test program as init: 69 checks
+tests/system/run.sh     # the system, booted from a hard disk to multi-user:
+                        # logs in on the console and uses the shell
 ```
 
 - `tests/crt` is a small-model program in real mode, built through the
@@ -205,6 +212,13 @@ tests/kernel/run.sh     # the kernel, with a test program as init, booted
   the disk. Three of the five boot from the hard disk itself: the BIOS
   starts the boot block, which loads `/boot`, which loads `/unix`
   ([booting](docs/boot.md)).
+- `tests/libc` builds the C library and boots the kernel with a program
+  that calls into each part of it as `/etc/init`.
+- `tests/system` builds the kernel, `/boot`, the library, the programs and
+  the root file system as for a real machine, and boots them from an IDE
+  disk. It waits for `login:`, types `root`, gives the shell some
+  commands, and halts the machine; then `tools/fsck.py` checks the disk
+  ([the C library and programs](docs/userland.md)).
 
 The emulator is [86Box](https://github.com/86Box/86Box), as an IBM PS/2
 Model 30 286 with a 287 (`tests/harness/86box.cfg`): a real 286, which
@@ -245,7 +259,8 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   [executable format](docs/executable-format.md),
   [booting](docs/boot.md),
   [processes](docs/processes.md),
-  [disks](docs/disks.md).
+  [disks](docs/disks.md),
+  [the C library and programs](docs/userland.md).
 - A C program can be compiled, linked, converted to the executable format
   and run in an emulated PS/2 Model 30 286.
 - The helper routines compiled code calls for 32-bit multiply and divide
@@ -272,14 +287,19 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   is on. A diskette is needed only where the BIOS cannot read the
   system's part of the disk: past its 1024 cylinders, or on a controller
   it does not know.
+- The C library is built for the small model, and with it 42 of the
+  system's programs: `init`, `getty`, `login`, the Bourne shell and the
+  everyday commands ([the C library and programs](docs/userland.md)).
+  The system boots from its disk to multi-user, and one logs in on the
+  console and works in the shell.
 - That is the state in an emulated PS/2 Model 30 286 only. Nothing has
   run on a real machine.
 - What the kernel does not have: a driver for the network card, a
   console on the display and keyboard, pseudo-terminals
   (the code is there and not yet compiled in), networking, quotas. The
-  parts of it that no test reaches yet: `ptrace`, `select`, `sysctl`,
-  terminal input, core dumps beyond being written, `fork` when memory is
-  short, and swapping of shared code.
-- There is no C library and no program but the tests: the next step in
-  user space is `libc`'s machine-dependent part and system call stubs,
-  then `init` and a shell.
+  parts of it that no test reaches yet: `ptrace`, `sysctl`, core dumps
+  beyond being written, `fork` when memory is short, and swapping of
+  shared code.
+- What user space does not have: libraries for the medium and large
+  models, and most of the programs, among them `vi`, `csh`, `ps`, `fsck`
+  and everything for the network.

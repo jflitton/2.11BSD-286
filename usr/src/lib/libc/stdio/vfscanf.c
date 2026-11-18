@@ -46,7 +46,7 @@ static char sccsid[] = "@(#)vfscanf.c	8.2 (2.11BSD) 2025/12/25";
 
 #define FLOATING_POINT
 
-double atof(char *);
+double atof(const char *);
 #define	strtod(x,y)	atof(x)
 
 

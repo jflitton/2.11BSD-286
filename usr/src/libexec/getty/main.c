@@ -169,12 +169,13 @@ main(argc, argv)
 		tname = argv[1];
 	for (;;) {
 		int ldisp = OTTYDISC;
+		int zero = 0;		/* both ways: a pointer to it, not 0 */
 
 		gettable(tname, tabent, tabstrs);
 		if (OPset || EPset || APset)
 			APset++, OPset++, EPset++;
 		setdefaults();
-		ioctl(0, TIOCFLUSH, 0);		/* clear out the crap */
+		ioctl(0, TIOCFLUSH, &zero);	/* clear out the crap */
 		if (IS)
 			tmode.sg_ispeed = speed(IS);
 		else if (SP)

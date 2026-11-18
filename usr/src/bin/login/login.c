@@ -508,6 +508,7 @@ getloginname()
 	}
 }
 
+void
 timedout()
 {
 	(void)fprintf(stderr, "Login timed out after %d seconds\n", timeout);

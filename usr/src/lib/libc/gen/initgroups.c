@@ -13,9 +13,7 @@ static char sccsid[] = "@(#)initgroups.c	5.4 (2.11BSD) 2026/9/20";
 #include <grp.h>
 #include <unistd.h>
 
-initgroups(uname, agroup)
-	char *uname;
-	gid_t agroup;
+initgroups(const char *uname, gid_t agroup)
 {
 	gid_t groups[NGROUPS];
 	int ngroups = 0;

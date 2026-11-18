@@ -15,6 +15,8 @@ static char sccsid[] = "@(#)ns_addr.c	6.2 (Berkeley) 3/9/86";
 #include <netns/ns.h>
 
 static struct ns_addr addr, zero_addr;
+static	Field(char *, u_char *, int);
+static	cvtbase(long, int, int *, int, unsigned char *, int);
 
 struct ns_addr 
 ns_addr(name)
@@ -55,7 +57,7 @@ ns_addr(name)
 	socketname = index(hostname, separator);
 	if (socketname) {
 		*socketname++ = 0;
-		Field(socketname, &addr.x_port, 2);
+		Field(socketname, (u_char *)&addr.x_port, 2);
 	}
 
 	Field(hostname, addr.x_host.c_host, 6);

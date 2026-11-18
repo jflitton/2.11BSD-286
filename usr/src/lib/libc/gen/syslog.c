@@ -52,14 +52,14 @@ static char sccsid[] = "@(#)syslog.c	8.4.4 (2.11BSD) 2025/12/25";
 
 static	int	LogFile = -1;		/* fd for log */
 static	char	connected;		/* have done connect */
-#ifdef	pdp11
+#if	defined(pdp11) || defined(i286)
 static	char	ToFile = 0;		/* set if logfile is used */
 #endif
 static	int	LogStat = 0;		/* status bits, set by openlog() */
 static	char	*LogTag = NULL;		/* string to tag the entry with */
 static	int	LogFacility = LOG_USER;	/* default facility code */
 static	int	LogMask = 0xff;		/* mask of priorities to be logged */
-#ifdef	pdp11
+#if	defined(pdp11) || defined(i286)
 static	char	logfile[] = "/usr/adm/messages";
 #endif
 
@@ -155,7 +155,7 @@ vsyslog(int pri, register char *fmt, va_list ap)
 	/* Get connected, output the message to the local logger. */
 	if (!connected)
 		openlog(LogTag, LogStat | LOG_NDELAY, 0);
-#ifdef	pdp11
+#if	defined(pdp11) || defined(i286)
 	if (ToFile) {
 		if (write(LogFile, tbuf, cnt) == cnt)
 			return;
@@ -214,7 +214,7 @@ openlog(ident, logstat, logfac)
 		    sizeof(SyslogAddr.sa_data));
 		if (LogStat & LOG_NDELAY) {
 			LogFile = socket(AF_UNIX, SOCK_DGRAM, 0);
-#ifdef	pdp11
+#if	defined(pdp11) || defined(i286)
 			if (LogFile == -1) {
 				LogFile = open(logfile, O_WRONLY|O_APPEND);
 				ToFile = 1;

@@ -49,7 +49,7 @@ static char sccsid[] = "@(#)strtol.c	8.1.1 (2.11BSD) 1996/1/11";
  */
 long
 strtol(nptr, endptr, base)
-	char *nptr;
+	const char *nptr;
 	char **endptr;
 	register int base;
 {

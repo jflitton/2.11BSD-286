@@ -9,6 +9,7 @@ static char sccsid[] = "@(#)random.c	5.3 (2.11BSD) 12/25/2018";
 #endif LIBC_SCCS and not lint
 
 #include	<stdio.h>
+#include	<stdlib.h>
 
 /*
  * random.c:
@@ -173,7 +174,7 @@ static  long		*end_ptr		= &randtbl[ DEG_3 + 1 ];
 
 void
 srandom(x)
-    long x;
+    unsigned x;
 {
     	register  int		i, j;
 
@@ -223,7 +224,7 @@ initstate(seed, arg_state, n)
 	if(  n  <  BREAK_1  )  {
 	    if(  n  <  BREAK_0  )  {
 		fprintf( stderr, "initstate: not enough state (%d bytes) with which to do jack; ignored.\n" );
-		return;
+		return(0);
 	    }
 	    rand_type = TYPE_0;
 	    rand_deg = DEG_0;

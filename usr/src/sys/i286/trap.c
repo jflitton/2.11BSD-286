@@ -13,8 +13,11 @@
 #include "proc.h"
 #include "signalvar.h"
 #include "vm.h"
+#include <syscall.h>
 
-extern caddr_t nofault;			/* mch_copy.s */
+extern caddr_t nofault;
+extern int sctrace;
+int	nosys();			/* mch_copy.s */
 extern int trapret(), tr_popes(), tr_popds(), tr_iret();
 
 /*
@@ -92,6 +95,9 @@ trap(tf)
 		i = SIGILL;
 		break;
 	}
+	if (sctrace)
+		printf("%s[%d]: trap %d at %x:%x\n", u.u_comm, p->p_pid,
+		    tf->tf_vec, tf->tf_cs, tf->tf_ip);
 	psignal(p, i);
 out:
 	userret(tf, syst);
@@ -223,7 +229,13 @@ ktrap(tf)
  * of arguments passes the far address of them all instead.  The words
  * are copied to u.u_arg, so the registers in the frame are still what
  * the process had if the call is to be started again.
+ *
+ * For bringing up programs, sctrace (tools/kpatch.py) makes every call
+ * that fails, every exit and every program executed, or with 2 every
+ * call, print its process, number and result.
  */
+int	sctrace = 0;
+
 syscall(tf)
 	register struct trapframe *tf;
 {
@@ -253,6 +265,11 @@ syscall(tf)
 	u.u_ap = u.u_arg;
 	u.u_r.r_val1 = 0;
 	u.u_r.r_val2 = tf->tf_dx;
+	if (sctrace && code == SYS_exit)
+		printf("%s[%d]: exit %d\n", u.u_comm, u.u_procp->p_pid, u.u_arg[0]);
+	if (sctrace && callp->sy_call == nosys)
+		printf("%s[%d]: call %d is not in this kernel\n", u.u_comm,
+		    u.u_procp->p_pid, code);
 	if (u.u_error == 0 && setjmp(&u.u_qsave) == 0)
 		(*callp->sy_call)();
 	switch (u.u_error) {
@@ -271,6 +288,11 @@ syscall(tf)
 		tf->tf_ax = u.u_error;
 		break;
 	}
+	if (sctrace > 1 || sctrace && u.u_error && u.u_error != EJUSTRETURN ||
+	    sctrace && code == SYS_execve && u.u_error == EJUSTRETURN)
+		printf("%s[%d]: call %d: %s %d\n", u.u_comm, u.u_procp->p_pid,
+		    code, u.u_error ? "error" : "result",
+		    u.u_error ? u.u_error : u.u_r.r_val1);
 	userret(tf, syst);
 }
 

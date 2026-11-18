@@ -48,7 +48,7 @@ static char sccsid[] = "@(#)strtoul.c	8.1.1 (2.11BSD) 1996/1/11";
  */
 unsigned long
 strtoul(nptr, endptr, base)
-	char *nptr;
+	const char *nptr;
 	char **endptr;
 	register int base;
 {

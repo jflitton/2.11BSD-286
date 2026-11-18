@@ -47,7 +47,7 @@ char *suboptarg;
 
 getsubopt(optionp, tokens, valuep)
 	register char **optionp, **valuep;
-	register char **tokens;
+	register char * const *tokens;
 {
 	register int cnt;
 	register char *p;

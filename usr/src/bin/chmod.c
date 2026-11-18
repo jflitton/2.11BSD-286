@@ -15,6 +15,7 @@ static char sccsid[] = "@(#)chmod.c	5.5.1 (2.11BSD GTE) 11/4/94";
  *	options are -Rf
  */
 #include <stdio.h>
+#include <stdarg.h>
 #include <sys/types.h>
 #include <sys/file.h>
 #include <sys/stat.h>
@@ -143,25 +144,39 @@ chmodr(dir, mode, savedir)
 	return (ecode);
 }
 
-error(fmt, a)
-	char *fmt, *a;
+static
+verror(fmt, ap)
+	char *fmt;
+	va_list ap;
 {
 
 	if (!fflag) {
 		fprintf(stderr, "chmod: ");
-		fprintf(stderr, fmt, a);
+		vfprintf(stderr, fmt, ap);
 		putc('\n', stderr);
 	}
 	return (!fflag);
 }
 
-fatal(status, fmt, a)
-	int status;
-	char *fmt, *a;
+error(char *fmt, ...)
 {
+	va_list ap;
+	int r;
+
+	va_start(ap, fmt);
+	r = verror(fmt, ap);
+	va_end(ap);
+	return (r);
+}
+
+fatal(int status, char *fmt, ...)
+{
+	va_list ap;
 
 	fflag = 0;
-	(void) error(fmt, a);
+	va_start(ap, fmt);
+	(void) verror(fmt, ap);
+	va_end(ap);
 	exit(status);
 }
 

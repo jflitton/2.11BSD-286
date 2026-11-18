@@ -184,7 +184,7 @@ LOCAL VOID	addg(as1,as2,as3)
 makearg(args)
 	REG STRING	args;
 {
-	args->argnxt=gchain;
-	gchain=args;
+	((ARGPTR)args)->argnxt=gchain;
+	gchain=(ARGPTR)args;
 }
 

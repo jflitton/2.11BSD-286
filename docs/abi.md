@@ -41,10 +41,11 @@ and the tree keeps small negative numbers in `char`s: with the default,
 the kernel compiled without complaint, and an `open` of a device that was
 not there returned a file descriptor.
 
-Known strictness: the compiler rejects a call whose argument count
-disagrees with an old-style definition earlier in the same file, and an
-old-style definition that disagrees with a prototype. Those are fixed in
-the source.
+Known strictness: the compiler rejects a call whose arguments disagree in
+number or type with an old-style definition anywhere in the same file,
+before the call or after it, and an old-style definition that disagrees
+with a prototype, even only in a `const`. Those are fixed in the source;
+[the C library and programs](userland.md) says how, for user space.
 
 ## Helper routines
 
@@ -156,10 +157,14 @@ Two more things are the compiler's own:
 
 - It has no common storage. A variable declared in a header without
   `extern` is defined in every file that includes the header, the linker
-  keeps one definition and warns, and if the definitions differ in size
-  the wrong one may win. The kernel's headers now say `extern`, the
-  variables are defined once (most in `sys/sys/init_main.c`), and the
-  Makefile makes the linker's warning an error.
+  keeps the first definition and warns, and the first may be an empty
+  one while a later one has the value. The kernel's headers now say
+  `extern`, the variables are defined once (most in
+  `sys/sys/init_main.c`), and the Makefile makes the linker's warning an
+  error. User space, with far more such headers, has common storage
+  added instead: `tools/commonize.py` makes each variable without a
+  value an OMF communal as each file is compiled
+  ([the C library and programs](userland.md)).
 - A null near pointer converted to far is a null far pointer, not offset
   0 of the data segment. So the address of an object at offset 0 of a
   program's data segment cannot be passed to the kernel, and a program's

@@ -1,0 +1,23 @@
+#!/bin/sh
+# /etc/rc for the 286.  init runs it as the system goes multi-user, with
+# "autoboot" when the machine has come up by itself.  If it fails, init
+# goes to single user.
+#
+# Upstream's ../../etc/rc is the PDP-11's (its buses, its network
+# interfaces) and calls much that is not built here yet: fsck, swapon,
+# the network, syslogd, cron.
+
+HOME=/; export HOME
+PATH=/bin:/sbin:/usr/sbin:/usr/bin; export PATH
+
+if [ "$1" = autoboot ]
+then
+	echo Automatic boot in progress...	>/dev/console 2>&1
+fi
+
+# nothing checks the file systems yet
+
+rm -f /etc/nologin
+: >/etc/utmp
+date						>/dev/console 2>&1
+exit 0

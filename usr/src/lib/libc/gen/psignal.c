@@ -17,7 +17,7 @@ static char sccsid[] = "@(#)psignal.c	5.3 (2.11BSD) 2026/9/21";
 void
 psignal(sig, s)
 	unsigned sig;
-	char *s;
+	const char *s;
 {
 	register char *c;
 	register n;

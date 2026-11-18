@@ -764,6 +764,7 @@ callunix()
 	puts("!");
 }
 
+void
 quit()
 {
 	if (vflag && fchange && dol!=zero) {

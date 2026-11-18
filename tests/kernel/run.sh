@@ -18,7 +18,8 @@ make -s -C "$top/usr/src/sys/PC" | grep -v '^cc \|^as ' || true
 
 # The test programs: small model.
 cd "$out"
-python3 -I "$top/tools/mkstubs.py" "$here/syscalls.tab" > stubs.s
+python3 -I "$top/tools/mkstubs.py" --sysent "$top/usr/src/sys/sys/init_sysent.c" \
+    "$here/syscalls.tab" "$top/usr/include/syscall.h" > stubs.s
 lib=crt0.o
 nasm -f obj -o crt0.o "$here/crt0.s"
 for f in stubs.s "$crt/i4m.s" "$crt/i4d.s"; do

@@ -56,8 +56,8 @@ char	*optarg;		/* argument associated with option */
 int
 getopt(nargc, nargv, ostr)
 	int nargc;
-	char **nargv;
-	char *ostr;
+	char * const *nargv;
+	const char *ostr;
 {
 	extern char *__progname;
 	static char *place = EMSG;		/* option letter processing */

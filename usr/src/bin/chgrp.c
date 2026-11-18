@@ -13,6 +13,7 @@ static char sccsid[] = "@(#)chgrp.c	5.7.2 (2.11BSD) 2026/5/19";
  */
 
 #include <stdio.h>
+#include <stdarg.h>
 #include <ctype.h>
 #include <sys/types.h>
 #include <sys/file.h>
@@ -176,26 +177,40 @@ chownr(dir, uid, gid, savedir)
 	return (ecode);
 }
 
-error(fmt, a)
-	char *fmt, *a;
+static
+verror(fmt, ap)
+	char *fmt;
+	va_list ap;
 {
 
 	if (!fflag) {
 		fprintf(stderr, "chgrp: ");
-		fprintf(stderr, fmt, a);
+		vfprintf(stderr, fmt, ap);
 		putc('\n', stderr);
 	}
 	return (!fflag);
 }
 
-/* VARARGS */
-fatal(status, fmt, a)
-	int status;
-	char *fmt, *a;
+error(char *fmt, ...)
 {
+	va_list ap;
+	int r;
+
+	va_start(ap, fmt);
+	r = verror(fmt, ap);
+	va_end(ap);
+	return (r);
+}
+
+/* VARARGS */
+fatal(int status, char *fmt, ...)
+{
+	va_list ap;
 
 	fflag = 0;
-	(void) error(fmt, a);
+	va_start(ap, fmt);
+	(void) verror(fmt, ap);
+	va_end(ap);
 	exit(status);
 }
 

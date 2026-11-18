@@ -68,6 +68,8 @@ void	badsys();
 
 struct	sigvec rvec = { reset, sigmask(SIGHUP), 0 };
 
+void	merge();
+
 main(argc, argv)
 	char **argv;
 {
@@ -88,8 +90,11 @@ main(argc, argv)
 
 	openlog("init", LOG_CONS|LOG_ODELAY, LOG_AUTH);
 
+#ifdef pdp11
+	/* the 286's kernel finds its devices itself */
 	if (autoconfig(howto) == 0)
 		howto = RB_SINGLE | (howto & RB_AUTODEBUG);
+#endif
 
 	signal(SIGSYS, badsys);
 	sigvec(SIGTERM, &rvec, (struct sigvec *)0);
@@ -708,6 +713,7 @@ done:
 	sleep(10);	/* prevent failures from eating machine */
 }
 
+#ifdef pdp11
 #include <machine/autoconfig.h>
 
 autoconfig(howto)
@@ -747,3 +753,4 @@ autoconfig(howto)
 			return (0);
 	}
 }
+#endif

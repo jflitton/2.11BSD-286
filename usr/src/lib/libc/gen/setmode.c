@@ -79,9 +79,7 @@ static void	 dumpmode();
  * bits) followed by a '+' (set bits).
  */
 mode_t
-getmode(bbox, omode)
-	void *bbox;
-	mode_t omode;
+getmode(const void *bbox, mode_t omode)
 {
 	register BITCMD *set;
 	register mode_t clrval, newmode, value;
@@ -165,7 +163,7 @@ common:			if (set->cmd2 & CMD2_CLR) {
 
 void *
 setmode(p)
-	register char *p;
+	register const char *p;
 {
 	register int perm, who;
 	char op;

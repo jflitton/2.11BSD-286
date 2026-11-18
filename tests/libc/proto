@@ -1,0 +1,14 @@
+# The root file system of the C library's test: tools/mkfs.py makes it.
+d /etc 755
+d /bin 755
+d /dev 755
+d /tmp 777
+f /etc/init 755 init
+f /etc/passwd 644 passwd
+f /etc/master.passwd 600 master.passwd
+f /etc/syserrlst 644 syserrlst
+f /etc/group 644 group
+f /bin/echoargs 755 echoargs
+c /dev/console 622 0 0
+c /dev/tty 666 2 0
+c /dev/null 666 1 2

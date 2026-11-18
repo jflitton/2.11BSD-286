@@ -19,6 +19,7 @@ static char sccsid[] = "@(#)mv.c	5.3.3 (2.11BSD) 2026/8/6";
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <sys/dir.h>
 #include <errno.h>
 #include <signal.h>
@@ -253,12 +254,14 @@ cleanup:
 }
 
 /*VARARGS*/
-query(prompt, a1, a2)
-	char *prompt, *a1, *a2;
+query(char *prompt, ...)
 {
 	register int i, c;
+	va_list ap;
 
-	fprintf(stderr, prompt, a1, a2);
+	va_start(ap, prompt);
+	vfprintf(stderr, prompt, ap);
+	va_end(ap);
 	i = c = getchar();
 	while (c != '\n' && c != EOF)
 		c = getchar();
@@ -278,13 +281,14 @@ dname(name)
 	return name;
 }
 
-/*VARARGS*/
-error(fmt, a1, a2)
-	char *fmt;
+error(char *fmt, ...)
 {
+	va_list ap;
 
 	fprintf(stderr, "%s: ", __progname);
-	fprintf(stderr, fmt, a1, a2);
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
 	fprintf(stderr, "\n");
 }
 

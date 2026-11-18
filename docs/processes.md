@@ -117,7 +117,10 @@ the kernel reads them as the calling program's model has them, near
 pointers in the list's own segment or far ones.
 
 Stubs are written from a table of each call's arguments by
-`tools/mkstubs.py`, for the small model so far. `vfork` needs a stub of
+`tools/mkstubs.py`, for the small model so far. The C library's table is
+`usr/src/lib/libc/i286/sys/syscalls.tab`, and each line of it is checked
+against the kernel's own table: the stub must pass as many words as the
+kernel takes for the call. `vfork` needs a stub of
 its own: the child runs on its parent's stack until it executes another
 program, so the stub leaves nothing there, and keeps its return address
 in a register across the call.
@@ -126,7 +129,9 @@ in a register across the call.
 
 `execve` reads the executable's header and table of segments, attaches or
 loads the code, makes each data segment and reads its contents, and
-copies the arguments and environment to the top of the stack. The
+copies the arguments and environment to the top of the stack. The stack
+is the size the executable gives with room for them added, rounded up to
+a click, so that the size a program is linked with is its own need. The
 program starts with:
 
 | | |
@@ -273,7 +278,11 @@ for the one and loaded for the other. A process that never touches the
   stack that overflows runs into the data without a fault. At the bottom
   of the segment an overflow would fault, and the break would be the end
   of the program's data, which the program knows; the kernel passes the
-  break in BX only because, as things are, it does not.
+  break in BX only because, as things are, it does not. A program that
+  takes the heap to start at `end`, as the PDP-11's did, finds its stack
+  there instead: the shell did, and starts at the break now; `csh`, `c2`
+  and `sendmail`, not built yet, do too. The arguments would have to go
+  elsewhere, since a stack at the bottom cannot be made larger for them.
 - More data segments for a program that asks for them, by a system call.
 - A segment that is not in memory. The fault it causes, 11, is the hook
   for bringing one segment back instead of a whole process.

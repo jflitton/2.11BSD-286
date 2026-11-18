@@ -59,8 +59,8 @@ size_t
 strftime(s, maxsize, format, t)
 	char *s;
 	size_t maxsize;
-	char *format;
-	struct tm *t;
+	const char *format;
+	const struct tm *t;
 {
 
 	pt = s;

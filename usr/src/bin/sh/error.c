@@ -70,7 +70,7 @@ done()
 	THEN	trapcom[0]=0; /*should free but not long */
 		execexp(t,0);
 	FI
-	rmtemp(0);
+	rmtemp((IOPTR)0);
 	exit(exitval);
 }
 

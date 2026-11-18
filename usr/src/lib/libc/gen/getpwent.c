@@ -32,6 +32,7 @@ static FILE *_pw_fp;
 static struct passwd _pw_passwd;
 static int _pw_rewind = 1, _pw_stayopen;
 static char _pw_flag, *_pw_file = _PATH_PASSWD;
+static char _pw_fromdb;		/* the last entry came from the ndbm files */
 
 #define	MAXLINELENGTH	256
 static char line[MAXLINELENGTH];
@@ -117,16 +118,18 @@ start_pw()
 
 	if (_pw_db) {
 		_pw_rewind = 1;
-		return(1);
+		return(_pw_fromdb = 1);
 	}
 	if (_pw_fp) {
 		rewind(_pw_fp);
+		_pw_fromdb = 0;
 		return(1);
 	}
 	if (_pw_db = dbm_open(_pw_file, O_RDONLY, 0)) {
 		_pw_rewind = 1;
-		return(1);
+		return(_pw_fromdb = 1);
 	}
+	_pw_fromdb = 0;
 	/*
 	 * special case; if it's the official password file, look in
 	 * the master password file, otherwise, look in the file itself.
@@ -264,7 +267,12 @@ getpw()
 	int fd, n;
 	register char *p;
 
-	if (geteuid())
+	/*
+	 * Only an entry from the ndbm files has, in place of the password,
+	 * the offset of the line in the master file that has it.  One read
+	 * from that file has the password already.
+	 */
+	if (geteuid() || !_pw_fromdb)
 		return;
 	/*
 	 * special case; if it's the official password file, look in

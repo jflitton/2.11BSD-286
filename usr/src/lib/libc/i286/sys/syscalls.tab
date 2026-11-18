@@ -1,0 +1,127 @@
+# The C library's system call stubs, small model: tools/mkstubs.py turns
+# each line into one.  NAME[=CALL] ARGUMENTS [RESULT]; the number is
+# SYS_CALL in <syscall.h>.  i int, l long, p data pointer, f function
+# pointer.  The Makefile has mkstubs check every line against the
+# kernel's own table (sys/sys/init_sysent.c).
+#
+# A name beginning with an underscore is the call as the kernel has it,
+# behind a function in C (this directory) that the program calls: one
+# whose structure holds pointers, which are far to the kernel, or that
+# does something more.
+#
+# Not here: recvmsg and sendmsg, whose structure needs converting the
+# same way and whose kernel side is not yet written; and 2.11BSD's
+# PDP-11 calls (phys, lock, fetchi, ucall, fperr, nostk).
+
+__sysctl	pipppi
+_exit=exit	i
+_brk=sbrk	p
+_getlogin	pi
+_readv=readv	ipi
+_setlogin=setlogin	p
+_sigaction=sigaction	fipp
+_sigaltstack=sigaltstack	pp
+_sigstack=sigstack	pp
+_writev=writev	ipi
+accept		ipp
+access		pi
+adjtime		pp
+bind		ipi
+chdir		p
+chflags		pi
+chmod		pi
+chown		pii
+chroot		p
+close		i
+connect		ipi
+dup		i
+dup2		ii
+execve		ppp
+fchdir		i
+fchflags	ii
+fchmod		ii
+fchown		iii
+fcntl		iii
+flock		ii
+fork		-	fork
+fstat		ip
+fstatfs		ip
+fsync		i
+ftruncate	il
+getdtablesize	-
+getegid		-
+geteuid		-
+getfsstat	pii
+getgid		-
+getgroups	ip
+getitimer	ip
+getpeername	ipp
+getpgrp		i
+getpid		-
+getppid		-
+getpriority	ii
+getrlimit	ip
+getrusage	ip
+getsockname	ipp
+getsockopt	iiipp
+gettimeofday	pp
+getuid		-
+ioctl		ilp
+kill		ii
+killpg		ii
+link		pp
+listen		ii
+lseek		ili
+lstat		pp
+mkdir		pi
+mknod		pii
+mount		ppi
+open		pii
+pipe		p	pair
+profil		piii
+pselect		ippppp
+ptrace		iipi	errno0
+quota		iiip
+read		ipi
+readlink	ppi
+reboot		i
+recv		ipii
+recvfrom	ipiipp
+rename		pp
+rmdir		p
+select		ipppp
+send		ipii
+sendto		ipiipi
+setegid		i
+seteuid		i
+setgid		i
+setgroups	ip
+setitimer	ipp
+setpgrp		ii
+setpriority	iii
+setquota	pp
+setrlimit	ip
+setsockopt	iiipi
+settimeofday	pp
+setuid		i
+shutdown	ii
+sigpending	p
+sigprocmask	ipp
+sigreturn	p
+sigsuspend	p
+sigwait		pp
+socket		iii
+socketpair	iiip
+stat		pp
+statfs		pp
+symlink		pp
+sync		-
+truncate	pl
+umask		i
+umount		p
+unlink		p
+utimes		pp
+vfork		-	vfork
+vhangup		-
+wait4		ipip
+write		ipi

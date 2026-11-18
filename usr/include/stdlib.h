@@ -90,6 +90,14 @@ int	putenv(const char *);
 int	setenv(const char *, char *, int);
 
 void	*alloca(size_t);
+#if defined(i286) && defined(__WATCOMC__)
+/*
+ * In line: the compiler knows the stack pointer has moved, and a
+ * function that calls alloca takes it back from its frame pointer.
+ */
+#pragma aux alloca = "inc ax" "and al, 0feh" "sub sp, ax" "mov ax, sp" \
+	parm [ax] value [ax] modify [sp];
+#endif
 
 int	daemon(int, int);
 char	*devname(dev_t, mode_t);

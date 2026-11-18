@@ -224,7 +224,7 @@ main(argc, argv)
 		if (vfslist == NULL && strpbrk(argv[0], ":@") != NULL)
 			err(1, "nfs not supported");
 		rval = mountfs(vfstype,
-		    argv[0], argv[1], init_flags, options, NULL);
+		    argv[0], argv[1], init_flags, options, (char *)NULL);
 		break;
 	default:
 		usage();

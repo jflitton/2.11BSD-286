@@ -59,7 +59,7 @@ Header, 24 bytes:
 | 6 | 2 | entry point: segment |
 | 8 | 2 | entry point: offset |
 | 10 | 2 | the data segment that DS and SS start out as |
-| 12 | 2 | stack size: the kernel adds this much to that segment, after its data |
+| 12 | 2 | stack size: the kernel adds this much to that segment, after its data, and room for the arguments and environment |
 | 14 | 2 | reserved, zero |
 | 16 | 4 | size of the symbol table, bytes |
 | 20 | 4 | size of the string table, bytes |

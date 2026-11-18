@@ -108,8 +108,8 @@ LOCAL STRING *	copyargs(from, n)
 	REG STRING *	fp=from;
 	REG STRING *	pp=np;
 
-	np->doluse=1;	/* use count */
-	np=np->dolarg;
+	((DOLPTR)np)->doluse=1;	/* use count */
+	np=(STRING *)((DOLPTR)np)->dolarg;
 	dolv=np;
 
 	WHILE n--

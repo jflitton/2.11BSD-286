@@ -48,8 +48,8 @@ static int *pids;
 
 FILE *
 popen(program, type)
-	char *program;
-	register char *type;
+	const char *program;
+	register const char *type;
 {
 	register FILE *iop;
 	int pdes[2], fds, pid;

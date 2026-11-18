@@ -44,7 +44,7 @@ static char sccsid[] = "@(#)perror.c	8.1 (Berkeley) 6/4/93";
 
 void
 perror(s)
-	char *s;
+	const char *s;
 {
 	register struct iovec *v;
 	struct iovec iov[4];

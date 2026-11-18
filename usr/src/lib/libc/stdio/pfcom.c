@@ -26,10 +26,13 @@ __pfcom(int ch, struct prinfo *pi)
 	double d;
 	char *fbeg;
 	register char *fend, *dbeg;
-	register int nd, decpt, sign, m, falt;
+	register int nd, m, falt;
+	int decpt, sign;		/* their addresses are taken */
 
 /* hack to ensure pfcom only get included if floating point used */
+#ifdef pdp11
 asm(".globl  fltused ; fltused:");
+#endif
 
 	d = va_arg(*pi->app, double);
 

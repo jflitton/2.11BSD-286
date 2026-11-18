@@ -169,7 +169,7 @@ main(argc, argv)
 	}
 	fp0 = fp;
 	for (i = 0; i < argc; i++) {
-		if (gstat(fp, *argv, 1, (int *)0)) {
+		if (gstat(fp, *argv, 1, (long *)0)) {
 			fp->fname = *argv;
 			fp->fmode |= ISARG;
 			fp++;

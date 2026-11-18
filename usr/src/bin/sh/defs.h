@@ -287,6 +287,8 @@ MSG		notfound;
 MSG		badfile;
 
 address	end[];
+extern BLKPTR	arena, bloktop;	/* blok.c */
+STRING		sbrk();
 
 #include	"ctype.h"
 

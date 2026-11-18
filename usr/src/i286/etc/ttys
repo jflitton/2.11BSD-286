@@ -1,0 +1,6 @@
+#
+# The terminals init runs getty on: name, command, terminal type, whether
+# it is on, and whether root may log in there.  The console is the first
+# serial port.
+#
+console	"/usr/libexec/getty std.9600"	vt100		on secure

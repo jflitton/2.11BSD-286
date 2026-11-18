@@ -1,0 +1,149 @@
+# The root file system of the system for the 286: tools/mkfs.py makes it
+# (`make -C usr/src/i286 root`).  Files are named relative to this
+# directory: the programs as obj/bin has them, the kernel and /boot as
+# their own Makefiles make them, /etc from ../etc (upstream's) or etc
+# (this port's own), and what the Makefile makes in obj/root.
+d /bin 755
+d /sbin 755
+d /etc 755
+d /dev 755
+d /tmp 1777
+d /root 755
+d /usr 755
+d /usr/bin 755
+d /usr/libexec 755
+d /usr/adm 755
+d /usr/tmp 1777
+d /var 755
+d /var/run 755
+f /unix 644 ../../../obj/PC/unix
+f /boot 644 ../../../obj/stand/boot
+f /etc/init 700 ../../../obj/bin/init
+f /etc/rc 644 etc/rc
+f /etc/ttys 644 etc/ttys
+f /etc/fstab 644 etc/fstab
+f /etc/motd 644 etc/motd
+f /etc/gettytab 644 ../etc/gettytab
+f /etc/master.passwd 600 ../etc/master.passwd
+f /etc/group 644 ../etc/group
+f /etc/shells 644 ../etc/shells
+f /etc/passwd 644 ../../../obj/root/passwd
+f /etc/syserrlst 644 ../../../obj/root/syserrlst
+f /etc/utmp 644 ../../../obj/root/empty
+f /usr/adm/wtmp 644 ../../../obj/root/empty
+f /usr/adm/lastlog 644 ../../../obj/root/empty
+f /usr/adm/messages 644 ../../../obj/root/empty
+f /usr/libexec/getty 755 ../../../obj/bin/getty
+f /bin/sh 755 ../../../obj/bin/sh
+f /bin/login 4755 ../../../obj/bin/login
+f /bin/ls 755 ../../../obj/bin/ls
+f /bin/mkdir 755 ../../../obj/bin/mkdir
+f /bin/stty 755 ../../../obj/bin/stty
+f /bin/test 755 ../../../obj/bin/test
+f /bin/hostname 755 ../../../obj/bin/hostname
+f /bin/cat 755 ../../../obj/bin/cat
+f /bin/chgrp 755 ../../../obj/bin/chgrp
+f /bin/chmod 755 ../../../obj/bin/chmod
+f /bin/cmp 755 ../../../obj/bin/cmp
+f /bin/cp 755 ../../../obj/bin/cp
+f /bin/date 755 ../../../obj/bin/date
+f /bin/dd 755 ../../../obj/bin/dd
+f /bin/df 755 ../../../obj/bin/df
+f /bin/du 755 ../../../obj/bin/du
+f /bin/echo 755 ../../../obj/bin/echo
+f /bin/ed 755 ../../../obj/bin/ed
+f /bin/grep 755 ../../../obj/bin/grep
+f /bin/hostid 755 ../../../obj/bin/hostid
+f /bin/kill 755 ../../../obj/bin/kill
+f /bin/ln 755 ../../../obj/bin/ln
+f /bin/mv 755 ../../../obj/bin/mv
+f /bin/nice 755 ../../../obj/bin/nice
+f /bin/od 755 ../../../obj/bin/od
+f /bin/pagesize 755 ../../../obj/bin/pagesize
+f /bin/pr 755 ../../../obj/bin/pr
+f /bin/pwd 755 ../../../obj/bin/pwd
+f /bin/rm 755 ../../../obj/bin/rm
+f /bin/rmdir 755 ../../../obj/bin/rmdir
+f /bin/sync 755 ../../../obj/bin/sync
+f /bin/tee 755 ../../../obj/bin/tee
+f /bin/time 755 ../../../obj/bin/time
+f /bin/who 755 ../../../obj/bin/who
+f /bin/wall 755 ../../../obj/bin/wall
+f /bin/write 755 ../../../obj/bin/write
+f /bin/[ 755 ../../../obj/bin/test
+f /sbin/mount 755 ../../../obj/bin/mount
+f /sbin/umount 755 ../../../obj/bin/umount
+f /sbin/reboot 755 ../../../obj/bin/reboot
+f /sbin/mknod 755 ../../../obj/bin/mknod
+f /sbin/halt 755 ../../../obj/bin/reboot
+c /dev/console 622 0 0
+c /dev/tty 666 2 0
+c /dev/mem 640 1 0
+c /dev/kmem 640 1 1
+c /dev/null 666 1 2
+b /dev/rd0 600 0 0
+b /dev/rd1 600 0 1
+b /dev/wd0a 640 1 0
+c /dev/rwd0a 640 8 0
+b /dev/wd0b 640 1 1
+c /dev/rwd0b 640 8 1
+b /dev/wd0c 640 1 2
+c /dev/rwd0c 640 8 2
+b /dev/wd0d 640 1 3
+c /dev/rwd0d 640 8 3
+b /dev/wd0e 640 1 4
+c /dev/rwd0e 640 8 4
+b /dev/wd0f 640 1 5
+c /dev/rwd0f 640 8 5
+b /dev/wd0g 640 1 6
+c /dev/rwd0g 640 8 6
+b /dev/wd0h 640 1 7
+c /dev/rwd0h 640 8 7
+b /dev/wd1a 640 1 8
+c /dev/rwd1a 640 8 8
+b /dev/wd1b 640 1 9
+c /dev/rwd1b 640 8 9
+b /dev/wd1c 640 1 10
+c /dev/rwd1c 640 8 10
+b /dev/wd1d 640 1 11
+c /dev/rwd1d 640 8 11
+b /dev/wd1e 640 1 12
+c /dev/rwd1e 640 8 12
+b /dev/wd1f 640 1 13
+c /dev/rwd1f 640 8 13
+b /dev/wd1g 640 1 14
+c /dev/rwd1g 640 8 14
+b /dev/wd1h 640 1 15
+c /dev/rwd1h 640 8 15
+b /dev/sd0a 640 2 0
+c /dev/rsd0a 640 9 0
+b /dev/sd0b 640 2 1
+c /dev/rsd0b 640 9 1
+b /dev/sd0c 640 2 2
+c /dev/rsd0c 640 9 2
+b /dev/sd0d 640 2 3
+c /dev/rsd0d 640 9 3
+b /dev/sd0e 640 2 4
+c /dev/rsd0e 640 9 4
+b /dev/sd0f 640 2 5
+c /dev/rsd0f 640 9 5
+b /dev/sd0g 640 2 6
+c /dev/rsd0g 640 9 6
+b /dev/sd0h 640 2 7
+c /dev/rsd0h 640 9 7
+b /dev/sd1a 640 2 8
+c /dev/rsd1a 640 9 8
+b /dev/sd1b 640 2 9
+c /dev/rsd1b 640 9 9
+b /dev/sd1c 640 2 10
+c /dev/rsd1c 640 9 10
+b /dev/sd1d 640 2 11
+c /dev/rsd1d 640 9 11
+b /dev/sd1e 640 2 12
+c /dev/rsd1e 640 9 12
+b /dev/sd1f 640 2 13
+c /dev/rsd1f 640 9 13
+b /dev/sd1g 640 2 14
+c /dev/rsd1g 640 9 14
+b /dev/sd1h 640 2 15
+c /dev/rsd1h 640 9 15

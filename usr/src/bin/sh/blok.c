@@ -21,7 +21,8 @@ static char sccsid[] = "@(#)blok.c	4.3 (2.11BSD) 2026/5/11";
 
 POS		brkincr=BRKINCR;
 BLKPTR		blokp;			/*current search pointer*/
-BLKPTR		bloktop=BLK(end);	/*top of arena (last blok)*/
+BLKPTR		arena;			/*start of arena: where the break was*/
+BLKPTR		bloktop;		/*top of arena (last blok)*/
 
 ADDRESS	alloc(nbytes)
 	POS		nbytes;
@@ -65,7 +66,7 @@ VOID	addblok(reqd)
 	reqd += brkincr; reqd &= ~(brkincr-1);
 	blokp=bloktop;
 	bloktop=bloktop->word=BLK(Rcheat(bloktop)+reqd);
-	bloktop->word=BLK(ADR(end)+1);
+	bloktop->word=BLK(ADR(arena)+1);
 	BEGIN
 	   REG STKPTR stakadr=STK(bloktop+2);
 	   staktop=movstr(stakbot,stakadr);
@@ -88,14 +89,14 @@ chkbptr(ptr)
 	BLKPTR	ptr;
 {
 	INT		exf=0;
-	REG BLKPTR	p = end;
+	REG BLKPTR	p = arena;
 	REG BLKPTR	q;
 	INT		us=0, un=0;
 
 	LOOP
 	   q = Rcheat(p->word)&~BUSY;
 	   IF p==ptr THEN exf++ FI
-	   IF q<end ORF q>bloktop THEN abort(3) FI
+	   IF q<arena ORF q>bloktop THEN abort(3) FI
 	   IF p==bloktop THEN break FI
 	   IF busy(p)
 	   THEN us += q-p;

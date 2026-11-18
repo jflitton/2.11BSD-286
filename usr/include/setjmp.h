@@ -3,7 +3,11 @@
 /*
  * this is a "struct sigcontext" by another name.  See signal.h
 */
+#ifdef i286
+typedef int jmp_buf[17];
+#else
 typedef int jmp_buf[10];
+#endif
 
 int setjmp(jmp_buf env);
 int _setjmp(jmp_buf env);

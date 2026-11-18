@@ -129,7 +129,7 @@ intfmt:			mtab = (char *)&pri.flags;
 			if ((FLAGP & NDFND) && ch < pri.ndigit)
 				ch = pri.ndigit;
 			if (ch > pri.nallo)
-				pri.bend = alloca(pri.nallo = ch) + ch;
+				pri.bend = (char *)alloca(pri.nallo = ch) + ch;
 
 #ifdef __pdp11__
 			if (FLAGP & (MLONG|MLLONG)) {
