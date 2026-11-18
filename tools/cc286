@@ -28,6 +28,7 @@ if [ -z "$out" ]; then
     exit 2
 fi
 #  -2          286 instructions
+#  -j          plain char is signed, as the tree's C takes it to be
 #  -fpi87 -fp2 287 instructions in line
 #  -s          no stack-overflow probes
 #  -zl -zls    no references to Open Watcom's own libraries
@@ -36,5 +37,5 @@ fi
 #  -Drestrict= the headers use restrict; other files use inline as a name,
 #              so C99 keywords cannot simply be switched on
 #  -Di286      the machine, as the tree's code asks (#ifdef pdp11, vax)
-exec wcc -q $model -2 -fpi87 -fp2 -s $opt -zl -zls -bt=none \
+exec wcc -q $model -2 -fpi87 -fp2 -s $opt -zl -zls -bt=none -j \
     -fi="$here/cc286.h" -Drestrict= -Di286 $args -fo="$out"

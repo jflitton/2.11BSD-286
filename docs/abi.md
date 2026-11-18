@@ -36,6 +36,11 @@ Why this one:
   breaks the two habits above. It remains available for single kernel
   functions that are declared with prototypes, once a profile says which.
 
+A plain `char` is signed (`-j`). Open Watcom's own default is unsigned,
+and the tree keeps small negative numbers in `char`s: with the default,
+the kernel compiled without complaint, and an `open` of a device that was
+not there returned a file descriptor.
+
 Known strictness: the compiler rejects a call whose argument count
 disagrees with an old-style definition earlier in the same file, and an
 old-style definition that disagrees with a prototype. Those are fixed in
