@@ -152,6 +152,7 @@ DOS and OS/2 user's guide with nothing on ports or interrupts; not kept.)
 - Reference material is listed and fetched.
 - The cross-compiler is chosen and installs from the manifest (see
   Toolchain). Nothing compiled with it has been run yet.
-- Nothing is ported yet. Open questions that come next: the memory model
-  and calling convention for the kernel and for user programs, the
-  executable format, and the helper routines the compiler's output calls.
+- The memory model is decided: [docs/memory-model.md](docs/memory-model.md).
+- Nothing is ported yet. Open questions that come next: the calling
+  convention, the executable format, and the helper routines the compiler's
+  output calls.

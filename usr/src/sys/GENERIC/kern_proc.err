@@ -1,0 +1,5 @@
+/Volumes/Code/2.11BSD-286/usr/include/machine/machparam.h(135): Warning! W121: Text following pre-processor directives is not standard C
+/Volumes/Code/2.11BSD-286/usr/include/signal.h(134): Warning! W114: Missing semicolon
+../h/dir.h(87): Warning! W121: Text following pre-processor directives is not standard C
+../h/dir.h(107): Warning! W121: Text following pre-processor directives is not standard C
+../sys/kern_proc.c(64): Warning! W107: Missing return value for function 'pqinit'

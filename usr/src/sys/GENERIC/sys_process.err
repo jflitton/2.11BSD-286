@@ -1,0 +1,18 @@
+/Volumes/Code/2.11BSD-286/usr/include/machine/machparam.h(135): Warning! W121: Text following pre-processor directives is not standard C
+/Volumes/Code/2.11BSD-286/usr/include/signal.h(134): Warning! W114: Missing semicolon
+../machine/seg.h(72): Warning! W121: Text following pre-processor directives is not standard C
+../h/dir.h(87): Warning! W121: Text following pre-processor directives is not standard C
+../h/dir.h(107): Warning! W121: Text following pre-processor directives is not standard C
+../sys/sys_process.c(63): Warning! W131: No prototype found for function 'sleep'
+../sys/sys_process.c(69): Warning! W131: No prototype found for function 'setrun'
+../sys/sys_process.c(76): Warning! W131: No prototype found for function 'wakeup'
+../sys/sys_process.c(77): Warning! W107: Missing return value for function 'ptrace'
+../sys/sys_process.c(101): Warning! W131: No prototype found for function 'fuibyte'
+../sys/sys_process.c(103): Warning! W131: No prototype found for function 'fuiword'
+../sys/sys_process.c(109): Warning! W131: No prototype found for function 'fubyte'
+../sys/sys_process.c(111): Warning! W131: No prototype found for function 'fuword'
+../sys/sys_process.c(133): Warning! W131: No prototype found for function 'estabur'
+../sys/sys_process.c(134): Warning! W131: No prototype found for function 'suiword'
+../sys/sys_process.c(145): Warning! W131: No prototype found for function 'suword'
+../sys/sys_process.c(167): Warning! W131: No prototype found for function 'choverlay'
+../sys/sys_process.c(191): Warning! W131: No prototype found for function 'exit'

@@ -1,0 +1,21 @@
+/Volumes/Code/2.11BSD-286/usr/include/machine/machparam.h(135): Warning! W121: Text following pre-processor directives is not standard C
+/Volumes/Code/2.11BSD-286/usr/include/signal.h(134): Warning! W114: Missing semicolon
+../machine/seg.h(72): Warning! W121: Text following pre-processor directives is not standard C
+../h/dir.h(87): Warning! W121: Text following pre-processor directives is not standard C
+../h/dir.h(107): Warning! W121: Text following pre-processor directives is not standard C
+../sys/kern_clock.c(42): Warning! W131: No prototype found for function 'savemap'
+../sys/kern_clock.c(81): Warning! W131: No prototype found for function 'psignal'
+../sys/kern_clock.c(143): Warning! W131: No prototype found for function '_splsoftclock'
+../sys/kern_clock.c(144): Warning! W131: No prototype found for function 'softclock'
+../sys/kern_clock.c(146): Warning! W131: No prototype found for function 'restormap'
+../sys/kern_clock.c(147): Warning! W107: Missing return value for function 'hardclock'
+../sys/kern_clock.c(203): Warning! W121: Text following pre-processor directives is not standard C
+../sys/kern_clock.c(219): Warning! W131: No prototype found for function 'splhigh'
+../sys/kern_clock.c(245): Warning! W131: No prototype found for function 'addupc'
+../sys/kern_clock.c(255): Warning! W131: No prototype found for function 'setpri'
+../sys/kern_clock.c(258): Warning! W107: Missing return value for function 'softclock'
+../sys/kern_clock.c(269): Warning! W131: No prototype found for function 'splclock'
+../sys/kern_clock.c(275): Warning! W131: No prototype found for function 'panic'
+../sys/kern_clock.c(288): Warning! W107: Missing return value for function 'timeout'
+../sys/kern_clock.c(313): Warning! W107: Missing return value for function 'untimeout'
+../sys/kern_clock.c(329): Warning! W107: Missing return value for function 'profil'

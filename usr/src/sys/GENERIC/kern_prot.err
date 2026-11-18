@@ -1,0 +1,21 @@
+/Volumes/Code/2.11BSD-286/usr/include/machine/machparam.h(135): Warning! W121: Text following pre-processor directives is not standard C
+/Volumes/Code/2.11BSD-286/usr/include/signal.h(134): Warning! W114: Missing semicolon
+../h/dir.h(87): Warning! W121: Text following pre-processor directives is not standard C
+../h/dir.h(107): Warning! W121: Text following pre-processor directives is not standard C
+../sys/kern_prot.c(26): Warning! W107: Missing return value for function 'getpid'
+../sys/kern_prot.c(32): Warning! W107: Missing return value for function 'getppid'
+../sys/kern_prot.c(49): Warning! W107: Missing return value for function 'getpgrp'
+../sys/kern_prot.c(56): Warning! W107: Missing return value for function 'getuid'
+../sys/kern_prot.c(62): Warning! W107: Missing return value for function 'geteuid'
+../sys/kern_prot.c(69): Warning! W107: Missing return value for function 'getgid'
+../sys/kern_prot.c(75): Warning! W107: Missing return value for function 'getegid'
+../sys/kern_prot.c(97): Warning! W131: No prototype found for function 'copyout'
+../sys/kern_prot.c(102): Warning! W107: Missing return value for function 'getgroups'
+../sys/kern_prot.c(120): Warning! W131: No prototype found for function 'inferior'
+../sys/kern_prot.c(125): Warning! W107: Missing return value for function 'setpgrp'
+../sys/kern_prot.c(135): Warning! W131: No prototype found for function 'suser'
+../sys/kern_prot.c(141): Warning! W131: No prototype found for function 'copyin'
+../sys/kern_prot.c(147): Warning! W107: Missing return value for function 'setgroups'
+../sys/kern_prot.c(208): Warning! W131: No prototype found for function 'bzero'
+../sys/kern_prot.c(209): Warning! W131: No prototype found for function 'copyinstr'
+../sys/kern_prot.c(211): Warning! W131: No prototype found for function 'bcopy'

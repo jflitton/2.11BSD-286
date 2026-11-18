@@ -1,0 +1,22 @@
+/Volumes/Code/2.11BSD-286/usr/include/machine/machparam.h(135): Warning! W121: Text following pre-processor directives is not standard C
+/Volumes/Code/2.11BSD-286/usr/include/signal.h(134): Warning! W114: Missing semicolon
+../machine/seg.h(72): Warning! W121: Text following pre-processor directives is not standard C
+../h/dir.h(87): Warning! W121: Text following pre-processor directives is not standard C
+../h/dir.h(107): Warning! W121: Text following pre-processor directives is not standard C
+../sys/kern_mman.c(40): Warning! W131: No prototype found for function 'estabur'
+../sys/kern_mman.c(41): Error! E1096: Inconsistent use of return statements
+../sys/kern_mman.c(42): Warning! W131: No prototype found for function 'expand'
+../sys/kern_mman.c(46): Warning! W131: No prototype found for function 'clear'
+../sys/kern_mman.c(48): Warning! W107: Missing return value for function 'sbrk'
+../sys/kern_mman.c(110): Warning! W121: Text following pre-processor directives is not standard C
+../sys/kern_mman.c(136): Warning! W121: Text following pre-processor directives is not standard C
+../sys/kern_mman.c(138): Warning! W121: Text following pre-processor directives is not standard C
+../sys/kern_mman.c(154): Warning! W121: Text following pre-processor directives is not standard C
+../sys/kern_mman.c(188): Warning! W121: Text following pre-processor directives is not standard C
+../sys/kern_mman.c(211): Warning! W121: Text following pre-processor directives is not standard C
+../sys/kern_mman.c(212): Warning! W131: No prototype found for function 'sureg'
+../sys/kern_mman.c(238): Warning! W121: Text following pre-processor directives is not standard C
+../sys/kern_mman.c(254): Warning! W131: No prototype found for function 'choverlay'
+../sys/kern_mman.c(255): Warning! W107: Missing return value for function 'sureg'
+../sys/kern_mman.c(309): Warning! W121: Text following pre-processor directives is not standard C
+../sys/kern_mman.c(310): Warning! W107: Missing return value for function 'choverlay'

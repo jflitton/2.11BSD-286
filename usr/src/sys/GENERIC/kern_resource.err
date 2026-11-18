@@ -1,0 +1,18 @@
+/Volumes/Code/2.11BSD-286/usr/include/machine/machparam.h(135): Warning! W121: Text following pre-processor directives is not standard C
+/Volumes/Code/2.11BSD-286/usr/include/signal.h(134): Warning! W114: Missing semicolon
+../h/dir.h(87): Warning! W121: Text following pre-processor directives is not standard C
+../h/dir.h(107): Warning! W121: Text following pre-processor directives is not standard C
+../sys/kern_resource.c(70): Warning! W107: Missing return value for function 'getpriority'
+../sys/kern_resource.c(91): Warning! W131: No prototype found for function 'donice'
+../sys/kern_resource.c(121): Warning! W107: Missing return value for function 'setpriority'
+../sys/kern_resource.c(137): Warning! W131: No prototype found for function 'suser'
+../sys/kern_resource.c(142): Warning! W107: Missing return value for function 'donice'
+../sys/kern_resource.c(159): Warning! W131: No prototype found for function 'copyin'
+../sys/kern_resource.c(181): Warning! W107: Missing return value for function 'setrlimit'
+../sys/kern_resource.c(202): Warning! W131: No prototype found for function 'copyout'
+../sys/kern_resource.c(207): Warning! W107: Missing return value for function 'getrlimit'
+../sys/kern_resource.c(232): Warning! W131: No prototype found for function 'rucvt'
+../sys/kern_resource.c(235): Warning! W107: Missing return value for function 'getrusage'
+../sys/kern_resource.c(250): Warning! W107: Missing return value for function 'ruadd'
+../sys/kern_resource.c(259): Warning! W131: No prototype found for function 'bzero'
+../sys/kern_resource.c(273): Warning! W107: Missing return value for function 'rucvt'
