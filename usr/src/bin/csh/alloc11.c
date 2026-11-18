@@ -16,7 +16,7 @@ char *s;
 #endif
 
 /*	avoid break bug */
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 #define GRANULE 64
 #else
 #define GRANULE 0

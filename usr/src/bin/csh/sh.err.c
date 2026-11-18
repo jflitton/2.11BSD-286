@@ -10,6 +10,7 @@ static char *sccsid = "@(#)sh.err.c	5.3 (Berkeley) 5/13/86";
 
 #include "sh.h"
 #include <sys/ioctl.h>
+#include <stdarg.h>
 
 /*
  * C Shell
@@ -28,12 +29,11 @@ char	*onev[2] = { one, NOSTR };
  * be closed in the routine process in sh.c which is the only
  * place error unwinds are ever caught.
  */
-/*VARARGS1*/
-error(s, arg)
-	char *s;
+error(char *s, ...)
 {
 	register char **v;
 	register char *ep;
+	va_list ap;
 
 	/*
 	 * Must flush before we print as we wish output before the error
@@ -54,8 +54,12 @@ error(s, arg)
 	 * A zero arguments causes no printing, else print
 	 * an error diagnostic here.
 	 */
-	if (s)
-		printf(s, arg), printf(".\n");
+	if (s) {
+		va_start(ap, s);
+		vprintf(s, ap);
+		va_end(ap);
+		printf(".\n");
+	}
 
 	didfds = 0;		/* Forget about 0,1,2 */
 	if ((ep = err) && errspl) {

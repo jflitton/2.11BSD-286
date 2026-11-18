@@ -102,7 +102,7 @@ extern char **environ;
 
 static	int		  srccat	__P((Char *, Char *));
 static	int		  srcfile	__P((char *, bool, bool));
-static	void		phup		__P((void));
+static	void		phup		__P((int));	/* a signal handler */
 static	void		  srcunit	__P((int, bool, bool));
 static	void		  mailchk	__P((void));
 static	Char	 	**d_path	__P((void));

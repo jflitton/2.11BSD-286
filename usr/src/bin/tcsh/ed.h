@@ -42,7 +42,7 @@
 #endif
 
 #define TABSIZE		8	/* usually 8 spaces/tab */
-#ifdef	pdp11			/* jpn: save space */
+#if defined(pdp11) || defined(i286)	/* jpn: save space */
 #define	INBUFSIZ	(BUFSIZ / 2)	/* size of input buffer */
 #else
 #define	INBUFSIZ	BUFSIZ	/* size of input buffer */

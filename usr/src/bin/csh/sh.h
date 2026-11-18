@@ -334,7 +334,7 @@ short	gflag;				/* After tglob -> is globbing needed? */
  * A reasonable limit on number of arguments would seem to be
  * the maximum number of characters in an arg list / 6.
  */
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 #define	GAVSIZ	NCARGS / 12
 #else
 #define	GAVSIZ	NCARGS / 6
@@ -384,12 +384,24 @@ char	HISTSUB;			/* auto-substitute character */
 /*
  * In lines for frequently called functions
  */
+#ifdef i286
+/*
+ * The heap is what lies above where the break started, the stack being
+ * below it (xfree in sh.misc.c).
+ */
+#define XFREE(cp) { \
+	extern char *_minbrk; \
+	if ((cp) >= _minbrk) \
+		free(cp); \
+}
+#else
 #define XFREE(cp) { \
 	extern char end[]; \
 	char stack; \
 	if ((cp) >= end && (cp) < &stack) \
 		free(cp); \
 }
+#endif
 char	*alloctmp;
 #define xalloc(i) ((alloctmp = malloc(i)) ? alloctmp : (char *)nomem(i))
 

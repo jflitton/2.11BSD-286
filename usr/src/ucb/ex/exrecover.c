@@ -675,7 +675,7 @@ getblock(atl, iof)
 	bno = (atl >> OFFBTS) & BLKMSK;
 	off = (atl << SHFT) & LBTMSK;
 	if (bno >= NMBLKS)
-		error(" Tmp file too large");
+		error(" Tmp file too large", 0);
 	nleft = BUFSIZ - off;
 	if (bno == iblock) {
 		ichanged |= iof;

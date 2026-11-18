@@ -182,7 +182,8 @@ tests/kernel/run.sh     # the kernel, with a test program as init, booted
 tests/libc/run.sh       # the C library, with a test program as init: 73
                         # checks in the small model, 73 in the medium
 tests/system/run.sh     # the system, booted from a hard disk to multi-user:
-                        # logs in on the console and uses the shell
+                        # logs in on the console, uses sh, csh and tcsh,
+                        # and edits with ex and vi
 ```
 
 - `tests/crt` is a small-model program in real mode, built through the
@@ -218,8 +219,10 @@ tests/system/run.sh     # the system, booted from a hard disk to multi-user:
   for both models; the small one runs the medium one when it is done.
 - `tests/system` builds the kernel, `/boot`, the library, the programs and
   the root file system as for a real machine, and boots them from an IDE
-  disk. It waits for `login:`, types `root`, gives the shell some
-  commands, and halts the machine; then `tools/fsck.py` checks the disk
+  disk. It waits for `login:`, types `root`, gives the shell and then
+  the C shell some commands, edits a file with `ex` and `vi`, uses
+  `tcsh`'s line editor, and halts the machine; then `tools/fsck.py`
+  checks the disk
   ([the C library and programs](docs/userland.md)).
 
 The emulator is [86Box](https://github.com/86Box/86Box), as an IBM PS/2
@@ -289,11 +292,13 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   is on. A diskette is needed only where the BIOS cannot read the
   system's part of the disk: past its 1024 cylinders, or on a controller
   it does not know.
-- The C library is built for the small and medium models, and with the
-  small one 42 of the system's programs: `init`, `getty`, `login`, the Bourne shell and the
-  everyday commands ([the C library and programs](docs/userland.md)).
+- The C library is built for the small and medium models, and with them
+  48 of the system's programs: `init`, `getty`, `login`, the Bourne shell and the
+  everyday commands in the small model, and in the medium the C shell,
+  `tcsh`, and `ex`, which is `vi`, whose code the PDP-11 had to split
+  into overlays ([the C library and programs](docs/userland.md)).
   The system boots from its disk to multi-user, and one logs in on the
-  console and works in the shell.
+  console, works in any of the three shells, and edits with `vi`.
 - That is the state in an emulated PS/2 Model 30 286 only. Nothing has
   run on a real machine.
 - What the kernel does not have: a driver for the network card, a
@@ -302,6 +307,6 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   parts of it that no test reaches yet: `ptrace`, `sysctl`, core dumps
   beyond being written, `fork` when memory is short, and swapping of
   shared code.
-- What user space does not have: a library for the large model, a
-  program built for the medium one, and most of the programs, among them `vi`, `csh`, `ps`, `fsck`
-  and everything for the network.
+- What user space does not have: a library for the large model, and
+  most of the programs, among them `more`, `mail`, `ps`, `fsck` and
+  everything for the network.

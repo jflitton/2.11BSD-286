@@ -311,7 +311,7 @@ prusage(bs, es, e, b)
     register struct varent *vp = adrof(STRtime);
 
 #ifdef BSDTIMES
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
     long    ms =
 #else
     int     ms =
@@ -321,7 +321,11 @@ prusage(bs, es, e, b)
 #ifdef pdp11
     cp = "%Uu %Ss %E %P %I+%Oio %Vov %Wsw";
 #else
+#ifdef i286
+    cp = "%Uu %Ss %E %P %I+%Oio %Wsw";	/* and no overlays */
+#else
     cp = "%Uu %Ss %E %P %X+%Dk %I+%Oio %Fpf+%Ww";
+#endif
 #endif
 #else
 # ifdef _SEQUENT_

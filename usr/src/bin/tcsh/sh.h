@@ -124,8 +124,12 @@ typedef ptr_t memalign_t;
  * April, 1980
  */
 
+/*
+ * ~0xff and not 0xffffff00, a long where an int has 16 bits, which made
+ * the result an unsigned long and never negative.
+ */
 #define SIGN_EXTEND_CHAR(a) \
-	((a) & 0x80 ? ((int) (a)) | 0xffffff00 : ((int) a) & 0x000000ff)
+	((a) & 0x80 ? ((int) (a)) | ~0xff : ((int) a) & 0xff)
 
 
 

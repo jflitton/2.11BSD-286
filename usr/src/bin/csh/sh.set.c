@@ -275,7 +275,7 @@ putn(n)
 	if (sizeof (int) == 2 && n == -32768) {
 		*putp++ = '3';
 		n = 2768;
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 	}
 #else
 	} else if (sizeof (int) == 4 && n == -2147483648) {

@@ -63,7 +63,7 @@ extern int tgetnum();
  */
 
 #ifndef TC_BUFSIZ
-# ifdef	pdp11
+# if defined(pdp11) || defined(i286)
 # define TC_BUFSIZ 1024
 # else
 # define TC_BUFSIZ 2048

@@ -19,6 +19,7 @@ with # are ignored.  Modes are octal.
     c PATH MODE MAJOR MINOR         a character device
     b PATH MODE MAJOR MINOR         a block device
     l PATH TARGET                   a symbolic link
+    h PATH OTHER                    another name for OTHER, a file
 
 FILE is relative to the directory PROTO is in.  The root directory exists
 already.  Everything is owned by root.
@@ -98,16 +99,17 @@ def main():
     inodes[ROOTINO].nlink = 2
     paths = {"/": ROOTINO}
 
-    def add(path, ip):
+    def add(path, ip, number=None):
         parent, name = os.path.split(path.rstrip("/"))
         if parent not in paths or inodes[paths[parent]].entries is None:
             sys.exit("%s: %s: no directory %s" % (proto, path, parent))
         if not name or len(name) > 63 or path in paths:
             sys.exit("%s: %s: bad or repeated name" % (proto, path))
-        number = max(inodes) + 1
-        inodes[number] = ip
+        if number is None:
+            number = max(inodes) + 1
+            inodes[number] = ip
         paths[path] = number
-        ip.nlink = 1
+        ip.nlink += 1
         dp = inodes[paths[parent]]
         dp.entries.append((name, number))
         if ip.entries is not None:
@@ -133,6 +135,12 @@ def main():
             elif kind == "l":
                 ip = Inode(IFLNK | 0o777)
                 ip.data = w[2].encode()
+            elif kind == "h":
+                number = paths.get(w[2])
+                if number is None or inodes[number].entries is not None:
+                    sys.exit("%s:%d: no file %s" % (proto, n, w[2]))
+                add(path, inodes[number], number)
+                continue
             else:
                 raise ValueError
         except (IndexError, ValueError):

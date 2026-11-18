@@ -270,7 +270,7 @@ execute(t, wanttty, pipein, pipeout)
 		didfds = 0;
 		wanttty = -1;
 		t->t_dspr->t_dflg |= t->t_dflg & FINT;
-		execute(t->t_dspr, wanttty);
+		execute(t->t_dspr, wanttty, (int *)0, (int *)0);
 		exitstat();
 
 	case TFIL:
@@ -287,7 +287,7 @@ execute(t, wanttty, pipein, pipeout)
 	case TLST:
 		if (t->t_dcar) {
 			t->t_dcar->t_dflg |= t->t_dflg & FINT;
-			execute(t->t_dcar, wanttty);
+			execute(t->t_dcar, wanttty, (int *)0, (int *)0);
 			/*
 			 * In strange case of A&B make a new job after A
 			 */
@@ -297,7 +297,7 @@ execute(t, wanttty, pipein, pipeout)
 		}
 		if (t->t_dcdr) {
 			t->t_dcdr->t_dflg |= t->t_dflg & (FPAR|FINT);
-			execute(t->t_dcdr, wanttty);
+			execute(t->t_dcdr, wanttty, (int *)0, (int *)0);
 		}
 		break;
 
@@ -305,13 +305,13 @@ execute(t, wanttty, pipein, pipeout)
 	case TAND:
 		if (t->t_dcar) {
 			t->t_dcar->t_dflg |= t->t_dflg & FINT;
-			execute(t->t_dcar, wanttty);
+			execute(t->t_dcar, wanttty, (int *)0, (int *)0);
 			if ((getn(value("status")) == 0) != (t->t_dtyp == TAND))
 				return;
 		}
 		if (t->t_dcdr) {
 			t->t_dcdr->t_dflg |= t->t_dflg & (FPAR|FINT);
-			execute(t->t_dcdr, wanttty);
+			execute(t->t_dcdr, wanttty, (int *)0, (int *)0);
 		}
 		break;
 	}

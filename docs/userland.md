@@ -34,10 +34,37 @@ each object and library and refuses a mixture. The linker packs the code
 of a medium-model program into segments of nearly 64K; `-packcode N`
 makes them N bytes at most.
 
-The programs are listed in `usr/src/i286/Makefile` with their sources;
-each is compiled and linked in one run of `tools/cc`, and what the
-compiler says goes to `obj/bin/log`. Upstream's own Makefiles are not
-used: they install as they go, with the PDP-11's tools.
+The programs are listed in `usr/src/i286/Makefile` with their sources,
+and with `NAME_MODEL = m` for one that is medium-model; each is compiled
+and linked in one run of `tools/cc`, and what the compiler says goes to
+`obj/bin/log`. `libutil` and `libtermcap` are built for each model a
+program wants, in `obj/lib/s` or `obj/lib/m`. Upstream's own Makefiles
+are not used: they install as they go, with the PDP-11's tools.
+
+Three programs are medium-model so far. `csh` was linked with two
+overlays on the PDP-11; here its 67K of code is in two segments, and its
+data segment has 11K of data and 8K of stack, leaving about 45K for its
+heap.
+`ex`, which is also `vi`, had two overlays as well. Its 77K of code is in
+two segments, and its data segment has 25K of data and 8K of stack. That
+leaves about 32K for the table of lines, two bytes a line, or 16,000
+lines. Its error messages are in `/usr/share/misc/exstrings`, as on the
+PDP-11, not in its data. `tools/mkstr.py` does what `mkstr` did: it takes
+each message out of a copy of the C, in `obj/ex`, and puts the
+message's offset in the file in its place. That moves 5.7K out of the
+data segment. `/usr/share/misc/termcap` is upstream's, with the
+commonest terminals moved to the front, as its Makefile has `ex` do;
+`tools/mktermcap.py` runs the same editor commands.
+
+`tcsh` had seven overlays. Its 127K of code is in two segments, and its
+data segment has 26K of data and 8K of stack, leaving about 30K for its
+heap. Its own `mkprstr` took the format of each `xprintf` out of its C
+and into `/etc/tcsh6.00strgs`, and made the call one to `mkprintf`,
+which reads the format from the file; `tools/mkstr.py` does that too
+(`-e xprintf=mkprintf -n 5`), and moves 6.5K. Three of its headers are
+made from its C, as its Makefile makes them: `sh.err.h` with the
+16-bit flags of its error numbers, which its Makefile chose with
+`unifdef -Dpdp11`.
 
 ## The library
 
@@ -101,7 +128,15 @@ a value becomes an OMF communal, which the linker merges with the others
 of the name and with the one that has a value. The compiler refers even
 to a file's own variables through its list of external names, so moving
 the name moves every reference. After that, a variable still defined
-twice is an error at link time.
+twice is an error at link time. What is left in the file's `_BSS` is its
+static variables, and they are moved down to its start, with `_BSS` made
+only as long as they need: otherwise every file keeps room for every
+variable its headers define. That was 28K of the 64K data segment of
+`csh`, whose `sh.h` defines 1.3K of variables and is included by 19
+files, and 6K of the shell's. The compiler refers to a static variable by
+name too, or, for one declared in a function, by its offset in `_BSS`,
+which is in the instruction or data the reference is in; that offset is
+changed as the variable moves.
 
 **Its own keywords.** Old programs use `inline`, `near`, `far`,
 `interrupt` and others as names. The first is a keyword here and the rest
@@ -118,11 +153,36 @@ they mean them.
 - a function used before it is declared `void` and then defined so.
 
 The usual case of the second is a `fatal(status, fmt, a)` called with
-more or fewer arguments; those became variadic, with `vfprintf`. A few of
+more or fewer arguments; those became variadic, with `vfprintf`, and
+`csh`'s `error` with a `vprintf` of its own. `ex`'s `error` takes a
+message and sometimes an argument, an `int` or a pointer, so it is
+variadic too. Where only trailing
+arguments that go unused were left out, as in `csh`'s `search` and
+`execute`, the calls pass them now. A few of
 the disagreements were real bugs on any 16-bit machine, the PDP-11
 included: `dd` passed an `int` where `number()` takes a `long`, the XNS
 address parser passed an `int` where `cvtbase()` takes a `long`, and
 `srandom` was defined with a `long` and declared with an `unsigned`.
+`ex`'s `cerror`, for a bad regular expression, had a real bug of its own
+on the PDP-11. It took the message as a string, but `mkstr` gives it the
+message's offset in the file. It printed that offset with `"%s"`, which
+printed whatever was at that address in its data. It passes the offset
+on to `error` now, as the other callers do.
+
+The compiler also takes any macro named `va_start` to be the variadic
+one, and refuses it in a function not declared with `...`. So a function
+written with `varargs.h`, whose `va_alist` is an ordinary parameter, is
+rewritten with `stdarg.h`; `ex`'s `printf` was the first.
+
+**Prototypes.** Code written for both kinds of compiler, as `tcsh` is,
+declares its functions with `__P((...))`, which keeps the prototype
+where `__STDC__` is true and drops it for the PDP-11's compiler. This
+compiler has `__STDC__`, so the prototypes are kept, and are held to as
+the PDP-11's never were. Three of `tcsh`'s signal handlers were
+declared to take nothing, and the compiler will not pass a function of
+that type to `signal`, whose prototype takes a `void (*)(int)`; they are
+declared with the `int` now. Its `qsort` of `~user` names has a cast of
+its comparison function, as its other `qsort`s have.
 
 **PCC's member names.** PCC let a structure member's name be used with a
 pointer to any structure, and the Bourne shell reaches every kind of
@@ -137,7 +197,14 @@ a union (`bin/sh/mode.h`); the shell's few other such uses have casts.
 - **That the heap begins at `end`.** On the 286 a program's stack lies
   between its data and the break ([processes](processes.md)). The shell
   started its arena at `end` and so on top of its stack; it starts at the
-  break now. `csh`, `c2` and `sendmail` do the same and are not built yet.
+  break now. `csh` frees only what lies between `end` and its stack, to
+  pass over strings in its data and on its stack, and so here would free
+  nothing; on the 286 it frees what lies above where the break started
+  (`_minbrk`). `c2` and `sendmail` take the heap to start at `end` too,
+  and are not built yet.
+- **That `printf` can be written in PDP-11 assembly.** `csh` prints
+  through its own `putchar`, with the formats of `doprnt11.s`; on the 286
+  that is C, in `bin/csh/printf.c`.
 - **That the network calls exist.** In a kernel without networking they
   end a process with SIGSYS. `syslog` has a fallback for that, writing
   to `/usr/adm/messages` and then the console, which was for the PDP-11
@@ -151,8 +218,18 @@ a union (`bin/sh/mode.h`); the shell's few other such uses have casts.
   `int`. `rand` returned its generator's low 16 bits, the poorest and
   half the time negative, where `RAND_MAX` is 0x7fff. It and `valloc`,
   for which a page boundary means no more in a segment than on the
-  PDP-11, take the PDP-11's branch now, as `syslog` does. The programs
-  have many more such conditionals, to be read as each is built.
+  PDP-11, take the PDP-11's branch now, as `syslog` does. So do `csh`'s
+  allocator, its limit on the words a pattern makes, and its printing of
+  the most negative `int`; its `time` leaves out the PDP-11's count of
+  overlay changes. `tcsh` has the same, and also takes the PDP-11's
+  flags for its error numbers, its smaller buffers for the terminal and
+  the line editor, a `long` for the milliseconds `time` prints, and the
+  freeing of every word of a pattern's expansion, not only the list.
+  Its `$HOSTTYPE` is `i286`. Its `SIGN_EXTEND_CHAR` was written for a
+  32-bit `int`: with 16 bits, `0xffffff00` is a `long`, so the result was
+  never negative and `$<` did not stop at a byte with its high bit set.
+  The programs have many more such conditionals, to be read as each is
+  built.
 - **That `/etc/autoconfig` exists.** On the PDP-11 `init` runs it to find
   the devices; this kernel finds its own, and `init` no longer runs it.
 
@@ -167,17 +244,22 @@ linked with is its own (8K by default).
 `usr/src/i286/root.proto` lists it: the kernel and `/boot`, `/etc/init`,
 `getty`, `login`, the shell and the programs, the devices, and `/etc`:
 upstream's `gettytab`, `master.passwd`, `group` and `shells`; this port's
-own `rc`, `ttys`, `fstab` and `motd` (`usr/src/i286/etc`); and `passwd`
-and `syserrlst`, which the Makefile makes. Upstream's `rc` is the
+own `rc`, `ttys`, `fstab` and `motd` (`usr/src/i286/etc`); and `passwd`,
+`syserrlst` and the terminal capabilities, which the Makefile makes. As
+upstream has them, the capabilities are in `/usr/share/misc/termcap`, and
+`/etc/termcap` is a symbolic link to that file. Upstream's `rc` is the
 PDP-11's, with its buses and network interfaces, and calls much that is
 not built yet.
 
-The programs: `init`, `getty`, `login`, `sh`, `ls`, `cat`, `cp`, `mv`,
+The programs: `init`, `getty`, `login`, `sh`, `csh`, `ls`, `cat`, `cp`, `mv`,
 `rm`, `ln`, `mkdir`, `rmdir`, `chmod`, `chgrp`, `cmp`, `dd`, `df`, `du`,
 `echo`, `ed`, `grep`, `kill`, `nice`, `od`, `pr`, `pwd`, `stty`, `sync`,
 `tee`, `test` (and `[`), `time`, `who`, `wall`, `write`, `date`,
-`hostname`, `hostid`, `pagesize`, and in `/sbin` `mount`, `umount`,
-`mknod`, `reboot` and `halt`.
+`hostname`, `hostid`, `pagesize`, `tcsh`, `/usr/bin/sleep`, and in
+`/sbin` `mount`, `umount`, `mknod`, `reboot` and `halt`. `/usr/ucb` has `ex`,
+`vi` and `view`, one file under three names, as upstream has them, and
+`/usr/sbin` has `exrecover` and `expreserve`. `tools/mkfs.py` makes
+these other names as hard links, and also `[` and `halt`.
 
 ## Following a program
 
@@ -208,7 +290,21 @@ file system and a swap area on an IDE disk shared by a partition table,
 and boots it with no diskette. The system goes multi-user, runs `/etc/rc`
 and `getty`; the test logs in as root, and in the shell makes a
 directory, copies and compares a file, runs a loop, a second shell and a
-pipeline, expands a pattern, lists `/etc`, runs `who`, and halts the
+pipeline, expands a pattern, and lists `/etc`. Then in `csh` it sets
+variables and a list and does arithmetic, runs a `foreach` typed a line
+at a time, repeats a command from the history, defines and uses an
+alias, tests files, reads `$status`, makes an error, uses `pushd`, puts
+a job in the background and kills it by its number, and times a
+command. Back in the shell it edits a new file with `ex`: it appends two
+lines, substitutes in one, makes a bad regular expression, which must
+give the message from `exstrings`, and writes the file. It has `ex -r`
+(`exrecover`) list the saved files, of which there must be none. In `vi`,
+on the console as a VT100, it opens a line at the end and types into it,
+deletes the first line, and writes the file, whose words the shell then
+prints. In `tcsh` it prints `$HOSTTYPE`, edits a line with the line
+editor, completes a file name, repeats the last command from the
+history with ^P, lists `/usr/ucb` with `ls-F`, and puts a job in the
+background, lists it and kills it. Last it runs `who`, and halts the
 machine with `reboot -h`. Afterwards `tools/fsck.py` must find nothing
 wrong with the file system and must find the copied file.
 
@@ -216,13 +312,20 @@ Not done, or not tested:
 
 - The large model has no library, and the three helpers for `__huge`
   pointers are not written.
-- No program the system builds is medium-model yet. The 15 that the
-  PDP-11 overlays (`csh`, `ex` and `vi`, `sendmail` and others) are the
-  ones meant for it; `usr/src/i286/Makefile` will need a way to name a
-  program's model, and `libutil` a medium-model build.
-- Most programs are not built: none of `/usr/bin` or `/usr/ucb` (`vi`,
-  `more`, `csh`), and no `fsck`, `mkfs`, `ps`, `mkpasswd`, `passwd`,
-  `cron`, `syslogd` or `update`. Nothing checks the file systems at boot.
+- `csh`, `ex` and `tcsh` are the medium-model programs so far. The other
+  12 that the PDP-11 overlays (`sendmail`, `named`, `uucp`, `jove`,
+  `kermit` and some games) are the ones meant for it. `csh`'s file name
+  completion, and `csh` or `tcsh` as a login shell, with `.cshrc` and
+  `.login`, have not been tried.
+- `ex`'s `preserve`, and the saving of an editor's file when its
+  terminal hangs up, fail. `expreserve` saves the file and then mails
+  its owner through `/bin/mail`, which is not built. That `mail` hands
+  letters to `sendmail`, and it tells `comsat` of a new one over the
+  network. So these wait for the network and `sendmail`.
+- Most programs are not built: of `/usr/bin` and `/usr/ucb` only
+  `sleep`, `ex` and `vi` (not `more`), and no `fsck`, `mkfs`, `ps`,
+  `mkpasswd`, `passwd`, `cron`, `syslogd` or `update`. Nothing checks the
+  file systems at boot.
 - A program that overflows its stack runs into its data without a fault
   ([processes](processes.md)).
 - With every call printed (`sctrace=2`), the kernel's printing can stall

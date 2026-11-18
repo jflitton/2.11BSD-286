@@ -33,13 +33,26 @@ onlyread(cp)
 	return (cp < end);
 }
 
+/*
+ * Free what malloc gave, and not a string in the program's data or on
+ * its stack.  On the PDP-11 the heap is what lies between the end of the
+ * data and the stack.  On the 286 the stack follows the data, and the
+ * heap is what lies above where the break started (docs/processes.md).
+ */
 xfree(cp)
 	char *cp;
 {
+#ifdef i286
+	extern char *_minbrk;
+
+	if (cp >= _minbrk)
+		free(cp);
+#else
 	extern char end[];
 
 	if (cp >= end && cp < (char *) &cp)
 		free(cp);
+#endif
 }
 
 char *

@@ -25,6 +25,16 @@ refers to is not on that list, and its communal goes on the end of it.
 The size of each is the distance to the next variable in _BSS, public or
 static, or to the end of the segment: never too small, and too large only
 by the padding between variables.
+
+What is left in _BSS is then the module's static variables, and _BSS is
+made only as large as they need, each moved down in turn and kept on an
+odd or even address as it was.  Without that a program has the storage
+of every variable a header defines again in every file that includes it:
+28K of the C shell's 64K.  The module refers to a static variable by
+name (a local external), whose offset moves, or, for one declared in a
+function, by its offset in _BSS, held in the code or data the fixup
+applies to, which is changed as the variable moves.  If anything refers
+to _BSS in a way this does not know, _BSS is left as it was.
 """
 import struct
 import sys
@@ -98,8 +108,88 @@ def pubdefs(t, b):
     return seg, head, entries
 
 
+def bss_fixups(recs, bss):
+    """Each fixup whose target is _BSS itself, by its offset in it, as
+    [value, record, byte, wide]: the offset, and the record and the byte
+    in it where it is kept, in a displacement if the fixup has one (WIDE
+    if that is 32 bits) and if not in the data being fixed up.  None if
+    there is one of a kind this does not know how to move."""
+    threads = [None] * 4        # target threads: (method, index)
+    data = None                 # the last LEDATA: (record, where its data starts)
+    out = []
+    for r, (t, b) in enumerate(recs):
+        if t in (0xA0, 0xA1):
+            _, i = index(b, 0)
+            data = (r, i + (4 if t & 1 else 2))
+            continue
+        if t in (0xA2, 0xA3):
+            data = None
+            continue
+        if t not in (0x9C, 0x9D):
+            continue
+        wide = t & 1
+        i = 0
+        while i < len(b):
+            if not b[i] & 0x80:
+                # A thread: D, the method and the thread's number.
+                d, method, num = b[i] & 0x40, (b[i] >> 2) & 7, b[i] & 3
+                i += 1
+                if d == 0:
+                    idx, i = index(b, i)
+                    threads[num] = (method & 3, idx)
+                elif method < 3:
+                    _, i = index(b, i)
+                continue
+            locat = (b[i] << 8) | b[i + 1]
+            i += 2
+            fixdat = b[i]
+            i += 1
+            if not fixdat & 0x80:   # the frame given here
+                if (fixdat >> 4) & 7 < 3:
+                    _, i = index(b, i)
+            if fixdat & 0x08:       # the target from a thread
+                target = threads[fixdat & 3]
+            else:
+                idx, i = index(b, i)
+                target = (fixdat & 3, idx)
+            disp = None
+            if not fixdat & 0x04:   # a displacement
+                disp = i
+                i += 4 if wide else 2
+            if target != (0, bss):
+                continue
+            loc = (locat >> 10) & 0xF
+            if loc == 2:            # the segment alone
+                continue
+            # Only a 16-bit offset, alone or in a far pointer, relative
+            # to a segment, in an LEDATA.
+            if not locat & 0x4000 or loc not in (1, 3, 5) or data is None:
+                return None
+            pos = data[1] + (locat & 0x3FF)
+            value = struct.unpack_from("<H", recs[data[0]][1], pos)[0]
+            if disp is None:
+                out.append([value, data[0], pos, False])
+            else:
+                d = struct.unpack_from("<I" if wide else "<H", b, disp)[0]
+                out.append([(value + d) & 0xFFFF, r, disp, wide])
+    return out
+
+
+def segdef_length(t, b, n):
+    """The SEGDEF B with its length made N."""
+    acbp = b[0]
+    i = 1
+    if (acbp >> 5) == 0:
+        i += 3
+    if t == 0x98:
+        if n == 0x10000:
+            return bytes([acbp | 2]) + b[1:i] + b"\0\0" + b[i + 2:]
+        return bytes([acbp & ~2]) + b[1:i] + struct.pack("<H", n) + b[i + 2:]
+    return bytes([acbp & ~2]) + b[1:i] + struct.pack("<I", n) + b[i + 4:]
+
+
 def commonize(path):
-    recs = records(open(path, "rb").read())
+    recs = [[t, bytearray(b)] for t, b in records(open(path, "rb").read())]
     lnames = [None]
     segs = [None]               # (name, length)
     for t, b in recs:
@@ -128,8 +218,15 @@ def commonize(path):
         return 0
     bss = bss[0]
 
+    # A static variable declared in a function has no name, and the
+    # module refers to it by its offset in _BSS.
+    end = segs[bss][1]
+    fixups = bss_fixups(recs, bss)
     public = {}                 # name: offset, of public variables in _BSS
-    starts = {segs[bss][1]}     # where any variable in _BSS starts
+    static = set()              # offsets of static variables in _BSS
+    if fixups is not None:
+        static = {v for v, _, _, _ in fixups if v < end}
+    starts = {end} | static     # where any variable in _BSS starts
     for t, b in recs:
         if t in (0x90, 0x91, 0xB6, 0xB7):
             seg, head, entries = pubdefs(t, b)
@@ -139,6 +236,8 @@ def commonize(path):
                 starts.add(off)
                 if t in (0x90, 0x91):
                     public[nm] = off
+                else:
+                    static.add(off)
     starts = sorted(starts)
 
     externs = set()
@@ -160,7 +259,40 @@ def commonize(path):
     extra = [nm for nm in sorted(convert, key=lambda n: public[n])
              if nm not in externs]
 
+    # Where each static variable goes, and how large _BSS is then.  Each
+    # keeps its offset odd or even, so that one that the module refers to
+    # in its middle, which looks like two, is still in one piece.  Nothing
+    # moves if the module refers by offset to where a public variable
+    # starts, which would be the end of the one before it.
+    moved = {}
+    size = end
+    if fixups is not None and not static & set(public.values()) and \
+            not any(t in (0xA0, 0xA1, 0xA2, 0xA3) and index(b, 0)[0] == bss
+                    for t, b in recs):
+        size = 0
+        for off in sorted(static):
+            nxt = min(x for x in starts if x > off)
+            size += (off - size) & 1
+            moved[off] = size
+            size += nxt - off
+        # How far each reference moves: as far as the variable it is in,
+        # or, just past the last one, as far as that.
+        shift = []
+        for value, r, pos, wide in fixups:
+            base = [x for x in static if x <= value]
+            if not base:
+                moved, size, shift = {}, end, []
+                break
+            base = max(base)
+            shift.append((moved[base] - base, r, pos, wide))
+        for delta, r, pos, wide in shift:
+            fmt = "<I" if wide else "<H"
+            v = struct.unpack_from(fmt, recs[r][1], pos)[0]
+            struct.pack_into(fmt, recs[r][1], pos,
+                             (v + delta) & (0xFFFFFFFF if wide else 0xFFFF))
+
     out = []
+    nseg = 0
     for t, b in recs:
         if t == 0x8C:
             # Split the list into runs, keeping every name where it was:
@@ -183,15 +315,21 @@ def commonize(path):
                     runs.append([kind, entry])
             for kind, body in runs:
                 out.append(emit(kind, body))
-        elif t in (0x90, 0x91):
+        elif t in (0x90, 0x91, 0xB6, 0xB7):
             seg, head, entries = pubdefs(t, b)
             if seg == bss:
-                keep = [e for e in entries if e[0] not in convert]
+                keep = [(nm, moved.get(off, off), typ)
+                        for nm, off, typ in entries if nm not in convert]
                 if not keep:
                     continue
                 fmt = "<I" if t & 1 else "<H"
                 b = head + b"".join(counted(nm) + struct.pack(fmt, off) + typ
                                     for nm, off, typ in keep)
+            out.append(emit(t, b))
+        elif t in (0x98, 0x99):
+            nseg += 1
+            if nseg == bss:
+                b = segdef_length(t, b, size)
             out.append(emit(t, b))
         elif t == 0x8A:
             if extra:

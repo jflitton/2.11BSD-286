@@ -381,7 +381,7 @@ putn(n)
     if (sizeof(int) == num && n == -32768) {
 	*putp++ = '3';
 	n = 2768;
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
     }
 #else
     }

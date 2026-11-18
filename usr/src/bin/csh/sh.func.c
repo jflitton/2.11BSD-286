@@ -226,7 +226,7 @@ doif(v, kp)
 		 * otherwise just fall into following code.
 		 */
 		if (!i)
-			search(ZIF, 0);
+			search(ZIF, 0, NOSTR);
 		return;
 	}
 	/*
@@ -263,7 +263,7 @@ reexecute(kp)
 doelse()
 {
 
-	search(ZELSE, 0);
+	search(ZELSE, 0, NOSTR);
 }
 
 dogoto(v)
@@ -279,7 +279,7 @@ dogoto(v)
 	 */
 	for (wp = whyles; wp; wp = wp->w_next)
 		if (wp->w_end == 0) {
-			search(ZBREAK, 0);
+			search(ZBREAK, 0, NOSTR);
 			wp->w_end = btell();
 		} else
 			bseek(wp->w_end);
@@ -419,7 +419,7 @@ preread()
 	whyles->w_end = -1;
 	if (setintr)
 		(void) sigsetmask(sigblock(0L) & ~sigmask(SIGINT));
-	search(ZBREAK, 0);
+	search(ZBREAK, 0, NOSTR);
 	if (setintr)
 		(void) sigblock(sigmask(SIGINT));
 	whyles->w_end = btell();
@@ -488,7 +488,7 @@ dorepeat(v, kp)
 doswbrk()
 {
 
-	search(ZBRKSW, 0);
+	search(ZBRKSW, 0, NOSTR);
 }
 
 srchx(cp)
@@ -683,7 +683,7 @@ toend()
 {
 
 	if (whyles->w_end == 0) {
-		search(ZBREAK, 0);
+		search(ZBREAK, 0, NOSTR);
 		whyles->w_end = btell() - 1;
 	} else
 		bseek(whyles->w_end);

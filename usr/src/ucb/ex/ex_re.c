@@ -743,12 +743,20 @@ defchar:
 	}
 }
 
+/*
+ * s is where the message is in the error message file, as error's is,
+ * and is passed on: printed with "%s" it would be printed as a string.
+ */
 cerror(s)
+#ifdef lint
 	char *s;
+#else
+	int s;
+#endif
 {
 
 	expbuf[0] = 0;
-	error("%s", s);
+	error(s);
 }
 
 same(a, b)

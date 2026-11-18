@@ -11,7 +11,12 @@ d /tmp 1777
 d /root 755
 d /usr 755
 d /usr/bin 755
+d /usr/ucb 755
+d /usr/sbin 755
 d /usr/libexec 755
+d /usr/share 755
+d /usr/share/misc 755
+d /usr/preserve 755
 d /usr/adm 755
 d /usr/tmp 1777
 d /var 755
@@ -29,12 +34,17 @@ f /etc/group 644 ../etc/group
 f /etc/shells 644 ../etc/shells
 f /etc/passwd 644 ../../../obj/root/passwd
 f /etc/syserrlst 644 ../../../obj/root/syserrlst
+f /etc/tcsh6.00strgs 444 ../../../obj/tcsh/tcsh6.00strgs
+f /usr/share/misc/termcap 444 ../../../obj/root/termcap
+l /etc/termcap ../usr/share/misc/termcap
 f /etc/utmp 644 ../../../obj/root/empty
 f /usr/adm/wtmp 644 ../../../obj/root/empty
 f /usr/adm/lastlog 644 ../../../obj/root/empty
 f /usr/adm/messages 644 ../../../obj/root/empty
 f /usr/libexec/getty 755 ../../../obj/bin/getty
 f /bin/sh 755 ../../../obj/bin/sh
+f /bin/csh 755 ../../../obj/bin/csh
+f /bin/tcsh 755 ../../../obj/bin/tcsh
 f /bin/login 4755 ../../../obj/bin/login
 f /bin/ls 755 ../../../obj/bin/ls
 f /bin/mkdir 755 ../../../obj/bin/mkdir
@@ -70,12 +80,20 @@ f /bin/time 755 ../../../obj/bin/time
 f /bin/who 755 ../../../obj/bin/who
 f /bin/wall 755 ../../../obj/bin/wall
 f /bin/write 755 ../../../obj/bin/write
-f /bin/[ 755 ../../../obj/bin/test
+h /bin/[ /bin/test
+f /usr/bin/sleep 755 ../../../obj/bin/sleep
+f /usr/ucb/ex 1755 ../../../obj/bin/ex
+h /usr/ucb/vi /usr/ucb/ex
+h /usr/ucb/view /usr/ucb/ex
+h /usr/bin/ex /usr/ucb/ex
+f /usr/share/misc/exstrings 444 ../../../obj/ex/exstrings
+f /usr/sbin/exrecover 4755 ../../../obj/bin/exrecover
+f /usr/sbin/expreserve 4755 ../../../obj/bin/expreserve
 f /sbin/mount 755 ../../../obj/bin/mount
 f /sbin/umount 755 ../../../obj/bin/umount
 f /sbin/reboot 755 ../../../obj/bin/reboot
 f /sbin/mknod 755 ../../../obj/bin/mknod
-f /sbin/halt 755 ../../../obj/bin/reboot
+h /sbin/halt /sbin/reboot
 c /dev/console 622 0 0
 c /dev/tty 666 2 0
 c /dev/mem 640 1 0

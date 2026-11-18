@@ -8,6 +8,7 @@
 static char *sccsid = "@(#)ex_cmds2.c	7.5 (2.11BSD) 2020/1/7";
 #endif
 
+#include <stdarg.h>
 #include "ex.h"
 #include "ex_argv.h"
 #include "ex_temp.h"
@@ -70,6 +71,21 @@ eol()
  * Print out the message in the error message file at str,
  * with i an integer argument to printf.
  */
+#ifdef i286
+/*
+ * A call has i or not, and it may be a pointer, which is an int's size:
+ * this compiler holds a call to a function that is defined in the same
+ * file to the definition, so error takes what it is given.
+ */
+error(int str, ...)
+{
+	va_list ap;
+	int i;
+
+	va_start(ap, str);
+	i = va_arg(ap, int);
+	va_end(ap);
+#else
 /*VARARGS2*/
 error(str, i)
 #ifdef lint
@@ -79,6 +95,7 @@ error(str, i)
 #endif
 	int i;
 {
+#endif
 
 	error0();
 	merror(str, i);
@@ -86,7 +103,7 @@ error(str, i)
 		serror(" [Warning - %s is incomplete]", file);
 		writing = 0;
 	}
-	error1(str);
+	error1((char *) str);
 }
 
 /*
@@ -371,7 +388,7 @@ serror(str, cp)
 
 	error0();
 	smerror(str, cp);
-	error1(str);
+	error1((char *) str);
 }
 
 /*

@@ -92,7 +92,11 @@ prusage(r0, r1, e, b)
 #ifdef pdp11
 	cp = "%Uu %Ss %E %P %I+%Oio %Vov %Wsw";
 #else
+#ifdef i286
+	cp = "%Uu %Ss %E %P %I+%Oio %Wsw";	/* and no overlays */
+#else
 	cp = "%Uu %Ss %E %P %X+%Dk %I+%Oio %Fpf+%Ww";
+#endif
 #endif
 	if (vp && vp->vec[0] && vp->vec[1])
 		cp = vp->vec[1];

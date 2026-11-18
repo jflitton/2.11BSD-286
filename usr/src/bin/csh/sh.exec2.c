@@ -41,7 +41,7 @@ iscommand(name)
 		goto cont;
 	}
 	if (pv[0][0] == 0 || eq(pv[0], ".")) {	/* don't make ./xxx */
-	    if (executable(NULL, name, 0)) {
+	    if (executable((char *)NULL, name, 0)) {
 		xfree(sav);
 		return i + 1;
 	    }

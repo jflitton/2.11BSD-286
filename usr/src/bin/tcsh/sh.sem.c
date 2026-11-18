@@ -56,7 +56,7 @@ static char *rcsid()
 #endif				/* sparc */
 
 #ifdef VFORK
-static	void	vffree	__P((void));
+static	void	vffree	__P((int));	/* a signal handler */
 #endif
 static	void		doio	__P((struct command *t, int *, int *));
 static	void		chkclob	__P((char *));
@@ -339,7 +339,7 @@ execute(t, wanttty, pipein, pipeout)
 		}
 		forked++;
 		if (pid) {	/* parent */
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
                     register char **v;
 #endif
 #ifdef BSDSIGS
@@ -374,7 +374,7 @@ execute(t, wanttty, pipein, pipeout)
 		    Vexpath = 0;
 		    blkfree((Char **) Vt);
 		    Vt = 0;
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
                     if (v = gargv)
                         gargv = 0, blkfree(v);
                     if (v = pargv)
@@ -599,7 +599,7 @@ vffree()
 
     if (v = gargv) {
 	gargv = 0;
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
         blkfree(v);
 #else
 	xfree((ptr_t) v);
@@ -607,7 +607,7 @@ vffree()
     }
     if (v = pargv) {
 	pargv = 0;
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
         blkfree(v);
 #else
 	xfree((ptr_t) v);

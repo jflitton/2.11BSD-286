@@ -46,7 +46,11 @@ static char *rcsid()
 Char   *
 GetHostType()
 {
+#ifdef i286
+    return("i286");
+#else
     return("pdp11");	/* Don't str2short() because Setenv does it in sh.c */
+#endif
 }
 
 

@@ -80,7 +80,7 @@ extern	void		  dosettc	__P((Char **));
 extern	void		  dowhich	__P((Char **));
 extern	struct process	 *find_stop_ed	__P((void));
 extern	void		  fg_proc_entry	__P((struct process *));
-extern	void	  	alrmcatch	__P((void));
+extern	void	  	alrmcatch	__P((int));	/* a signal handler */
 extern	void		  precmd	__P((void));
 extern	void		  cwd_cmd	__P((void));
 extern	void		  period_cmd	__P((void));
