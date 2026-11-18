@@ -42,6 +42,7 @@ static	int comport[NCOM] = { 0x3F8, 0x2F8 };
 static	char comirq[NCOM] = { 4, 3 };
 static	char compresent[NCOM];
 static	char comattached[NCOM];
+static	char comcurspeed[NCOM];	/* what the port is set to, B0 if not */
 struct	tty com_tty[NCOM];
 int	comstart();
 static	int comintr();
@@ -53,20 +54,33 @@ static	u_short comdiv[16] = {
 	192, 96, 64, 48, 24, 12, 6, 3
 };
 
-/* Set a port to send and receive at the speed the tty layer numbers so. */
+/*
+ * Set a port to send and receive at the speed the tty layer numbers so.
+ * The divisor is written only if the speed is not the port's already:
+ * every TIOCSETN asks, and a shell's line editor sends one at each
+ * prompt, and an 8250 whose divisor is written while a character is
+ * going out may send it wrong.  While DLAB is set, a character written
+ * to the port goes into the divisor and is never sent; so interrupts are
+ * off meanwhile, or comintr, seeing the port still ready, would empty
+ * the output queue into it.
+ */
 static
 comspeed(unit, speed)
 	int unit, speed;
 {
 	register int port = comport[unit];
 	register u_int div = comdiv[speed & 017];
+	int s;
 
-	if (div == 0)
+	if (div == 0 || (speed & 017) == comcurspeed[unit])
 		return;
+	s = intsoff();
 	outb(port + LCR, LCR_DLAB);
 	outb(port + DATA, div);
 	outb(port + IER, div >> 8);
 	outb(port + LCR, LCR_8N1);
+	intson(s);
+	comcurspeed[unit] = speed & 017;
 }
 
 /*

@@ -161,6 +161,18 @@ for it, as before. Its lines are not watched: an open port is taken to
 have a terminal on it. Closing it with `hupcl` set drops DTR. It moves a
 character at a time; a 16550's FIFO is not used.
 
+The speed's divisor is written only when the speed changes. Every
+`TIOCSETP` and `TIOCSETN` gives a speed, and `tcsh`'s line editor sends
+one at each prompt; an 8250 whose divisor is written while a character
+is going out can send it wrong. While the divisor is being written, the
+port's data register is the divisor's low byte, so interrupts are off
+then: the driver first wrote it with them on, and when the port's
+interrupt came in that moment, `comintr`, finding the port still ready
+since nothing had gone, put the rest of the output queue into the
+divisor. It lost the tail of whatever was being sent when `tcsh` gave
+its prompt, about one prompt in fifteen in a test that typed the next
+command as the last one's output began.
+
 ## Tests
 
 - `tests/vt` builds `vt.c` with the C compiler of the machine the system
