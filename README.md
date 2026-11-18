@@ -20,6 +20,7 @@ has file names that differ only by case.
 | `usr/include/` | the system's headers; mostly links into `usr/src/sys` | yes |
 | `sys` | link to `usr/src/sys`, as on the running system; the links in `usr/include` go through it | yes |
 | `tools/` | host-side tools (below) | yes |
+| `tests/` | tests that boot in QEMU (below) | yes |
 | `docs/` | our notes | yes |
 | `reference/MANIFEST` | what third-party material we use, where it comes from, checksums | yes |
 | `reference/upstream/` | the install tape, patches, setup guide | no |
@@ -38,7 +39,7 @@ Where the 286 code will go, beside its PDP-11 counterpart in each case:
 | `usr/src/sys/i286if/` | `pdpif/` | network interfaces |
 | `usr/src/sys/i286stand/` | `pdpstand/`, `mdec/` | boot blocks and standalone programs |
 | `usr/src/sys/PS2_30/` | `GENERIC/` | the kernel configuration |
-| `usr/src/lib/libc/i286/` | `lib/libc/pdp/` | libc's machine-dependent part |
+| `usr/src/lib/libc/i286/` | `lib/libc/pdp/` | libc's machine-dependent part; `crt/` exists, the rest is to come |
 
 The kernel picks its machine through the link `usr/src/sys/machine`, which
 points at `pdp` upstream.
@@ -148,6 +149,22 @@ DOS and OS/2 user's guide with nothing on ports or interrupts; not kept.)
 | `tools/tar2git.py` | commits tar archives to a branch without unpacking them |
 | `tools/import-upstream.sh` | rebuilds the `upstream` import from the tape, to check it |
 
+## Tests
+
+Tests run real 286 code in QEMU (`qemu-system-i386`), in real mode for now.
+`tests/harness/` has a boot sector that loads a small-model program's two
+segments from a diskette image, start-up code with a serial console, and
+`runtest.py`, which builds a program through the normal path (`cc286`,
+`wlink`, `ne2aout.py`), boots it, prints what it wrote to the serial port
+and takes main's return value as the result.
+
+```sh
+. tools/env.sh
+tests/crt/run.sh        # the compiler's helper routines: 5,161 checks
+```
+
+Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
+
 ## Status (2026-11-17)
 
 - `upstream` holds patch level 500, checked file by file against the tape.
@@ -158,7 +175,11 @@ DOS and OS/2 user's guide with nothing on ports or interrupts; not kept.)
   [memory model](docs/memory-model.md),
   [calling convention and kernel interface](docs/abi.md),
   [executable format](docs/executable-format.md).
-- A C file can be compiled, linked and converted to the executable format,
-  and the result inspected. Nothing has been run yet.
-- Nothing is ported yet. Next: the helper routines compiled code calls,
-  then a kernel skeleton that reaches protected mode in an emulator.
+- A C program can be compiled, linked, converted to the executable format
+  and run in QEMU in real mode.
+- The helper routines compiled code calls for 32-bit multiply and divide
+  and for float-to-integer conversion are written
+  (`usr/src/lib/libc/i286/crt`) and pass their tests. The three for
+  `__huge` pointers are not written yet.
+- Nothing of the system itself is ported yet. Next: a kernel skeleton that
+  reaches protected mode in an emulator.

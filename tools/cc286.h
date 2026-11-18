@@ -10,3 +10,9 @@
  * address is in SI for structures.
  */
 #pragma aux default "_*" parm caller [] modify [ax bx cx dx es];
+
+/*
+ * The compiler keeps a convention of its own for main (register arguments,
+ * the name main_) whatever the default is.  Give main the system's.
+ */
+#pragma aux main "_*" parm caller [] modify [ax bx cx dx es];

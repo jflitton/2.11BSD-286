@@ -1,8 +1,8 @@
 # Executable format
 
 The format of programs and of the kernel image. `tools/ne2aout.py` writes
-it and is, for now, its definition; nothing loads it yet, so the layout can
-still change.
+it and is, for now, its definition. Only the test harness loads it so far,
+so the layout can still change.
 
 ## How an executable is made
 
@@ -35,6 +35,7 @@ every program:
 |---|---|
 | a program | `(N << 3) \| 7`: slot N of the process's LDT, ring 3 |
 | the kernel | `(FIRST + N - 1) << 3`: GDT slots from FIRST, ring 0 (`--gdt FIRST`) |
+| the real-mode test harness | `BASE + (N - 1) * 0x1000`: a real-mode segment (`--real BASE`) |
 
 So segment 1 of any program is selector 0x0F, segment 2 is 0x17, and so
 on. The converter writes those values into the image. Loading a program is

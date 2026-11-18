@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Turn wlink's segmented output into a 2.11BSD/286 executable.
 
-usage: ne2aout.py [--model s|m|l] [--gdt FIRST] [--map FILE] [--stack N]
-                  IN.ne OUT
+usage: ne2aout.py [--model s|m|l] [--gdt FIRST | --real BASE] [--map FILE]
+                  [--stack N] IN.ne OUT
        ne2aout.py --dump FILE
 
 wlink is run with `format os2`, which writes a "new executable": a segment
@@ -15,6 +15,8 @@ time:
 
     a program:   (N << 3) | 7        slot N of the process's own LDT, ring 3
     the kernel:  (FIRST + N - 1) << 3   with --gdt FIRST: GDT slots, ring 0
+    real mode:   BASE + (N - 1) * 0x1000  with --real BASE: for the test
+                                     harness, which loads segment N there
 
 --map names wlink's map file; its symbols become the symbol table.
 --stack sets the stack size recorded in the header (default: what wlink
@@ -179,6 +181,7 @@ def main():
     ap.add_argument("--dump")
     ap.add_argument("--model", default="s", choices=sorted(MODELS))
     ap.add_argument("--gdt", type=int)
+    ap.add_argument("--real", type=lambda x: int(x, 0))
     ap.add_argument("--map")
     ap.add_argument("--stack", type=int)
     ap.add_argument("files", nargs="*")
@@ -191,7 +194,9 @@ def main():
     ncode = sum(1 for s in segs if not s["is_data"])
     if a.model == "s" and ncode != 1:
         sys.exit("small model wants one code segment; this has %d" % ncode)
-    if a.gdt is not None:
+    if a.real is not None:
+        selector = lambda n: a.real + (n - 1) * 0x1000
+    elif a.gdt is not None:
         selector = lambda n: (a.gdt + n - 1) << 3
     else:
         selector = lambda n: (n << 3) | 7

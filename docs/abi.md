@@ -1,7 +1,8 @@
 # Calling convention and kernel interface
 
-Decided November 2026. The calling convention has been compiled and its
-output read; none of it has been run yet.
+Decided November 2026. The calling convention and the helper routines run
+under the tests in `tests/crt`, in real mode; the system call interface and
+the user address type are not implemented yet.
 
 ## C calling convention
 
@@ -11,7 +12,7 @@ One convention for the kernel and for programs, set by a single pragma in
 | | |
 |---|---|
 | arguments | on the stack, pushed right to left; the caller removes them |
-| names | a leading underscore: `main` is `_main` |
+| names | a leading underscore: `main` is `_main` (the compiler treats `main` specially, so the pragma file names it too) |
 | `char`, `int`, near pointer result | AX |
 | `long`, far pointer result | DX:AX |
 | `float`, `double` result | top of the 287 stack |
@@ -50,7 +51,10 @@ taking Open Watcom's library:
 | `__CHP` | round the top of the 287 stack toward zero, for conversion to an integer |
 | `__PIA`, `__PTS`, `__PTC` | add to, subtract and compare `__huge` pointers |
 
-Those are all that 338 compiled files of the tree referred to.
+Those are all that 338 compiled files of the tree referred to. The first
+five are in `usr/src/lib/libc/i286/crt`, beside the PDP-11's `lmul.s` and
+`ldiv.s` in `lib/libc/pdp/crt`; assembled with `-DFAR` they return far, for
+the medium and large models. The `__huge` three are not written yet.
 
 ## System calls
 
