@@ -2,7 +2,8 @@
 """Run a test program in an emulator.
 
 usage: runtest.py NAME SOURCE...
-       runtest.py --boot NAME EXECUTABLE [FILESYSTEM]
+       runtest.py [--hd IMAGE,CYLINDERS,HEADS,SECTORS] [--until TEXT]
+                  --boot NAME EXECUTABLE [FILESYSTEM]
 
 The first form builds a small-model program that runs in real mode.  Each
 .c is compiled with tools/cc286 and each .s assembled with NASM; they are
@@ -12,6 +13,12 @@ any program is.
 The second takes an executable already built, such as a kernel, that
 starts itself as docs/boot.md describes.  A file system image given with
 it goes on the diskette after it, for the kernel to load as its RAM disk.
+With --hd the machine has a hard disk as well, the first drive of an AT
+disk controller: IMAGE is its contents, as tools/mkdisk.py makes them, and
+is changed by whatever the program writes.  86Box only.  With --until the
+run does not end at the "@exit" line but when the program has written TEXT
+after it: a system has its disks to bring up to date before it stops, and
+says when it has.
 
 Either way tools/mkfd.py puts the program on a diskette image behind the
 boot sector, usr/src/sys/i286stand/fdboot.s, and the emulator boots it.
@@ -121,6 +128,16 @@ def finished(text):
         return None
 
 
+UNTIL = None            # --until: what must follow the "@exit" line
+
+
+def ended(text):
+    """Has the program written all it is going to?"""
+    if finished(text) is None:
+        return False
+    return UNTIL is None or UNTIL in text[text.rfind("@exit "):]
+
+
 def run_qemu(img, out):
     serial = os.path.join(out, "serial.txt")
     if os.path.exists(serial):
@@ -137,7 +154,7 @@ def run_qemu(img, out):
             time.sleep(0.2)
             if os.path.exists(serial):
                 text = open(serial, errors="replace").read()
-                if finished(text) is not None:
+                if ended(text):
                     break
     finally:
         p.kill()
@@ -163,16 +180,24 @@ def has_automation(box):
         return m.find(b"--automation-hold") >= 0
 
 
+HD = None               # --hd: (image, cylinders, heads, sectors)
+
+
 def start_86box(box, img, out, com1, args=(), env=None):
     """Start 86Box on a copy of the harness's machine, with the diskette
-    image in drive A and COM1 as the configuration lines COM1 say.
-    Returns the process and the machine's directory."""
+    image in drive A, COM1 as the configuration lines COM1 say, and the
+    hard disk HD if there is one.  Returns the process and the machine's
+    directory."""
     vm = os.path.join(out, "86box")
     shutil.rmtree(vm, ignore_errors=True)
     os.makedirs(os.path.join(vm, "nvr"))
     cfg = open(os.path.join(HARNESS, "86box.cfg")).read()
     with open(os.path.join(vm, "86box.cfg"), "w") as f:
         f.write(cfg + "fdd_01_fn = %s\n\n[Ports (COM & LPT)]\n%s" % (img, com1))
+        if HD:
+            f.write("\n[Hard disks]\nhdd_01_parameters = %d, %d, %d, 0, ide\n"
+                    "hdd_01_fn = %s\nhdd_01_ide_channel = 0:0\n"
+                    % (HD[3], HD[2], HD[1], os.path.abspath(HD[0])))
     shutil.copy(os.path.join(HARNESS, "ibmps2_m30_286.nvr"), os.path.join(vm, "nvr"))
     with open(os.path.join(vm, "86box.out"), "w") as o:
         p = subprocess.Popen([box, "-N", "-P", vm, "-L", os.path.join(vm, "86box.log")]
@@ -302,7 +327,7 @@ def run_86box_socket(box, img, out):
             mark = None
             seen = "the BIOS did not load the diskette\n" + describe(auto, None)
         pos = 0
-        while not seen and finished(raw.decode("latin-1")) is None:
+        while not seen and not ended(raw.decode("latin-1")):
             late = auto.ask("step 200")["ms"] >= TIMEOUT * 1000
             r = auto.ask("serial read 1 %d" % pos)
             raw += bytes.fromhex(r["data"])
@@ -360,7 +385,7 @@ def run_86box_pty(box, img, out):
                 continue
             raw += chunk
             text = raw.decode("latin-1")
-            if finished(text) is not None:
+            if ended(text):
                 break
         text = raw.decode("latin-1")
     finally:
@@ -381,11 +406,24 @@ def run_86box(img, out):
 
 
 def main():
-    if len(sys.argv) < 3:
-        sys.exit(__doc__)
+    global HD, UNTIL
     emu = os.environ.get("EMU", "86box")
     if emu not in ("86box", "qemu"):
         sys.exit("EMU must be 86box or qemu")
+    if len(sys.argv) > 2 and sys.argv[1] == "--hd":
+        try:
+            image, c, h, s = sys.argv[2].split(",")
+            HD = (image, int(c), int(h), int(s))
+        except ValueError:
+            sys.exit(__doc__)
+        if emu != "86box" or os.path.getsize(image) != HD[1] * HD[2] * HD[3] * 512:
+            sys.exit("--hd: needs 86Box, and an image of the size its geometry gives")
+        del sys.argv[1:3]
+    if len(sys.argv) > 2 and sys.argv[1] == "--until":
+        UNTIL = sys.argv[2]
+        del sys.argv[1:3]
+    if len(sys.argv) < 3:
+        sys.exit(__doc__)
     if sys.argv[1] == "--boot":
         if len(sys.argv) not in (4, 5):
             sys.exit(__doc__)
@@ -409,6 +447,8 @@ def main():
     status = finished(text)
     if status is None:
         sys.exit("\n%s: no result on %s (the limit is %d seconds)" % (name, emu, TIMEOUT))
+    if not ended(text):
+        sys.exit("\n%s: gave its result on %s, but never wrote \"%s\"" % (name, emu, UNTIL))
     print("%s: program returned %d on %s" % (name, status, emu))
     sys.exit(0 if status == 0 else 1)
 

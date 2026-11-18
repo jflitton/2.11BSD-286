@@ -224,6 +224,7 @@ main(argc, argv, envp)
 	check(n == 0xFFF, "each computed the right thing and exited with its number");
 
 	hogs();
+	disk();
 
 	printf("init: %d checks, %d failed\n", checks, failed);
 	printf("@exit %02x\n", failed > 255 ? 255 : failed);
@@ -308,4 +309,122 @@ hogs()
 		printf("init: of %d, those that finished: %lx\n", i, n);
 	close(gate[1]);
 	close(done[0]);
+}
+
+/*
+ * A hard disk.  run.sh boots the kernel again from one that
+ * tools/mkdisk.py made, with this file system in partition a, the swap
+ * area in b and nothing in d, and says so with the file /etc/disk.
+ */
+#define	DIOCGDINFO	0x40D86465L	/* _IOR('d', 101, struct disklabel) */
+#define	RAWSIZE		20480		/* more than the drive moves at once */
+
+struct label {				/* the end of a struct disklabel */
+	long	d_magic;
+	char	d_other[110];
+	int	d_npartitions;
+	int	d_bbsize, d_sbsize;
+	struct {
+		long	p_size, p_offset;
+		int	p_fsize;
+		char	p_fstype, p_frag;
+	} d_partitions[8];
+} label;
+
+disk()
+{
+	int raw, blk, fd, i;
+	unsigned k;
+	long size;
+	char *m;
+
+	if (open("/etc/disk", O_RDONLY, 0) < 0) {
+		check(open("/dev/rwd0d", O_RDWR, 0) == -1 && errno == ENXIO,
+		    "there is no hard disk");
+		return;
+	}
+	raw = open("/dev/rwd0d", O_RDWR, 0);
+	check(raw >= 0, "open a partition of the hard disk");
+	check(ioctl(raw, DIOCGDINFO, &label) == 0 &&
+	    label.d_magic == 0x82564557L && label.d_npartitions == 4,
+	    "its label");
+	check(label.d_partitions[1].p_fstype == 1 &&
+	    label.d_partitions[0].p_offset == 0 &&
+	    label.d_partitions[3].p_offset ==
+	    label.d_partitions[0].p_size + label.d_partitions[1].p_size,
+	    "the label's partitions are those the disk was made with");
+	size = label.d_partitions[3].p_size << 9;
+
+	/*
+	 * Straight between the disk and this process's memory, from an
+	 * odd address, then through the kernel's buffers.
+	 */
+	m = sbrk(2 * RAWSIZE + 2);
+	for (k = 0; k < RAWSIZE; k++)
+		m[1 + k] = k * 3 + (k >> 8);
+	check(write(raw, m + 1, RAWSIZE) == RAWSIZE, "write 20K to it");
+	check(lseek(raw, 0L, 0) == 0L &&
+	    read(raw, m + RAWSIZE + 1, RAWSIZE) == RAWSIZE, "read it back");
+	for (k = 0; k < RAWSIZE; k++)
+		if (m[RAWSIZE + 1 + k] != (char)(k * 3 + (k >> 8)))
+			break;
+	check(k == RAWSIZE, "and it is what was written");
+	blk = open("/dev/wd0d", O_RDWR, 0);
+	check(blk >= 0 && lseek(blk, 5120L, 0) == 5120L &&
+	    read(blk, m + RAWSIZE + 1, 3000) == 3000,
+	    "read the partition as a block device");
+	for (k = 0; k < 3000; k++)
+		if (m[RAWSIZE + 1 + k] !=
+		    (char)((k + 5120) * 3 + ((k + 5120) >> 8)))
+			break;
+	check(k == 3000, "and find the same");
+	check(read(raw, m, 100) == -1, "part of a sector is refused");
+	check(lseek(raw, size - 512, 0) == size - 512 &&
+	    read(raw, m, 1024) == 512,
+	    "a read across the partition's end is cut short");
+	check(read(raw, m, 512) == 0, "and one at its end is end of file");
+	check(lseek(raw, size - 512, 0) == size - 512 &&
+	    write(raw, m, 1024) == 512 && write(raw, m, 512) <= 0,
+	    "writes there likewise");
+	close(raw);
+	close(blk);
+	sbrk(-(2 * RAWSIZE + 2));
+	check(open("/dev/rwd1a", O_RDONLY, 0) == -1 && errno == ENXIO,
+	    "there is no second drive");
+
+	/* A file big enough to need the second level of indirect blocks. */
+	fd = open("/tmp/big", O_RDWR|O_CREAT|O_TRUNC, 0644);
+	for (i = 0; i < 150; i++) {
+		for (k = 0; k < sizeof (buf); k++)
+			buf[k] = k * 5 + i;
+		if (write(fd, buf, sizeof (buf)) != sizeof (buf))
+			break;
+	}
+	check(i == 150, "write a file of 300K");
+	sync();
+	lseek(fd, 0L, 0);
+	for (i = 0; i < 150; i++) {
+		if (read(fd, buf, sizeof (buf)) != sizeof (buf))
+			break;
+		for (k = 0; k < sizeof (buf); k++)
+			if (buf[k] != (char)(k * 5 + i))
+				break;
+		if (k != sizeof (buf))
+			break;
+	}
+	check(i == 150, "read it back");
+	close(fd);
+	check(link("/tmp/big", "/tmp/kept") == 0 && unlink("/tmp/big") == 0,
+	    "rename it");
+
+	/* What run.sh looks for on the disk afterwards. */
+	fd = open("/tmp/big2", O_RDWR|O_CREAT|O_TRUNC, 0644);
+	for (i = 0; i < 140; i++)
+		write(fd, buf, sizeof (buf));
+	close(fd);
+	check(unlink("/tmp/big2") == 0, "remove another like it");
+	fd = open("/persist", O_RDWR|O_CREAT|O_TRUNC, 0644);
+	check(write(fd, "written by init, to be found on the disk\n", 41) == 41,
+	    "leave a file for later");
+	close(fd);
 }

@@ -2,8 +2,8 @@
 
 How the kernel gets into memory and into protected mode. Running under
 `tests/pm` and `tests/kernel`; only the diskette boot sector exists so
-far, and a boot program that reads the kernel from a file system comes
-later.
+far, and a boot program that reads the kernel from a file system on a
+hard disk comes later.
 
 ## From the boot program to the kernel
 
@@ -22,6 +22,8 @@ in real mode with:
 
 The BIOS is still usable at that point. The kernel uses it to ask how much
 memory there is and, if the table names one, to load a RAM disk image.
+With one the root file system is that image, and without, a hard disk
+([disks](disks.md)).
 
 The table, `struct bootinfo` in `sys/i286/boot.h`, all 16-bit words:
 
@@ -99,7 +101,8 @@ it was linked, and mean nothing in real mode.
 | 1 | 0x08 | the task state segment |
 | 2 | 0x10 | the running process's local descriptor table |
 | 3, 4 | 0x18, 0x20 | pointed at whatever memory is being copied or cleared by physical address |
-| 5 to 15 | | kept for later |
+| 5 | 0x28 | pointed at the memory a disk driver is moving sectors to or from |
+| 6 to 15 | | kept for later |
 | 16 to 31 | 0x80 on | the kernel's segments, in the executable's order |
 | 32 to 63 | 0x100 on | handed out as the kernel starts: so far, one for each 64K of the buffer pool's data |
 

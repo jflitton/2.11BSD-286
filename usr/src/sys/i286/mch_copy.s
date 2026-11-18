@@ -354,3 +354,51 @@ ENTRY pclear
         pop     si
         pop     bp
         retf
+
+; pinsw(port, addr, count): read count words from an I/O port into
+; memory, by physical address; poutsw(port, addr, count): write them.
+;       int port; long addr; u_int count;
+; Neither may run past 64K from where it starts.  They are for disk
+; drivers, which move sectors to and from buffers and processes that
+; they know only by address.  The descriptor they use is their own, so
+; they may be called from an interrupt, but every caller must be at
+; splbio or above: one could otherwise interrupt another.
+ENTRY pinsw
+        push    bp
+        mov     bp, sp
+        push    si
+        push    di
+        mov     bx, GDT_BIO << 3
+        mov     si, 8
+        call    window
+        mov     ax, GDT_BIO << 3
+        mov     es, ax
+        xor     di, di
+        mov     dx, [bp+6]
+        mov     cx, [bp+12]
+        cld
+        rep insw
+        pop     di
+        pop     si
+        pop     bp
+        retf
+
+ENTRY poutsw
+        push    bp
+        mov     bp, sp
+        push    si
+        push    ds
+        mov     bx, GDT_BIO << 3
+        mov     si, 8
+        call    window
+        mov     dx, [bp+6]
+        mov     cx, [bp+12]
+        mov     ax, GDT_BIO << 3
+        mov     ds, ax
+        xor     si, si
+        cld
+        rep outsw
+        pop     ds
+        pop     si
+        pop     bp
+        retf

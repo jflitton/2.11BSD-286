@@ -40,6 +40,10 @@ extern int nslot;
 size_t	physmem;		/* clicks of memory in the machine */
 extern memaddr bpaddr;		/* where the buffers' data is */
 dev_t	bootdev;		/* what the system was loaded from */
+extern dev_t diskroot;		/* conf.c */
+u_int	extlimit = 0;		/* (patchable) if not 0, the most memory
+				   above 1M to use, in K: for testing
+				   with less than the machine has */
 caddr_t	bootcsr;		/* not used: a PDP-11 device address */
 long	kdbase;			/* physical address of the kernel's data */
 long	ldtbase;		/* and of every process's descriptor tables */
@@ -58,6 +62,8 @@ startup()
 
 	cninit();
 	printf("\n%s\n", version);
+	/* The root is the RAM disk the boot program loaded, or a disk. */
+	bootdev = bootinfo.bi_rdsize ? makedev(0, 0) : diskroot;
 	/* (a null pointer would not do: converted to far it is still null) */
 	kdbase = fartophys(&kdbase) - (u_int)&kdbase;
 	ldtbase = fartophys(ldt);
@@ -74,6 +80,8 @@ startup()
 		if (e > end)
 			end = e;
 	}
+	if (extlimit && extmem > extlimit)
+		extmem = extlimit;
 	first = btoc(end);
 	last = (memaddr)basemem * 2;
 	mfree(coremap, bootinfo.bi_seg[0].bs_para / 32 - 8, 8);

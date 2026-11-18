@@ -12,6 +12,7 @@ SYS:=	$(TOP)/usr/src/sys
 O=	$(TOP)/obj/PC
 H=	$(SYS)/h
 M=	$(SYS)/i286
+A=	$(SYS)/i286at
 S=	$(SYS)/sys
 C=	$(SYS)/PC
 CRT=	$(TOP)/usr/src/lib/libc/i286/crt
@@ -29,6 +30,7 @@ AS=	nasm -f obj -DFAR -I$(M)/ -I$(CRT)/
 MCH=	mch_start.o mch_trap.o mch_copy.o mch_swtch.o mch_xxx.o
 CRTO=	i4m.o i4d.o
 MACH=	clock.o conf.o cons.o machdep.o mem.o rd.o trap.o
+DEV=	pcpart.o wd.o
 KERN=	init_main.o init_sysent.o kern_acct.o kern_clock.o \
 	kern_descrip.o kern_exec.o kern_exit.o kern_fork.o kern_mman.o \
 	kern_proc.o kern_prot.o kern_prot2.o kern_resource.o kern_sig.o \
@@ -40,9 +42,9 @@ KERN=	init_main.o init_sysent.o kern_acct.o kern_clock.o \
 	ufs_fio.o ufs_inode.o ufs_mount.o ufs_namei.o ufs_subr.o \
 	ufs_syscalls.o ufs_syscalls2.o vfs_vnops.o vm_proc.o vm_sched.o \
 	vm_swap.o vm_swp.o vm_text.o
-OBJS=	$(MCH) $(CRTO) $(MACH) $(KERN) vers.o param.o
+OBJS=	$(MCH) $(CRTO) $(MACH) $(DEV) $(KERN) vers.o param.o
 
-VPATH=	$(M):$(S):$(C):$(CRT)
+VPATH=	$(M):$(A):$(S):$(C):$(CRT)
 
 all:	$(O) $(O)/unix.img
 
@@ -54,7 +56,7 @@ $(O):
 # a wild store.
 # Every object is made again when any header changes: crude, and never
 # wrong.
-HDRS:=	$(wildcard $(H)/*.h $(M)/*.h $(C)/*.h)
+HDRS:=	$(wildcard $(H)/*.h $(M)/*.h $(A)/*.h $(C)/*.h)
 
 $(O)/%.o: %.c $(HDRS)
 	@echo cc $*.c

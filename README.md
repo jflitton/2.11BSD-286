@@ -35,7 +35,7 @@ Where the 286 code goes, beside its PDP-11 counterpart in each case:
 | new | beside | holds |
 |-----|--------|-------|
 | `usr/src/sys/i286/` | `pdp/` | startup, traps, system calls, copy routines, segments, switching between processes, signals, the 287, the clock, a console on the serial port, a RAM disk |
-| `usr/src/sys/i286at/` | `pdpuba/` | AT-bus drivers: SCSI, console, serial, clock; to come |
+| `usr/src/sys/i286at/` | `pdpuba/` | AT-bus drivers: the AT disk controller (IDE) and the PC partition table so far; SCSI and the display and keyboard to come |
 | `usr/src/sys/i286if/` | `pdpif/` | network interfaces; to come |
 | `usr/src/sys/i286stand/` | `pdpstand/`, `mdec/` | boot blocks and standalone programs; the diskette boot sector exists |
 | `usr/src/sys/PC/` | `GENERIC/` | the kernel's configuration and Makefile: `make -C usr/src/sys/PC` builds `obj/PC/unix` |
@@ -101,6 +101,9 @@ old-style calls with mismatched argument counts depend on), `-s` (no stack
 probes), `-zl -zls` (no references to Open Watcom's libraries), `-ms`,
 `-mm`, `-ml`, `-mh` for the memory model, and `-Drestrict=` because the
 headers use `restrict` while other files use `inline` as an identifier.
+One the trials did not show the need for: `-j`, which makes a plain `char`
+signed. Open Watcom's is unsigned unless told, the tree's code keeps
+negative numbers in them, and nothing fails to compile either way.
 
 ## Reference material
 
@@ -147,6 +150,8 @@ DOS and OS/2 user's guide with nothing on ports or interrupts; not kept.)
 | `tools/ne2aout.py` | turns the linker's output into the system's executable format; `--dump` prints one |
 | `tools/mkfd.py` | makes a bootable diskette image from an executable, with a file system image for the kernel's RAM disk if wanted |
 | `tools/mkfs.py` | makes a file system image from a list of files |
+| `tools/mkdisk.py` | makes a hard disk image: a partition table or none, a label, and partitions |
+| `tools/fsck.py` | checks a file system in an image without changing it, or prints a file from it |
 | `tools/mkstubs.py` | writes a program's system call stubs from a table of the calls' arguments |
 | `tools/kpatch.py` | changes a variable in an executable file, by name |
 | `tools/farlint.py` | looks for far pointers that kernel code truncates without the compiler noticing |
@@ -166,7 +171,8 @@ serial port and takes the `@exit` line it ends with as the result.
 tests/crt/run.sh        # the compiler's helper routines: 5,161 checks
 tests/pm/run.sh         # the kernel's start-up and trap entry: 54 checks
 tests/user/run.sh       # a process in ring 3: 58 checks
-tests/kernel/run.sh     # the kernel, with a test program as init: 49 checks
+tests/kernel/run.sh     # the kernel, with a test program as init, booted
+                        # three times: 50, 67 and 67 checks
 ```
 
 - `tests/crt` is a small-model program in real mode, built through the
@@ -190,6 +196,10 @@ tests/kernel/run.sh     # the kernel, with a test program as init: 49 checks
   `vfork`, `wait`, pipes, signals and faults, twelve processes at once in
   five slots, and 24 processes that need more memory between them than
   the kernel has been left, so that some are swapped out and in.
+  It then boots twice more with the root file system and the swap area
+  on a hard disk ([disks](docs/disks.md)), where the test also reads and
+  writes a partition directly and keeps files of 300K, and afterwards
+  `tools/fsck.py` checks what the kernel left on the disk.
 
 The emulator is [86Box](https://github.com/86Box/86Box), as an IBM PS/2
 Model 30 286 with a 287 (`tests/harness/86box.cfg`): a real 286, which
@@ -229,7 +239,8 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   [calling convention and kernel interface](docs/abi.md),
   [executable format](docs/executable-format.md),
   [booting](docs/boot.md),
-  [processes](docs/processes.md).
+  [processes](docs/processes.md),
+  [disks](docs/disks.md).
 - A C program can be compiled, linked, converted to the executable format
   and run in an emulated PS/2 Model 30 286.
 - The helper routines compiled code calls for 32-bit multiply and divide
@@ -245,10 +256,15 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   grow, pipe to each other, take signals and are swapped. All of
   `sys/sys` that a kernel without networking needs is compiled in, 53
   files, changed where it assumed the PDP-11's memory management.
+- The kernel can keep its root file system and swap area on a hard disk
+  ([disks](docs/disks.md)): there is a driver for IDE drives on the AT's
+  disk controller, and a disk may be shared with other systems through a
+  PC partition table. The kernel itself is still loaded from a diskette.
 - That is the state in an emulated PS/2 Model 30 286 only. Nothing has
   run on a real machine.
-- What the kernel does not have: a driver for any real disk or for the
-  network card, a console on the display and keyboard, pseudo-terminals
+- What the kernel does not have: a driver for the SCSI adapter or for
+  the network card, a console on the display and keyboard, a boot
+  program for a hard disk, pseudo-terminals
   (the code is there and not yet compiled in), networking, quotas. The
   parts of it that no test reaches yet: `ptrace`, `select`, `sysctl`,
   terminal input, core dumps beyond being written, `fork` when memory is

@@ -17,6 +17,7 @@
 #define	GDT_LDT		2	/* the running process's descriptor table */
 #define	GDT_TMP1	3	/* copy and clear point these two at the */
 #define	GDT_TMP2	4	/*   memory they are working on */
+#define	GDT_BIO		5	/* what a disk driver is moving data to or from */
 				/* 5 to 15: kept for later */
 #define	GDT_KERNEL	16	/* the first of the kernel's segments */
 #define	NKSEG		16	/* how many of them there may be */
@@ -156,6 +157,10 @@ void	bcopy(void __far *from, void __far *to, unsigned n);
 void	bzero(void __far *p, unsigned n);
 int	bcmp(void __far *a, void __far *b, unsigned n);
 long	fartophys(void __far *p);
+void	pcopy(long from, long to, unsigned count);
+void	pclear(long addr, unsigned count);
+void	pinsw(int port, long addr, unsigned count);
+void	poutsw(int port, long addr, unsigned count);
 unsigned gdtalloc(long paddr, unsigned limit);
 #endif
 

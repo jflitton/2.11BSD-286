@@ -11,6 +11,7 @@ GDT_TSS         equ     1
 GDT_LDT         equ     2
 GDT_TMP1        equ     3
 GDT_TMP2        equ     4
+GDT_BIO         equ     5
 GDT_KERNEL      equ     16
 NKSEG           equ     16
 NGDT            equ     64

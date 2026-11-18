@@ -40,6 +40,7 @@ long	lseek();
 #define	O_TRUNC		0x0400
 
 #define	ENOENT	2
+#define	ENXIO	6
 #define	EBADF	9
 #define	ECHILD	10
 #define	EFAULT	14
