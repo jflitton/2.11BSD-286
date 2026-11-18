@@ -10,3 +10,6 @@
 
 __pycache__/
 .DS_Store
+
+# The compiler writes its messages to NAME.err in the directory it runs in.
+*.err

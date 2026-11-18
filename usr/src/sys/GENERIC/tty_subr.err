@@ -1,9 +1,0 @@
-/Volumes/Code/2.11BSD-286/usr/include/machine/machparam.h(135): Warning! W121: Text following pre-processor directives is not standard C
-/Volumes/Code/2.11BSD-286/usr/include/signal.h(134): Warning! W114: Missing semicolon
-../machine/seg.h(72): Warning! W121: Text following pre-processor directives is not standard C
-../sys/tty_subr.c(38): Warning! W131: No prototype found for function 'spltty'
-../sys/tty_subr.c(58): Warning! W131: No prototype found for function 'wakeup'
-../sys/tty_subr.c(119): Warning! W131: No prototype found for function 'bcopy'
-../sys/tty_subr.c(271): Warning! W107: Missing return value for function 'ndflush'
-../sys/tty_subr.c(523): Warning! W107: Missing return value for function 'catq'
-../sys/tty_subr.c(639): Warning! W121: Text following pre-processor directives is not standard C

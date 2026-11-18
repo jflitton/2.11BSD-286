@@ -1,9 +1,0 @@
-/Volumes/Code/2.11BSD-286/usr/include/machine/machparam.h(135): Warning! W121: Text following pre-processor directives is not standard C
-/Volumes/Code/2.11BSD-286/usr/include/signal.h(134): Warning! W114: Missing semicolon
-../machine/seg.h(72): Warning! W121: Text following pre-processor directives is not standard C
-../h/dir.h(87): Warning! W121: Text following pre-processor directives is not standard C
-../h/dir.h(107): Warning! W121: Text following pre-processor directives is not standard C
-../h/dir.h(107): Warning! W121: Text following pre-processor directives is not standard C
-../sys/ufs_bmap.c(65): Warning! W131: No prototype found for function 'bwrite'
-../sys/ufs_bmap.c(67): Warning! W131: No prototype found for function 'bdwrite'
-../sys/ufs_bmap.c(123): Warning! W131: No prototype found for function 'brelse'
