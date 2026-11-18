@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 """Write system call stubs, in NASM, from a table.
 
-usage: mkstubs.py [--sysent FILE] TABLE SYSCALL.H > stubs.s
-       mkstubs.py [--sysent FILE] -d DIR TABLE SYSCALL.H
+usage: mkstubs.py [--model s|m] [--sysent FILE] TABLE SYSCALL.H > stubs.s
+       mkstubs.py [--model s|m] [--sysent FILE] -d DIR TABLE SYSCALL.H
 
-For the small memory model, which is all there is yet: C calls a stub
-near with its arguments on the stack and near data pointers.  The stub
+For the small memory model, or the medium one.  C calls a stub, near in
+the small model and far in the medium, with its arguments on the stack.
+Data pointers are near in both; a pointer to a function is near in the
+small model and far in the medium.  The stub
 puts the call's number in AX and its arguments, a word each, in BX, CX,
 DX, SI, DI and BP, and executes INT 30h (docs/processes.md).  To the
-kernel a pointer is always two words, offset and then selector: the stub
-passes DS, or 0 with a null pointer.  A call with more than six words of
-arguments passes instead the far address of them all, which the stub
-builds on its stack.
+kernel a pointer is always two words, offset and then selector: for a
+near one the stub passes DS, or CS for a function, or 0 with a null
+pointer.  A call with more than six words of arguments passes instead
+the far address of them all, which the stub builds on its stack.
 
 The kernel returns with carry clear and the result in AX, or DX:AX; or
 with carry set and the error number in AX, which goes to errno, the C
@@ -56,10 +58,21 @@ HEAD = ["        bits    16", "        cpu     286", "",
         "        segment _TEXT public align=2 class=CODE"]
 
 
-def words_of(name, args):
+class Model:
+    """What differs between the models: the return, and so where the
+    arguments start, and the size of a pointer to a function."""
+
+    def __init__(self, name):
+        far = name == "m"
+        self.ret = "retf" if far else "ret"
+        self.ra = 4 if far else 2       # bytes of return address
+        self.farcode = far
+
+
+def words_of(name, args, model):
     """The words the kernel is passed, each ("arg", offset), ("sel",
-    offset) for the selector of a data pointer at offset, or ("csel",
-    offset) for that of a function pointer; offsets from the first
+    offset) for the selector of a near data pointer at offset, or ("csel",
+    offset) for that of a near function pointer; offsets from the first
     argument."""
     words = []
     off = 0
@@ -73,6 +86,9 @@ def words_of(name, args):
         elif a == "p":
             words += [("arg", off), ("sel", off)]
             off += 2
+        elif a == "f" and model.farcode:
+            words += [("arg", off), ("arg", off + 2)]
+            off += 4
         elif a == "f":
             words += [("arg", off), ("csel", off)]
             off += 2
@@ -97,28 +113,38 @@ def load(reg, w, base, n):
     return out
 
 
-def stub(name, number, args, result):
+def stub(name, number, args, result, model):
     out = ["", "        global  _%s" % name, "_%s:" % name]
+    ra = model.ra
     if result == "vfork":
         # The child runs on the parent's stack until it executes another
         # program, and will have written over anything left there by the
         # time the parent returns.  So nothing is left there: the return
-        # address waits in CX, which the kernel preserves.
-        return out + ["        pop     cx", "        mov     ax, %d" % number,
-                      "        int     0x30", "        jc      .err",
+        # address waits in CX, and its segment in BX, which the kernel
+        # preserves.
+        if not model.farcode:
+            return out + ["        pop     cx", "        mov     ax, %d" % number,
+                          "        int     0x30", "        jc      .err",
+                          "        or      dx, dx", "        jz      .parent",
+                          "        xor     ax, ax", ".parent:",
+                          "        jmp     cx", ".err:   push    cx",
+                          "        jmp     cerror"]
+        return out + ["        pop     cx", "        pop     bx",
+                      "        mov     ax, %d" % number,
+                      "        int     0x30", "        push    bx",
+                      "        push    cx", "        jc      cerror",
                       "        or      dx, dx", "        jz      .parent",
                       "        xor     ax, ax", ".parent:",
-                      "        jmp     cx", ".err:   push    cx",
-                      "        jmp     cerror"]
+                      "        retf"]
     if result == "pair":
         # The kernel is passed nothing; the argument is where the stub
         # puts the two results.
         return out + ["        mov     ax, %d" % number, "        int     0x30",
                       "        jc      cerror", "        mov     bx, sp",
-                      "        mov     bx, [bx+2]", "        mov     [bx], ax",
+                      "        mov     bx, [bx+%d]" % ra, "        mov     [bx], ax",
                       "        mov     [bx+2], dx", "        xor     ax, ax",
-                      "        ret"]
-    words = words_of(name, args)
+                      "        " + model.ret]
+    words = words_of(name, args, model)
     if result == "errno0":
         out.append("        mov     word [_errno], 0")
     if len(words) <= 3:
@@ -128,7 +154,7 @@ def stub(name, number, args, result):
         regs = REGS[:len(words)]
         for k in reversed(range(len(words))):
             w = words[k]
-            out += load(regs[k], (w[0], w[1] + 2), "bx", k)
+            out += load(regs[k], (w[0], w[1] + ra), "bx", k)
         out += ["        mov     ax, %d" % number, "        int     0x30",
                 "        jc      cerror"]
     else:
@@ -138,17 +164,17 @@ def stub(name, number, args, result):
             # BP, the frame pointer, is loaded last.
             for k, (w, reg) in enumerate(zip(words, REGS)):
                 if reg != "bp":
-                    out += load(reg, (w[0], w[1] + 4), "bp", k)
+                    out += load(reg, (w[0], w[1] + 2 + ra), "bp", k)
             if len(words) == 6:
                 w = words[5]
-                out += load("bp", (w[0], w[1] + 4), "bp", 5)
+                out += load("bp", (w[0], w[1] + 2 + ra), "bp", 5)
         else:
             for k in reversed(range(len(words))):
                 w = words[k]
                 if w[0] == "arg":
-                    out.append("        push    word [bp+%d]" % (w[1] + 4))
+                    out.append("        push    word [bp+%d]" % (w[1] + 2 + ra))
                 else:
-                    out += load("ax", (w[0], w[1] + 4), "bp", k)
+                    out += load("ax", (w[0], w[1] + 2 + ra), "bp", k)
                     out.append("        push    ax")
             out += ["        mov     bx, sp", "        mov     cx, ss"]
         out += ["        mov     ax, %d" % number, "        int     0x30"]
@@ -163,21 +189,24 @@ def stub(name, number, args, result):
         out.append("        xor     ax, ax")
     elif result not in ("", "errno0"):
         sys.exit("%s: result %r" % (name, result))
-    out.append("        ret")
+    out.append("        " + model.ret)
     return out
 
 
-CERROR = ["        segment _BSS public align=2 class=BSS",
-          "        group   DGROUP _BSS",
-          "        global  _errno, cerror", "",
-          "        segment _BSS",
-          "_errno: resw    1", "",
-          "        segment _TEXT",
-          "; The kernel said no: the error number is in AX.",
-          "cerror: mov     [_errno], ax",
-          "        mov     ax, -1",
-          "        cwd",
-          "        ret"]
+def cerror(model):
+    """errno, and the path every stub takes with an error.  The stubs
+    reach it with a near jump: it and they are in one segment, _TEXT."""
+    return ["        segment _BSS public align=2 class=BSS",
+            "        group   DGROUP _BSS",
+            "        global  _errno, cerror", "",
+            "        segment _BSS",
+            "_errno: resw    1", "",
+            "        segment _TEXT",
+            "; The kernel said no: the error number is in AX.",
+            "cerror: mov     [_errno], ax",
+            "        mov     ax, -1",
+            "        cwd",
+            "        " + model.ret]
 
 
 def numbers(path):
@@ -202,11 +231,13 @@ def sysent(path):
 
 def main():
     ap = argparse.ArgumentParser(usage=__doc__)
+    ap.add_argument("--model", default="s", choices=["s", "m"])
     ap.add_argument("--sysent")
     ap.add_argument("-d")
     ap.add_argument("table")
     ap.add_argument("syscall_h")
     a = ap.parse_args()
+    model = Model(a.model)
     nums = numbers(a.syscall_h)
     counts = sysent(a.sysent) if a.sysent else None
     stubs = []
@@ -224,22 +255,23 @@ def main():
         args = "" if w[1] == "-" else w[1]
         result = w[2] if len(w) == 3 else ""
         if counts is not None:
-            have = 0 if result == "pair" else len(words_of(name, args))
+            have = 0 if result == "pair" else \
+                len(words_of(name, args, model))
             want = counts.get(nums[call])
             if want != have:
                 sys.exit("%s: %s passes %d words; the kernel takes %s"
                          % (where, name, have, want))
-        stubs.append((name, stub(name, nums[call], args, result)))
+        stubs.append((name, stub(name, nums[call], args, result, model)))
     made = "; Made by tools/mkstubs.py from %s: do not edit." % a.table
     if a.d is None:
-        out = [made, ""] + HEAD + CERROR
+        out = [made, ""] + HEAD + cerror(model)
         for name, s in stubs:
             out += s
         print("\n".join(out))
         return
     os.makedirs(a.d, exist_ok=True)
     with open(os.path.join(a.d, "cerror.s"), "w") as f:
-        f.write("\n".join([made, ""] + HEAD + CERROR) + "\n")
+        f.write("\n".join([made, ""] + HEAD + cerror(model)) + "\n")
     for name, s in stubs:
         with open(os.path.join(a.d, name + ".s"), "w") as f:
             f.write("\n".join([made, ""] + HEAD +

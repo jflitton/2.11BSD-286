@@ -9,7 +9,7 @@ a hard disk to multi-user and logs in on the console.
 
 ```sh
 . tools/env.sh
-make -C usr/src/lib/libc/i286   # obj/lib/s/crt0.o and obj/lib/s/libc.lib
+make -C usr/src/lib/libc/i286   # crt0.o and libc.lib in obj/lib/s and obj/lib/m
 make -C usr/src/i286            # the programs, each in obj/bin
 make -C usr/src/i286 root       # obj/root/root.fs, a root file system
 ```
@@ -21,8 +21,18 @@ The root file system needs the kernel and `/boot` made first
 `tools/cc286`, assembles each `.s` with NASM, and links behind `crt0.o`
 with `libc.lib` last, converting the result to the system's format with
 `tools/ne2aout.py`. It takes `-c`, `-o`, `-D`, `-I`, `-U`, `-L`, `-l`,
-`-s` and `-stack N`, and ignores the PDP-11's `-i` and `-n`. There is
-only the small model so far.
+`-s` and `-stack N`, and ignores the PDP-11's `-i` and `-n`.
+
+`-mm` makes a medium-model program, and `-ms`, the default, a small one
+([memory model](memory-model.md)). The medium model's code is far, in as
+many segments as it takes, where the PDP-11 would have overlays; its data
+is the small model's, near and in one segment. Each model has its own
+library, in `obj/lib/s` and `obj/lib/m`. The linker would take objects
+of the two models together without complaint, and the program would
+fail as it ran, so `tools/cc` reads the model the compiler records in
+each object and library and refuses a mixture. The linker packs the code
+of a medium-model program into segments of nearly 64K; `-packcode N`
+makes them N bytes at most.
 
 The programs are listed in `usr/src/i286/Makefile` with their sources;
 each is compiled and linked in one run of `tools/cc`, and what the
@@ -32,14 +42,17 @@ used: they install as they go, with the PDP-11's tools.
 ## The library
 
 The tree's portable C, as `lib/libc`'s Makefiles list it, with
-`lib/libc/i286` in place of `lib/libc/pdp`:
+`lib/libc/i286` in place of `lib/libc/pdp`. It is built twice, once for
+each model: the C compiled with `-ms` or `-mm`, the assembly assembled
+with `-DFAR` for the medium model (`crt/DEFS.inc` gives the return, the
+call and where the arguments start), and the stubs made for it.
 
 | | |
 |---|---|
 | `csu/crt0.s` | start-up: `main(argc, argv, envp)`, `environ`, `__progname`, and where the break is, which the kernel passes in BX. The first bytes of the data segment are left unused, so that nothing has the address a null pointer has. |
 | `sys/syscalls.tab` | a line for each system call: `tools/mkstubs.py` writes a stub for each, one object apiece so that a program gets only the calls it makes. The Makefile has it check each line against the kernel's own table (`sys/sys/init_sysent.c`): the stub must pass as many words as the kernel takes. |
-| `sys/*.c`, `sigtramp.s` | the calls that need more than a stub: `brk` and `sbrk`; `execl`, `execle`, `execv`; `setlogin`; `sigaction`, with the trampoline it names to the kernel; `readv` and `writev`, `sigaltstack` and `sigstack`, whose structures hold pointers, which are far to the kernel and near in a small-model program. |
-| `gen/setjmp.s` | `setjmp`, `longjmp`, `_setjmp`, `_longjmp`. A `jmp_buf` is a `struct sigcontext`, 17 words here (`setjmp.h`); `longjmp` has the kernel resume it with `sigreturn`, which restores the signal mask and every register at once. |
+| `sys/*.c`, `sigtramp.s` | the calls that need more than a stub: `brk` and `sbrk`; `execl`, `execle`, `execv`; `setlogin`; `sigaction`, with the trampoline it names to the kernel, which gets the handler as a far address (in the small model the library adds CS); `readv` and `writev`, `sigaltstack` and `sigstack`, whose structures hold pointers, which are far to the kernel and near in a small- or medium-model program. |
+| `gen/setjmp.s` | `setjmp`, `longjmp`, `_setjmp`, `_longjmp`. A `jmp_buf` is a `struct sigcontext`, 17 words here (`setjmp.h`); `longjmp` has the kernel resume it with `sigreturn`, which restores the signal mask and every register at once. In the medium model the context's CS is the return address's. |
 | `gen/ldexp.s`, `modf.s` | on the 287 |
 | `net/htons.s` | byte order |
 | `crt/` | the routines compiled code calls for 32-bit arithmetic ([the ABI notes](abi.md)) |
@@ -133,6 +146,13 @@ a union (`bin/sh/mode.h`); the shell's few other such uses have casts.
   `master.passwd`, `getpwent` took the password from the start of the
   file, so root's was "root". It was meant for the ndbm files, where the
   password's place holds an offset; it is used only for those now.
+- **That only the PDP-11 has a 16-bit `int`.** The tree's `#ifdef pdp11`
+  sometimes means that, and its other branch was written for a 32-bit
+  `int`. `rand` returned its generator's low 16 bits, the poorest and
+  half the time negative, where `RAND_MAX` is 0x7fff. It and `valloc`,
+  for which a page boundary means no more in a segment than on the
+  PDP-11, take the PDP-11's branch now, as `syslog` does. The programs
+  have many more such conditionals, to be read as each is built.
 - **That `/etc/autoconfig` exists.** On the PDP-11 `init` runs it to find
   the devices; this kernel finds its own, and `init` no longer runs it.
 
@@ -169,15 +189,19 @@ in this kernel, each program executed, each exit and each fault, as
 ## Tested, and not
 
 `tests/libc` boots the kernel with a test program as `/etc/init` on a
-RAM disk, and checks, 69 times: printf and scanf with integers, strings
+RAM disk. The program is built for both models; the small-model one is
+`init`, and when it is done it runs the medium-model one, whose code is
+packed into 8K segments so that it has four of them. Each checks, 73
+times: printf and scanf with integers, strings
 and floating point; files through stdio, with seeks; the string
 routines; `atoi`, `strtol`, `atof`, `modf`, `ldexp`, `frexp`, `qsort`;
 `malloc`, `realloc`, `calloc` and the break; `setjmp` and `longjmp`, out
 of a deep call and out of a signal handler; `sigaction`, blocked signals,
 `alarm` and `pause`, `select` and `sleep`; `fork`, `wait`, `execl` of a
-second program through a pipe, `readv` and `writev`; the password and
+second program of the same model through a pipe, and `vfork`; `readv`
+and `writev`; the password and
 group files, `gmtime` and `ctime`, directories, `errno` and `strerror`,
-`setenv`, `getopt`, `isatty` and `ttyname`.
+`setenv`, `getopt`, `isatty` and `ttyname`, and `rand`.
 
 `tests/system` builds everything as for a real machine, puts the root
 file system and a swap area on an IDE disk shared by a partition table,
@@ -190,8 +214,12 @@ wrong with the file system and must find the copied file.
 
 Not done, or not tested:
 
-- Only the small model has a library; the medium and large ones, and the
-  three helpers for `__huge` pointers, are not written.
+- The large model has no library, and the three helpers for `__huge`
+  pointers are not written.
+- No program the system builds is medium-model yet. The 15 that the
+  PDP-11 overlays (`csh`, `ex` and `vi`, `sendmail` and others) are the
+  ones meant for it; `usr/src/i286/Makefile` will need a way to name a
+  program's model, and `libutil` a medium-model build.
 - Most programs are not built: none of `/usr/bin` or `/usr/ucb` (`vi`,
   `more`, `csh`), and no `fsck`, `mkfs`, `ps`, `mkpasswd`, `passwd`,
   `cron`, `syslogd` or `update`. Nothing checks the file systems at boot.

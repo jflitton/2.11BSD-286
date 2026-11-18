@@ -201,6 +201,10 @@ def main():
     ncode = sum(1 for s in segs if not s["is_data"])
     if a.model == "s" and ncode != 1:
         sys.exit("small model wants one code segment; this has %d" % ncode)
+    # A process's table of segments has 32 slots (NSEG, sys/i286/seg.h),
+    # and segment N is slot N; slot 0 is never used.
+    if a.gdt is None and a.real is None and len(segs) > 31:
+        sys.exit("%d segments; a program may have 31" % len(segs))
     if a.real is not None:
         selector = lambda n: a.real + (n - 1) * 0x1000
     elif a.gdt is not None:

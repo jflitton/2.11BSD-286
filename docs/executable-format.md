@@ -100,5 +100,8 @@ own length in 4 bytes, as in 2.11BSD.
   after the data, with the break above it. Putting it at the bottom of the
   segment instead would turn overflow into a fault instead of silent
   damage to the data below it.
-- Whether code segments should be packed toward 64K or kept one per source
-  file. wlink packs them by default.
+- How a medium- or large-model program's code is divided. The linker
+  packs it into segments of nearly 64K, in the order the files are
+  linked, and `tools/cc -packcode N` makes them smaller. Code that calls
+  itself often would be better in one segment, where calls could be
+  near.

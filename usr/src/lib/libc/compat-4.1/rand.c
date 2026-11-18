@@ -16,9 +16,14 @@ unsigned x;
 	randx = x;
 }
 
+/*
+ * With a 16-bit int the result is the generator's upper bits, which are
+ * its best, up to RAND_MAX (0x7fff); the other way returns its low 16
+ * bits, the poorest, and half the time a negative number.
+ */
 rand()
 {
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 	return(((randx = randx * 1103515245 + 12345)>>16) & 0x7fff);
 #else
 	return((randx = randx * 1103515245 + 12345) & 0x7fffffff);

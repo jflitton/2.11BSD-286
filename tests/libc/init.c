@@ -1,8 +1,13 @@
 /*
  * The C library's test, run by the kernel as /etc/init from a RAM disk
  * (tests/libc/run.sh).  It calls into each part of the library, checks
- * what comes back, and reports on the console.  The line "@exit NN" at
- * the end is for tests/harness/runtest.py.
+ * what comes back, and reports on the console.
+ *
+ * It is built twice, for the small model and for the medium, whose code
+ * is in several segments.  The small one is /etc/init: it runs its
+ * checks, then runs the medium one as /bin/libc-m, whose exit status is
+ * its count of failures, and adds that to its own.  The line "@exit NN"
+ * at the end is for tests/harness/runtest.py.
  */
 #include <sys/param.h>
 #include <sys/file.h>
@@ -21,6 +26,14 @@
 #include <pwd.h>
 #include <grp.h>
 #include <time.h>
+
+#ifdef __MEDIUM__
+#define	MODEL		"medium"
+#define	ECHOARGS	"/bin/echoargs-m"
+#else
+#define	MODEL		"small"
+#define	ECHOARGS	"/bin/echoargs"
+#endif
 
 double	modf(), ldexp(), frexp(), atof();
 char	*sbrk();
@@ -241,6 +254,8 @@ signals()
 	sa.sa_flags = 0;
 	check(sigaction(SIGUSR1, &sa, &osa) == 0 && osa.sa_handler == SIG_DFL,
 	    "sigaction");
+	check(sigaction(SIGUSR1, (struct sigaction *)0, &osa) == 0 &&
+	    osa.sa_handler == handler, "and gives back the handler");
 	kill(getpid(), SIGUSR1);
 	check(caught == SIGUSR1, "a handler runs and returns");
 	caught = 0;
@@ -307,7 +322,7 @@ processes()
 		close(fd[0]);
 		dup2(fd[1], 1);
 		close(fd[1]);
-		execl("/bin/echoargs", "echoargs", "one", "two", (char *)0);
+		execl(ECHOARGS, "echoargs", "one", "two", (char *)0);
 		_exit(99);
 	}
 	close(fd[1]);
@@ -317,6 +332,23 @@ processes()
 	check(waitpid(pid, &status, 0) == pid && (status >> 8) == 3,
 	    "execl a program, which exits with its count of arguments");
 	check(strcmp(buf, "echoargs|one|two|\n") == 0, "and gets them");
+
+	/* The child borrows this stack until it executes the program. */
+	pipe(fd);
+	pid = vfork();
+	if (pid == 0) {
+		dup2(fd[1], 1);
+		close(fd[0]);
+		close(fd[1]);
+		execl(ECHOARGS, "echoargs", "v", (char *)0);
+		_exit(99);
+	}
+	close(fd[1]);
+	n = read(fd[0], buf, sizeof buf - 1);
+	buf[n > 0 ? n : 0] = 0;
+	close(fd[0]);
+	check(pid > 0 && waitpid(pid, &status, 0) == pid && (status >> 8) == 2 &&
+	    strcmp(buf, "echoargs|v|\n") == 0, "vfork and execl");
 
 	pipe(fd);
 	iov[0].iov_base = "ab";
@@ -342,10 +374,24 @@ misc()
 	DIR *d;
 	struct direct *de;
 	time_t t;
-	int found, fd;
+	int found, fd, i, r, lo, hi;
 	char *argv[5];
 	extern int optind;
 	extern char *optarg;
+
+	srand(1);
+	check(rand() == 16838, "rand: the first number after srand(1)");
+	lo = RAND_MAX;
+	hi = 0;
+	for (i = 0; i < 1000; i++) {
+		r = rand();
+		if (r < lo)
+			lo = r;
+		if (r > hi)
+			hi = r;
+	}
+	check(lo >= 0 && lo < RAND_MAX / 8 && hi <= RAND_MAX &&
+	    hi > RAND_MAX - RAND_MAX / 8, "and 1000 more, from 0 to RAND_MAX");
 
 	pw = getpwnam("root");
 	check(pw && pw->pw_uid == 0 && strcmp(pw->pw_dir, "/") == 0 &&
@@ -402,11 +448,16 @@ main(argc, argv)
 	int argc;
 	char **argv;
 {
-	/* Nothing is open yet: the console becomes 0, 1 and 2. */
-	open("/dev/console", O_RDWR);
-	dup(0);
-	dup(0);
-	printf("libc: started as %s, pid %d\n", argv[0], getpid());
+	int pid, status;
+
+	/* As init nothing is open yet: the console becomes 0, 1 and 2. */
+	if (getpid() == 1) {
+		open("/dev/console", O_RDWR);
+		dup(0);
+		dup(0);
+	}
+	printf("libc: %s model, started as %s, pid %d\n", MODEL, argv[0],
+	    getpid());
 
 	stdio();
 	strings();
@@ -417,7 +468,20 @@ main(argc, argv)
 	processes();
 	misc();
 
-	printf("libc: %d checks, %d failed\n", checks, failed);
+	printf("libc: %s model: %d checks, %d failed\n", MODEL, checks, failed);
+	if (getpid() != 1)
+		exit(failed > 255 ? 255 : failed);
+	fflush(stdout);
+	if ((pid = fork()) == 0) {
+		/* with no environment, as this one started */
+		execle("/bin/libc-m", "libc-m", (char *)0, (char **)0);
+		_exit(255);
+	}
+	if (pid < 0 || waitpid(pid, &status, 0) != pid || (status & 0xff)) {
+		printf("FAILED: the medium model's test did not finish\n");
+		failed++;
+	} else
+		failed += status >> 8;
 	printf("@exit %02x\n", failed > 255 ? 255 : failed);
 	fflush(stdout);
 	close(0);			/* the last close of the console */

@@ -179,7 +179,8 @@ tests/pm/run.sh         # the kernel's start-up and trap entry: 54 checks
 tests/user/run.sh       # a process in ring 3: 58 checks
 tests/kernel/run.sh     # the kernel, with a test program as init, booted
                         # six times: 51 checks, then 67 on each of five disks
-tests/libc/run.sh       # the C library, with a test program as init: 69 checks
+tests/libc/run.sh       # the C library, with a test program as init: 73
+                        # checks in the small model, 73 in the medium
 tests/system/run.sh     # the system, booted from a hard disk to multi-user:
                         # logs in on the console and uses the shell
 ```
@@ -213,7 +214,8 @@ tests/system/run.sh     # the system, booted from a hard disk to multi-user:
   starts the boot block, which loads `/boot`, which loads `/unix`
   ([booting](docs/boot.md)).
 - `tests/libc` builds the C library and boots the kernel with a program
-  that calls into each part of it as `/etc/init`.
+  that calls into each part of it as `/etc/init`. The program is built
+  for both models; the small one runs the medium one when it is done.
 - `tests/system` builds the kernel, `/boot`, the library, the programs and
   the root file system as for a real machine, and boots them from an IDE
   disk. It waits for `login:`, types `root`, gives the shell some
@@ -287,8 +289,8 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   is on. A diskette is needed only where the BIOS cannot read the
   system's part of the disk: past its 1024 cylinders, or on a controller
   it does not know.
-- The C library is built for the small model, and with it 42 of the
-  system's programs: `init`, `getty`, `login`, the Bourne shell and the
+- The C library is built for the small and medium models, and with the
+  small one 42 of the system's programs: `init`, `getty`, `login`, the Bourne shell and the
   everyday commands ([the C library and programs](docs/userland.md)).
   The system boots from its disk to multi-user, and one logs in on the
   console and works in the shell.
@@ -300,6 +302,6 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   parts of it that no test reaches yet: `ptrace`, `sysctl`, core dumps
   beyond being written, `fork` when memory is short, and swapping of
   shared code.
-- What user space does not have: libraries for the medium and large
-  models, and most of the programs, among them `vi`, `csh`, `ps`, `fsck`
+- What user space does not have: a library for the large model, a
+  program built for the medium one, and most of the programs, among them `vi`, `csh`, `ps`, `fsck`
   and everything for the network.

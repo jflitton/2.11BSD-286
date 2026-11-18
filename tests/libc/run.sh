@@ -17,8 +17,11 @@ make -s -C "$top/usr/src/sys/PC" | grep -v '^cc \|^as ' || true
 make -s -C "$top/usr/src/lib/libc/i286" | grep -v '^cc \|^as \|^wlib ' || true
 
 cd "$out"
+# Each for the small model, and for the medium as NAME-m, its code packed
+# into segments of 8K so that there are several.
 for p in init echoargs; do
     "$top/tools/cc" -o $p "$here/$p.c"
+    "$top/tools/cc" -mm -packcode 8192 -o $p-m "$here/$p.c"
 done
 # The library reads users from master.passwd (or its ndbm form, which
 # this has not), and error messages from syserrlst.

@@ -1,12 +1,11 @@
 ; modf(x, &ip): the fraction of x, with its whole part stored at ip, on
-; the 287 (NASM, small model).  Both have the sign of x.
+; the 287 (NASM: small model, or with -DFAR medium).  Both have the sign
+; of x.
 
-        bits    16
-        cpu     286
+%include "DEFS.inc"
 
 RC_CHOP equ     0x0C00          ; rounding control: toward zero
 
-        segment _TEXT public align=2 class=CODE
         global  _modf
 
 _modf:  push    bp
@@ -17,12 +16,12 @@ _modf:  push    bp
         mov     ax, [bp-2]
         or      ax, RC_CHOP
         mov     [bp-4], ax
-        fld     qword [bp+4]    ; x
+        fld     qword [bp+2+RA] ; x
         fldcw   [bp-4]
         fld     st0
         frndint                 ; whole, x
         fldcw   [bp-2]
-        mov     bx, [bp+12]
+        mov     bx, [bp+2+RA+8] ; ip, near
         fst     qword [bx]
         fxch                    ; x, whole
         fsub    st0, st1        ; x - whole, whole
@@ -30,4 +29,4 @@ _modf:  push    bp
         fwait                   ; the store, before the caller looks
         mov     sp, bp
         pop     bp
-        ret
+        RET

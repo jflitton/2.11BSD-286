@@ -1,11 +1,19 @@
-# The C library for the 286, small model.
+# The C library for the 286, small and medium models.
 #
 # From the top of the repository, after `. tools/env.sh`:
 #
 #	make -C usr/src/lib/libc/i286
 #
-# makes obj/lib/s/crt0.o, the start-up code every program is linked
-# with first, and obj/lib/s/libc.lib, the library.  GNU make.
+# makes, for each model, obj/lib/M/crt0.o, the start-up code every
+# program is linked with first, and obj/lib/M/libc.lib, the library: M
+# is s for the small model and m for the medium.  MODEL=s or MODEL=m
+# makes only the one.  GNU make.
+#
+# The medium model's code is far: each file's is a segment of its own,
+# and every function returns far.  Its data is near, in one segment, as
+# the small model's is.  The C is the same for both, compiled with -ms or
+# -mm; the assembly is assembled with -DFAR for the medium model
+# (crt/DEFS.inc), and the system call stubs are made for it.
 #
 # Each variable a file defines without a value gets common storage
 # (tools/commonize.py), as for programs (tools/cc).
@@ -41,15 +49,30 @@
 TOP:=	$(abspath ../../../../..)
 LIBC:=	$(TOP)/usr/src/lib/libc
 MD:=	$(LIBC)/i286
-O=	$(TOP)/obj/lib/s
+
+ifeq ($(MODEL),)
+
+all clean:
+	@$(MAKE) --no-print-directory MODEL=s $@
+	@$(MAKE) --no-print-directory MODEL=m $@
+
+.PHONY:	all clean
+
+else
+
+ifeq ($(filter $(MODEL),s m),)
+$(error MODEL is s or m)
+endif
+
+O=	$(TOP)/obj/lib/$(MODEL)
 OBJ=	$(O)/obj
 
 CC=	$(TOP)/tools/cc286
 # 131 and 107: calls to functions with no prototype, and functions that
 # return nothing in particular; the tree's C is full of both.  121: a
 # name after #endif.
-CFLAGS=	-ms -I$(TOP)/usr/include -wcd=131 -wcd=107 -wcd=121
-AS=	nasm -f obj -I$(MD)/crt/
+CFLAGS=	-m$(MODEL) -I$(TOP)/usr/include -wcd=131 -wcd=107 -wcd=121
+AS=	nasm -f obj -I$(MD)/crt/ $(if $(filter m,$(MODEL)),-DFAR)
 
 GEN=	abort alarm atoi atol calloc closedir crypt ctime ctype_ daemon \
 	devname disklabel err execvp fstab gcvt getenv getgrent \
@@ -143,20 +166,20 @@ $(OBJ)/%.o: $(LIBC)/ns/%.c $(HDRS) | $(OBJ)
 $(OBJ)/%.o: $(MD)/sys/%.c $(HDRS) | $(OBJ)
 	$(call compile)
 
-$(OBJ)/%.o: $(MD)/sys/%.s | $(OBJ)
+$(OBJ)/%.o: $(MD)/sys/%.s $(MD)/crt/DEFS.inc | $(OBJ)
 	@echo as $(notdir $<)
 	@$(AS) -o $@ $<
-$(OBJ)/%.o: $(MD)/gen/%.s | $(OBJ)
+$(OBJ)/%.o: $(MD)/gen/%.s $(MD)/crt/DEFS.inc | $(OBJ)
 	@echo as $(notdir $<)
 	@$(AS) -o $@ $<
-$(OBJ)/%.o: $(MD)/net/%.s | $(OBJ)
+$(OBJ)/%.o: $(MD)/net/%.s $(MD)/crt/DEFS.inc | $(OBJ)
 	@echo as $(notdir $<)
 	@$(AS) -o $@ $<
-$(OBJ)/%.o: $(MD)/crt/%.s | $(OBJ)
+$(OBJ)/%.o: $(MD)/crt/%.s $(MD)/crt/DEFS.inc | $(OBJ)
 	@echo as $(notdir $<)
 	@$(AS) -o $@ $<
 
-$(O)/crt0.o: $(MD)/csu/crt0.s | $(OBJ)
+$(O)/crt0.o: $(MD)/csu/crt0.s $(MD)/crt/DEFS.inc | $(OBJ)
 	$(AS) -o $@ $<
 
 # The stubs: one file each, so that a program gets only the calls it
@@ -165,7 +188,7 @@ $(OBJ)/sys/made: $(MD)/sys/syscalls.tab $(TOP)/tools/mkstubs.py \
 		$(TOP)/usr/include/syscall.h $(TOP)/usr/src/sys/sys/init_sysent.c \
 		| $(OBJ)/sys
 	rm -f $(OBJ)/sys/*.s $(OBJ)/sys/*.o
-	python3 -I $(TOP)/tools/mkstubs.py \
+	python3 -I $(TOP)/tools/mkstubs.py --model $(MODEL) \
 	    --sysent $(TOP)/usr/src/sys/sys/init_sysent.c -d $(OBJ)/sys \
 	    $(MD)/sys/syscalls.tab $(TOP)/usr/include/syscall.h
 	cd $(OBJ)/sys && for f in *.s; do \
@@ -180,3 +203,5 @@ $(O)/libc.lib: $(OBJS) $(OBJ)/sys/made $(MD)/Makefile
 
 clean:
 	rm -rf $(O)
+
+endif

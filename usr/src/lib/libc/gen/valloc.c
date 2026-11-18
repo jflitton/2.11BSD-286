@@ -14,11 +14,11 @@ char *
 valloc(i)
 	int i;
 {
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 	/*
 	 * page boudaries don't mean anything on a PDP-11 and the cost in
 	 * memory is just too prohibitive to blindly use the non-PDP-11
-	 * algorithm.
+	 * algorithm.  Nor on the 286, whose segments start anywhere.
 	 */
 	return(malloc(i));
 #else !pdp11
