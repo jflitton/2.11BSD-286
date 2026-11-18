@@ -34,8 +34,8 @@ Where the 286 code goes, beside its PDP-11 counterpart in each case:
 
 | new | beside | holds |
 |-----|--------|-------|
-| `usr/src/sys/i286/` | `pdp/` | startup, traps, system calls, copy routines, segments, switching between processes, signals, the 287, the clock, a console on the serial port, a RAM disk |
-| `usr/src/sys/i286at/` | `pdpuba/` | AT-bus drivers: the Adaptec SCSI adapter and its disks, the AT disk controller (IDE), and the PC partition table; the display and keyboard to come |
+| `usr/src/sys/i286/` | `pdp/` | startup, traps, system calls, copy routines, segments, switching between processes, signals, the 287, the clock, the console on the display, a RAM disk |
+| `usr/src/sys/i286at/` | `pdpuba/` | AT-bus drivers: the Adaptec SCSI adapter and its disks, the AT disk controller (IDE), and the PC partition table; the serial ports, the keyboard, and the console's VT102 terminal emulator ([the console](docs/console.md)) |
 | `usr/src/sys/i286if/` | `pdpif/` | network interfaces; to come |
 | `usr/src/sys/i286stand/` | `pdpstand/`, `mdec/` | what loads the kernel: the diskette's boot sector, and for a hard disk its first sector, the boot block and `/boot`; `make -C usr/src/sys/i286stand` builds them in `obj/stand` |
 | `usr/src/sys/PC/` | `GENERIC/` | the kernel's configuration and Makefile: `make -C usr/src/sys/PC` builds `obj/PC/unix` |
@@ -169,8 +169,9 @@ Tests run real 286 code in an emulator. `tests/harness/runtest.py` puts a
 program on a diskette image behind the boot sector
 (`usr/src/sys/i286stand/fdboot.s`), boots it, prints what it wrote to the
 serial port and takes the `@exit` line it ends with as the result. It can
-also give the machine a hard disk, boot from that with no diskette, and
-type at the serial port.
+also give the machine a hard disk, boot from that with no diskette, type
+at the serial port, and type on the keyboard once the screen shows a
+prompt.
 
 ```sh
 . tools/env.sh
@@ -182,8 +183,11 @@ tests/kernel/run.sh     # the kernel, with a test program as init, booted
 tests/libc/run.sh       # the C library, with a test program as init: 73
                         # checks in the small model, 73 in the medium
 tests/system/run.sh     # the system, booted from a hard disk to multi-user:
-                        # logs in on the console, uses sh, csh and tcsh,
-                        # and edits with ex and vi
+                        # logs in on a serial port and on two of the
+                        # console's screens, uses sh, csh and tcsh, and
+                        # edits with ex and vi
+tests/vt/run.sh         # the console's terminal emulator, on the machine
+                        # the system is built on: 302 checks
 ```
 
 - `tests/crt` is a small-model program in real mode, built through the
@@ -221,9 +225,16 @@ tests/system/run.sh     # the system, booted from a hard disk to multi-user:
   the root file system as for a real machine, and boots them from an IDE
   disk. It waits for `login:`, types `root`, gives the shell and then
   the C shell some commands, edits a file with `ex` and `vi`, uses
-  `tcsh`'s line editor, and halts the machine; then `tools/fsck.py`
-  checks the disk
-  ([the C library and programs](docs/userland.md)).
+  `tcsh`'s line editor, all on the first serial port. Then it logs in on
+  two of the console's screens with the keyboard, edits with `vi` on
+  one, and checks what the screens showed; and it halts the machine,
+  after which `tools/fsck.py` checks the disk
+  ([the C library and programs](docs/userland.md),
+  [the console](docs/console.md)).
+- `tests/vt` is the console's terminal emulator, which touches no
+  hardware, built with the C compiler of the machine the system is built
+  on and run there: what each sequence leaves on the screen, where it
+  leaves the cursor and what the terminal answers, as a VT102 would.
 
 The emulator is [86Box](https://github.com/86Box/86Box), as an IBM PS/2
 Model 30 286 with a 287 (`tests/harness/86box.cfg`): a real 286, which
@@ -252,7 +263,7 @@ debugging, which waits for a GDB client before it runs.
 
 Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
 
-## Status (2026-11-17)
+## Status (2026-11-18)
 
 - `upstream` holds patch level 500, checked file by file against the tape.
 - Reference material is listed and fetched.
@@ -265,7 +276,8 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   [booting](docs/boot.md),
   [processes](docs/processes.md),
   [disks](docs/disks.md),
-  [the C library and programs](docs/userland.md).
+  [the C library and programs](docs/userland.md),
+  [the console](docs/console.md).
 - A C program can be compiled, linked, converted to the executable format
   and run in an emulated PS/2 Model 30 286.
 - The helper routines compiled code calls for 32-bit multiply and divide
@@ -298,11 +310,15 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   `tcsh`, and `ex`, which is `vi`, whose code the PDP-11 had to split
   into overlays ([the C library and programs](docs/userland.md)).
   The system boots from its disk to multi-user, and one logs in on the
-  console, works in any of the three shells, and edits with `vi`.
+  console or a serial port, works in any of the three shells, and edits
+  with `vi`.
+- The console is the display and keyboard, as four terminals that Alt-F1
+  to Alt-F4 choose between, each a VT102 with 25 lines and colours; the
+  serial ports are terminals too ([the console](docs/console.md)).
 - That is the state in an emulated PS/2 Model 30 286 only. Nothing has
   run on a real machine.
-- What the kernel does not have: a driver for the network card, a
-  console on the display and keyboard, pseudo-terminals
+- What the kernel does not have: a driver for the network card,
+  pseudo-terminals
   (the code is there and not yet compiled in), networking, quotas. The
   parts of it that no test reaches yet: `ptrace`, `sysctl`, core dumps
   beyond being written, `fork` when memory is short, and swapping of

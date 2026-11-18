@@ -1,3 +1,22 @@
 #
+# The console of 2.11BSD for the 286, usr/src/sys/i286at/vt.c: a VT102
+# with 25 lines and colours, and none of the padding a real one needs.
+# The keys the VT102 lacks send what DEC's VT220 does.  The keypad is
+# left numeric (ks sets only the cursor keys), so that its digits stay
+# digits in vi.
+#
+Pc|pccons|vt102-25|console of 2.11BSD for the 286:\
+	:co#80:li#25:am:xn:mi:ms:pt:bl=^G:cr=^M:ta=^I:\
+	:do=^J:le=^H:nd=\E[C:up=\E[A:ho=\E[H:cm=\E[%i%d;%dH:\
+	:cs=\E[%i%d;%dr:sc=\E7:rc=\E8:sf=^J:sr=\EM:\
+	:cl=\E[H\E[J:cd=\E[J:ce=\E[K:al=\E[L:dl=\E[M:AL=\E[%dL:DL=\E[%dM:\
+	:im=\E[4h:ei=\E[4l:dc=\E[P:\
+	:so=\E[7m:se=\E[m:us=\E[4m:ue=\E[m:md=\E[1m:mr=\E[7m:mb=\E[5m:\
+	:me=\E[m:as=\E(0:ae=\E(B:vi=\E[?25l:ve=\E[?25h:rs=\Ec:\
+	:ks=\E[?1h:ke=\E[?1l:ku=\EOA:kd=\EOB:kr=\EOC:kl=\EOD:kb=^H:\
+	:k1=\EOP:k2=\EOQ:k3=\EOR:k4=\EOS:k5=\E[15~:k6=\E[17~:k7=\E[18~:\
+	:k8=\E[19~:k9=\E[20~:k0=\E[21~:kh=\E[1~:kI=\E[2~:kD=\E[3~:\
+	:kP=\E[5~:kN=\E[6~:
+#
 # END OF LOCAL TERMCAP
 # --------------------------

@@ -3,7 +3,8 @@
 How the system's programs are built for the 286, and what the tree's code
 needed to build and run here. All of it runs in the emulator under
 `tests/libc` and `tests/system`, the second of which boots the system from
-a hard disk to multi-user and logs in on the console.
+a hard disk to multi-user and logs in on a serial port and on the
+console's screens.
 
 ## Building
 
@@ -244,7 +245,9 @@ linked with is its own (8K by default).
 `usr/src/i286/root.proto` lists it: the kernel and `/boot`, `/etc/init`,
 `getty`, `login`, the shell and the programs, the devices, and `/etc`:
 upstream's `gettytab`, `master.passwd`, `group` and `shells`; this port's
-own `rc`, `ttys`, `fstab` and `motd` (`usr/src/i286/etc`); and `passwd`,
+own `rc`, `ttys`, `fstab` and `motd` (`usr/src/i286/etc`); root's
+`.profile`, `.cshrc` and `.login`, and the short `/.profile` for the
+single-user shell, which are upstream's (`usr/src/etc/root`); and `passwd`,
 `syserrlst` and the terminal capabilities, which the Makefile makes. As
 upstream has them, the capabilities are in `/usr/share/misc/termcap`, and
 `/etc/termcap` is a symbolic link to that file. Upstream's `rc` is the
@@ -268,6 +271,12 @@ prints on the console each system call that fails, each call that is not
 in this kernel, each program executed, each exit and each fault, as
 `login[7]: call 149: error 22`. With 2 it prints every call.
 
+The Bourne shell faults on purpose. As in the Seventh Edition, it
+catches the segmentation violation it gets on running past its break,
+moves the break up and goes on (`bin/sh/fault.c`). So each shell shows
+a fault or two, as `sh[2]: trap 13 at F:12D`, and they are among the
+last exceptions the harness lists when a test fails.
+
 ## Tested, and not
 
 `tests/libc` boots the kernel with a test program as `/etc/init` on a
@@ -288,7 +297,8 @@ group files, `gmtime` and `ctime`, directories, `errno` and `strerror`,
 `tests/system` builds everything as for a real machine, puts the root
 file system and a swap area on an IDE disk shared by a partition table,
 and boots it with no diskette. The system goes multi-user, runs `/etc/rc`
-and `getty`; the test logs in as root, and in the shell makes a
+and `getty`; the test logs in as root on the first serial port, and in
+the shell makes a
 directory, copies and compares a file, runs a loop, a second shell and a
 pipeline, expands a pattern, and lists `/etc`. Then in `csh` it sets
 variables and a list and does arithmetic, runs a `foreach` typed a line
@@ -299,13 +309,15 @@ command. Back in the shell it edits a new file with `ex`: it appends two
 lines, substitutes in one, makes a bad regular expression, which must
 give the message from `exstrings`, and writes the file. It has `ex -r`
 (`exrecover`) list the saved files, of which there must be none. In `vi`,
-on the console as a VT100, it opens a line at the end and types into it,
+on the serial port as a VT100, it opens a line at the end and types into it,
 deletes the first line, and writes the file, whose words the shell then
 prints. In `tcsh` it prints `$HOSTTYPE`, edits a line with the line
 editor, completes a file name, repeats the last command from the
 history with ^P, lists `/usr/ucb` with `ls-F`, and puts a job in the
-background, lists it and kills it. Last it runs `who`, and halts the
-machine with `reboot -h`. Afterwards `tools/fsck.py` must find nothing
+background, lists it and kills it. Then it logs in on two of the
+console's screens with the keyboard and uses `vi` there
+([the console](console.md)). Last it runs `who`, and halts the machine
+with `reboot -h`. Afterwards `tools/fsck.py` must find nothing
 wrong with the file system and must find the copied file.
 
 Not done, or not tested:
@@ -329,7 +341,6 @@ Not done, or not tested:
 - A program that overflows its stack runs into its data without a fault
   ([processes](processes.md)).
 - With every call printed (`sctrace=2`), the kernel's printing can stall
-  the console's interrupt-driven output, and the terminal stops.
-- A user other than root, a password, and logging in anywhere but the
-  console have not been tried.
+  the serial port's interrupt-driven output, and the terminal stops.
+- A user other than root, and a password, have not been tried.
 - All of it has run in the emulator only.

@@ -1,8 +1,22 @@
 /*
- * The console: the first serial port, at 9600 bits a second.  It is a
- * terminal like any other, and cnputc is also how the kernel prints,
- * without interrupts, so that a message gets out whatever state the
- * kernel is in.
+ * The console: the display and the keyboard, as NCONS terminals.  Each
+ * is a page of the display adapter's text memory with a VT102 drawing
+ * on it (../i286at/vt.c), and Alt-F1 to Alt-F4 choose which is shown
+ * and gets what is typed (../i286at/kbd.c).  Minor 0 is /dev/console;
+ * 1 to 3 are /dev/ttyv1 to /dev/ttyv3, as the PDP-11's console driver
+ * also has its extra DL-11s.  The adapter is a VGA, colour or
+ * monochrome, left by the BIOS in its 80 by 25 text mode.
+ *
+ * The kernel prints on the first screen and on the first serial port
+ * (../i286at/com.c), without interrupts, so that a message gets out
+ * whatever state the kernel is in.  A machine with no screen is used
+ * through a serial port; making /dev/console that port's node makes it
+ * the console, which is what the tests do.
+ *
+ * A screen draws what is written to it as soon as it is written,
+ * without interrupts: cnstart empties the output queue into the
+ * emulator at the level it was called at, which is the writing
+ * process's own, so nothing else waits on the drawing.
  */
 #include "param.h"
 #include "conf.h"
@@ -11,39 +25,127 @@
 #include "ioctl.h"
 #include "tty.h"
 #include "systm.h"
+#include "kernel.h"
+#include "../i286at/vt.h"
 
-#define	COM1	0x3F8
-#define	COM1IRQ	4
-#define	DATA	0		/* divisor, low byte, when DLAB is set */
-#define	IER	1		/* divisor, high byte, when DLAB is set */
-#define	IIR	2
-#define	LCR	3
-#define	MCR	4
-#define	LSR	5
+#define	NCONS		4
+#define	PAGE		2048	/* cells from one screen to the next: the
+				   memory has room for eight */
 
-#define	IER_RX		0x01	/* interrupt when a character arrives */
-#define	IER_TX		0x02	/* and when one has gone */
-#define	IIR_NONE	0x01	/* nothing is asking */
-#define	LCR_8N1		0x03
-#define	LCR_DLAB	0x80
-#define	MCR_DTR_RTS	0x03
-#define	MCR_OUT2	0x08	/* lets the port's interrupt out */
-#define	LSR_RXRDY	0x01
-#define	LSR_THRE	0x20	/* ready for a character */
+#define	MISC_READ	0x3CC	/* the VGA's miscellaneous output register */
+#define	MISC_COLOR	0x01	/* CRT controller at 0x3D4, memory at B8000 */
 
-struct	tty cons[1];
+/* The CRT controller's registers. */
+#define	CRTC_CURSTART	0x0A	/* the cursor's first scan line ... */
+#define	CURSOR_OFF	0x20	/*   and whether it is hidden */
+#define	CRTC_START	0x0C	/* the first cell shown, high byte first */
+#define	CRTC_CURSOR	0x0E	/* the cell the cursor is on, the same */
+
+/* The bell: channel 2 of the timer drives the speaker. */
+#define	TIMER2		0x42
+#define	TIMER_MODE	0x43
+#define	TIMER_RATE	1193182L
+#define	TIMER_SQWAVE2	0xB6	/* channel 2, both bytes, mode 3 */
+#define	SPEAKER		0x61	/* the speaker's gate and enable bits */
+#define	BELL_HZ		800
+
+struct	tty cons[NCONS];
+static	struct vt vt[NCONS];
+static	int ncons;		/* NCONS, or 0 with no display */
+static	int shown;		/* the screen on the display */
+static	int crtc;		/* the CRT controller's index register */
+static	int curstart;		/* CRTC_CURSTART as the BIOS left it */
+static	int curoff;		/* the cursor is hidden now */
+static	char ringing;
 int	cnstart(), ttrstrt();
-static	int cnintr();
-extern	char partab[];
+extern	char *panicstr;
 
+static
+crtcset(reg, val)
+	int reg, val;
+{
+	outb(crtc, reg);
+	outb(crtc + 1, val);
+}
+
+static
+crtcget(reg)
+	int reg;
+{
+	outb(crtc, reg);
+	return (inb(crtc + 1));
+}
+
+/*
+ * Put the hardware's cursor where screen unit's is, if it is the one
+ * shown.  After a character in the last column it shows there.
+ */
+static
+cncursor(unit)
+	int unit;
+{
+	register struct vt *vp = &vt[unit];
+	register u_int pos;
+	int s, off;
+
+	if (unit != shown)
+		return;
+	pos = unit * PAGE + vp->v_y * VT_COLS + vp->v_x;
+	off = (vp->v_flags & VT_TCEM) == 0;
+	s = intsoff();
+	crtcset(CRTC_CURSOR, pos >> 8);
+	crtcset(CRTC_CURSOR + 1, pos);
+	if (off != curoff) {
+		curoff = off;
+		crtcset(CRTC_CURSTART, off ? curstart | CURSOR_OFF : curstart);
+	}
+	intson(s);
+}
+
+/*
+ * Find the display and give each screen its page.  The first keeps what
+ * the BIOS and the boot program wrote, and the cursor where they left
+ * it; the others are cleared.
+ */
 cninit()
 {
-	outb(COM1 + LCR, LCR_DLAB);
-	outb(COM1 + DATA, 115200L / 9600);
-	outb(COM1 + IER, 0);
-	outb(COM1 + LCR, LCR_8N1);
-	outb(COM1 + IER, 0);
-	outb(COM1 + MCR, MCR_DTR_RTS);
+	register int i;
+	register u_short __far *mem;
+	u_int pos;
+	int mono, s;
+
+	comcninit();
+	mono = (inb(MISC_READ) & MISC_COLOR) == 0;
+	crtc = mono ? 0x3B4 : 0x3D4;
+	mem = (u_short __far *)UADDR(gdtalloc(mono ? 0xB0000L : 0xB8000L,
+	    0x7FFF), 0);
+	/* memory that keeps what is written is a display's */
+	i = mem[NCONS * PAGE - 1];
+	mem[NCONS * PAGE - 1] = 0xA55A;
+	if (mem[NCONS * PAGE - 1] != 0xA55A)
+		return;
+	mem[NCONS * PAGE - 1] = i;
+
+	s = intsoff();
+	curstart = crtcget(CRTC_CURSTART) & ~CURSOR_OFF;
+	pos = crtcget(CRTC_CURSOR) << 8;
+	pos |= crtcget(CRTC_CURSOR + 1);
+	crtcset(CRTC_START, 0);
+	crtcset(CRTC_START + 1, 0);
+	intson(s);
+	for (i = 0; i < NCONS; i++) {
+		vtinit(&vt[i], mem + i * PAGE, mono);
+		if (i)
+			vtreset(&vt[i]);
+	}
+	if (pos < VT_ROWS * VT_COLS) {
+		vt[0].v_x = pos % VT_COLS;
+		vt[0].v_y = pos / VT_COLS;
+	}
+	ncons = NCONS;
+	curoff = -1;
+	cncursor(0);
+	kbdinit();
 }
 
 /*ARGSUSED*/
@@ -51,25 +153,21 @@ cnopen(dev, flag)
 	dev_t dev;
 {
 	register struct tty *tp;
-	static int attached;
+	register int unit = minor(dev);
 
-	if (minor(dev))
+	if (unit >= ncons)
 		return (ENXIO);
-	tp = &cons[0];
+	tp = &cons[unit];
 	tp->t_oproc = cnstart;
-	if ((tp->t_state&TS_ISOPEN) == 0) {
+	if ((tp->t_state & TS_ISOPEN) == 0) {
 		ttychars(tp);
-		tp->t_state = TS_ISOPEN|TS_CARR_ON;
-		tp->t_flags = ANYP|ECHO|XTABS|CRMOD;
-	}
-	if (tp->t_state&TS_XCLUDE && u.u_uid != 0)
+		tp->t_state = TS_ISOPEN | TS_CARR_ON;
+		tp->t_flags = ANYP | ECHO | CRMOD;
+		tp->t_ispeed = tp->t_ospeed = B9600;
+		tp->t_winsize.ws_row = VT_ROWS;
+		tp->t_winsize.ws_col = VT_COLS;
+	} else if (tp->t_state & TS_XCLUDE && u.u_uid != 0)
 		return (EBUSY);
-	if (!attached) {
-		attached = 1;
-		setirq(COM1IRQ, IPL_TTY, cnintr, 0);
-		outb(COM1 + MCR, MCR_DTR_RTS | MCR_OUT2);
-		outb(COM1 + IER, IER_RX | IER_TX);
-	}
 	return ((*linesw[tp->t_line].l_open)(dev, tp));
 }
 
@@ -77,7 +175,7 @@ cnopen(dev, flag)
 cnclose(dev, flag)
 	dev_t dev;
 {
-	register struct tty *tp = &cons[0];
+	register struct tty *tp = &cons[minor(dev)];
 
 	(*linesw[tp->t_line].l_close)(tp, flag);
 	ttyclose(tp);
@@ -90,7 +188,7 @@ cnread(dev, uio, flag)
 	struct uio *uio;
 	int flag;
 {
-	register struct tty *tp = &cons[0];
+	register struct tty *tp = &cons[minor(dev)];
 
 	return ((*linesw[tp->t_line].l_read)(tp, uio, flag));
 }
@@ -101,7 +199,7 @@ cnwrite(dev, uio, flag)
 	struct uio *uio;
 	int flag;
 {
-	register struct tty *tp = &cons[0];
+	register struct tty *tp = &cons[minor(dev)];
 
 	return ((*linesw[tp->t_line].l_write)(tp, uio, flag));
 }
@@ -112,7 +210,7 @@ cnioctl(dev, cmd, addr, flag)
 	register u_int cmd;
 	caddr_t addr;
 {
-	register struct tty *tp = &cons[0];
+	register struct tty *tp = &cons[minor(dev)];
 	register int error;
 
 	error = (*linesw[tp->t_line].l_ioctl)(tp, cmd, addr, flag);
@@ -125,74 +223,144 @@ cnioctl(dev, cmd, addr, flag)
 }
 
 /*
- * The port wants something: take every character that has arrived, and
- * send another if the last has gone.
+ * Draw what is in the output queue.  TS_BUSY keeps out a second call
+ * for the same screen, from an interrupt's echo, while this one is
+ * drawing with the level lowered; what that call would have drawn is
+ * in the queue, and this one draws it.
  */
-/*ARGSUSED*/
-static
-cnintr(arg, tf)
-	int arg;
-	caddr_t tf;
-{
-	register struct tty *tp = &cons[0];
-	register int lsr;
-
-	for (;;) {
-		lsr = inb(COM1 + LSR);
-		if (lsr & LSR_RXRDY) {
-			(*linesw[tp->t_line].l_rint)(inb(COM1 + DATA), tp);
-			continue;
-		}
-		if ((lsr & LSR_THRE) && (tp->t_state & TS_BUSY)) {
-			tp->t_state &= ~TS_BUSY;
-			(*linesw[tp->t_line].l_start)(tp);
-			continue;
-		}
-		if (inb(COM1 + IIR) & IIR_NONE)
-			break;
-	}
-}
-
 cnstart(tp)
 	register struct tty *tp;
 {
-	register int c, s;
+	register int s, n;
+	int unit = tp - cons;
+	char buf[64];
 
 	s = spltty();
-	if (tp->t_state & (TS_TIMEOUT|TS_BUSY|TS_TTSTOP))
+	if (tp->t_state & (TS_TIMEOUT | TS_BUSY | TS_TTSTOP))
 		goto out;
-	ttyowake(tp);
-	if (tp->t_outq.c_cc == 0)
-		goto out;
-	if ((inb(COM1 + LSR) & LSR_THRE) == 0)
-		goto out;
-	c = getc(&tp->t_outq);
-	if (tp->t_flags & (RAW|LITOUT))
-		c &= 0xff;
-	else if ((tp->t_flags & (EVENP | ODDP)) == EVENP)
-		c |= partab[c] & 0200;
-	else if ((tp->t_flags & (EVENP | ODDP)) == ODDP)
-		c |= (partab[c] & 0200) ^ 0200;
-	outb(COM1 + DATA, c);
 	tp->t_state |= TS_BUSY;
+	while (tp->t_outq.c_cc && (tp->t_state & TS_TTSTOP) == 0) {
+		n = q_to_b(&tp->t_outq, buf, sizeof (buf));
+		splx(s);
+		vtwrite(&vt[unit], (u_char *)buf, n);
+		s = spltty();
+	}
+	tp->t_state &= ~TS_BUSY;
+	cncursor(unit);
+	ttyowake(tp);
 out:
 	splx(s);
 }
 
 /*
- * Print a character on the console.  Waits for the port to be ready, but
- * not for ever: with nothing connected the status never changes.
+ * Print a character of the kernel's on the first screen and on COM1.  A
+ * panic brings the first screen to the display.
  */
 cnputc(c)
 	char c;
 {
-	register int timo;
+	if (ncons) {
+		if (panicstr && shown != 0)
+			cnswitch(0);
+		vtkputc(&vt[0], c & 0377);
+		cncursor(0);
+	}
+	comcnputc(c);
+}
 
-	if (c == '\n')
-		cnputc('\r');
-	timo = 30000;
-	while ((inb(COM1 + LSR) & LSR_THRE) == 0)
-		if (--timo == 0)
-			break;
-	outb(COM1 + DATA, c);
+/*
+ * Show screen unit, and send it what is typed.
+ */
+cnswitch(unit)
+	register int unit;
+{
+	register u_int start = unit * PAGE;
+	int s;
+
+	if (unit >= ncons || unit == shown)
+		return;
+	shown = unit;
+	s = intsoff();
+	crtcset(CRTC_START, start >> 8);
+	crtcset(CRTC_START + 1, start);
+	intson(s);
+	cncursor(unit);
+}
+
+/*
+ * What was typed, from the keyboard's interrupt.
+ */
+cninput(cp, n)
+	register char *cp;
+	register int n;
+{
+	register struct tty *tp = &cons[shown];
+
+	if (ncons == 0 || (tp->t_state & TS_ISOPEN) == 0)
+		return;
+	while (--n >= 0)
+		(*linesw[tp->t_line].l_rint)(*cp++ & 0377, tp);
+}
+
+/* The modes of the screen shown, which change what keys send. */
+cnkbdflags()
+{
+	return (vt[shown].v_flags);
+}
+
+/*
+ * Scroll Lock: stop the screen's output if it is going, and start it
+ * if it is stopped, as the stop and start characters would.
+ */
+cnhold()
+{
+	register struct tty *tp = &cons[shown];
+	char c;
+
+	c = tp->t_state & TS_TTSTOP ? tp->t_startc : tp->t_stopc;
+	if ((c & 0377) != 0377)		/* 0377: there is none */
+		cninput(&c, 1);
+}
+
+/*
+ * What a screen answers, as if typed there.
+ */
+vtreply(vp, s)
+	struct vt *vp;
+	register char *s;
+{
+	register struct tty *tp = &cons[vp - vt];
+	int x;
+
+	x = spltty();
+	if (tp->t_state & TS_ISOPEN)
+		while (*s)
+			(*linesw[tp->t_line].l_rint)(*s++ & 0377, tp);
+	splx(x);
+}
+
+static
+bellstop()
+{
+	outb(SPEAKER, inb(SPEAKER) & ~3);
+	ringing = 0;
+}
+
+/*ARGSUSED*/
+vtbell(vp)
+	struct vt *vp;
+{
+	register u_int count = TIMER_RATE / BELL_HZ;
+	int s;
+
+	if (ringing)
+		return;
+	ringing = 1;
+	s = intsoff();
+	outb(TIMER_MODE, TIMER_SQWAVE2);
+	outb(TIMER2, count);
+	outb(TIMER2, count >> 8);
+	outb(SPEAKER, inb(SPEAKER) | 3);
+	intson(s);
+	timeout(bellstop, (caddr_t)0, hz / 8);
 }

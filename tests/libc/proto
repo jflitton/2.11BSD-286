@@ -11,6 +11,8 @@ f /etc/group 644 group
 f /bin/echoargs 755 echoargs
 f /bin/echoargs-m 755 echoargs-m
 f /bin/libc-m 755 init-m
-c /dev/console 622 0 0
+# The console is the first serial port (major 10), where the harness
+# reads what the system writes, and not the screen (major 0).
+c /dev/console 622 10 0
 c /dev/tty 666 2 0
 c /dev/null 666 1 2

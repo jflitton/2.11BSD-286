@@ -3,7 +3,8 @@
 
 usage: runtest.py NAME SOURCE...
        runtest.py [--hd IMAGE,CYLINDERS,HEADS,SECTORS[,BUS]] [--until TEXT]
-                  [--type AFTER TEXT]... --boot NAME [EXECUTABLE [FILESYSTEM]]
+                  [--type AFTER TEXT | --key AFTER TEXT]...
+                  --boot NAME [EXECUTABLE [FILESYSTEM]]
 
 The first form builds a small-model program that runs in real mode.  Each
 .c is compiled with tools/cc286 and each .s assembled with NASM; they are
@@ -29,7 +30,17 @@ has written TEXT after it: a system has its disks to bring up to date
 before it stops, and says when it has.  With --type, once the machine has
 written AFTER to the serial port, TEXT and a carriage return are typed at
 it there; a second --type waits for its AFTER in what is written after
-that, and so on.
+that, and so on.  --key types on the keyboard instead, once the screen
+has changed since the last --key and shows AFTER just before the
+cursor, or, if AFTER begins with "*", once the rest of it is on the
+screen more often than it was when the last --key began.  TEXT is
+typed and then Return, except that a TEXT that is only a key's name in
+braces, such as {Alt-F2}, is that key alone; TEXT may name keys so
+anywhere (keyname() says which), and its control characters are typed
+with Ctrl.  Each screen a --key waited for is saved
+in screen.txt, and the last one when the run ends.  The steps are taken
+in the order given, whichever kind they are.  86Box with the automation
+socket only.
 
 A program given is put on a diskette image by tools/mkfd.py, behind the
 boot sector, usr/src/sys/i286stand/fdboot.s, and the emulator boots it.
@@ -140,22 +151,131 @@ def finished(text):
 
 
 UNTIL = None            # --until: what must follow the "@exit" line
-TYPE = []               # --type: [after, text] for each
+TYPE = []               # --type and --key: [kind, after, text] for each
 
 
 class Typist:
-    """Types each TEXT of --type when its AFTER has been written."""
+    """Types each TEXT of --type when its AFTER has been written, and of
+    --key when the screen shows its AFTER."""
 
     def __init__(self):
         self.todo = list(TYPE)
         self.since = 0          # where in the output the last was typed
+        self.before = None      # the screen the last --key waited for
+
+    def kind(self):
+        """What the next step types on: "serial", "key", or None."""
+        return self.todo[0][0] if self.todo else None
 
     def next(self, text):
-        """What to type now that TEXT has been written, or None."""
-        if not self.todo or self.todo[0][0] not in text[self.since:]:
+        """What to type on the serial port now that TEXT has been
+        written, or None."""
+        if self.kind() != "serial" or self.todo[0][1] not in text[self.since:]:
             return None
         self.since = len(text)
-        return (self.todo.pop(0)[1] + "\r").encode("latin-1")
+        return (self.todo.pop(0)[2] + "\r").encode("latin-1")
+
+    def nextkey(self, rows, cursor):
+        """What to type on the keyboard now that the screen is ROWS with
+        the cursor at CURSOR, or None.  The screen the last --key
+        waited for is what this one is judged against.  A prompt counts
+        only on a different screen: until what was typed there has been
+        echoed, the old prompt is still before the cursor.  "*" text
+        counts only if there is more of it than there was on that
+        screen, since the program may have drawn it while the typing
+        went on."""
+        if self.kind() != "key":
+            return None
+        after = self.todo[0][1]
+        if after.startswith("*"):
+            count = lambda rs: sum(r.count(after[1:]) for r in rs)
+            if count(rows) <= (count(self.before[0]) if self.before else 0):
+                return None
+        elif ((rows, cursor) == self.before or not 0 <= cursor[0] < len(rows)
+              or not rows[cursor[0]][:cursor[1]].endswith(after)):
+            return None
+        self.before = (rows, cursor)
+        return self.todo.pop(0)[2]
+
+
+def screen(box):
+    """The text screen as the display shows it: its rows, and the
+    cursor's row and column.  Where the display starts and where the
+    cursor is come from the CRT controller, whose index register is put
+    back as it was: the BIOS's notes, which the text request goes by,
+    are out of date once a system shows screens of its own."""
+    index = box.ask("ior 0x3d4 1")["values"][0]
+    regs = []
+    for r in (0x0C, 0x0D, 0x0E, 0x0F):
+        box.ask("iow 0x3d4 1 %d" % r)
+        regs.append(box.ask("ior 0x3d5 1")["values"][0])
+    box.ask("iow 0x3d4 1 %d" % index)
+    start = regs[0] << 8 | regs[1]
+    data = bytes.fromhex(box.ask("memr %d %d" % (0xB8000 + 2 * start, 25 * 160))["data"])
+    rows = [data[i * 160:(i + 1) * 160:2].decode("cp437") for i in range(25)]
+    return rows, divmod((regs[2] << 8 | regs[3]) - start, 80)
+
+
+# Set-1 scan codes: the keys of the US layout, and the named ones.
+KEYROWS = [("1234567890-=", "!@#$%^&*()_+", 0x02),
+           ("qwertyuiop[]", "QWERTYUIOP{}", 0x10),
+           ("asdfghjkl;'`", 'ASDFGHJKL:"~', 0x1E),
+           ("\\zxcvbnm,./", "|ZXCVBNM<>?", 0x2B)]
+NAMEDKEYS = {"Esc": 0x01, "Backspace": 0x0E, "Tab": 0x0F, "Enter": 0x1C,
+             "Up": 0x148, "Down": 0x150, "Left": 0x14B, "Right": 0x14D,
+             "Home": 0x147, "End": 0x14F, "PgUp": 0x149, "PgDn": 0x151,
+             "Ins": 0x152, "Del": 0x153, "F11": 0x57, "F12": 0x58}
+NAMEDKEYS.update(("F%d" % n, 0x3A + n) for n in range(1, 11))
+MODIFIERS = {"Shift": 0x2A, "Ctrl": 0x1D, "Alt": 0x38}
+
+
+def keyname(name):
+    """The scan codes to hold down for a key named as in {Alt-F2}: any of
+    Shift-, Ctrl- and Alt-, then a name in NAMEDKEYS.  None if NAME is
+    not one."""
+    *mods, key = name.split("-")
+    if key not in NAMEDKEYS or any(m not in MODIFIERS for m in mods):
+        return None
+    return [MODIFIERS[m] for m in mods] + [NAMEDKEYS[key]]
+
+
+def keystrokes(text):
+    """TEXT as keys to press, each a list of scan codes held together."""
+    out = []
+    i = 0
+    while i < len(text):
+        c = text[i]
+        end = text.find("}", i)
+        if c == "{" and end > i and keyname(text[i + 1:end]):
+            out.append(keyname(text[i + 1:end]))
+            i = end + 1
+            continue
+        i += 1
+        codes = {" ": [0x39], "\r": [0x1C], "\t": [0x0F],
+                 "\033": [0x01]}.get(c)
+        for plain, shifted, first in KEYROWS:
+            if c in plain:
+                codes = [first + plain.index(c)]
+            elif c in shifted:
+                codes = [0x2A, first + shifted.index(c)]
+            elif "\001" <= c <= "\032" and chr(ord(c) + 96) in plain:
+                codes = [0x1D, first + plain.index(chr(ord(c) + 96))]
+        if codes is None:
+            sys.exit("--key: no key types %r" % c)
+        out.append(codes)
+    return out
+
+
+def typekeys(box, text):
+    """Type TEXT on the keyboard: then Return, unless it is only a key's
+    name in braces."""
+    keys = keystrokes(text)
+    m = text.startswith("{") and text.endswith("}") and keyname(text[1:-1])
+    if not m:
+        keys.append([0x1C])
+    for codes in keys:
+        box.ask("key down " + " ".join("0x%x" % c for c in codes))
+        box.ask("key up " + " ".join("0x%x" % c for c in reversed(codes)))
 
 
 def ended(text):
@@ -316,8 +436,8 @@ def describe(box, mark):
     the program's events start, or None."""
     lines = []
     try:
-        rows = [bytes.fromhex(row).decode("cp437").replace("\0", " ").rstrip()
-                for row in box.ask("text")["chars"]]
+        box.ask("text")         # which fails in a graphics mode
+        rows = [row.replace("\0", " ").rstrip() for row in screen(box)[0]]
         rows = ["  | " + row for row in rows if row]
         lines += ["its screen, less blank lines:"] + rows if rows else ["its screen is blank"]
     except RuntimeError:
@@ -373,6 +493,9 @@ def run_86box_socket(box, img, out):
                     + describe(auto, None))
         pos = 0
         typist = Typist()
+        screens = open(os.path.join(out, "screen.txt"), "w", encoding="utf-8")
+        def keep(rows):
+            screens.write("".join(r.rstrip() + "\n" for r in rows) + "=" * 80 + "\n")
         while not seen and not ended(raw.decode("latin-1")):
             late = auto.ask("step 200")["ms"] >= TIMEOUT * 1000
             r = auto.ask("serial read 1 %d" % pos)
@@ -383,11 +506,20 @@ def run_86box_socket(box, img, out):
             for c in typist.next(raw.decode("latin-1")) or b"":
                 auto.ask("serial write 1 %02x" % c)
                 auto.ask("step 20")
+            if typist.kind() == "key":
+                rows, cursor = screen(auto)
+                text = typist.nextkey(rows, cursor)
+                if text is not None:
+                    keep(rows)
+                    typekeys(auto, text)
             evs, scan = events(auto, scan)
             if any(e["type"] == "reset" and not bios_move(e) for e in evs or []):
                 seen = "the machine was reset\n" + describe(auto, mark)
             elif late:
                 seen = describe(auto, mark)
+        if typist.before is not None:
+            keep(screen(auto)[0])
+        screens.close()
         auto.ask("quit")
         auto.close()
     except (EOFError, OSError):
@@ -403,6 +535,8 @@ def run_86box_socket(box, img, out):
 
 
 def run_86box_pty(box, img, out):
+    if any(t[0] == "key" for t in TYPE):
+        sys.exit("--key needs an 86Box with the automation socket")
     p, vm = start_86box(box, img, out,
                         "serial1_passthrough_enabled = 1\n\n"
                         "[Serial Passthrough Device #1]\nmode = 0\n"
@@ -480,8 +614,8 @@ def main():
     if len(sys.argv) > 2 and sys.argv[1] == "--until":
         UNTIL = sys.argv[2]
         del sys.argv[1:3]
-    while len(sys.argv) > 3 and sys.argv[1] == "--type":
-        TYPE.append(sys.argv[2:4])
+    while len(sys.argv) > 3 and sys.argv[1] in ("--type", "--key"):
+        TYPE.append(["serial" if sys.argv[1] == "--type" else "key"] + sys.argv[2:4])
         del sys.argv[1:4]
     if len(sys.argv) < 3:
         sys.exit(__doc__)

@@ -30,7 +30,7 @@ AS=	nasm -f obj -DFAR -I$(M)/ -I$(CRT)/
 MCH=	mch_start.o mch_trap.o mch_copy.o mch_swtch.o mch_xxx.o
 CRTO=	i4m.o i4d.o
 MACH=	clock.o conf.o cons.o machdep.o mem.o rd.o trap.o
-DEV=	aha.o pcdisk.o sd.o wd.o
+DEV=	aha.o com.o kbd.o pcdisk.o sd.o vt.o wd.o
 KERN=	init_main.o init_sysent.o kern_acct.o kern_clock.o \
 	kern_descrip.o kern_exec.o kern_exit.o kern_fork.o kern_mman.o \
 	kern_proc.o kern_prot.o kern_prot2.o kern_resource.o kern_sig.o \

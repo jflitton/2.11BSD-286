@@ -1,6 +1,12 @@
 #
 # The terminals init runs getty on: name, command, terminal type, whether
-# it is on, and whether root may log in there.  The console is the first
-# serial port.
+# it is on, and whether root may log in there.  The console and ttyv1 to
+# ttyv3 are the screens, which Alt-F1 to Alt-F4 choose between; tty00
+# and tty01 are the serial ports COM1 and COM2.
 #
-console	"/usr/libexec/getty std.9600"	vt100		on secure
+console	"/usr/libexec/getty std.9600"	pccons	on secure
+ttyv1	"/usr/libexec/getty std.9600"	pccons	on secure
+ttyv2	"/usr/libexec/getty std.9600"	pccons	on secure
+ttyv3	"/usr/libexec/getty std.9600"	pccons	on secure
+tty00	"/usr/libexec/getty std.9600"	vt100	on secure
+tty01	"/usr/libexec/getty std.9600"	vt100	off secure

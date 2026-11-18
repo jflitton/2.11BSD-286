@@ -5,7 +5,9 @@ d /dev 755
 f /etc/init 755 init
 f /etc/motd 644 motd
 f /bin/child 755 child
-c /dev/console 622 0 0
+# The console is the first serial port (major 10), where the harness
+# reads what the system writes, and not the screen (major 0).
+c /dev/console 622 10 0
 c /dev/tty 666 2 0
 c /dev/mem 640 1 0
 c /dev/kmem 640 1 1

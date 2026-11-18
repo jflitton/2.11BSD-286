@@ -29,6 +29,10 @@ f /etc/ttys 644 etc/ttys
 f /etc/fstab 644 etc/fstab
 f /etc/motd 644 etc/motd
 f /etc/gettytab 644 ../etc/gettytab
+f /.profile 644 ../etc/root/dot.minimal
+f /root/.profile 644 ../etc/root/dot.profile
+f /root/.cshrc 644 ../etc/root/dot.cshrc
+f /root/.login 644 ../etc/root/dot.login
 f /etc/master.passwd 600 ../etc/master.passwd
 f /etc/group 644 ../etc/group
 f /etc/shells 644 ../etc/shells
@@ -95,6 +99,11 @@ f /sbin/reboot 755 ../../../obj/bin/reboot
 f /sbin/mknod 755 ../../../obj/bin/mknod
 h /sbin/halt /sbin/reboot
 c /dev/console 622 0 0
+c /dev/ttyv1 666 0 1
+c /dev/ttyv2 666 0 2
+c /dev/ttyv3 666 0 3
+c /dev/tty00 666 10 0
+c /dev/tty01 666 10 1
 c /dev/tty 666 2 0
 c /dev/mem 640 1 0
 c /dev/kmem 640 1 1

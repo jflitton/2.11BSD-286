@@ -232,8 +232,6 @@ code resumes with.
 
 - 287 errors, which reach an AT-compatible machine as interrupt request 13
   and not as exception 16.
-- A console on the display and keyboard. `sys/i286/cons.c` is the first
-  serial port.
 - None of this has run on a real machine. The emulator's BIOS is the PS/2
   Model 30 286's own, but its disk drive is not a real one: the kernel's
   reads of the RAM disk image retry three times and have never had to.

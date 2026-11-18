@@ -49,6 +49,9 @@ int	nblkdev = sizeof(bdevsw) / sizeof(bdevsw[0]);
 int	cnopen(), cnclose(), cnread(), cnwrite(), cnioctl();
 extern struct tty cons[];
 
+int	comopen(), comclose(), comread(), comwrite(), comioctl();
+extern struct tty com_tty[];
+
 int	mmrw();
 #define	mmselect	seltrue
 
@@ -121,6 +124,10 @@ struct cdevsw	cdevsw[] = {
 	sdopen,		sdclose,	rawrw,		rawrw,
 	sdioctl,	nulldev,	0,		seltrue,
 	sdstrategy,
+/* com = 10 */
+	comopen,	comclose,	comread,	comwrite,
+	comioctl,	nulldev,	com_tty,	ttselect,
+	nulldev,
 };
 int	nchrdev = sizeof(cdevsw) / sizeof(cdevsw[0]);
 
@@ -159,7 +166,7 @@ isdisk(dev, type)
 	return (0);
 }
 
-#define MAXDEV	10
+#define MAXDEV	11
 static char chrtoblktbl[MAXDEV] =  {
       /* CHR */      /* BLK */
 	/* 0 */		NODEV,
@@ -172,6 +179,7 @@ static char chrtoblktbl[MAXDEV] =  {
 	/* 7 */		0,		/* rd */
 	/* 8 */		1,		/* wd */
 	/* 9 */		2,		/* sd */
+	/* 10 */	NODEV,
 };
 
 /*
