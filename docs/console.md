@@ -143,9 +143,12 @@ Whether Backspace erases is the terminal modes' business, and as in
 erase character is DEL, and `login` puts every line back to it, with
 none of the CRT modes, whatever `getty` set for the line. A user's
 `.profile` or `.login` does the rest, with `stty dec` or `stty crt` for
-erasing that backs up over the character, and `erase ^H`. Root's, which
-are upstream's (`usr/src/etc/root`), do both. On a screen, a login
-without such files sees Backspace echoed as `^H` and not obeyed.
+erasing that backs up over the character, and `erase ^H`. Root's
+(`usr/src/etc/root`) do both, but upstream's set `erase ^H` on every
+terminal, and these only where `TERM` is `pccons`: a terminal emulator
+that logs in with `telnet` sends DEL for Backspace, as a VT100's
+DELETE key does on a serial port. On a screen, a login without such
+files sees Backspace echoed as `^H` and not obeyed.
 
 ## The serial ports
 

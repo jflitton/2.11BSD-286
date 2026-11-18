@@ -5,7 +5,8 @@
 # keyboard, and use the editor there; ping the loopback interface and log
 # in over it with telnet; set up its Ethernet interface with /etc/rc.conf
 # and /etc/netstart, ping the network's gateway, and log in from the host
-# with telnet, sending a file each way; and halt it.  The kernel, /boot,
+# with telnet, sending a file each way and using vi in a big window; and
+# halt it.  The kernel, /boot,
 # the C library, the programs and the root file system are all built as
 # they would be for a real machine (usr/src/sys/PC, usr/src/sys/i286stand,
 # usr/src/lib/libc/i286, usr/src/i286).
@@ -53,11 +54,17 @@ CTRLA=$(printf '\001')
 CTRLP=$(printf '\020')
 CTRLU=$(printf '\025')
 CTRLD=$(printf '\004')
+DEL=$(printf '\177')
+# Keys as an xterm sends them in the keypad mode vi sets.
+KHOME=${ESC}OH
+KEND=${ESC}OF
+KDELETE=${ESC}[3~
 # /etc/services three times, its last newline kept, for the host to send.
 services=$(cat "$top/usr/src/etc/services"; echo x)
 services=${services%x}
 TIMEOUT=${TIMEOUT:-500} python3 -I "$top/tests/harness/runtest.py" \
     --hd system.img,$geometry,xtide --until halting --net ${NETCARD:-ne2k8} \
+    --term xterm-ghostty:200x80 \
     --type "login: " "root" \
     --type "# " 'echo "she""ll-ok" $HOME' \
     --type "shell-ok /root" 'cd /tmp; mkdir dir; cd dir; pwd' \
@@ -124,11 +131,14 @@ TIMEOUT=${TIMEOUT:-500} python3 -I "$top/tests/harness/runtest.py" \
     --type "foreign host" '. /etc/rc.conf; address=10.0.2.15 gateway=10.0.2.2; . /etc/netstart; ifconfig ne0' \
     --type "broadcast 10.0.2.255" 'ping -c 3 10.0.2.2; route add default 10.0.2.2 1' \
     --telnet "login: " 'root' \
-    --telnet "# " 'echo "over""-ne0"; who' \
+    --telnet "# " 'echo "over""-ne0" $TERM; who' \
     --telnet "(10.0.2.2)" "cat >/tmp/in; echo \"in\"\"-done\"
 $services$services$services${CTRLD}" \
     --telnet "in-done" 'cat /etc/services /etc/services /etc/services >/tmp/s3; cmp /tmp/s3 /tmp/in && echo "sa""me-in"; dd if=/etc/termcap bs=512 count=40 2>/dev/null; echo "dd""-done"' \
-    --telnet "dd-done" "${CTRLD}" \
+    --telnet "dd-done" "echo \"era\"\"x${DEL}se-ok\"; vi /tmp/bs" \
+    --telnet "[New file]" "ione${CR}twoX${DEL}${CR}three${ESC}${KHOME}dd${KEND}${KDELETE}:wq" \
+    --telnet "# " 'cat /tmp/bs; echo "vi""-done"' \
+    --telnet "vi-done" "${CTRLD}" \
     --type "File exists" 'sleep 5; who; cat /tmp/k; echo "@ex""it 00"; sync; reboot -h' \
     --boot system
 
@@ -161,14 +171,22 @@ if ! tr -d '\r' < "$serial" | grep -a -A2 '^zero$' | tr '\n' ' ' |
     exit 1
 fi
 
-# What came over telnet from the host: the login, the file it sent, and
-# the first 20K of /etc/termcap, with the terminal's newlines, and its
-# tabs expanded if it was set to.
+# What came over telnet from the host: the login, with TERM the xterm
+# that telnetd made of xterm-ghostty and DEL the erase character; the
+# file it sent; the first 20K of /etc/termcap, with the terminal's
+# newlines, and its tabs expanded if it was set to; and vi, which in a
+# window of 200 by 80 has its last line on the window's last, takes DEL
+# for erase too, and has Home from the termcap (to the top of the
+# screen), and End and Delete from root's .exrc.
 python3 -I - "$out/telnet.txt" "$top/obj/root/termcap" <<'EOF'
 import re, sys
 text = open(sys.argv[1], encoding="latin-1").read().replace("\r\n", "\n")
 termcap = open(sys.argv[2], encoding="latin-1").read()[:20480]
-bad = [w for w in ("over-ne0", "same-in", "dd-done") if w not in text]
+bad = [w for w in ("erase DEL, kill ^U, intr ^C", "over-ne0 xterm\n",
+                   "same-in", "dd-done", "\nerase-ok\n", "\033[80;1H",
+                   "\ntwo\nhree\nvi-done") if w not in text]
+if "Screen too large" in text:
+    bad.append("vi's window")
 if not re.search(r"root\s+ttyp\d.*\(10\.0\.2\.2\)", text):
     bad.append("who on a pseudo-terminal")
 lines = termcap.split("\n")

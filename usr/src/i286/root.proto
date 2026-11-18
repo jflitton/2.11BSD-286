@@ -2,6 +2,7 @@
 # (`make -C usr/src/i286 root`).  Files are named relative to this
 # directory: the programs as obj/bin has them, the kernel and /boot as
 # their own Makefiles make them, /etc from ../etc (upstream's) or etc
+# (this port's own), root's files from ../etc/root (upstream's) or root
 # (this port's own), and what the Makefile makes in obj/root.
 d /bin 755
 d /sbin 755
@@ -35,6 +36,7 @@ f /.profile 644 ../etc/root/dot.minimal
 f /root/.profile 644 ../etc/root/dot.profile
 f /root/.cshrc 644 ../etc/root/dot.cshrc
 f /root/.login 644 ../etc/root/dot.login
+f /root/.exrc 644 root/dot.exrc
 f /etc/master.passwd 600 ../etc/master.passwd
 f /etc/group 644 ../etc/group
 f /etc/shells 644 ../etc/shells

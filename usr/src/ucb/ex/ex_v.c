@@ -109,7 +109,7 @@ oop()
 	 * switch to hardcopy open mode.
 	 */
 	if (state != CRTOPEN)
-		WCOLS = TUBECOLS;
+		WCOLS = OPENCOLS;
 	if (!inglobal)
 		savevis();
 	vok(atube);

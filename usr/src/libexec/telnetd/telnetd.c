@@ -223,19 +223,21 @@ ttloop()
 /*
  * getterminaltype
  *
- *	Ask the other end to send along its terminal type.
+ *	Ask the other end to send along its terminal type, and its
+ * window's size, which suboption() gives the pty when it comes.
  * Output is the variable terminaltype filled in.
  */
 
 void
 getterminaltype()
 {
-    static char sbuf[] = { IAC, DO, TELOPT_TTYPE };
+    static char sbuf[] = { IAC, DO, TELOPT_TTYPE, IAC, DO, TELOPT_NAWS };
 
     settimer(getterminal);
     bcopy(sbuf, nfrontp, sizeof sbuf);
     nfrontp += sizeof sbuf;
     hisopts[TELOPT_TTYPE] = OPT_YES_BUT_ALWAYS_LOOK;
+    hisopts[TELOPT_NAWS] = OPT_YES_BUT_ALWAYS_LOOK;
     while (sequenceIs(ttypeopt, getterminal)) {
 	ttloop();
     }
@@ -248,6 +250,30 @@ getterminaltype()
 	    ttloop();
 	}
     }
+}
+
+/*
+ * knowntype
+ *
+ *	A terminal type the termcap lacks is often a newer name for one
+ * it has, made by adding to the name: xterm-256color and xterm-ghostty
+ * are xterms.  Shorten such a name a part at a time until the termcap
+ * knows it; if it never does, leave it as the client sent it.
+ */
+knowntype(name)
+	char *name;
+{
+	char buf[1024], tname[41];
+	register char *p;
+
+	strncpy(tname, name, sizeof tname - 1);
+	tname[sizeof tname - 1] = '\0';
+	while (tgetent(buf, tname) != 1) {
+		if ((p = rindex(tname, '-')) == NULL)
+			return;
+		*p = '\0';
+	}
+	strcpy(name, tname);
 }
 
 /*
@@ -314,6 +340,8 @@ gotpty:
 	setdefaults();
 
 	setchars();
+	b.sg_erase = tmode.sg_erase;	/* DEL, unless gettytab says */
+	b.sg_kill = tmode.sg_kill;
 	ioctl(p, TIOCSETC, &tc);
 	ioctl(p, TIOCSETD, &ldisp);
 	allflags = setflags(2);
@@ -341,6 +369,8 @@ gotpty:
 	 * get terminal type.
 	 */
 	getterminaltype();
+	if (terminaltype && *terminaltype)
+		knowntype(terminaltype);
 
 	if ((i = fork()) < 0)
 		fatalperror(f, "fork");
@@ -364,7 +394,7 @@ gotpty:
 		if (strncmp(environ[i], "PATH=", 5) == 0) continue;
 		env[j++] = environ[i];
 	}
-	if (*terminaltype) {
+	if (terminaltype && *terminaltype) {
 		TT = terminaltype;
 	}
 	makeenv(&env[j], terminaltype);
@@ -892,6 +922,10 @@ willoption(option)
 		break;
 
 	case TELOPT_NAWS:
+		if (hisopts[TELOPT_NAWS] == OPT_YES_BUT_ALWAYS_LOOK) {
+		    hisopts[TELOPT_NAWS] = OPT_YES;
+		    return;		/* the answer to getterminaltype's DO */
+		}
 		fmt = doopt;
 		break;
 

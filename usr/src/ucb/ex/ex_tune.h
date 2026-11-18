@@ -96,6 +96,19 @@
  * terminals like adm3's (glass tty's) where it switches to pseudo
  * hardcopy mode when a line gets longer than 80 characters.
  */
+#ifdef i286
+/*
+ * A window that telnet logs in from is often far bigger than a
+ * terminal was.  The medium model's 64K of data has room for a buffer
+ * of 200 columns by 80 lines, say; the line pointers, two bytes a line
+ * of the file, have the rest.  OPENCOLS is what TUBECOLS is said above
+ * to be for, so that open mode stays as it was.
+ */
+#define	TUBELINES	128
+#define	TUBECOLS	256
+#define	TUBESIZE	16384
+#define	OPENCOLS	160
+#else
 #ifndef VMUNIX
 #define	TUBELINES	70	/* Number of screen lines for visual */
 #define	TUBECOLS	160	/* Number of screen columns for visual */
@@ -104,6 +117,8 @@
 #define	TUBELINES	70
 #define	TUBECOLS	160
 #define	TUBESIZE	7000	/* 70 * 100 */
+#endif
+#define	OPENCOLS	TUBECOLS
 #endif
 
 /*

@@ -148,10 +148,10 @@ vreopen(p, lineno, l)
 	if (state == ONEOPEN) {
 		WCOLS = OCOLUMNS;
 		if (vdepth() > 1) {
-			WCOLS = TUBECOLS;
+			WCOLS = OPENCOLS;
 			sethard();
 		} else
-			WCOLS = TUBECOLS;
+			WCOLS = OPENCOLS;
 	} else if (state == HARDOPEN)
 		sethard();
 

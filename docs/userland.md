@@ -6,6 +6,30 @@ needed to build and run here. All of it runs in the emulator under
 a hard disk to multi-user and logs in on a serial port and on the
 console's screens.
 
+## Upstream's programs, and newer ones
+
+The programs are upstream's, kept as 2.11BSD has them, so that each
+behaves as its manual page says and the system stays one to learn
+2.11BSD from. What changes in them is what the port needs: bugs, most
+of them an assumption that a 16-bit `int` breaks ([what the PDP-11 let
+programs assume](#what-the-pdp-11-let-programs-assume)); what this
+compiler needs ([below](#what-this-compiler-needed)); and the settings
+that upstream leaves to each machine, such as the sizes of `ex`'s
+buffers in `ex_tune.h`, which already differ between the PDP-11 and
+the VAX. Configuration and data, the termcap, `/etc` and root's files,
+are this system's to set up.
+
+What a user now expects and upstream's program does not do goes in a
+program of this port's own, beside upstream's rather than in its place,
+so that both are there. None is written yet. The first planned is an
+editor in the manner of `vim`, beside `vi`: one that fills a window of
+any size, where `vi` refuses a window bigger than its copy of the
+screen ("Screen too large for internal buffer"); whose Home and End go
+to the start and end of the line, where `vi`'s Home goes to the top of
+the screen and it knows no End; whose Page Up, Page Down, Delete and
+Insert work with no `.exrc`; and which knows the cursor keys in insert
+mode too.
+
 ## Building
 
 ```sh
@@ -45,17 +69,30 @@ are not used: they install as they go, with the PDP-11's tools.
 Three programs are medium-model so far. `csh` was linked with two
 overlays on the PDP-11; here its 67K of code is in two segments, and its
 data segment has 11K of data and 8K of stack, leaving about 45K for its
-heap.
-`ex`, which is also `vi`, had two overlays as well. Its 77K of code is in
-two segments, and its data segment has 25K of data and 8K of stack. That
-leaves about 32K for the table of lines, two bytes a line, or 16,000
-lines. Its error messages are in `/usr/share/misc/exstrings`, as on the
-PDP-11, not in its data. `tools/mkstr.py` does what `mkstr` did: it takes
-each message out of a copy of the C, in `obj/ex`, and puts the
-message's offset in the file in its place. That moves 5.7K out of the
-data segment. `/usr/share/misc/termcap` is upstream's, with the
-commonest terminals moved to the front, as its Makefile has `ex` do;
+heap. `ex`, which is also `vi`, had two overlays as well. Its 77K of
+code is in two segments, and its data segment has 35K of data and 8K of
+stack. That leaves about 21K for the table of lines, two bytes a line,
+or 10,000 lines. Of the data, 16K is `vi`'s copy of the screen, three
+times the PDP-11's 5,600 bytes, since a window that `telnet` logs in
+from is often far bigger than a terminal was: it holds 200 columns by 80
+lines, and the widest window is 256 columns. `vi` refuses a bigger
+window, as upstream's does, with "Screen too large for internal buffer".
+Its error messages are in `/usr/share/misc/exstrings`, as on the PDP-11,
+not in its data. `tools/mkstr.py` does what `mkstr` did: it takes each
+message out of a copy of the C, in `obj/ex`, and puts the message's
+offset in the file in its place. That moves 5.7K out of the data
+segment. `/usr/share/misc/termcap` is upstream's, with the commonest
+terminals moved to the front, as its Makefile has `ex` do;
 `tools/mktermcap.py` runs the same editor commands.
+
+`vi` knows the arrow keys and Home from the termcap, and maps Home to
+`H`, the top of the screen; upstream's xterm entry did not give Home,
+and now does. Root's `.exrc` (`usr/src/i286/root`) maps End to `L`, the
+bottom of the screen, Page Up and Page Down to ^B and ^F, Delete to `x`
+and Insert to `i`, with `vi`'s own `map`, as an xterm and the console's
+screens send them. Without such maps those keys' escape sequences are
+commands to `vi`: Home and End open a line, and Delete and the page keys
+change the case of a character.
 
 `tcsh` had seven overlays. Its 127K of code is in two segments, and its
 data segment has 26K of data and 8K of stack, leaving about 30K for its
@@ -257,7 +294,10 @@ upstream's `gettytab`, `master.passwd`, `group` and `shells`; this
 port's own `rc`, `rc.conf`, `netstart`, `ttys`, `fstab` and `motd`
 (`usr/src/i286/etc`); root's `.profile`, `.cshrc` and `.login`, and the
 short `/.profile` for the single-user shell, which are upstream's
-(`usr/src/etc/root`); and `passwd`, `syserrlst` and the terminal
+(`usr/src/etc/root`), but for the erase character, which `.profile` and
+`.login` make ^H only on the console's screens ([the
+console](console.md)), and root's `.exrc`, this port's own
+(`usr/src/i286/root`); and `passwd`, `syserrlst` and the terminal
 capabilities, which the Makefile makes. As upstream has them, the
 capabilities are in `/usr/share/misc/termcap`, and `/etc/termcap` is a
 symbolic link to that file. Upstream's `rc` is the PDP-11's, with its
@@ -350,9 +390,15 @@ host logs in over telnet through that network, where `who` must show the
 login from the gateway, and sends `/etc/services` three times into
 `cat`, which must give a file the same as the system's copies; then the
 system sends the first 20K of `/etc/termcap` back, which must arrive as
-it is ([the network](network.md)).  Last it runs `who`, and halts the
-machine with `reboot -h`. Afterwards `tools/fsck.py` must find nothing
-wrong with the file system and must find the copied file.
+it is ([the network](network.md)). That telnet says it is an
+`xterm-ghostty` in a window 200 columns by 80 lines: `TERM` must be
+`xterm`, root's `.profile` must leave DEL the erase character, which the
+shell and then `vi`'s insert mode must obey, `vi` must draw its last
+line on the window's last, and in `vi` Home, End and Delete must go to
+the top line, go to the bottom one and delete a character. Last it runs
+`who`, and halts the machine with `reboot -h`. Afterwards
+`tools/fsck.py` must find nothing wrong with the file system and must
+find the copied file.
 
 Not done, or not tested:
 

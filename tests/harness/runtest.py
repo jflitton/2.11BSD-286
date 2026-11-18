@@ -3,7 +3,7 @@
 
 usage: runtest.py NAME SOURCE...
        runtest.py [--hd IMAGE,CYLINDERS,HEADS,SECTORS[,BUS]] [--until TEXT]
-                  [--net CARD[:PORT:IRQ]]
+                  [--net CARD[:PORT:IRQ]] [--term TYPE:COLSxROWS]
                   [--type AFTER TEXT | --key AFTER TEXT | --telnet AFTER TEXT]...
                   --boot NAME [EXECUTABLE [FILESYSTEM]]
 
@@ -55,7 +55,9 @@ while the machine's interface is up.  --telnet TEXT is typed on a
 telnet connection to that port, opened at the first --telnet, once the
 connection has shown AFTER since the last --telnet; what the machine
 writes on it is printed after what it wrote to the serial port, under a
-line "telnet:".  86Box with the automation socket only.
+line "telnet:".  86Box with the automation socket only.  The connection
+refuses to give a terminal type or a window size unless --term is
+given, and then gives TYPE, and a window COLS wide and ROWS high.
 
 A program given is put on a diskette image by tools/mkfd.py, behind the
 boot sector, usr/src/sys/i286stand/fdboot.s, and the emulator boots it.
@@ -168,6 +170,7 @@ def finished(text):
 UNTIL = None            # --until: what must follow the "@exit" line
 TYPE = []               # --type, --key, --telnet: [kind, after, text]
 NET = None              # --net: (card, port, irq, the host's port)
+TERM = None             # --term: (type, columns, rows)
 
 
 class Typist:
@@ -337,13 +340,16 @@ def run_qemu(img, out):
 
 class Telnet:
     """The host's end of a telnet connection to the machine.  The machine
-    may echo and suppress go-ahead; any other option it offers, and any
-    it asks for, is refused."""
+    may echo and suppress go-ahead, and with TERM, (type, columns, rows),
+    may have the terminal's type and window size; any other option it
+    offers, and any it asks for, is refused."""
 
     IAC, DONT, DO, WONT, WILL, SB, SE = 255, 254, 253, 252, 251, 250, 240
-    ECHO, SGA = 1, 3
+    ECHO, SGA, TTYPE, NAWS = 1, 3, 24, 31
+    IS, SEND = 0, 1
 
-    def __init__(self, port):
+    def __init__(self, port, term=None):
+        self.term = term
         self.sock = socket.create_connection(("127.0.0.1", port), timeout=10)
         self.sock.setblocking(False)
         self.pending = b""      # a command not yet all here
@@ -382,7 +388,14 @@ class Telnet:
                 if i + 2 >= len(buf):
                     break
                 opt = buf[i + 2]
-                if cmd == self.DO:
+                if cmd == self.DO and self.term and opt in (self.TTYPE,
+                                                            self.NAWS):
+                    if self.answer(self.WILL, opt) and opt == self.NAWS:
+                        size = struct.pack(">HH", *self.term[1:])
+                        self.sock.sendall(bytes([self.IAC, self.SB, opt]) +
+                                          size.replace(b"\xff", b"\xff\xff") +
+                                          bytes([self.IAC, self.SE]))
+                elif cmd == self.DO:
                     self.answer(self.WONT, opt)
                 elif cmd == self.WILL:
                     self.answer(self.DO if opt in (self.ECHO, self.SGA)
@@ -392,6 +405,10 @@ class Telnet:
                 end = buf.find(bytes([self.IAC, self.SE]), i)
                 if end < 0:
                     break
+                if self.term and buf[i + 2:end] == bytes([self.TTYPE, self.SEND]):
+                    self.sock.sendall(bytes([self.IAC, self.SB, self.TTYPE, self.IS]) +
+                                      self.term[0].encode("latin-1") +
+                                      bytes([self.IAC, self.SE]))
                 i = end + 2
             else:
                 i += 2
@@ -399,9 +416,12 @@ class Telnet:
         self.text += out.decode("latin-1")
 
     def answer(self, cmd, opt):
-        if (cmd, opt) not in self.answered:
-            self.answered.add((cmd, opt))
-            self.sock.sendall(bytes([self.IAC, cmd, opt]))
+        """Answer CMD for OPT unless that has been; whether it was now."""
+        if (cmd, opt) in self.answered:
+            return False
+        self.answered.add((cmd, opt))
+        self.sock.sendall(bytes([self.IAC, cmd, opt]))
+        return True
 
     def send(self, data):
         self.sock.setblocking(True)
@@ -641,7 +661,7 @@ def run_86box_socket(box, img, out):
                     typekeys(auto, text)
             if typist.kind() == "telnet" and tel is None:
                 try:
-                    tel = Telnet(NET[3])
+                    tel = Telnet(NET[3], TERM)
                 except OSError as e:
                     seen = "no telnet connection to port %d: %s\n" % (NET[3], e)
             if tel:
@@ -738,7 +758,7 @@ def run_86box(img, out):
 
 
 def main():
-    global HD, UNTIL, NET
+    global HD, UNTIL, NET, TERM
     emu = os.environ.get("EMU", "86box")
     if emu not in ("86box", "qemu"):
         sys.exit("EMU must be 86box or qemu")
@@ -767,6 +787,16 @@ def main():
             sys.exit(__doc__)
         if emu != "86box":
             sys.exit("--net: needs 86Box")
+        del sys.argv[1:3]
+    if len(sys.argv) > 2 and sys.argv[1] == "--term":
+        try:
+            name, size = sys.argv[2].rsplit(":", 1)
+            cols, rows = size.split("x")
+            TERM = (name, int(cols), int(rows))
+        except ValueError:
+            sys.exit(__doc__)
+        if not NET:
+            sys.exit("--term: needs --net")
         del sys.argv[1:3]
     kinds = {"--type": "serial", "--key": "key", "--telnet": "telnet"}
     while len(sys.argv) > 3 and sys.argv[1] in kinds:

@@ -173,7 +173,8 @@ serial port and takes the `@exit` line it ends with as the result. It can
 also give the machine a hard disk, boot from that with no diskette, type
 at the serial port, type on the keyboard once the screen shows a
 prompt, and give the machine an NE1000 or NE2000 on a network of the
-emulator's own, with the host able to telnet to it there.
+emulator's own, with the host able to telnet to it there, as a terminal
+of a type and window size given.
 
 ```sh
 . tools/env.sh
@@ -189,7 +190,8 @@ tests/system/run.sh     # the system, booted from a hard disk to multi-user:
                         # console's screens, uses sh, csh and tcsh,
                         # edits with ex and vi, and logs in again over
                         # the loopback interface with telnet, and from
-                        # the host over an emulated NE2000
+                        # the host over an emulated NE2000, as an xterm
+                        # in a big window
 tests/vt/run.sh         # the console's terminal emulator, on the machine
                         # the system is built on: 302 checks
 ```
@@ -235,7 +237,8 @@ tests/vt/run.sh         # the console's terminal emulator, on the machine
   pings the loopback interface and logs in over it with `telnet`. It
   sets up the Ethernet interface, an NE2000 of the emulator's on a
   network of the emulator's own, pings the gateway, and the host logs in
-  over it with telnet and sends a file each way. Then it halts the
+  over it with telnet, sends a file each way, and edits with `vi` in a
+  window of 200 by 80. Then it halts the
   machine, after which `tools/fsck.py` checks the disk
   ([the C library and programs](docs/userland.md),
   [the console](docs/console.md), [the network](docs/network.md)).
@@ -340,3 +343,8 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
 - What user space does not have: a library for the large model, and
   most of the programs, among them `more`, `mail`, `ps`, `fsck`, and of
   the network's `netstat`, `ftp` and `syslogd`.
+- Upstream's programs are kept as 2.11BSD has them, changed only for
+  bugs, the compiler and the settings each machine makes. Newer
+  behaviour is to come in programs of this port's own beside them, the
+  first an editor in the manner of `vim`
+  ([the C library and programs](docs/userland.md)).

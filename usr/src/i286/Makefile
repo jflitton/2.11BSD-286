@@ -104,6 +104,7 @@ telnet_SRCS=	ucb/telnet.c
 telnetd_SRCS=	libexec/telnetd/telnetd.c $(addprefix libexec/getty/,\
 		gettytab.c subr.c init.c)
 telnetd_FLAGS=	-I$(SRC)/libexec/getty
+telnetd_LIBS=	-ltermcap
 inetd_SRCS=	usr.sbin/inetd/inetd.c
 route_SRCS=	sbin/route/route.c
 NETPROGS=	ifconfig ping route telnet telnetd inetd
@@ -217,7 +218,7 @@ $(R)/termcap: $(wildcard $(SRC)/share/termcap/*) $(TOP)/tools/mktermcap.py \
 		| $(R)
 	python3 -I $(TOP)/tools/mktermcap.py $(SRC)/share/termcap $@
 
-$(R)/root.fs: root.proto $(wildcard etc/*) $(addprefix $(O)/,$(PROGS)) \
+$(R)/root.fs: root.proto $(wildcard etc/* root/*) $(addprefix $(O)/,$(PROGS)) \
 		$(R)/passwd $(R)/syserrlst $(R)/empty $(R)/termcap \
 		$(TOP)/obj/PC/unix $(TOP)/obj/stand/boot
 	python3 -I $(TOP)/tools/mkfs.py -s $(ROOTSIZE) root.proto $@

@@ -179,6 +179,20 @@ service (`usr/src/i286/etc/inetd.conf`); `/etc/hosts` names only
 `ifconfig`, `ping`, `telnet`, `telnetd` and `inetd`
 ([the C library and programs](userland.md)).
 
+`telnetd` asks the client for its terminal type and its window's size,
+and gives the pseudo-terminal that size and `TERM` that type; upstream's
+took the size only from a client that offered it unasked, as BSD's
+`telnet` does. A type the termcap lacks is often a newer name for one it
+has, made by adding to the name, as `xterm-256color` and `xterm-ghostty`
+are xterms, so `telnetd` shortens such a name a part at a time, at each
+`-`, until the termcap knows it, and leaves it as it came if the termcap
+never does. Upstream's set the erase and kill characters from an
+uninitialized variable; they are now `gettytab`'s, DEL and ^U, which
+`login` sets again anyway. A terminal emulator's Backspace sends DEL.
+Root's `.profile` and `.login` make ^H the erase character only on the
+console's screens, whose Backspace sends that ([the
+console](console.md)).
+
 ## The Ethernet card
 
 `if_ne.c` drives the NE1000, the NE2000, and the cards and emulations that
