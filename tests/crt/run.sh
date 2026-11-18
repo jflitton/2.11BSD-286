@@ -1,5 +1,6 @@
 #!/bin/sh
-# Test the compiler's helper routines (usr/src/lib/libc/i286/crt) in QEMU.
+# Test the compiler's helper routines (usr/src/lib/libc/i286/crt) in an
+# emulator (see tests/harness/runtest.py).
 # Run from the top of the repository after `. tools/env.sh`.
 set -e
 top=$(cd "$(dirname "$0")/../.." && pwd)

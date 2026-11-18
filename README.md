@@ -20,7 +20,7 @@ has file names that differ only by case.
 | `usr/include/` | the system's headers; mostly links into `usr/src/sys` | yes |
 | `sys` | link to `usr/src/sys`, as on the running system; the links in `usr/include` go through it | yes |
 | `tools/` | host-side tools (below) | yes |
-| `tests/` | tests that boot in QEMU (below) | yes |
+| `tests/` | tests that boot in an emulator (below) | yes |
 | `docs/` | our notes | yes |
 | `reference/MANIFEST` | what third-party material we use, where it comes from, checksums | yes |
 | `reference/upstream/` | the install tape, patches, setup guide | no |
@@ -151,7 +151,7 @@ DOS and OS/2 user's guide with nothing on ports or interrupts; not kept.)
 
 ## Tests
 
-Tests run real 286 code in QEMU (`qemu-system-i386`), in real mode for now.
+Tests run real 286 code in an emulator, in real mode for now.
 `tests/harness/` has a boot sector that loads a small-model program's two
 segments from a diskette image, start-up code with a serial console, and
 `runtest.py`, which builds a program through the normal path (`cc286`,
@@ -162,6 +162,29 @@ and takes main's return value as the result.
 . tools/env.sh
 tests/crt/run.sh        # the compiler's helper routines: 5,161 checks
 ```
+
+The emulator is [86Box](https://github.com/86Box/86Box), as an IBM PS/2
+Model 30 286 with a 287 (`tests/harness/86box.cfg`): a real 286, which
+faults on anything a 286 lacks. `EMU=qemu` uses `qemu-system-i386` instead,
+which is a later processor and so proves less.
+
+`runtest.py` works with a released 86Box, which opens a window and runs in
+real time. It does better with one built with the automation socket, an
+option of 86Box's source that no release has turned on at the time of
+writing: no window, the helper-routine tests in 3 seconds instead of 23,
+and for a test that gives no result, the machine's screen and where it was
+executing. To build one, follow 86Box's own build instructions with one
+option added:
+
+```sh
+cmake -S . -B build/automation --preset regular -D AUTOMATION=ON
+cmake --build build/automation
+```
+
+Then set `BOX86` to the program, or link the application as
+`toolchain/86Box.app`. `doc/specifications/automation.md` in 86Box's source
+describes the socket; adding `-D GDBSTUB=ON` gives a second build for
+debugging, which waits for a GDB client before it runs.
 
 Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
 
@@ -176,7 +199,7 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   [calling convention and kernel interface](docs/abi.md),
   [executable format](docs/executable-format.md).
 - A C program can be compiled, linked, converted to the executable format
-  and run in QEMU in real mode.
+  and run in an emulated PS/2 Model 30 286, in real mode.
 - The helper routines compiled code calls for 32-bit multiply and divide
   and for float-to-integer conversion are written
   (`usr/src/lib/libc/i286/crt`) and pass their tests. The three for
