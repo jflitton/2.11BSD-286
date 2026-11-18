@@ -1,0 +1,39 @@
+#!/bin/sh
+# Compile one C file for the 286 with the system's conventions.
+#
+# usage: cc286 [-ms|-mm|-ml] [-O|-Ot] [-D.. -I.. -U..] -o file.o file.c
+#
+#   -ms -mm -ml   small (default), medium or large memory model
+#   -O            optimize for size (default); -Ot for time
+#
+# Anything else is passed to wcc unchanged.  Needs `. tools/env.sh`.
+# The conventions are in docs/abi.md and tools/cc286.h.
+here=$(cd "$(dirname "$0")" && pwd)
+model=-ms
+opt=-os
+out=
+args=
+while [ $# -gt 0 ]; do
+    case "$1" in
+    -ms|-mm|-ml) model=$1 ;;
+    -O)  opt=-os ;;
+    -Ot) opt=-ox ;;
+    -o)  out=$2; shift ;;
+    *)   args="$args $1" ;;
+    esac
+    shift
+done
+if [ -z "$out" ]; then
+    echo "usage: cc286 [-ms|-mm|-ml] [-O|-Ot] [options] -o file.o file.c" >&2
+    exit 2
+fi
+#  -2          286 instructions
+#  -fpi87 -fp2 287 instructions in line
+#  -s          no stack-overflow probes
+#  -zl -zls    no references to Open Watcom's own libraries
+#  -bt=none    no host operating system macros
+#  -fi         the calling convention
+#  -Drestrict= the headers use restrict; other files use inline as a name,
+#              so C99 keywords cannot simply be switched on
+exec wcc -q $model -2 -fpi87 -fp2 -s $opt -zl -zls -bt=none \
+    -fi="$here/cc286.h" -Drestrict= $args -fo="$out"

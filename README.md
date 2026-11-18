@@ -142,6 +142,8 @@ DOS and OS/2 user's guide with nothing on ports or interrupts; not kept.)
 | `tools/fetch-reference.py` | fetches `reference/` from the manifest |
 | `tools/install-watcom.sh` | installs the cross-compiler for this host into `toolchain/` |
 | `tools/env.sh` | sourced, puts the toolchain on `PATH` |
+| `tools/cc286`, `tools/cc286.h` | compile one C file with the system's memory model and calling convention |
+| `tools/ne2aout.py` | turns the linker's output into the system's executable format; `--dump` prints one |
 | `tools/untap.py` | splits a SimH `.tap` tape image into its files |
 | `tools/tar2git.py` | commits tar archives to a branch without unpacking them |
 | `tools/import-upstream.sh` | rebuilds the `upstream` import from the tape, to check it |
@@ -152,7 +154,11 @@ DOS and OS/2 user's guide with nothing on ports or interrupts; not kept.)
 - Reference material is listed and fetched.
 - The cross-compiler is chosen and installs from the manifest (see
   Toolchain). Nothing compiled with it has been run yet.
-- The memory model is decided: [docs/memory-model.md](docs/memory-model.md).
-- Nothing is ported yet. Open questions that come next: the calling
-  convention, the executable format, and the helper routines the compiler's
-  output calls.
+- The design is decided and written down:
+  [memory model](docs/memory-model.md),
+  [calling convention and kernel interface](docs/abi.md),
+  [executable format](docs/executable-format.md).
+- A C file can be compiled, linked and converted to the executable format,
+  and the result inspected. Nothing has been run yet.
+- Nothing is ported yet. Next: the helper routines compiled code calls,
+  then a kernel skeleton that reaches protected mode in an emulator.
