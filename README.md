@@ -11,6 +11,40 @@ card. The 287 is required.
 This repository must live on a case-sensitive file system: the 2.11BSD tree
 has file names that differ only by case.
 
+## What it needs
+
+- A 286 and a 287. The compiler puts 287 instructions in line, so
+  there is no doing without one.
+- 1 MB of memory at least, 640K and 384K above 1M, which is the least
+  such a machine was sold with; 2 MB is what to have, so that a few
+  users at once do not swap. The kernel, its buffers and the network
+  take 416K of whatever there is. More than that is for more users and
+  larger programs, not for the system:
+
+  | memory | left for programs | free after booting, logged in | four users on telnet |
+  |---|---|---|---|
+  | 1 MB | 607K | 133K | within 4% of as quick as with 4 MB; 100K swapped out |
+  | 2 MB | 1.6 MB | 967K | nothing swapped |
+  | 4 MB | 3.6 MB | 2.9 MB | nothing swapped |
+
+  That is the system in multi-user with its daemons, `inetd` among
+  them: a dozen processes, 470K. The largest program is `tcsh`, 150K of code
+  and data, and a process may have 2 MB. A process is swapped whole, so
+  a machine short of memory waits for its disk and does not fail, until
+  one program is larger than what the kernel leaves. On a machine with
+  memory to spare more shows as used than this: the code of programs
+  that have run is kept until something wants the memory.
+- A hard disk, IDE on the AT's controller or SCSI on an Adaptec
+  AHA-1540 or 1542. The root file system as built is 8 MB with 4.3 MB
+  in it, and the swap space beside it is as large as one cares to make
+  it; the tests give it 2 MB.
+- A VGA and keyboard, or a terminal on COM1; both work at once.
+- For the network, an NE1000, an NE2000 or a card that passes for one.
+
+Measured in the emulator, with the kernel told to use no more memory
+than each line says (`extlimit`, `sys/i286/machdep.c`). No machine with
+640K and nothing above 1M has been tried.
+
 ## Map
 
 | path | what | in git |

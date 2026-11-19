@@ -105,7 +105,8 @@ startup()
 		first = rdinit((memaddr)2048);
 		mfree(coremap, 2048 + (memaddr)extmem * 2 - first, first);
 	}
-	physmem = extmem ? 2048 + (memaddr)extmem * 2 : last;
+	/* what there is, and not where it ends: nothing is at 640K to 1M */
+	physmem = last + (memaddr)extmem * 2;
 	maxmem = MAXMEM;
 
 	procNPROC = proc + nproc;
