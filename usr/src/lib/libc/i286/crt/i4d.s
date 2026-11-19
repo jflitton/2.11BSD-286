@@ -58,32 +58,50 @@ udiv:
         xor     cx, cx
         ret
 .big:   ; The divisor is 65536 or more, so the quotient fits in 16 bits.
-        ; Shift and subtract, 16 steps, remainder in SI:DI.
+        ; Shift the divisor right until it does fit in 16, and the dividend
+        ; by as much: one hardware divide of those gives the quotient or
+        ; one more than it, never less, because the bits shifted out of
+        ; the divisor could only have made it larger.  Multiply back to
+        ; see which, and for the remainder.  (Sixteen steps of shifting
+        ; and subtracting, which this was, took four times as long for a
+        ; divisor of 17 bits.)
         push    si
         push    di
         push    bp
-        mov     di, dx          ; remainder = hi(n)
-        xor     si, si
-        mov     dx, ax          ; the 16 bits still to bring down
-        xor     ax, ax          ; quotient
-        mov     bp, 16
-.loop:  shl     ax, 1
-        shl     dx, 1
-        rcl     di, 1
-        rcl     si, 1
-        cmp     si, cx
-        ja      .sub
-        jb      .next
-        cmp     di, bx
-        jb      .next
-.sub:   sub     di, bx
-        sbb     si, cx
-        inc     ax
-.next:  dec     bp
-        jnz     .loop
-        mov     bx, di
-        mov     cx, si
+        push    cx              ; [bp+2]: the divisor's high word,
+        push    bx              ; [bp]:   and its low
+        mov     bp, sp
+        mov     si, ax          ; the dividend, in DI:SI
+        mov     di, dx
+.shift: shr     dx, 1
+        rcr     ax, 1
+        shr     cx, 1
+        rcr     bx, 1           ; (leaves the zero flag as SHR CX set it)
+        jnz     .shift
+        div     bx
+        mov     bx, ax          ; the quotient, or one more
+.back:  mov     ax, bx
+        mul     word [bp+2]
+        jc      .over           ; the product is beyond 32 bits
+        mov     cx, ax
+        mov     ax, bx
+        mul     word [bp]
+        add     dx, cx          ; DX:AX = quotient * divisor
+        jc      .over
+        cmp     dx, di
+        ja      .over
+        jb      .fits
+        cmp     ax, si
+        jbe     .fits
+.over:  dec     bx              ; one too many
+        jmp     .back
+.fits:  sub     si, ax
+        sbb     di, dx
+        mov     ax, bx
         xor     dx, dx
+        mov     bx, si
+        mov     cx, di
+        add     sp, 4
         pop     bp
         pop     di
         pop     si

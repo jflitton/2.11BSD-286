@@ -31,6 +31,24 @@ for _ in range(300):
     a = random.getrandbits(bits_a) * random.choice([1, -1])
     b = random.getrandbits(bits_b) * random.choice([1, -1])
     pairs.append((a, b))
+# A divisor over 16 bits is divided by after shifting, and the quotient
+# that gives is checked by multiplying back (i4d.s).  It is one too many
+# for dividends just short of a multiple of the divisor: the first three
+# pairs each for one of the ways that is found out, the product's low
+# word too big, its high word, and a product beyond 32 bits; then more of
+# the kind, and dividends at the top of the range.
+pairs += [(s32(a), s32(b)) for a, b in [
+    (0x005afeb7, 0x000f2a74), (0x070cffaf, 0x00c88e3b), (0xffffff45, 0x00086734),
+    (0x4a9fa414, 0x4a9fa478), (0x3a4ebf86, 0x0003288f), (0x6c1bffa7, 0x000f25f9),
+    (0xffffff62, 0x0009d1de), (0xffffffff, 0x00010000), (0xffffffff, 0x00010001),
+    (0xffffffff, 0xffffffff), (0xfffffffe, 0xffffffff), (0x80000000, 0x7fffffff),
+    (0xffff0000, 0x0000ffff), (0xffffffff, 0x8000ffff), (0x00010000, 0x00010000)]]
+for _ in range(200):
+    b = random.getrandbits(random.choice([17, 18, 20, 24, 28, 31, 32])) | 0x10000
+    a = b * random.getrandbits(random.choice([1, 4, 8, 15, 16])) - random.choice([0, 1, 2, 3, 100])
+    if not 0 <= a <= 0xFFFFFFFF:
+        a = 0xFFFFFFFF - random.getrandbits(8)
+    pairs.append((s32(a), s32(b)))
 pairs = [(a, b) for a, b in pairs if b != 0]
 
 
