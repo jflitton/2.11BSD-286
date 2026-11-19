@@ -92,6 +92,9 @@ return: pop     ax
 ; If the frame is a process's, the three instructions with names can
 ; fault: on a selector that is no longer good, or a place to continue
 ; that is outside its segment.  trap() knows them by their addresses.
+; The first can fault for the kernel's own frame too: ES is not the
+; kernel's to keep, and may have held a stale selector when the
+; interrupt came.
 trapret:
         pop     bx
         pop     cx

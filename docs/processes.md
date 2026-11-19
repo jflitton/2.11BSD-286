@@ -73,6 +73,23 @@ frame. If one of them is no longer good, the fault that follows is in the
 kernel; `trap` knows the three instructions it can happen at, gives DS or
 ES the null selector, and sends the process a segmentation violation.
 
+The same fault can come on the way back to the kernel itself, from an
+interrupt that found it running, and then no process is to blame. The
+kernel does not keep ES: it holds whatever the last far pointer put
+there, which after a copy to or from a process is that process's
+selector, and it stays there when the kernel goes on to another
+process, or when the process executes a program with fewer segments.
+An interrupt saves it and cannot put it back, since the process that is
+running now has no such segment. `trap` sees that the frame is the
+kernel's, gives ES the null selector and goes on; what was interrupted
+was not using ES, or it would have loaded it since. Before it told the
+two apart, the process that happened to be running got the segmentation
+violation. That needs a program with more segments than another, so it
+waited for a medium-model program, `csh`, to be at work while the disk
+and the daemons kept the kernel busy: once `tests/system` had `syslogd`,
+`cron` and accounting running, a program the user's `csh` started, or
+root's `telnet`, died so in each run.
+
 ## System calls
 
 ```

@@ -25,7 +25,8 @@ extern int trapret(), tr_popes(), tr_popds(), tr_iret();
  * frame's tf_vec says which.  From a process most of them are a signal
  * to it.  From the kernel only two things are expected: a fault in one
  * of the routines that copy to and from a process, which have left a
- * recovery address in nofault; and a fault on the way back to a process,
+ * recovery address in nofault; and a fault on the way back from the
+ * kernel, to a process or to the kernel itself after an interrupt,
  * loading a selector that is no longer good.
  */
 trap(tf)
@@ -202,6 +203,19 @@ ktrap(tf)
 			utf = (struct trapframe *)
 			    ((caddr_t)&tf->tf_sp - offsetof(struct trapframe, tf_es));
 			utf->tf_es = 0;
+			/*
+			 * The frame may be the kernel's own, of an
+			 * interrupt that found it running.  The kernel
+			 * leaves in ES whatever its last far pointer put
+			 * there, a process's selector as often as not, and
+			 * goes on to another process, or to a new program
+			 * for the same one, that has no such segment.  What
+			 * was interrupted was not using ES, or would have
+			 * loaded it since; it goes on with the null
+			 * selector, and the process has done nothing.
+			 */
+			if (!USERMODE(utf->tf_cs))
+				return;
 		} else if (ip == (u_int)tr_popds) {
 			utf = (struct trapframe *)
 			    ((caddr_t)&tf->tf_sp - offsetof(struct trapframe, tf_ds));
