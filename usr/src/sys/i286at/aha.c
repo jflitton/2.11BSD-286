@@ -225,13 +225,13 @@ ahasetup(how)
 		c[1] = 0;
 		c[2] = aha.a_xbios[1];
 		if (e = ahacmd(c, 3, r, 0))
-			printf("aha: cannot unlock the mailboxes (%d)\n", e);
+			printf("aha: mailbox unlock failed (%d)\n", e);
 	} else
 		aha.a_xbios[0] = aha.a_xbios[1] = 0;
 
 	c[0] = AC_RETCONF;
 	if (e = ahacmd(c, 1, r, 3)) {
-		printf("aha: at 0x%x: will not say how it is set (%d)\n", b, e);
+		printf("aha: at 0x%x: no configuration (%d)\n", b, e);
 		return (1);
 	}
 	aha.a_dma = r[0] & 0x80 ? 7 : r[0] & 0x40 ? 6 : r[0] & 0x20 ? 5 :
@@ -240,7 +240,7 @@ ahasetup(how)
 	    r[1] & 0x08 ? 12 : r[1] & 0x20 ? 14 : r[1] & 0x40 ? 15 : -1;
 	aha.a_id = r[2] & 7;
 	if (aha.a_dma < 0 || aha.a_irq < 0) {
-		printf("aha: at 0x%x: no DMA channel or interrupt set\n", b);
+		printf("aha: at 0x%x: no irq or dma set\n", b);
 		return (2);
 	}
 	/*
@@ -265,7 +265,7 @@ ahasetup(how)
 	c[1] = AHA_NMBOX;
 	put3(&c[2], fartophys(ahamb));
 	if (e = ahacmd(c, 5, r, 0)) {
-		printf("aha: at 0x%x: will not take its mailboxes (%d)\n", b, e);
+		printf("aha: at 0x%x: mailbox init failed (%d)\n", b, e);
 		return (3);
 	}
 	return (0);
@@ -294,40 +294,29 @@ aharate(b, wr)
 }
 
 /*
- * Say how data is passed, which is what a disk's speed comes to and
- * cannot be seen from anything else: with a target of -1, how the
- * adapter is set to pass it over the AT bus; with a target, what the
- * two agreed, which the adapter knows once it has sent the target a
- * command.  The period is counted from 100 ns by the C series, by its
- * technical reference (5-11), and a real CF's came to what its disk
- * said it had agreed; from 200 by a B, by what other drivers do.  The
- * bytes these come from are printed too, as the adapter gave them.
- * Called at splbio, with no command outstanding.
+ * What the adapter and a target agreed, which the adapter knows once it
+ * has sent the target a command: the rate in tenths of a megabyte a
+ * second if synchronous, 0 if not, -1 if the adapter will not say.
+ * The period is counted from 100 ns by the C series, by its technical
+ * reference (5-11), and a real CF's came to what its disk said it had
+ * agreed; from 200 by a B, by what other drivers do.  Called at
+ * splbio, with no command outstanding.
  */
-ahahow(target)
+ahasync(target)
 	int target;
 {
 	u_char c[2], r[16];
-	register int v, w;
+	register int v;
 
 	c[0] = AC_RETSETUP;
 	c[1] = sizeof (r);
 	if (ahacmd(c, 2, r, sizeof (r)))
-		return;
-	if (target < 0) {
-		v = aharate(r[1], 0);
-		w = aharate(r[1], 1);
-		printf("aha: the AT bus read at %d.%d MB/s and written at %d.%d (%x), held %d us and let go %d\n",
-		    v / 10, v % 10, w / 10, w % 10, r[1], r[2], r[3]);
-		return;
-	}
+		return (-1);
 	v = r[8 + target];
-	if (v & 0x80)
-		printf("aha: id %d: synchronous, %d ns a byte, %d bytes ahead (%x)\n",
-		    target, (aha.a_board[0] >= 'D' ? 100 : 200) +
-		    50 * (v >> 4 & 7), v & 0x0F, v);
-	else
-		printf("aha: id %d: asynchronous (%x)\n", target, v);
+	if (!(v & 0x80))
+		return (0);
+	return (10000 / ((aha.a_board[0] >= 'D' ? 100 : 200) +
+	    50 * (v >> 4 & 7)));
 }
 
 /*
@@ -382,6 +371,7 @@ ahaattach()
 {
 	register int i, e;
 	register char *name;
+	u_char c[2], r[4];
 
 	if (aha.a_state != A_UNKNOWN)
 		return (aha.a_state != A_PRESENT);
@@ -393,22 +383,35 @@ ahaattach()
 	}
 	if (i == NPORTS || e != 0)
 		return (1);
+	/* The 1540 of each is the same without a diskette controller. */
 	switch (aha.a_board[0]) {
 	case 'D':
-		name = "1540C/1542C";
+		name = "C";
 		break;
 	case 'E':
-		name = "1540CF/1542CF";
+		name = "CF";
 		break;
 	case 'F':
-		name = "1540CP/1542CP";
+		name = "CP";
 		break;
 	default:
-		name = "1540/1542";
+		name = "";
 	}
-	printf("aha: AHA-%s at 0x%x, interrupt request %d, DMA channel %d, SCSI id %d\n",
-	    name, aha.a_base, aha.a_irq, aha.a_dma, aha.a_id);
-	ahahow(-1);
+	printf("aha: AHA-1542%s at 0x%x irq %d dma %d id %d", name,
+	    aha.a_base, aha.a_irq, aha.a_dma, aha.a_id);
+	/* How it shares the AT bus, and its speed there: read/write. */
+	c[0] = AC_RETSETUP;
+	c[1] = sizeof (r);
+	if (ahacmd(c, 2, r, sizeof (r)) == 0) {
+		i = aharate(r[1], 0);
+		e = aharate(r[1], 1);
+		printf(", bus on %d off %d us, %d.%d", r[2], r[3],
+		    i / 10, i % 10);
+		if (e != i)
+			printf("/%d.%d", e / 10, e % 10);
+		printf(" MB/s");
+	}
+	printf("\n");
 	aha.a_state = A_PRESENT;
 	setirq(aha.a_irq, IPL_BIO, ahaintr, 0);
 	timeout(ahawatch, (caddr_t)0, hz);
@@ -483,7 +486,7 @@ ahaout()
 	put3(mb->mb_ccb, aha.a_ccbpa);
 	mb->mb_status = MBO_START;
 	if (ahawait(aha.a_base + AHA_STAT, ST_CDF, 0, ST_CDF, SPIN))
-		printf("aha: not taking commands\n");
+		printf("aha: not ready\n");
 	outb(aha.a_base + AHA_DATA, AC_START);
 }
 
@@ -579,9 +582,8 @@ ahaintr(arg, tf)
 	int arg;
 	caddr_t tf;
 {
-	register int fl, st;
+	register int fl;
 	static int count;
-	long pa;
 
 	if (aha.a_state != A_PRESENT)
 		return;
@@ -614,17 +616,17 @@ ahawatch()
 		    (inb(aha.a_base + AHA_INTR) & IF_ANY)) {
 			if (!aha.a_warned) {
 				aha.a_warned = 1;
-				printf("aha: an interrupt did not arrive: is request %d the adapter's alone?\n",
+				printf("aha: lost interrupt (irq %d shared?)\n",
 				    aha.a_irq);
 			}
 			ahaintr(0, (caddr_t)0);
 		} else if (aha.a_ticks >= ahatimeout) {
-			printf("aha: no answer in %d seconds: resetting it and the SCSI bus\n",
+			printf("aha: timeout after %d s, resetting adapter and bus\n",
 			    ahatimeout);
 			aha.a_busy = 0;
 			st = AHA_LOST;
 			if (ahasetup(CTRL_SCRST)) {
-				printf("aha: it will not be reset\n");
+				printf("aha: reset failed\n");
 				aha.a_state = A_ABSENT;
 				st = AHA_DEAD;
 			}

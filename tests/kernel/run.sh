@@ -164,8 +164,8 @@ grep -q "^buffers   = 131072" "$top/obj/tests/kernel-sd/serial.txt"
 # by itself.
 diskboot sdlost sd scsi:334:10:6:5:0 diskette "-g 2600,64,32 -p -o 5000000" \
     diskroot=512 ahatest=7 ahatimeout=5
-grep -q "aha: an interrupt did not arrive" "$top/obj/tests/kernel-sdlost/serial.txt"
-grep -q "aha: no answer in 5 seconds" "$top/obj/tests/kernel-sdlost/serial.txt"
+grep -q "aha: lost interrupt" "$top/obj/tests/kernel-sdlost/serial.txt"
+grep -q "aha: timeout after 5 s" "$top/obj/tests/kernel-sdlost/serial.txt"
 grep -q "sd0: [0-9]*-block command failed" "$top/obj/tests/kernel-sdlost/serial.txt"
 grep -q "^buffers   = 65536" "$top/obj/tests/kernel-sdlost/serial.txt"
 

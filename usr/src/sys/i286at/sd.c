@@ -120,7 +120,7 @@ sdprobe(target)
 		return;			/* nothing there */
 	if (st != MBI_OK && !(st == MBI_ERROR && cp->cc_hastat == HS_DATARUN &&
 	    cp->cc_tarstat == SS_GOOD)) {
-		printf("aha: id %d: will not say what it is (%d, %x, %x)\n",
+		printf("sd: id %d: inquiry failed (%d, %x, %x)\n",
 		    target, st, cp->cc_hastat, cp->cc_tarstat);
 		return;
 	}
@@ -141,7 +141,7 @@ sdprobe(target)
 		n--;
 	name[n] = 0;
 	if (type != 0) {
-		printf("aha: id %d: %s, not a disk (type %d)\n", target, name,
+		printf("sd: id %d: %s, type %d, not a disk\n", target, name,
 		    type);
 		return;
 	}
@@ -154,7 +154,7 @@ sdprobe(target)
 			break;
 	}
 	if (st != MBI_OK) {
-		printf("aha: id %d: %s: will not say how big it is (%d, %x, %x, key %d)\n",
+		printf("sd: id %d: %s: read capacity failed (%d, %x, %x, key %d)\n",
 		    target, name, st, cp->cc_hastat, cp->cc_tarstat,
 		    sdsense(st));
 		return;
@@ -162,12 +162,12 @@ sdprobe(target)
 	size = get4(sdbuf) + 1;
 	secsize = get4(sdbuf + 4);
 	if (secsize != 512) {
-		printf("aha: id %d: %s: sectors of %D bytes\n", target, name,
-		    secsize);
+		printf("sd: id %d: %s: %D-byte sectors unsupported\n", target,
+		    name, secsize);
 		return;
 	}
 	if (nsd >= NSD) {
-		printf("aha: id %d: %s: one disk too many\n", target, name);
+		printf("sd: id %d: %s: too many disks\n", target, name);
 		return;
 	}
 	/*
@@ -190,8 +190,12 @@ sdprobe(target)
 	cyls = size / sp->sd_spc;
 	sp->sd_geom.pg_cyls = cyls > 65535L ? 65535 : cyls;
 	sp->sd_dk.dk_label = &sdlabel[nsd];
-	printf("sd%d: id %d: %s, %D MB\n", nsd, target, name, size / 2048);
-	ahahow(target);
+	printf("sd%d: %s, %D MB, id %d", nsd, name, size / 2048, target);
+	if ((i = ahasync(target)) > 0)
+		printf(", sync %d.%d MB/s", i / 10, i % 10);
+	else if (i == 0)
+		printf(", async");
+	printf("\n");
 	nsd++;
 #ifdef UCB_METER
 	/* how fast it moves words is not known: iostat leaves it out */
@@ -255,10 +259,11 @@ sdioctl(dev, cmd, data, flag)
 }
 
 /*
- * Send the command for the transfer at the head of the queue, and for
- * as many after it in the queue as go on from where it ends: all of
- * each at once, straight to or from where its data is.  Called at
- * splbio.
+ * Send a command: again the one that is out, if there is one, and
+ * otherwise one for the transfer at the head of the queue and for as
+ * many after it in the queue as go on from where it ends, which leave
+ * the queue.  All of each transfer at once, straight to or from where
+ * its data is.  Called at splbio.
  */
 static
 sdstart()
@@ -311,7 +316,7 @@ sdstart()
 	if (sdn == 1)
 		ahafill(sp->sd_target, dir, 10, bfpaddr(bp), bp->b_bcount);
 	else {
-		for (np = bp, i = 0; i < sdn; i++, np = np->av_forw)
+		for (np = bp, i = 0; np != NULL; i++, np = np->av_forw)
 			ahaseg(i, bfpaddr(np), np->b_bcount);
 		ahafillsegs(sp->sd_target, dir, 10, sdn);
 	}
@@ -326,8 +331,7 @@ sdstart()
 }
 
 /*
- * The command for the transfers at the head of the queue is over: how
- * is what ahago says of it.
+ * The command that is out is over: how is what ahago says of it.
  */
 static
 sdintr(how)
@@ -337,7 +341,6 @@ sdintr(how)
 	register struct ccb *cp = &ahaccb;
 	register int key;
 	static int failed;
-	int n;
 
 	if (bp == NULL || sdtab.b_active == 0)
 		return;
