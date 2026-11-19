@@ -372,6 +372,16 @@ gotpty:
 	if (terminaltype && *terminaltype)
 		knowntype(terminaltype);
 
+	/*
+	 * The modes that echoing wants are set here, before login is
+	 * started, where telnet() set them after: setting a
+	 * pseudo-terminal's modes from this side throws away what is
+	 * waiting to be read from it, and on a busy machine login had
+	 * its turn first and that was its prompt.
+	 */
+	if (!myopts[TELOPT_ECHO])
+		dooption(TELOPT_ECHO);
+
 	if ((i = fork()) < 0)
 		fatalperror(f, "fork");
 	if (i)

@@ -190,6 +190,12 @@ are xterms, so `telnetd` shortens such a name a part at a time, at each
 never does. Upstream's set the erase and kill characters from an
 uninitialized variable; they are now `gettytab`'s, DEL and ^U, which
 `login` sets again anyway. A terminal emulator's Backspace sends DEL.
+Upstream's also set the modes that echoing wants after it had started
+`login`; setting a pseudo-terminal's modes from the server's side
+throws away what is waiting to be read from it, and on a busy machine
+that was `login`'s prompt, so a user saw the banner and nothing after.
+They are set before `login` is started
+([performance](performance.md)).
 Root's `.profile` and `.login` make ^H the erase character only on the
 console's screens, whose Backspace sends that ([the
 console](console.md)).
