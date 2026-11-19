@@ -19,6 +19,9 @@ static char sccsid[] = "@(#)dmesg.c	5.6 (2.11BSD) 2026/4/2";
 #include <sys/file.h>
 #include <sys/vm.h>
 #include <sys/msgbuf.h>
+#ifdef i286
+#include <machine/seg.h>
+#endif
 
 struct	msgbuf msgbuf;
 char	*msgbufp;
@@ -36,14 +39,32 @@ char **argv;
 	register char *mp, *omp, *mstart;
 	int samef, sawnl, ignore;
 	char msgb[MSG_BSIZE];
+#ifdef i286
+	long msgbase;
+#endif
 
 	nlist("/unix", nl);
 	if (nl[0].n_type==0)
 		done("Can't get /unix namelist\n");
+#ifdef i286
+	/*
+	 * The kernel's segments are in /dev/kmem, numbered as its
+	 * executable numbers them.  msgbuf is in one and points to the
+	 * messages in another, by its selector: the segments' selectors
+	 * are in the order of their numbers, from GDT_KERNEL.
+	 */
+	if ((mem = open("/dev/kmem", O_RDONLY)) < 0)
+		done("Can't open /dev/kmem\n");
+	lseek(mem, ((long)nl[0].n_ovly << 16) + nl[0].n_value, SEEK_SET);
+	read(mem, &msgbuf, sizeof (msgbuf));
+	msgbase = ((long)(LSLOT(msgbuf.msg_bufs) - GDT_KERNEL + 1) << 16) +
+	    (u_int)msgbuf.msg_bufc;
+#else
 	if ((mem = open("/dev/mem", O_RDONLY)) < 0)
 		done("Can't open /dev/mem\n");
 	lseek(mem, (long)nl[0].n_value, SEEK_SET);
 	read(mem, &msgbuf, sizeof (msgbuf));
+#endif
 	if (msgbuf.msg_magic != MSG_MAGIC)
 		done("Magic number wrong (namelist mismatch?)\n");
 	if (msgbuf.msg_bufx >= MSG_BSIZE)
@@ -51,7 +72,11 @@ char **argv;
 	if (omesg.msg_bufx >= MSG_BSIZE)
 		omesg.msg_bufx = 0;
 	msgbuf.msg_bufc = msgb;
+#ifdef i286
+	lseek(mem, msgbase, SEEK_SET);
+#else
 	lseek(mem, (long)ctob((long)msgbuf.msg_click), SEEK_SET);
+#endif
 	read(mem, msgbuf.msg_bufc, MSG_BSIZE);
 	mstart = &msgbuf.msg_bufc[omesg.msg_bufx];
 	omp = &omesg.msg_bufc[msgbuf.msg_bufx];

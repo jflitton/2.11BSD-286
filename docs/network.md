@@ -294,12 +294,15 @@ controller is set; the driver has not run on one, nor on any real card.
   the other goes, which the card's 16K would allow; the multicast
   filter; the workaround for the early DP8390s that want a remote read
   before each remote write.
-- `syslogd`, `ftp`, `ftpd`, `rlogin`, `rlogind`, the mail system.
+- `ftp`, `ftpd`, `rlogin`, `rlogind`, the mail system. `syslogd` takes
+  messages from other machines on its UDP port, which has not been
+  tried, nor has its sending of them to another machine's.
   (`netstat`, `arp` and `route -f` read the network's tables through
   `/dev/kmem`: [programs that read the
   kernel](userland.md#programs-that-read-the-kernel).)
-- Unix-domain sockets are compiled in and not tried beyond `syslog`'s
-  connect to a `/dev/log` that is not there.
+- Unix-domain sockets carry datagrams to `syslogd`, at `/dev/log`
+  ([the log](userland.md#the-log-and-what-the-clock-runs)). Their
+  streams have not been tried.
 - `recvmsg` and `sendmsg` in the C library: the kernel's `struct
   msghdr` holds far pointers now, as `struct iovec` does.
 - The serial line interface, whose calls are left out of `net_mac.h`.

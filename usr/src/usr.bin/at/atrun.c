@@ -165,13 +165,16 @@ char *spoolfile;
 	}
 
 	/*
-	 * Grab the 4-line header out of the spoolfile.
+	 * Grab the 4-line header out of the spoolfile.  Where a line ends
+	 * with the word wanted, "%*[^\n]" has nothing to match, and
+	 * fscanf stops there with the newline unread: the blank that the
+	 * later formats begin with passes over it.
 	 */
 	if (
 	    (fscanf(infile,"# owner: %127s%*[^\n]\n",owner) != 1) ||
-	    (fscanf(infile,"# jobname: %127s%*[^\n]\n",jobname) != 1) ||
-	    (fscanf(infile,"# shell: %3s%*[^\n]\n",shell) != 1) ||
-	    (fscanf(infile,"# notify by mail: %3s%*[^\n]\n",mailvar) != 1)
+	    (fscanf(infile," # jobname: %127s%*[^\n]\n",jobname) != 1) ||
+	    (fscanf(infile," # shell: %3s%*[^\n]\n",shell) != 1) ||
+	    (fscanf(infile," # notify by mail: %3s%*[^\n]\n",mailvar) != 1)
 	    ) {
 		fprintf(stderr, "%s: bad spool header\n", spoolfile);
 		exit(1);

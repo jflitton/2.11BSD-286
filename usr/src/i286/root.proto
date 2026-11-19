@@ -20,6 +20,10 @@ d /usr/share 755
 d /usr/share/misc 755
 d /usr/preserve 755
 d /usr/adm 755
+d /usr/spool 755
+d /usr/spool/at 755:1.1
+d /usr/spool/at/past 755:1.1
+d /usr/spool/mqueue 755
 d /usr/tmp 1777
 d /var 755
 d /var/run 755
@@ -50,6 +54,8 @@ f /etc/group 644 ../etc/group
 f /etc/shells 644 ../etc/shells
 f /etc/hosts 644 etc/hosts
 f /etc/inetd.conf 644 etc/inetd.conf
+f /etc/syslog.conf 644 ../etc/syslog.conf
+f /etc/crontab 644 etc/crontab
 f /etc/services 644 ../etc/services
 f /etc/protocols 644 ../etc/protocols
 f /etc/passwd 644 ../../../obj/root/passwd
@@ -63,6 +69,13 @@ f /var/run/utmp 644 ../../../obj/root/empty
 f /usr/adm/wtmp 644 ../../../obj/root/empty
 f /usr/adm/lastlog 644 ../../../obj/root/empty
 f /usr/adm/messages 644 ../../../obj/root/empty
+f /usr/adm/acct 644 ../../../obj/root/empty
+f /usr/adm/cron 644 ../../../obj/root/empty
+f /usr/adm/lpd-errs 644 ../../../obj/root/empty
+f /usr/adm/daemonlog 644 ../../../obj/root/empty
+f /usr/adm/debuglog 644 ../../../obj/root/empty
+f /usr/spool/mqueue/syslog 644 ../../../obj/root/empty
+f /usr/spool/at/lasttimedone 644:1.1 ../../../obj/root/zero
 f /usr/libexec/getty 755 ../../../obj/bin/getty
 f /bin/sh 755 ../../../obj/bin/sh
 f /bin/csh 755 ../../../obj/bin/csh
@@ -130,6 +143,20 @@ f /usr/sbin/chown 755 ../../../obj/bin/chown
 f /usr/sbin/adduser 755 ../../../obj/bin/adduser
 f /usr/sbin/dev_mkdb 755 ../../../obj/bin/dev_mkdb
 f /usr/sbin/arp 2755:2 ../../../obj/bin/arp
+f /usr/sbin/syslogd 755 ../../../obj/bin/syslogd
+f /usr/ucb/logger 755 ../../../obj/bin/logger
+f /sbin/dmesg 2755:2 ../../../obj/bin/dmesg
+f /usr/sbin/cron 755 ../../../obj/bin/cron
+f /usr/bin/crontab 4755 ../../../obj/bin/crontab
+f /usr/bin/at 4755:1.0 ../../../obj/bin/at
+f /usr/bin/atq 4755:1.0 ../../../obj/bin/atq
+f /usr/bin/atrm 4755:1.0 ../../../obj/bin/atrm
+f /usr/libexec/atrun 755:1.0 ../../../obj/bin/atrun
+f /usr/sbin/accton 755 ../../../obj/bin/accton
+f /usr/libexec/acctd 700 ../../../obj/bin/acctd
+f /usr/ucb/lastcomm 755 ../../../obj/bin/lastcomm
+f /usr/sbin/sa 755 ../../../obj/bin/sa
+f /usr/bin/find 755 ../../../obj/bin/find
 f /usr/sbin/pstat 2755:2 ../../../obj/bin/pstat
 f /sbin/ifconfig 755 ../../../obj/bin/ifconfig
 f /sbin/ping 4755 ../../../obj/bin/ping
@@ -169,6 +196,9 @@ c /dev/ttyp7 666 6 7
 c /dev/mem 640:2 1 0
 c /dev/kmem 640:2 1 1
 c /dev/null 666 1 2
+c /dev/klog 600 3 0
+c /dev/errlog 600 3 1
+c /dev/acctlog 600 3 2
 b /dev/rd0 600 0 0
 b /dev/rd1 600 0 1
 b /dev/wd0a 640 1 0

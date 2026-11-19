@@ -70,8 +70,6 @@ logopen(dev, mode)
 		return(ENODEV);
 	if	(logisopen(unit))
 		return(EBUSY);
-	if	(msgbuf[unit].msg_click == 0)	/* no buffer allocated */
-		return(ENOMEM);
 	logsoftc[unit].sc_state |= LOG_OPEN;
 	if	(unit == logACCT)
 		Acctopen = 1;

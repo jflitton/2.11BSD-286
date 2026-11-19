@@ -135,7 +135,7 @@ usage:		fprintf(stderr, "Usage: find path-list predicate-list\n");
 	if(Cpio) {
 		strcpy(Pathname, "TRAILER!!!");
 		Statb.st_size = 0;
-		cpio();
+		cpio((struct anode *)0);
 		printf("%D blocks\n", Blocks*10);
 	}
 	exit(0);

@@ -137,13 +137,41 @@ netstat_SRCS=	$(addprefix ucb/netstat/,host.c inet.c if.c main.c mbuf.c \
 pstat_SRCS=	usr.sbin/pstat/pstat.c
 KMEMPROGS=	ps w vmstat iostat netstat pstat dev_mkdb
 
+# The system log and what the clock runs: syslogd, logger which writes
+# to it and dmesg which shows what the kernel has printed; cron and
+# crontab; at and what looks after its queue; the accounting of
+# processes, accton and acctd which keep it and lastcomm and sa which
+# show it; and find, with which /etc/rc clears /tmp.  syslogd reads all
+# of the kernel's 4K of messages onto its stack and formats lines of 1K
+# in each of three functions below that, more than the 8K a program's
+# stack is here unless it is given another size.
+syslogd_SRCS=	usr.sbin/syslogd/syslogd.c
+syslogd_FLAGS=	-stack 12288
+logger_SRCS=	ucb/logger.c
+dmesg_SRCS=	sbin/dmesg/dmesg.c
+CRON=		misc.c entry.c env.c compat.c
+cron_SRCS=	$(addprefix usr.sbin/cron/,cron.c database.c user.c job.c \
+		do_command.c popen.c $(CRON))
+cron_FLAGS=	-I$(SRC)/usr.sbin/cron
+crontab_SRCS=	$(addprefix usr.sbin/cron/,crontab.c $(CRON))
+crontab_FLAGS=	-I$(SRC)/usr.sbin/cron
+ATPROGS=	at atq atrm atrun
+$(foreach p,$(ATPROGS),$(eval $(p)_SRCS = usr.bin/at/$(p).c))
+accton_SRCS=	usr.sbin/accton/accton.c
+acctd_SRCS=	libexec/acctd/acctd.c
+lastcomm_SRCS=	ucb/lastcomm.c
+sa_SRCS=	usr.sbin/sa/sa.c
+find_SRCS=	usr.bin/find/find.c
+LOGPROGS=	syslogd logger dmesg cron crontab $(ATPROGS) accton acctd \
+		lastcomm sa find
+
 # This port's own (docs/userland.md), each in a directory here.
 adduser_SRCS=	i286/adduser/adduser.c
 OWNPROGS=	adduser
 
 PROGS=	init getty login sh csh ls mkdir stty test hostname mknod mount \
 	umount reboot sleep ex exrecover expreserve tcsh $(BINSTD) \
-	$(NETPROGS) $(SYSPROGS) $(KMEMPROGS) $(OWNPROGS)
+	$(NETPROGS) $(SYSPROGS) $(KMEMPROGS) $(LOGPROGS) $(OWNPROGS)
 
 # The libraries the programs use besides the C library: NAME_LIB lists a
 # library's sources, and NAME_LIBFLAGS what it is compiled with.  Each is
@@ -258,6 +286,10 @@ $(R)/syserrlst: $(SRC)/usr.lib/liberrlst/errlst.c $(TOP)/tools/mkerrlst.py | $(R
 $(R)/empty: | $(R)
 	: > $@
 
+# The time atrun last ran, for atq: never.
+$(R)/zero: | $(R)
+	echo 0 > $@
+
 $(R)/termcap: $(wildcard $(SRC)/share/termcap/*) $(TOP)/tools/mktermcap.py \
 		| $(R)
 	python3 -I $(TOP)/tools/mktermcap.py $(SRC)/share/termcap $@
@@ -265,7 +297,7 @@ $(R)/termcap: $(wildcard $(SRC)/share/termcap/*) $(TOP)/tools/mktermcap.py \
 $(R)/root.fs: root.proto $(wildcard etc/* root/* skel/*) \
 		$(addprefix $(O)/,$(PROGS)) \
 		$(R)/passwd $(R)/passwd.dir $(R)/passwd.pag $(R)/fstab \
-		$(R)/syserrlst $(R)/empty $(R)/termcap \
+		$(R)/syserrlst $(R)/empty $(R)/zero $(R)/termcap \
 		$(TOP)/obj/PC/unix $(TOP)/obj/stand/boot
 	python3 -I $(TOP)/tools/mkfs.py -s $(ROOTSIZE) root.proto $@
 

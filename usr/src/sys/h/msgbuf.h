@@ -17,7 +17,8 @@ struct	msgbuf {
 #ifdef KERNEL
 	char __far *msg_bufc;	/* outside the kernel's data segment */
 #else
-	u_long	msg_bufc;
+	char	*msg_bufc;	/* the offset; dmesg points it at its copy */
+	u_short	msg_bufs;	/* and the selector, one of the kernel's */
 #endif
 };
 

@@ -208,7 +208,8 @@ they mean them.
   `const` or in a parameter narrower than an `int`;
 - a call that disagrees in its number or types of arguments with an
   old-style definition anywhere in the file, before the call or after it;
-- a function used before it is declared `void` and then defined so.
+- a function used before it is declared `void` and then defined so,
+  as `sa`'s `usage` was, which is declared first now.
 
 The usual case of the second is a `fatal(status, fmt, a)` called with
 more or fewer arguments, as in `chown`, or `fsck`'s `errexit`, `pfatal`
@@ -216,8 +217,8 @@ and `pwarn`; those became variadic, with `vfprintf` or `vprintf`, and
 `csh`'s `error` with a `vprintf` of its own. `ex`'s `error` takes a
 message and sometimes an argument, an `int` or a pointer, so it is
 variadic too. Where only trailing arguments that go unused were left
-out, as in `csh`'s `search` and `execute` and `telnet`'s `printoption`
-and `dosynch`, the calls pass them now; `telnet`'s `call`, which walks
+out, as in `csh`'s `search` and `execute`, `telnet`'s `printoption`
+and `dosynch` and `find`'s `cpio`, the calls pass them now; `telnet`'s `call`, which walks
 its arguments to the null that ends them, is variadic. `mkfs` passes a
 block of inodes to routines that take a `char *`, and casts it now. A
 few of the disagreements were real bugs on any 16-bit machine, the
@@ -271,8 +272,8 @@ a union (`bin/sh/mode.h`); the shell's few other such uses have casts.
   end a process with SIGSYS. `syslog` has a fallback for that, writing
   to `/usr/adm/messages` and then the console, which was for the PDP-11
   only and is for the 286 too. With the network compiled in, as now,
-  `syslog` gets its socket, finds no `/dev/log` to connect it to, since
-  `syslogd` is not built, and writes to the console instead.
+  `syslog` gets its socket and sends to `syslogd` at `/dev/log`, and
+  writes to the console itself only if `syslogd` is not running.
 - **That the year begins with 19.** `chpass` showed a date as `19`
   and the years since 1900, so 2026 as 19126, which it could not read
   back; it shows the whole year now.
@@ -411,6 +412,98 @@ read `/unix` each time.
 idle, the system calls, traps, interrupts and context switches, forks,
 swaps, the name cache, and each disk's transfers.
 
+## The log, and what the clock runs
+
+`syslogd` is upstream's, unchanged. Messages reach it from three places.
+Programs send theirs to the Unix-domain datagram socket it binds as
+`/dev/log`, other machines to UDP port 514, and it reads the kernel's
+from `/dev/klog`: all that the kernel has printed since that was last
+read, so the messages of the boot are the first lines of the log.
+`/etc/syslog.conf` is upstream's too, and says where each kind goes: to
+the files in `/usr/adm` (`messages`, `cron`, `daemonlog`, `debuglog`,
+`lpd-errs`) and `/usr/spool/mqueue/syslog`, to the console, and to the
+terminals of users. `syslogd` writes only to files that exist, so the
+root file system has them, empty. `logger` sends a message from the
+shell.
+
+A line the kernel prints with `printf` does not wake `syslogd`, here as
+upstream: only its `log` and `tprintf` do. The line waits in the buffer
+until something else wakes `syslogd`, a message from a program or its
+own timer, which runs every two minutes. `syslog.conf` sends the
+kernel's errors to the terminals of root and of operator as well as to
+the files, so such a line then appears on each terminal root is logged
+in on.
+
+`syslogd` is linked with a stack of 12K. It reads the kernel's 4K of
+messages into an array in `main`, and three of the functions below
+that each format a line of 1K in an array of their own, as does the
+handler of its timer on top of them. That is more than the 8K a
+program's stack is here unless the Makefile gives it another size, and
+on the 286 the stack does not grow as the PDP-11's does.
+
+`/dev/klog` could not be opened until `syslogd` tried. `logopen` refused
+a log whose `msg_click` was zero: on the PDP-11 that is where the log's
+buffer is, and on the 286 the buffers are far arrays in the kernel and
+the field is not used. The check is gone. The log device has two more
+logs: `/dev/errlog`, which nothing reads yet, and `/dev/acctlog`.
+
+`dmesg` prints the kernel's messages from the buffer itself. The
+PDP-11's reads the buffer from `/dev/mem`, at the click that `msgbuf`
+gives. On the 286 `msgbuf` holds a far pointer to it, and `dmesg` reads
+it from `/dev/kmem` ([programs that read the
+kernel](#programs-that-read-the-kernel)), in the segment whose selector
+that is: the selectors of the kernel's segments are in the order of the
+segments' numbers. A program's `struct msgbuf` has that pointer as an
+offset and a selector, the offset in the member that `dmesg` then
+points at its own copy.
+
+`cron` and `crontab` are upstream's, Paul Vixie's, unchanged. `cron`
+makes `/var/cron/tabs`, where `crontab` keeps each user's table, and
+it runs `/etc/crontab` as well, which is this port's own. That has
+upstream's line that runs `atrun` every quarter of an hour. Upstream's
+also runs `/usr/adm/daily`, `weekly` and `monthly` and mails root what
+they print, but the tree has no such scripts, and there is no mail yet.
+`cron` mails what a job prints to the job's owner, through `sendmail`,
+so until that is built a job's output is lost unless the job sends it
+somewhere.
+
+`cron` reads the tables again when `/etc/crontab` or the directory of
+tables has a later time of modification than it last saw. So it does
+not notice a new table while either is dated in the future. The kernel
+takes the clock chip's time to be universal time. The test harness's
+86Box kept the host's local time in the chip, which on a host west of
+Greenwich made every file of a root file system built there some hours
+newer than the clock; it keeps universal time now (`time_sync` in
+`tests/harness/86box.cfg`).
+
+`at`, `atq` and `atrm` run as `daemon`, which owns the queue,
+`/usr/spool/at`, and `cron` runs `atrun` as root, which runs each job
+whose time has come as its owner. `atrun` could not run any. It reads
+the four lines at the head of a job with four calls of `fscanf`, and
+each format ends with `%*[^\n]\n`, to pass over the rest of the line.
+Where the line has no more, that conversion matches nothing, and
+`fscanf` returns there with the newline unread. The next call's format
+began with `#`, which a newline does not match. The tree's older
+`_doscan` went on after a conversion that matched nothing; `vfscanf`,
+which upstream's library uses now as well, stops, as the C standard
+says. The later formats begin with a blank now, which passes over the
+newline. (`atq` and `atrm` open the file again for each line they
+want.) `atrun` mails a job's owner, through `/bin/mail`, if the job
+wrote to its standard error or was queued with `-m`; with no `mail`
+that is lost too.
+
+`/etc/rc` turns on the accounting of processes as upstream's does, with
+`accton /usr/adm/acct`. `accton` writes `/etc/acctd.cf` and starts
+`acctd`. The kernel writes a record to the log device as each process
+ends, and `acctd` reads them from `/dev/acctlog` and appends them to
+the file, stopping while the file system has less than 2% free.
+`lastcomm` lists the records and `sa` adds them up. They are some way
+behind: the kernel wakes `acctd` at every tenth record, and `acctd`
+writes the file a kilobyte at a time, 32 records. `acctd` does not
+make the file, so it is in the root file system, empty.
+
+`find` is built because `/etc/rc` clears `/tmp` with it.
+
 ## The root file system
 
 `usr/src/i286/root.proto` lists it: the kernel and `/boot`, `/etc/init`,
@@ -445,7 +538,8 @@ root's prompt and paths, and with the same erase character on the
 console's screens.
 
 Upstream's `rc` is the PDP-11's, with its buses and network interfaces,
-and calls much that is not built yet. This port's checks the file
+and calls some things that are not built yet: the quota programs,
+`savecore` and the network's other daemons. This port's checks the file
 systems as upstream's does. At an automatic boot `fsck -p` checks each
 in `fstab` that was not unmounted cleanly, the root first and alone; if
 it had to change the root, which is mounted, `rc` starts the system
@@ -459,26 +553,36 @@ Ethernet interface's address, netmask and gateway, and runs
 `/etc/netstart`, which sets up the loopback interface and, if `rc.conf`
 gives an address, the Ethernet interface and the default route, as
 upstream's `rc.conf` and `netstart` do for the PDP-11's interfaces; as
-shipped there is no address, to be set for the machine. Then it starts
-`update`, which has the kernel write what it holds for the disks every
-30 seconds, and `inetd`, whose `inetd.conf` is this port's own, as is a
-`hosts` that names only `localhost`; `services` and `protocols` are
-upstream's ([the network](network.md)).
+shipped there is no address, to be set for the machine. Then, in
+upstream's order, it starts `syslogd`; has `expreserve` save what `ex`
+was editing when the system went down; clears `/tmp`; starts `update`,
+which has the kernel write what it holds for the disks every 30
+seconds, and `cron`; turns accounting on ([the log, and what the clock
+runs](#the-log-and-what-the-clock-runs)); and starts `inetd`, whose
+`inetd.conf` is this port's own, as is a `hosts` that names only
+`localhost`; `services` and `protocols` are upstream's ([the
+network](network.md)).
 
 The programs: `init`, `getty`, `login`, `sh`, `csh`, `ls`, `cat`, `cp`,
 `mv`, `rm`, `ln`, `mkdir`, `rmdir`, `chmod`, `chgrp`, `cmp`, `dd`, `df`,
 `du`, `echo`, `ed`, `grep`, `kill`, `nice`, `od`, `pr`, `pwd`, `stty`,
 `sync`, `tee`, `test` (and `[`), `time`, `who`, `wall`, `write`, `date`,
 `hostname`, `hostid`, `pagesize`, `passwd`, `chpass` (and `chfn` and
-`chsh`), `ps`, `tcsh`, `/usr/bin/sleep` and `/usr/bin/iostat`, and in
-`/sbin` `mount`, `umount`, `mknod`, `fsck`, `mkfs`, `newfs`, `mkpasswd`,
-`reboot` and `halt`. `/usr/ucb` has `ex`, `vi` and `view`, one file
-under three names, as upstream has them, `w` and `uptime`, one file
-under two, and `vmstat`. `/usr/sbin` has `update`, `vipw`, `chown`,
-`adduser`, `dev_mkdb`, `pstat`, `exrecover` and `expreserve`. For the network there are
-`ifconfig`, `ping` and `route` in `/sbin`, `inetd` and `arp` in `/usr/sbin`,
-`telnetd` in `/usr/libexec`, and `telnet` and `netstat` in `/usr/ucb`. `tools/mkfs.py`
-makes these other names as hard links, and also `[` and `halt`.
+`chsh`), `ps`, `tcsh`, and in `/usr/bin` `sleep`, `iostat`, `find`,
+`crontab`, `at`, `atq` and `atrm`, and in `/sbin` `mount`, `umount`,
+`mknod`, `fsck`, `mkfs`, `newfs`, `mkpasswd`, `dmesg`, `reboot` and
+`halt`. `/usr/ucb` has `ex`, `vi` and `view`, one file under three
+names, as upstream has them, `w` and `uptime`, one file under two,
+`vmstat`, `logger` and `lastcomm`. `/usr/sbin` has `update`, `vipw`,
+`chown`, `adduser`, `dev_mkdb`, `pstat`, `syslogd`, `cron`, `accton`,
+`sa`, `exrecover` and `expreserve`, and `/usr/libexec` `atrun` and
+`acctd`. For the network there are `ifconfig`, `ping` and `route` in
+`/sbin`, `inetd` and `arp` in `/usr/sbin`, `telnetd` in `/usr/libexec`,
+and `telnet` and `netstat` in `/usr/ucb`. `tools/mkfs.py` makes these
+other names as hard links, and also `[` and `halt`. It makes everything
+root's unless the list says otherwise, as it does for `at`, `atq`,
+`atrm` and their queue, which are `daemon`'s, and for the programs that
+run with the group `kmem`.
 
 ## Following a program
 
@@ -516,7 +620,8 @@ shared by a partition table, and boots it with no diskette. The root's
 superblock is not marked clean, as a power cut leaves it, so `/etc/rc`
 has `fsck` check it, which must mark it clean, and starts the system
 again; the second time the root must be clean, and `rc` must start
-`update` and `inetd`, which the console's screen shows. The system goes
+`syslogd`, clear `/tmp`, and start `update`, `cron`, accounting and
+`inetd`, which the console's screen shows. The system goes
 multi-user and runs `getty`; the test logs in as root on the first
 serial port, and in the shell makes a directory, copies and compares a
 file, runs a loop, a second shell and a pipeline, expands a pattern, and
@@ -545,7 +650,15 @@ must be the user's. It makes a file system in the spare partition with
 it, and checks it twice more: `fsck -p` must leave it alone as clean,
 and `fsck -f` must find the files. `ps axl` must show `inetd` waiting in
 `select`, and `vmstat -s`, `iostat` and `pstat -T` must print their
-counts. It shows
+counts. `dmesg` must show the kernel's three lines about memory, and
+`/usr/adm/messages` must have them too, from when `syslogd` started,
+and the line `logger` sends, which must be in `debuglog` as well. It
+makes a file system in a partition of 100K and copies the kernel into
+it, which does not fit: the kernel's complaint must reach
+`/usr/adm/messages`, once another message has woken `syslogd`. `find`
+must list the directories of `/usr/spool` and run a command on a file
+it finds by name, `lastcomm` must list the `stty` of root's login, and
+`sa -m` must have a line for root. It shows
 the loopback interface with
 `ifconfig`, pings it, and logs in over it with `telnet` as the new user,
 with a wrong password first, which must be refused. The user's shell is
@@ -554,7 +667,10 @@ show the login on `ttyp0` from `localhost`, and the user must be able to
 see who owns `/etc/passwd` and not to read `master.passwd`. The user
 puts `sleep` in the background, which `ps axu` must show as the user's on
 `ttyp0` with its arguments; `w` must show the user there; and `netstat`
-must show the connection twice, from each end. The user
+must show the connection twice, from each end. The user has no table
+for `cron`, gives it one with `crontab` that writes the date to a file
+every minute, and queues a job with `at`, which `atq` must list as the
+user's. The user
 changes the full name with `chfn`, editing with `ed`, which
 `/etc/passwd` must then show, and the password, which `passwd` must
 first ask for, and logs out with ^D; `telnet` must report the connection
@@ -566,7 +682,12 @@ Ethernet interface, an NE2000 of the emulator's on a network of its own,
 by reading `/etc/rc.conf` and running `/etc/netstart` with an address
 and a gateway given; pings the gateway; adds the default route again,
 which `route` must refuse, `netstart` having added it; and has `arp`
-show the gateway's address, and `route -f` flush the default route. Meanwhile
+show the gateway's address, and `route -f` flush the default route.
+Root then gives the user's job in `at`'s queue a name that says its
+time has come, and runs `atrun`, as `cron` does every quarter of an
+hour; the file the job writes must be the user's, and so must the file
+`cron` has written for the user by then, which the test waits for, up
+to a minute. Meanwhile
 the host logs in over telnet through that network, where `who` must show
 the login from the gateway, and sends `/etc/services` three times into
 `cat`, which must give a file the same as the system's copies; then the
@@ -595,11 +716,18 @@ Not done, or not tested:
   letters to `sendmail`, and it tells `comsat` of a new one over the
   network. So these wait for `mail` and `sendmail`.
 - Most programs are not built: of `/usr/bin` and `/usr/ucb` only
-  `sleep`, `iostat`, `ex`, `vi`, `w`, `vmstat`, `netstat` and `telnet`
-  (not `more`), and no `cron`, `syslogd`, `swapon` or `disklabel`. With
+  `sleep`, `iostat`, `find`, `crontab`, the `at` programs, `ex`, `vi`,
+  `w`, `vmstat`, `netstat`, `logger`, `lastcomm` and `telnet` (not
+  `more`), and no `disklabel`. With
   no `disklabel`, a partition can be made a file system only where
   `tools/mkdisk.py` labelled it one: the kernel mounts nothing else. Of
   the network's, `ftp` and the rest are not built.
+- Nothing trims the logs or the accounting file. Upstream's `crontab`
+  has `/usr/adm/daily`, `weekly` and `monthly` do that, and the tree has
+  no such scripts. `acctd` stops when the file system is nearly full;
+  `syslogd` does not.
+- `cron` and `atrun` cannot mail a job's owner what the job printed,
+  for want of `sendmail` and `mail`.
 - `iostat`'s seek times (`msps`) are 0. An IDE or SCSI drive seeks by
   itself, so its driver counts no seeks, as upstream's MSCP driver
   counts none; upstream's drivers count them where they give the drive

@@ -4,8 +4,9 @@
 # it comes from single user.  If it fails, init goes to single user.
 #
 # Upstream's ../../etc/rc is the PDP-11's (its buses, its network
-# interfaces) and calls much that is not built here yet: swapon,
-# syslogd, cron.  What this does of it, it does as that does.
+# interfaces) and calls some things that are not built here yet: the
+# quota programs, savecore, and the network's other daemons.  What this
+# does of it, it does as that does.
 
 HOME=/; export HOME
 PATH=/bin:/sbin:/usr/sbin:/usr/bin; export PATH
@@ -67,16 +68,37 @@ ps -U						>/dev/console 2>&1
 
 rm -f /etc/nologin
 
-# The network, as /etc/rc.conf describes it (/etc/netstart), and inetd,
-# which answers telnet (/etc/inetd.conf).
+# The network, as /etc/rc.conf describes it (/etc/netstart).
 if [ -s /etc/rc.conf ]
 then
 	. /etc/rc.conf
 fi
 . /etc/netstart
 
+# The log, which programs write to through /dev/log and the kernel
+# through /dev/klog, and /etc/syslog.conf says where each kind goes.
+echo 'starting system logger'			>/dev/console 2>&1
+rm -f /dev/log
+syslogd
+
+echo preserving editor files			>/dev/console 2>&1
+(cd /tmp; /usr/sbin/expreserve -a)
+echo clearing /tmp				>/dev/console 2>&1
+(cd /tmp; find . ! -name . ! -name lost+found ! -name quotas -exec rm -r {} \; )
+
 echo -n standard daemons:			>/dev/console 2>&1
 update;		echo -n ' update'		>/dev/console 2>&1
+cron;		echo -n ' cron'			>/dev/console 2>&1
+
+# accton will not start acctd if acctd.pid is corrupt or truncated (due to
+# an unclean shutdown or crash).
+rm -f /var/run/acctd.pid
+
+accton /usr/adm/acct;	echo -n ' accounting'	>/dev/console 2>&1
+echo '.'					>/dev/console 2>&1
+
+# inetd, which answers telnet (/etc/inetd.conf).
+echo -n starting network daemons:		>/dev/console 2>&1
 inetd;		echo -n ' inetd'		>/dev/console 2>&1
 echo '.'					>/dev/console 2>&1
 

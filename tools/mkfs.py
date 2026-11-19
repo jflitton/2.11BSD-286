@@ -22,9 +22,10 @@ with # are ignored.  Modes are octal.
     h PATH OTHER                    another name for OTHER, a file
 
 FILE is relative to the directory PROTO is in.  The root directory exists
-already.  Everything is owned by root, and is in group 0 unless MODE is
-followed by a colon and the number of another: 2755:2 is a program that
-runs with group kmem.
+already.  Everything is owned by root, and is in group 0, unless MODE is
+followed by a colon and the number of another group, or the numbers of
+an owner and a group with a dot between them, as chown has them: 2755:2
+is a program that runs with group kmem, 4755:1.1 one that runs as daemon.
 """
 import os
 import struct
@@ -49,6 +50,7 @@ class Inode:
         self.nlink = 0
         self.data = b""         # contents, for a file, link or directory
         self.rdev = 0
+        self.uid = 0
         self.gid = 0
         self.entries = None     # a directory's: [(name, inode number)]
 
@@ -121,9 +123,11 @@ def main():
             dp.nlink += 1
 
     def made(kind, mode):
-        """An inode of KIND with MODE, which may give a group."""
-        mode, _, gid = mode.partition(":")
+        """An inode of KIND with MODE, which may give an owner and group."""
+        mode, _, ids = mode.partition(":")
+        uid, dot, gid = ids.rpartition(".")
         ip = Inode(kind | int(mode, 8))
+        ip.uid = int(uid or 0)
         ip.gid = int(gid or 0)
         return ip
 
@@ -211,7 +215,7 @@ def main():
                     part = rest[k:k + NINDIR]
                     singles.append(alloc(struct.pack("<%dL" % len(part), *part)))
                 addr[5] = alloc(struct.pack("<%dL" % len(singles), *singles))
-        d = struct.pack("<HHHHl7L5HH3l", ip.mode, ip.nlink, 0, ip.gid,
+        d = struct.pack("<HHHHl7L5HH3l", ip.mode, ip.nlink, ip.uid, ip.gid,
                         len(ip.data),
                         *addr, 0, 0, 0, 0, 0, 0, now, now, now)
         assert len(d) == 64

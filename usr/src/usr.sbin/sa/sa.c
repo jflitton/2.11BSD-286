@@ -101,6 +101,7 @@ cell	*enter();
 uid_t	getmaxuid();
 struct	user *finduser();
 struct	user *wasuser();
+void	usage();
 
 /*
  *	Table elements are keyed by the name of the file exec'ed.

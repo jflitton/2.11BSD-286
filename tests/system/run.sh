@@ -8,15 +8,20 @@
 # one on the disk, which must be the same; add a user with adduser, and
 # make, check and mount a file system; look at the processes, the
 # kernel's tables, the system's counts and the disk's with ps, pstat,
-# vmstat and iostat; ping the loopback interface and log in over it with
+# vmstat and iostat; find in the log what the kernel printed as it
+# started, a line from logger, and the kernel's complaint when a small
+# file system is filled; use find, and read the accounting with lastcomm
+# and sa; ping the loopback interface and log in over it with
 # telnet as that user, in the C shell, who looks at its processes, the
-# users and the connections with ps, w and netstat, changes the full
-# name with chfn and the password with passwd and logs in again with the
-# new one; set up its Ethernet interface with /etc/rc.conf and
-# /etc/netstart, ping the network's gateway, show the address it found
-# for it with arp and flush the routes with route, and log in from the
-# host with telnet, sending a file each way and using vi in a big
-# window; and halt it.  The kernel, /boot, the C library, the programs
+# users and the connections with ps, w and netstat, gives cron a table
+# and at a job, changes the full name with chfn and the password with
+# passwd and logs in again with the new one; set up its Ethernet
+# interface with /etc/rc.conf and /etc/netstart, ping the network's
+# gateway, show the address it found for it with arp and flush the
+# routes with route, and log in from the host with telnet, sending a
+# file each way and using vi in a big window; run the user's job with
+# atrun and wait for cron to run the user's table; and halt it.  The
+# kernel, /boot, the C library, the programs
 # and the root file system are all built as they would be for a real
 # machine (usr/src/sys/PC, usr/src/sys/i286stand, usr/src/lib/libc/i286,
 # usr/src/i286).
@@ -58,10 +63,11 @@ with open(sys.argv[1], "r+b") as f:
 EOF
 
 # An IDE disk shared by a partition table, as tests/kernel's first, with
-# that in partition a, a swap area in b, and room for a file system in d.
+# that in partition a, a swap area in b, room for a file system in d, and
+# for one in e that the kernel is too big a file for.
 stand=$top/obj/stand
 geometry=$(python3 -I "$top/tools/mkdisk.py" -p -b "$stand/hdboot.bin" \
-    -m "$stand/mbr.bin" system.img a=root.fs b=swap:4000 d=fs:4000 | tail -1)
+    -m "$stand/mbr.bin" system.img a=root.fs b=swap:4000 d=fs:4000 e=fs:200 | tail -1)
 
 # Each text to type waits for something only the system writes: a typed
 # line is echoed, so what it waits for is split by quotes when typed.
@@ -163,6 +169,9 @@ TIMEOUT=${TIMEOUT:-500} python3 -I "$top/tests/harness/runtest.py" \
     --type "# " 'mount /dev/wd0d /mnt; cp /etc/termcap /etc/motd /mnt; mkdir /mnt/d; df /mnt' \
     --type "# " 'umount /mnt; fsck -p /dev/rwd0d; fsck -f /dev/rwd0d' \
     --type "# " 'ps axl | grep "[i]netd"; vmstat -s | grep "system c""alls"; iostat; pstat -T' \
+    --type "# " 'echo dmesg-`dmesg | grep -c "mem  *="`; logger -t test "lo""gged"; sleep 2; grep "t: log""ged" /usr/adm/messages /usr/adm/debuglog' \
+    --type "# " 'newfs wd0e >/dev/null; mount /dev/wd0e /mnt; cp /unix /mnt; umount /mnt; logger -t test woken; sleep 2; grep "unix: [a-z/]" /usr/adm/messages' \
+    --type "# " 'find /usr/spool -type d -print; find /tmp -name mp.orig -exec echo "fou""nd" {} \; ; echo acct-`lastcomm stty | grep -c tty00`; sa -m' \
     --type "# " 'ifconfig lo0' \
     --type "netmask" 'ping -c 2 127.0.0.1' \
     --type "packet loss" 'telnet 127.0.0.1' \
@@ -172,6 +181,7 @@ TIMEOUT=${TIMEOUT:-500} python3 -I "$top/tests/harness/runtest.py" \
     --type "Password:" 'Gu3st-pw' \
     --type "% " 'echo "tel""net-in"; who; echo "as-gu""est"; ls -l /etc/passwd; cat /etc/master.passwd' \
     --type "% " 'sleep 20 & ps axu | grep "[s]leep 20"; w -s | grep "^gu""est"; echo "est-`netstat -n | grep -c ESTAB`"; kill %1' \
+    --type "% " 'crontab -l; echo "* * * * * date >/tmp/gcron" >ct; crontab ct; crontab -l | grep gcron; echo "echo ran >/tmp/gat" | at 2359; atq' \
     --type "% " "setenv EDITOR ed; chfn${CR}!sleep 2${CR}/^Full Name/s/Guest User/Gus Guest/${CR}w${CR}q" \
     --type "% " 'sleep 3; grep guest /etc/passwd; passwd' \
     --type "Old password:" 'Gu3st-pw' \
@@ -196,12 +206,14 @@ $services$services$services${CTRLD}" \
     --telnet "[New file]" "ione${CR}twoX${DEL}${CR}three${ESC}${KHOME}dd${KEND}${KDELETE}:wq" \
     --telnet "# " 'cat /tmp/bs; echo "vi""-done"' \
     --telnet "vi-done" "${CTRLD}" \
-    --type "flushed" 'sleep 5; who; cat /tmp/k; echo "@ex""it 00"; sync; reboot -h' \
+    --type "flushed" 'cd /usr/spool/at; mv 2* 1999.001.0000.aa; /usr/libexec/atrun; cd /; while test ! -f /tmp/gcron; do sleep 5; done; echo "wai""ted"' \
+    --type "waited" 'ls -l /tmp/gat /tmp/gcron; atq; echo cronlog-`grep -c "(guest) CMD (date" /usr/adm/cron`; echo tabs-`ls /var/cron/tabs`; echo "cr""on-done"' \
+    --type "cron-done" 'sleep 5; who; cat /tmp/k; echo "@ex""it 00"; sync; reboot -h' \
     --boot system
 
 serial=$top/obj/tests/system/serial.txt
 for want in "shell-ok /root" "/tmp/dir" "same" "xa" "xb" "xc" "status 3" \
-    "/dev/console /dev/kmem" "master.passwd" \
+    "/dev/console /dev/errlog /dev/klog /dev/kmem" "master.passwd" \
     "in-csh" "n=3 b v42" "f:/etc/motd" "f:/etc/group" "hist one two" \
     "said xy" "isdir" "st=4" "nosuch: Undefined variable" "/etc /tmp" \
     "Terminated *sleep 30" "[0-9.]*u [0-9.]*s 0:0[12] " \
@@ -220,8 +232,16 @@ for want in "shell-ok /root" "/tmp/dir" "same" "xa" "xb" "xc" "status 3" \
     "^5 files, " \
     "selwait .* inetd" " [0-9][0-9]* system calls" " tin tout bps tps msps" \
     "[0-9]/ *[0-9]* processes" "swapmap entries, .* kB used" \
+    "dmesg-3" "/usr/adm/messages:.* test: logged" \
+    "/usr/adm/debuglog:.* test: logged" "unix: phys mem  = [0-9]" \
+    "unix: /mnt: file system full" "^/usr/spool/at/past" "found /tmp/mp.orig" \
+    "acct-[1-9]" "^root  *[0-9]*  *[0-9.]*cpu" \
     "(ptyp0)" "Login incorrect" "telnet-in" "guest  *ttyp0 .*(localhost)" \
     "^guest  *[0-9]*  *0  *[0-9]* p0  *0:00 sleep 20" "^guest  *p0 " "est-2" \
+    "no crontab for guest" "^\* \* \* \* \* date >/tmp/gcron" \
+    " 1st .* 23:59  *guest  *[0-9]*  *stdin" \
+    "rw-r--r--  1 guest .*/tmp/gat" "rw-r-----  1 guest .*/tmp/gcron" \
+    "no files in queue" "cronlog-[1-9]" "tabs-guest" "cron-done" \
     "/etc/master.passwd: Permission denied" "Changing password for guest" \
     "new-pw-ok" "Connection closed by foreign host" \
     "ne0 at 0x300 irq 3: " \
@@ -287,7 +307,9 @@ lines = {r for s in rows for r in s}
 vi = ["zero", "one", "two", "three"] + ["~"] * 20
 want = ["/dev/wd0a: Marking file system clean",
         "/dev/wd0a: file system is clean; not checking",
-        "standard daemons: update inetd.",
+        "starting system logger", "clearing /tmp",
+        "standard daemons: update cron accounting.",
+        "starting network daemons: inetd.",
         "# echo abcd", "abcd", "term-pccons", "right",
         "AZ!@#$%^&*()_+{}|:<>?~"]
 bad = [w for w in want if w not in lines]
@@ -303,4 +325,4 @@ python3 -I "$top/tools/fsck.py" -x /tmp/dir/m system.img | grep -q "for the 286"
 python3 -I "$top/tools/fsck.py" -p d system.img
 python3 -I "$top/tools/fsck.py" -p d -x /termcap system.img |
     cmp -s - "$top/obj/root/termcap"
-echo "system: checked its root, logged in on a serial port, the screens and over telnet by the loopback interface and the Ethernet card, used sh, csh, vi and tcsh, added a user with a password, made a file system, and halted"
+echo "system: checked its root, logged in on a serial port, the screens and over telnet by the loopback interface and the Ethernet card, used sh, csh, vi and tcsh, added a user with a password, made a file system, read the log and the accounting, ran the user's jobs with cron and at, and halted"
