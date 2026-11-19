@@ -311,8 +311,9 @@ tests/vt/run.sh         # the console's terminal emulator, on the machine
   leaves the cursor and what the terminal answers, as a VT102 would.
 
 The emulator is [86Box](https://github.com/86Box/86Box), as an IBM PS/2
-Model 30 286 with a 287 (`tests/harness/86box.cfg`): a real 286, which
-faults on anything a 286 lacks. `EMU=qemu` uses `qemu-system-i386` instead,
+Model 30 286 with a 287 and one wait state, as the real machine's memory
+has (`tests/harness/86box.cfg`): a real 286, which faults on anything a
+286 lacks. `EMU=qemu` uses `qemu-system-i386` instead,
 which proves less: it runs 386 instructions, and it does not enforce
 segment limits or the write protection of code segments. `tests/pm` checks
 all three and so refuses to run there.
@@ -424,7 +425,10 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   at boot, and one logs in over the network with `telnet` or `rlogin`,
   and moves files with `ftp` or `rcp` ([the network](docs/network.md)).
 - That is the state in an emulated PS/2 Model 30 286. The system has
-  also booted on a real machine and been logged in to over the network.
+  also booted on a real machine and been logged in to over the network,
+  and its benchmark run there: the emulator's times are within a tenth
+  of the real machine's for most of it
+  ([performance](docs/performance.md)).
 - What the kernel does not have: quotas. The parts of it that no test reaches yet: `ptrace`, most of `sysctl`,
   core dumps beyond being written, `fork` when memory is short,
   swapping of shared code, and Unix-domain stream sockets.

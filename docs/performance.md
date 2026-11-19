@@ -111,7 +111,7 @@ To see what a change did, copy `results.txt` aside before it and give
 the copy as `BASE` after: the table gains what each test came to then
 and the change in percent, positive for quicker.
 
-A run takes the host about two and a half minutes. It also tries
+A run takes the host about three minutes. It also tries
 `tracebuf`, `sysctl` and `top` and a `bench` with tests named and the
 work doubled, and fails if any of those does not do what it should;
 it does not fail for a test being slow.
@@ -203,11 +203,11 @@ tcp         2.13    0.00    2.13     256       120 K/s    2.128
 tcprr       3.28    0.03    1.48     500      6566 us     3.272
 ```
 
-These are the emulator's notion of a 286: how near its count of each
-instruction's clocks, and its disk, come to the real machine's has not
-been checked. They are for comparing one build of the system with
-another, and `bench` on the real machine will say what they are worth
-as figures.
+These are the emulator's notion of a 286, and for comparing one build
+of the system with another. As figures they were too good: `bench` on a
+real machine took 1.4 to 1.5 times as long, for want of a wait state
+that the emulator has now ([on a real machine](#on-a-real-machine),
+below). Every figure from here to there was taken without it.
 
 Three runs gave each test the same time to within 10 ms, most to
 within 2, but for `fork` and `shell`, which varied by 2 and 3%, and
@@ -403,9 +403,75 @@ mark, so `cat` writes it and is gone, where it waited for `telnetd` to
 take each part. It costs 32K of memory, and gives back the 2.2K of the
 kernel's data that the 68 had.
 
+## On a real machine
+
+`bench` on a real machine of the model the emulator's is, with the
+kernel of the last table, in multi-user from a SCSI disk with nobody
+else logged in; beside it the emulator as it had been until then, and
+as it is now, with one wait state:
+
+```
+test        real machine    emulator    with one wait state    real to that
+sieve        127075 us       86650          124600                1.02
+long             96 us          84             100                0.96
+getpid          200 us         130             174                1.15
+write           433 us         283             390                1.11
+stat           1417 us         975            1333                1.06
+pipe           3834 us        2734            3700                1.04
+pipeio          541 K/s        797             633                1.17
+fork          17166 us       11443           13443                1.28
+exec          34500 us       26840           31660                1.09
+shell        343400 us      246600          306600                1.12
+creat         20660 us       21670           24170                0.85
+fswrite         307 K/s        345             298                0.97
+fsread          349 K/s        415             351                1.01
+pty              41 K/s         59              45                1.10
+tcp             210 K/s        301             219                1.04
+tcprr          7766 us        5266            7200                1.08
+telkey        14375 us        9739           13359                1.08
+telcmd       194175 us      134600          199600                0.97
+```
+
+Whatever was the processor's work took the real machine 1.4 to 1.5
+times what the emulator said, and evenly: the sieve, a system call,
+TCP, a key on telnet. `long` alone was near, at 1.14, and it is
+multiplying and dividing, which wait for memory least. That is a wait
+state. 86Box's 10 MHz 286 takes two clocks for a bus cycle, and this
+machine's memory takes three; `cpu_waitstates = 2` in
+`tests/harness/86box.cfg` gives the emulator's the same, and with it
+twelve of the eighteen tests are within a tenth of the real machine.
+The harness has it from here on, and every suite passes with it.
+
+What is still apart:
+
+- **`fork`, 1.28, and `pipeio`, 1.17**, are the two with most of their
+  time in `copy`: 45% and 30%. The wait state added a sixth to `fork`
+  in the emulator, where a copy that is nothing but bus cycles should
+  take half as long again. So the emulator seems not to charge
+  `rep movsw` for it, and a copy costs more on the real machine than a
+  profile gives it. Its code has not been read to see.
+- **`getpid`, 1.15, and `write`, 1.11**, are mostly the way into the
+  kernel and out, a trap through a gate and its return, which are many
+  bus cycles in one instruction each. The same may be true of them.
+- **`creat`, `fswrite` and `fsread`** are not the same disk: the
+  emulator's is an IDE one, where the processor moves every byte
+  (`pinsw`), and the real machine's a SCSI one, whose adapter moves
+  them itself. A file made and removed is quicker on the real machine
+  than in the emulator.
+
+The kernel gives memory out from the lowest address, so all of this
+ran in the lowest of the machine's memory. Memory on a card in a slot
+may wait longer than the machine's own, and nothing here measured any.
+
+How to read the rest of this page: the figures above this section are
+right against each other, and as times on a real machine about 1.4
+times too small. The table to compare a change with now is the column
+with one wait state here.
+
 ## What is left
 
-In the order the profile gives them.
+In the order the profile gives them. The times are from profiles taken
+before the wait state.
 
 - **Far calls.** A call and return between two of the kernel's
   functions is about 50 clocks before anything is done, and a 1 ms
