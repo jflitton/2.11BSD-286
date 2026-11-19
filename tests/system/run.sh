@@ -95,6 +95,7 @@ ESC=$(printf '\033')
 TAB=$(printf '\t')
 CTRLA=$(printf '\001')
 CTRLP=$(printf '\020')
+CTRLR=$(printf '\022')
 CTRLU=$(printf '\025')
 CTRLD=$(printf '\004')
 DEL=$(printf '\177')
@@ -116,7 +117,9 @@ TIMEOUT=${TIMEOUT:-500} python3 -I "$top/tests/harness/runtest.py" \
     --type "/tmp/dir" 'cp /etc/motd m; cmp /etc/motd m && echo "sa""me"' \
     --type "same" 'for i in a b c; do echo "x$i"; done' \
     --type "xc" 'sh -c "exit 3"; echo "status $?"' \
-    --type "status 3" 'echo /dev/*' \
+    --type "status 3" "echo ta${TAB}x${DEL}${DEL}b\"\"-ok" \
+    --type "tab-ok" "echo ret${CTRLR}yped\"\"-ok" \
+    --type "retyped-ok" 'echo /dev/*' \
     --type "/dev/wd1h" 'ls -l /etc | grep pass""wd' \
     --type "master.passwd" 'csh -f' \
     --type "# " 'set prompt = "c""sh% "; echo "in-c""sh"' \
@@ -280,6 +283,20 @@ done
 if ! tr -d '\r' < "$serial" | grep -a -A2 '^zero$' | tr '\n' ' ' |
     grep -q '^zero one three $'; then
     echo "system: /tmp/k is not as vi on the console left it" >&2
+    exit 1
+fi
+# A tab erased and a line typed again: the terminal driver reads back
+# what is waiting in the queue, out of the character blocks' segment,
+# to find how wide the tab was, seven columns after "# echo ta", and
+# to write the line again after ^R.
+if ! python3 -I - "$serial" <<'EOF'
+import sys
+text = open(sys.argv[1], "rb").read()
+sys.exit(not (b"# echo ta" + b" " * 7 + b"x\b \b" + b"\b" * 7 + b'b""-ok\r' in text
+    and b"# echo ret^R\r\necho retyped" in text))
+EOF
+then
+    echo "system: a tab was not erased, or a line not typed again, as typed" >&2
     exit 1
 fi
 # The password database, which the user could read and root's
