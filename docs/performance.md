@@ -548,9 +548,8 @@ it had been 307, and read at 455 where it had been 349; a file of 146K
 was read a second time at 730 K/s, from the buffers; the shell's
 command was 312 ms for 343. Running a program, 36.0 ms for 34.5, and
 the pipe, 520 K/s for 541, showed there what is in the paragraph
-above. `stat` was 1467 us for 1417, which nothing here accounts for:
-it reads no block, and in the emulator it is 1325 us before and after
-on either size of root.
+above, and with `breada` asking first they are 34.8 ms and 548 K/s,
+the files as they were at 357 and 455.
 
 ## What is left
 
