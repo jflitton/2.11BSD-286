@@ -17,6 +17,8 @@
 
 extern caddr_t nofault;
 extern int sctrace;
+extern int cpl;				/* machdep.c */
+extern u_int ipending, spending;
 int	nosys();			/* mch_copy.s */
 extern int trapret(), tr_popes(), tr_popds(), tr_iret();
 
@@ -119,7 +121,16 @@ userret(tf, syst)
 
 	while (i = CURSIG(p))
 		postsig(i);
-	curpri = setpri(p);
+	/*
+	 * curpri = setpri(p), in line: this is the way out of every
+	 * system call.
+	 */
+	i = (p->p_cpu & 0377) / 16 + PUSER + p->p_nice;
+	if (i > 127)
+		i = 127;
+	if (i < curpri)
+		runrun++;
+	curpri = p->p_pri = i;
 	if (runrun) {
 		setrq(p);
 		u.u_ru.ru_nivcsw++;
@@ -133,8 +144,12 @@ userret(tf, syst)
 	 * swtch leaves it where the process that switched set it: a new
 	 * process, or one that was preempted, would otherwise run with
 	 * every interrupt put off until the kernel next lowered it.
+	 * Most often the level is 0 already and nothing is waiting for
+	 * it to drop, and there is nothing to call spl0 for: what
+	 * arrives at level 0 is not put off.
 	 */
-	spl0();
+	if (cpl | ipending | spending)
+		spl0();
 }
 
 /*
@@ -258,6 +273,11 @@ ktrap(tf)
  */
 int	sctrace = 0;
 
+/* The registers that carry arguments, to copy as one in line. */
+struct argreg {
+	int	a[NARGREG];
+};
+
 syscall(tf)
 	register struct trapframe *tf;
 {
@@ -279,19 +299,15 @@ syscall(tf)
 	else
 		callp = &sysent[code];
 	if (callp->sy_narg <= NARGREG)
-		bcopy((caddr_t)tf_arg(tf), (caddr_t)u.u_arg,
-		    NARGREG * sizeof (int));
+		*(struct argreg *)u.u_arg = *(struct argreg *)tf_arg(tf);
 	else
 		u.u_error = copyin(UADDR(tf->tf_cx, tf->tf_bx),
 		    (caddr_t)u.u_arg, callp->sy_narg * sizeof (int));
 	u.u_ap = u.u_arg;
 	u.u_r.r_val1 = 0;
 	u.u_r.r_val2 = tf->tf_dx;
-	if (sctrace && code == SYS_exit)
-		printf("%s[%d]: exit %d\n", u.u_comm, u.u_procp->p_pid, u.u_arg[0]);
-	if (sctrace && callp->sy_call == nosys)
-		printf("%s[%d]: call %d is not in this kernel\n", u.u_comm,
-		    u.u_procp->p_pid, code);
+	if (sctrace)
+		sctrace1(code, callp);
 	if (u.u_error == 0 && setjmp(&u.u_qsave) == 0)
 		(*callp->sy_call)();
 	switch (u.u_error) {
@@ -310,12 +326,36 @@ syscall(tf)
 		tf->tf_ax = u.u_error;
 		break;
 	}
-	if (sctrace > 1 || sctrace && u.u_error && u.u_error != EJUSTRETURN ||
-	    sctrace && code == SYS_execve && u.u_error == EJUSTRETURN)
+	if (sctrace)
+		sctrace2(code);
+	userret(tf, syst);
+}
+
+/*
+ * What sctrace prints, before a call and after it: out of syscall's
+ * way, which is every call's.
+ */
+static
+sctrace1(code, callp)
+	int code;
+	register struct sysent *callp;
+{
+	if (code == SYS_exit)
+		printf("%s[%d]: exit %d\n", u.u_comm, u.u_procp->p_pid, u.u_arg[0]);
+	if (callp->sy_call == nosys)
+		printf("%s[%d]: call %d is not in this kernel\n", u.u_comm,
+		    u.u_procp->p_pid, code);
+}
+
+static
+sctrace2(code)
+	int code;
+{
+	if (sctrace > 1 || u.u_error && u.u_error != EJUSTRETURN ||
+	    code == SYS_execve && u.u_error == EJUSTRETURN)
 		printf("%s[%d]: call %d: %s %d\n", u.u_comm, u.u_procp->p_pid,
 		    code, u.u_error ? "error" : "result",
 		    u.u_error ? u.u_error : u.u_r.r_val1);
-	userret(tf, syst);
 }
 
 /*
