@@ -377,21 +377,25 @@ cinit()
 	}
 #ifdef i286
 	/*
-	 * No terminal's output may wait in more than a quarter of the
+	 * No terminal's output may wait in more than an eighth of the
 	 * character blocks.  The high water marks are for lines of each
 	 * speed, and the fastest's, which is a pseudo-terminal's, was as
 	 * much as all the blocks hold: one program writing to one took
 	 * them all, each time its queue emptied, and another's output
 	 * then waited for whole seconds, with nothing for what was typed
-	 * at any terminal to be kept in, or echoed with.
+	 * at any terminal to be kept in, or echoed with.  What is typed
+	 * when there is no block for it is lost (ttyinput): at a quarter
+	 * each, six users' output on telnet took them all and a command
+	 * one of them typed never came to its shell.  Eight terminals at
+	 * an eighth still can; the cure is more blocks.
 	 */
 	{
 		register int i;
 		extern short tthiwat[];
 
 		for (i = 0; i < 16; i++)
-			if (tthiwat[i] > cfreecount / 4)
-				tthiwat[i] = cfreecount / 4;
+			if (tthiwat[i] > cfreecount / 8)
+				tthiwat[i] = cfreecount / 8;
 	}
 #endif
 }

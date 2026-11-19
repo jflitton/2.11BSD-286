@@ -288,7 +288,8 @@ tcprr       5300 us     6566     +24%
   and there were none for what anyone typed. Two programs writing at
   once now pass 29 and 27 K/s. The mark costs one writer a tenth of
   what it would pass alone, 60 K/s, because it and its reader take
-  turns four times as often.
+  turns four times as often. (The mark is an eighth now, and one
+  writer passes 47 to 50 K/s: see the users on telnet, below.)
 - **`tcp`.** The checksum is assembly (`i286/mch_cksum.s`), with the C
   beside it as the reference; the two were run together on every
   packet of the network's tests.
@@ -363,6 +364,17 @@ PDP-11 had room for, in a segment that here was 39K of 64K; it is 256
 mbufs and 20 clusters now, six users' commands refuse none, and the
 tests with four users and TCP's are as they were.
 
+With memory enough, six users still failed, three times of three: one
+of them typed a command that never came to its shell. What is typed
+when no character block is free is lost, without a word (`ttyinput`),
+and at a quarter of the 68 blocks for each terminal's output six users
+running `cat` held them all. At an eighth six users passed three times
+of three and eight once. It costs what the quarter did again: one writer to a
+pseudo-terminal passes 47 to 50 K/s where it passed 53, and a command
+with four users is 164 ms where it was 154. Eight terminals at an eighth can
+still hold every block, so this makes it rare and does not end it; more
+blocks would, below.
+
 ## What is left
 
 In the order the profile gives them.
@@ -378,8 +390,9 @@ In the order the profile gives them.
   in line that moves bytes first would be a fifth of that.
 - **The character blocks**, 68 of them in the kernel's data segment,
   which has 1.8K to spare. In a segment of their own there could be
-  enough for every pseudo-terminal's high water mark, and the quarter
-  above would not bind.
+  enough for every pseudo-terminal's high water mark: the eighth
+  above would not bind, and nothing typed would be lost for want of
+  one.
 - **A pipe is a file.** A byte through one costs `rwip`, `bmap` and a
   buffer each way, and that is most of `pipe`'s 2.8 ms now.
 - **`fork` and `exec`** are the copying and clearing of memory they
