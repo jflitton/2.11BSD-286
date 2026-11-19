@@ -181,7 +181,10 @@ boot from a drive on an IDE controller, so for the IDE boots the
 emulator is given the XTIDE Universal BIOS beside the controller. The
 kernel's driver does not use it.
 
-The emulator's adapter is a 1542CF. Its 1542CP answers only after
+The emulator's adapter is a 1542CF, and so is the one the system has
+booted from on a real machine; there what the driver said a disk had
+agreed, synchronous at 200 ns a byte and 8 bytes ahead, was what the
+disk's own log said. The emulator's 1542CP answers only after
 something has configured it by Plug and Play, which the machine's BIOS
 does not do and this kernel does not either. A real CP in such a machine
 uses the settings on its switches, by its installation guide, and takes

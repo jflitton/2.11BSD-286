@@ -5,7 +5,7 @@ The aim is a system that maps cleanly onto the 286 and runs larger programs
 than the PDP-11 one could, by giving a process more than one data segment.
 
 Target machine: an IBM PS/2 Model 30 286, which is an AT-compatible, with an
-80287, an Adaptec AHA-1542CP SCSI adapter and an NE2000-compatible network
+80287, an Adaptec AHA-1542CF SCSI adapter and an NE2000-compatible network
 card. The 287 is required.
 
 This repository must live on a case-sensitive file system: the 2.11BSD tree
@@ -170,10 +170,11 @@ unpacks them as troff source. The ones that matter here:
 | `smm/14.fastfs`, `smm/15.net` | the file system and the networking implementation |
 | `smm/19.porttour` | a tour of the portable C compiler |
 
-The AHA-1542CP is the Plug and Play member of the 1540C series. Its guide
-says it also runs in machines without Plug and Play, at the settings on its
-switches and in SCSISelect (defaults: port 330h, IRQ 11, DMA 5), so the
-1540C technical reference describes what the driver talks to.
+The driver also knows the AHA-1542CP, the Plug and Play member of the
+1540C series. Its guide says it also runs in machines without Plug and
+Play, at the settings on its switches and in SCSISelect (defaults: port
+330h, IRQ 11, DMA 5), so the 1540C technical reference describes what the
+driver talks to.
 
 Not found: the *IBM PS/2 Model 30 286 Technical Reference*. No copy has
 turned up on line. (Held's *IBM PS/2 User's Reference Manual*, 1989, is a

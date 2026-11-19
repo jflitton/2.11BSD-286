@@ -260,8 +260,10 @@ ahasetup(how)
  * target to pass it synchronously; with a target, what the two agreed,
  * which the adapter knows once it has sent the target a command.  The
  * period is counted from 100 ns by a CF or a CP and from 200 by those
- * before, in steps of 50; the byte it comes from is printed after, as
- * the adapter gave it.  Called at splbio, with no command outstanding.
+ * before, in steps of 50: a real CF's came to what its disk said it had
+ * agreed, and the others' are by what other drivers do, so the byte it
+ * comes from is printed after, as the adapter gave it.  Called at
+ * splbio, with no command outstanding.
  */
 ahahow(target)
 	int target;
