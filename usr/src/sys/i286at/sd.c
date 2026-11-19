@@ -166,6 +166,7 @@ sdprobe(target)
 	sp->sd_geom.pg_cyls = cyls > 65535L ? 65535 : cyls;
 	sp->sd_dk.dk_label = &sdlabel[nsd];
 	printf("sd%d: id %d: %s, %D MB\n", nsd, target, name, size / 2048);
+	ahahow(target);
 	nsd++;
 #ifdef UCB_METER
 	/* how fast it moves words is not known: iostat leaves it out */

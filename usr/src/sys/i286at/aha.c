@@ -221,6 +221,42 @@ ahasetup(how)
 }
 
 /*
+ * Say how data is passed, which is what a disk's speed comes to and
+ * cannot be seen from anything else: with a target of -1, how the
+ * adapter is set to pass it over the AT bus, and whether it will ask a
+ * target to pass it synchronously; with a target, what the two agreed,
+ * which the adapter knows once it has sent the target a command.  The
+ * period is counted from 100 ns by a CF or a CP and from 200 by those
+ * before, in steps of 50; the byte it comes from is printed after, as
+ * the adapter gave it.  Called at splbio, with no command outstanding.
+ */
+ahahow(target)
+	int target;
+{
+	static char *speed[] = { "5.0", "6.7", "8.0", "10", "5.7" };
+	u_char c[2], r[16];
+	register int v;
+
+	c[0] = AC_RETSETUP;
+	c[1] = sizeof (r);
+	if (ahacmd(c, 2, r, sizeof (r)))
+		return;
+	if (target < 0) {
+		printf("aha: the AT bus at %s MB/s, held %d us and let go %d; synchronous transfers %s\n",
+		    r[1] < 5 ? speed[r[1]] : "its own", r[2], r[3],
+		    r[0] & 1 ? "asked for" : "not asked for");
+		return;
+	}
+	v = r[8 + target];
+	if (v & 0x80)
+		printf("aha: id %d: synchronous, %d ns a byte, %d bytes ahead (%x)\n",
+		    target, (aha.a_board[0] >= 'E' ? 100 : 200) +
+		    50 * (v >> 4 & 7), v & 0x0F, v);
+	else
+		printf("aha: id %d: asynchronous (%x)\n", target, v);
+}
+
+/*
  * Find the adapter, the first time, and say whether there is one:
  * 0 if so.  Called at splbio.
  */
@@ -254,6 +290,7 @@ ahaattach()
 	}
 	printf("aha: AHA-%s at 0x%x, interrupt request %d, DMA channel %d, SCSI id %d\n",
 	    name, aha.a_base, aha.a_irq, aha.a_dma, aha.a_id);
+	ahahow(-1);
 	aha.a_state = A_PRESENT;
 	setirq(aha.a_irq, IPL_BIO, ahaintr, 0);
 	timeout(ahawatch, (caddr_t)0, hz);

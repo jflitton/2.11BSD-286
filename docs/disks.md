@@ -120,6 +120,13 @@ adapter and `sd.c` the disks on it.
   ones the adapter's BIOS makes up (64 heads and 32 sectors, or 255 and
   63 on a disk over 1 GB when the adapter is set so), because the
   partition table and whatever boots the machine count in those.
+- How fast a disk is comes to how the data is passed, on two buses,
+  and the driver says both when it finds them, as the adapter reports
+  them: the AT bus's speed and how long the adapter holds it and lets
+  it go (7 and 5 microseconds, set by the driver so that a diskette
+  drive is not kept waiting), and for each disk whether it and the
+  adapter agreed to pass data synchronously, how many nanoseconds a
+  byte, and how many bytes ahead of the acknowledgements.
 - One command is out at a time, for the whole of a transfer.
 - A transfer that fails is tried four times, unless the target has
   understood it and refused, or is not there.
