@@ -670,11 +670,18 @@ telnet(f, p)
 					*nfrontp++ = '\0';
 			}
 		}
-		if (FD_ISSET(f, &obits) && (nfrontp - nbackp) > 0)
+		/*
+		 * What there is to send is sent now, without first
+		 * asking select whether it can be: both sides are set
+		 * not to block, and what cannot go waits for select as
+		 * it did.  It nearly always can, and a key and its echo
+		 * were four calls of select where they are two.
+		 */
+		if ((nfrontp - nbackp) > 0)
 			netflush();
 		if (ncc > 0)
 			telrcv();
-		if (FD_ISSET(p, &obits) && (pfrontp - pbackp) > 0)
+		if ((pfrontp - pbackp) > 0)
 			ptyflush();
 	}
 	cleanup();

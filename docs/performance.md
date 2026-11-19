@@ -343,7 +343,10 @@ user's own machine would have. `telnetd`'s loop looks for input from
 one side only when it has nothing waiting to go out the other, so by
 its code a key and its echo are four calls of `select` with something
 to do and one that waits, and `selscan` is the first function in the
-profile, 7%. A command is quicker with four users than with one because
+profile, 7%. It now sends what it has without asking `select` first,
+since neither side blocks, which makes that two calls and one that
+waits: a key is 9.8 ms and a command 154 ms with four users, 17% and 7%
+quicker. A command is quicker with four users than with one because
 one user's waits are another's turn. Of its time `telnetd` has 37%,
 15% in its own loop over each byte, the shell 26% and `cat` 17%.
 
