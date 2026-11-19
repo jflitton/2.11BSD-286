@@ -168,6 +168,16 @@ again:
 
 		if (so->so_rcv.sb_cc == 0 && adv >= 2 * tp->t_maxseg)
 			goto send;
+		/*
+		 * Where an int is 16 bits this is never true: 100 * adv
+		 * is past one from 328 bytes on, and what is left of it
+		 * is a few percent of the buffer at most.  So a window
+		 * update goes only when the buffer has been emptied.
+		 * It was tried made true (adv >= sb_hiwat / 20 * 7):
+		 * a file came from another machine no faster, and TCP
+		 * to this one was 16% slower, 182 K/s for 216, each
+		 * update being a segment to send and to receive.
+		 */
 		if (100 * adv / so->so_rcv.sb_hiwat >= 35)
 			goto send;
 	}
