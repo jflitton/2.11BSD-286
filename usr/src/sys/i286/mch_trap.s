@@ -26,7 +26,7 @@
 %include "mch_defs.inc"
 
         extern  _trap, _syscall, _intr, _ast, _spllower
-        extern  _runrun, _cpl, _ipending, _spending
+        extern  _runrun, _cpl, _ipending, _spending, _noproc
         global  _idt, trapret, _intnest
         global  _tr_popes, _tr_popds, _tr_iret
 
@@ -215,9 +215,12 @@ runpend:
 ; the caller is at, everything is let in meanwhile, as if by spl0.  If
 ; nothing was put off, the processor halts: STI takes effect after the
 ; next instruction, so an interrupt cannot slip in between the two and
-; leave the processor halted with work to do.
+; leave the processor halted with work to do.  noproc says that no
+; process is running, so that the clock charges the time to none (swtch
+; clears it).
 ENTRY idle
         cli
+        mov     word [_noproc], 1
         xor     ax, ax
         xchg    ax, [_cpl]
         push    ax

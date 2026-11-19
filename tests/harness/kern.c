@@ -10,6 +10,7 @@ char	*uptr;
 int	runrun;
 int	cpl;
 unsigned ipending, spending;
+int	noproc;			/* idle() sets it */
 
 /*
  * An interrupt request: the test's trap() sees to those as well.
