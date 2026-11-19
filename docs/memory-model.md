@@ -67,7 +67,8 @@ double in size, and all of that C would need auditing.
 
 Things too big for the kernel's data segment get segments of their own and
 are reached through based or far pointers: the buffer cache's data, user
-memory, and any table grown past its PDP-11 size. The PDP-11 kernel already
+memory, the terminals' character blocks, and any table grown past its
+PDP-11 size. The PDP-11 kernel already
 treats buffers this way, through `mapin` and `mapseg5`, so this follows the
 code's existing shape.
 

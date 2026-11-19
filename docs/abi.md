@@ -151,6 +151,14 @@ matter.
   pattern. In the network, whose data segment is not the stack's, the
   address of a local is itself far, and `tools/netcheck.py` keeps count
   of the places that make it near ([the network](network.md)).
+- A based pointer is not checked at all. The terminals' character
+  blocks are in a segment of their own, and a pointer to one is
+  `CLSPACE`, 16 bits that are an offset in that segment
+  (`machine/machparam.h`). Assigned to an ordinary pointer, which is
+  also 16 bits, it draws no warning, and then points into the kernel's
+  data. Such pointers are kept to `sys/tty_subr.c` and three loops in
+  `sys/tty.c`, as the PDP-11's `UCB_CLIST` kept them. An array inside
+  what one points at is far, not based, and wants a cast back.
 - `sizeof` a pointer is no longer `sizeof (int)`. One system call copied
   out `sizeof (uap->status)` bytes and so wrote four bytes over a
   two-byte variable in the process.

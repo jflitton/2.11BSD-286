@@ -29,7 +29,7 @@ char	cwaiting;
 getc(p)
 	register struct clist *p;
 {
-	register struct cblock *bp;
+	register struct cblock CLSPACE *bp;
 	register int c, s;
 #ifdef UCB_CLIST
 	segm sav5;
@@ -47,8 +47,8 @@ getc(p)
 	} else {
 		c = *p->c_cf++ & 0377;
 		if (--p->c_cc<=0) {
-			bp = (struct cblock *)(p->c_cf-1);
-			bp = (struct cblock *)((int)bp & ~CROUND);
+			bp = (struct cblock CLSPACE *)(p->c_cf-1);
+			bp = (struct cblock CLSPACE *)((int)bp & ~CROUND);
 			p->c_cf = NULL;
 			p->c_cl = NULL;
 			bp->c_next = cfreelist;
@@ -59,9 +59,9 @@ getc(p)
 				cwaiting = 0;
 			}
 		} else if (((int)p->c_cf & CROUND) == 0){
-			bp = (struct cblock *)(p->c_cf);
+			bp = (struct cblock CLSPACE *)(p->c_cf);
 			bp--;
-			p->c_cf = bp->c_next->c_info;
+			p->c_cf = (char CLSPACE *)bp->c_next->c_info;
 			bp->c_next = cfreelist;
 			cfreelist = bp;
 			cfreecount += CBSIZE;
@@ -86,7 +86,7 @@ q_to_b(q, cp, cc)
 	register struct clist *q;
 	char *cp;
 {
-	register struct cblock *bp;
+	register struct cblock CLSPACE *bp;
 	register nc;
 	int s;
 	char *acp;
@@ -122,8 +122,8 @@ q_to_b(q, cp, cc)
 		cc -= nc;
 		cp += nc;
 		if (q->c_cc <= 0) {
-			bp = (struct cblock *)(q->c_cf - 1);
-			bp = (struct cblock *)((int)bp & ~CROUND);
+			bp = (struct cblock CLSPACE *)(q->c_cf - 1);
+			bp = (struct cblock CLSPACE *)((int)bp & ~CROUND);
 			q->c_cf = q->c_cl = NULL;
 			bp->c_next = cfreelist;
 			cfreelist = bp;
@@ -135,9 +135,9 @@ q_to_b(q, cp, cc)
 			break;
 		}
 		if (((int)q->c_cf & CROUND) == 0) {
-			bp = (struct cblock *)(q->c_cf);
+			bp = (struct cblock CLSPACE *)(q->c_cf);
 			bp--;
-			q->c_cf = bp->c_next->c_info;
+			q->c_cf = (char CLSPACE *)bp->c_next->c_info;
 			bp->c_next = cfreelist;
 			cfreelist = bp;
 			cfreecount += CBSIZE;
@@ -178,7 +178,7 @@ ndqb(q, flag)
 	if (q->c_cc < cc)
 		cc = q->c_cc;
 	if (flag) {
-		register char *p, *end;
+		register char CLSPACE *p, CLSPACE *end;
 
 #ifdef UCB_CLIST
 		saveseg5(sav5);
@@ -211,8 +211,8 @@ ndflush(q, cc)
 	register struct clist *q;
 	register cc;
 {
-	register struct cblock *bp;
-	char *end;
+	register struct cblock CLSPACE *bp;
+	char CLSPACE *end;
 	int rem, s;
 #ifdef UCB_CLIST
 	segm sav5;
@@ -226,17 +226,17 @@ ndflush(q, cc)
 	mapseg5(clststrt, clstdesc);
 #endif
 	while (cc>0 && q->c_cc) {
-		bp = (struct cblock *)((int)q->c_cf & ~CROUND);
+		bp = (struct cblock CLSPACE *)((int)q->c_cf & ~CROUND);
 		if ((int)bp == (((int)q->c_cl-1) & ~CROUND)) {
 			end = q->c_cl;
 		} else {
-			end = (char *)((int)bp + sizeof (struct cblock));
+			end = (char CLSPACE *)((int)bp + sizeof (struct cblock));
 		}
 		rem = end - q->c_cf;
 		if (cc >= rem) {
 			cc -= rem;
 			q->c_cc -= rem;
-			q->c_cf = bp->c_next->c_info;
+			q->c_cf = (char CLSPACE *)bp->c_next->c_info;
 			bp->c_next = cfreelist;
 			cfreelist = bp;
 			cfreecount += CBSIZE;
@@ -273,8 +273,8 @@ out:
 putc(c, p)
 	register struct clist *p;
 {
-	register struct cblock *bp;
-	register char *cp;
+	register struct cblock CLSPACE *bp;
+	register char CLSPACE *cp;
 	register s;
 #ifdef UCB_CLIST
 	segm sav5;
@@ -296,9 +296,9 @@ putc(c, p)
 		cfreelist = bp->c_next;
 		cfreecount -= CBSIZE;
 		bp->c_next = NULL;
-		p->c_cf = cp = bp->c_info;
+		p->c_cf = cp = (char CLSPACE *)bp->c_info;
 	} else if (((int)cp & CROUND) == 0) {
-		bp = (struct cblock *)cp - 1;
+		bp = (struct cblock CLSPACE *)cp - 1;
 		if ((bp->c_next = cfreelist) == NULL) {
 			splx(s);
 #ifdef UCB_CLIST
@@ -310,7 +310,7 @@ putc(c, p)
 		cfreelist = bp->c_next;
 		cfreecount -= CBSIZE;
 		bp->c_next = NULL;
-		cp = bp->c_info;
+		cp = (char CLSPACE *)bp->c_info;
 	}
 	*cp++ = c;
 	p->c_cc++;
@@ -331,8 +331,8 @@ b_to_q(cp, cc, q)
 	struct clist *q;
 	register int cc;
 {
-	register char *cq;
-	register struct cblock *bp;
+	register char CLSPACE *cq;
+	register struct cblock CLSPACE *bp;
 	register s, nc;
 	int acc;
 #ifdef UCB_CLIST
@@ -353,19 +353,19 @@ b_to_q(cp, cc, q)
 		cfreelist = bp->c_next;
 		cfreecount -= CBSIZE;
 		bp->c_next = NULL;
-		q->c_cf = cq = bp->c_info;
+		q->c_cf = cq = (char CLSPACE *)bp->c_info;
 	}
 
 	while (cc) {
 		if (((int)cq & CROUND) == 0) {
-			bp = (struct cblock *)cq - 1;
+			bp = (struct cblock CLSPACE *)cq - 1;
 			if ((bp->c_next = cfreelist) == NULL) 
 				goto out;
 			bp = bp->c_next;
 			cfreelist = bp->c_next;
 			cfreecount -= CBSIZE;
 			bp->c_next = NULL;
-			cq = bp->c_info;
+			cq = (char CLSPACE *)bp->c_info;
 		}
 		nc = MIN(cc, sizeof (struct cblock) - ((int)cq & CROUND));
 		(void) bcopy(cp, cq, (unsigned)nc);
@@ -391,7 +391,7 @@ out:
  * Callers must not allow getc's to happen between nextc's so that the
  * pointer becomes invalid.  Note that interrupts are NOT masked.
  */
-char *
+char CLSPACE *
 #ifdef UCB_CLIST
 nextc(p, cp, store)
 	register struct clist *p;
@@ -406,14 +406,14 @@ nextc(p, cp, store)
 #else
 nextc(p, cp)
 	register struct clist *p;
-	register char *cp;
+	register char CLSPACE *cp;
 {
-	register char *rcp;
+	register char CLSPACE *rcp;
 #endif
 
 	if (p->c_cc && ++cp != p->c_cl) {
 		if (((int)cp & CROUND) == 0)
-			rcp = ((struct cblock *)cp)[-1].c_next->c_info;
+			rcp = (char CLSPACE *)((struct cblock CLSPACE *)cp)[-1].c_next->c_info;
 		else
 			rcp = cp;
 #ifdef UCB_CLIST
@@ -421,7 +421,7 @@ nextc(p, cp)
 #endif
 	}
 	else
-		rcp = (char *)NULL;
+		rcp = (char CLSPACE *)NULL;
 #ifdef UCB_CLIST
 	restorseg5(sav5);
 #endif
@@ -450,9 +450,9 @@ lookc(cp)
 unputc(p)
 	register struct clist *p;
 {
-	register struct cblock *bp;
+	register struct cblock CLSPACE *bp;
 	register int c, s;
-	struct cblock *obp;
+	struct cblock CLSPACE *obp;
 #ifdef UCB_CLIST
 	segm sav5;
 #endif
@@ -467,20 +467,20 @@ unputc(p)
 	else {
 		c = *--p->c_cl;
 		if (--p->c_cc <= 0) {
-			bp = (struct cblock *)p->c_cl;
-			bp = (struct cblock *)((int)bp & ~CROUND);
+			bp = (struct cblock CLSPACE *)p->c_cl;
+			bp = (struct cblock CLSPACE *)((int)bp & ~CROUND);
 			p->c_cl = p->c_cf = NULL;
 			bp->c_next = cfreelist;
 			cfreelist = bp;
 			cfreecount += CBSIZE;
 		} else if (((int)p->c_cl & CROUND) == sizeof(bp->c_next)) {
-			p->c_cl = (char *)((int)p->c_cl & ~CROUND);
-			bp = (struct cblock *)p->c_cf;
-			bp = (struct cblock *)((int)bp & ~CROUND);
-			while (bp->c_next != (struct cblock *)p->c_cl)
+			p->c_cl = (char CLSPACE *)((int)p->c_cl & ~CROUND);
+			bp = (struct cblock CLSPACE *)p->c_cf;
+			bp = (struct cblock CLSPACE *)((int)bp & ~CROUND);
+			while (bp->c_next != (struct cblock CLSPACE *)p->c_cl)
 				bp = bp->c_next;
 			obp = bp;
-			p->c_cl = (char *)(bp + 1);
+			p->c_cl = (char CLSPACE *)(bp + 1);
 			bp = bp->c_next;
 			bp->c_next = cfreelist;
 			cfreelist = bp;
@@ -533,7 +533,7 @@ getw(p)
 	register struct clist *p;
 {
 	register int s, c;
-	register struct cblock *bp;
+	register struct cblock CLSPACE *bp;
 
 	if (p->c_cc <= 1)
 		return(-1);
@@ -554,8 +554,8 @@ getw(p)
 	p->c_cf += sizeof (word_t);
 	p->c_cc -= sizeof (word_t);
 	if (p->c_cc <= 0) {
-		bp = (struct cblock *)(p->c_cf-1);
-		bp = (struct cblock *)((int)bp & ~CROUND);
+		bp = (struct cblock CLSPACE *)(p->c_cf-1);
+		bp = (struct cblock CLSPACE *)((int)bp & ~CROUND);
 		p->c_cf = NULL;
 		p->c_cl = NULL;
 		bp->c_next = cfreelist;
@@ -566,9 +566,9 @@ getw(p)
 			cwaiting = 0;
 		}
 	} else if (((int)p->c_cf & CROUND) == 0) {
-		bp = (struct cblock *)(p->c_cf);
+		bp = (struct cblock CLSPACE *)(p->c_cf);
 		bp--;
-		p->c_cf = bp->c_next->c_info;
+		p->c_cf = (char CLSPACE *)bp->c_next->c_info;
 		bp->c_next = cfreelist;
 		cfreelist = bp;
 		cfreecount += CBSIZE;
@@ -586,8 +586,8 @@ putw(c, p)
 	word_t c;
 {
 	register s;
-	register struct cblock *bp;
-	register char *cp;
+	register struct cblock CLSPACE *bp;
+	register char CLSPACE *cp;
 
 	s = spltty();
 	if (cfreelist==NULL) {
@@ -611,9 +611,9 @@ putw(c, p)
 			cfreelist = bp->c_next;
 			cfreecount -= CBSIZE;
 			bp->c_next = NULL;
-			p->c_cf = cp = bp->c_info;
+			p->c_cf = cp = (char CLSPACE *)bp->c_info;
 		} else if (((int)cp & CROUND) == 0) {
-			bp = (struct cblock *)cp - 1;
+			bp = (struct cblock CLSPACE *)cp - 1;
 			if ((bp->c_next = cfreelist) == NULL) {
 				splx(s);
 				return (-1);
@@ -622,7 +622,7 @@ putw(c, p)
 			cfreelist = bp->c_next;
 			cfreecount -= CBSIZE;
 			bp->c_next = NULL;
-			cp = bp->c_info;
+			cp = (char CLSPACE *)bp->c_info;
 		}
 #if defined(vax)
 		*(word_t *)cp = c;

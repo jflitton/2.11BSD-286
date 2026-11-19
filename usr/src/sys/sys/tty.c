@@ -104,7 +104,7 @@ struct	ttychars ttydefaults = {
 #define	CLR(t,f)	(t) &= ~(f)
 #define	ISSET(t,f)	((t) & (f))
 
-extern	char	*nextc();
+extern	char	CLSPACE *nextc();
 extern	int	nldisp;
 extern	int	wakeup();
 
@@ -1468,7 +1468,7 @@ ttyrub(c, tp)
 	register int c;
 	register struct tty *tp;
 {
-	register char *cp;
+	register char CLSPACE *cp;
 	int savecol;
 	int s;
 
@@ -1572,7 +1572,7 @@ ttyrubo(tp, cnt)
 ttyretype(tp)
 	register struct tty *tp;
 {
-	register char *cp;
+	register char CLSPACE *cp;
 	int s;
 
 	if (tp->t_rprntc != _POSIX_VDISABLE)

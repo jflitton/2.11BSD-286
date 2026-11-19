@@ -10,7 +10,7 @@
  * Raw structures for the character list routines.
  */
 struct cblock {
-	struct cblock *c_next;
+	struct cblock CLSPACE *c_next;
 	char	c_info[CBSIZE];
 };
 #if defined(KERNEL) && !defined(SUPERVISOR)
@@ -20,9 +20,9 @@ extern memaddr clststrt;
 extern u_int clstdesc;		/* PDR for clist segment when mapped */
 				/* virt. addr. of clists (0120000 - 0140000) */
 #else
-extern struct cblock cfree[];
+extern struct cblock CLSPACE cfree[];
 #endif
 extern int	nclist;
-extern struct	cblock *cfreelist;
+extern struct	cblock CLSPACE *cfreelist;
 extern int	cfreecount;
 #endif

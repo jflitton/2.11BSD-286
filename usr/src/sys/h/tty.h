@@ -20,10 +20,13 @@
  * containing a link and CBSIZE (param.h) characters. 
  * The routines in tty_subr.c manipulate these structures.
  */
+#if !defined(KERNEL) && !defined(CLSPACE)
+#define	CLSPACE			/* machparam.h: where the kernel keeps them */
+#endif
 struct clist {
 	int	c_cc;		/* character count */
-	char	*c_cf;		/* pointer to first char */
-	char	*c_cl;		/* pointer to last char */
+	char	CLSPACE *c_cf;	/* pointer to first char */
+	char	CLSPACE *c_cl;	/* pointer to last char */
 };
 
 /*

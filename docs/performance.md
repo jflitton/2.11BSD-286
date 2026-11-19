@@ -288,8 +288,9 @@ tcprr       5300 us     6566     +24%
   and there were none for what anyone typed. Two programs writing at
   once now pass 29 and 27 K/s. The mark costs one writer a tenth of
   what it would pass alone, 60 K/s, because it and its reader take
-  turns four times as often. (The mark is an eighth now, and one
-  writer passes 47 to 50 K/s: see the users on telnet, below.)
+  turns four times as often. (There are blocks enough for the mark a
+  pseudo-terminal had now, and one writer passes 59 K/s: see the users
+  on telnet, below.)
 - **`tcp`.** The checksum is assembly (`i286/mch_cksum.s`), with the C
   beside it as the reference; the two were run together on every
   packet of the network's tests.
@@ -372,8 +373,35 @@ running `cat` held them all. At an eighth six users passed three times
 of three and eight once. It costs what the quarter did again: one writer to a
 pseudo-terminal passes 47 to 50 K/s where it passed 53, and a command
 with four users is 164 ms where it was 154. Eight terminals at an eighth can
-still hold every block, so this makes it rare and does not end it; more
-blocks would, below.
+still hold every block, so this made it rare and did not end it.
+
+More blocks did. The kernel's data segment had 1.8K to spare, so they
+are in a segment of their own now, 1024 of them where there were 68
+(`NCLIST`, `sys/PC/param.c`): enough for every pseudo-terminal, screen
+and serial line to have its output at its mark and all it may hold of
+what was typed, at once, so no terminal can take what another needs
+and the eighth binds nothing. The PDP-11 kernel could do the same
+(`UCB_CLIST`), mapping the blocks in for each of the routines that
+touch them (`sys/tty_subr.c`); here a pointer to a block, or to a
+character in one, is an offset in that segment (`CLSPACE`,
+`i286/machparam.h`), and the compiler loads ES once in each routine.
+With the 68 blocks moved and nothing else changed, no test moved: a
+key and a command with four users were each 0.3% slower, which is
+less than two runs differ by. With 1024:
+
+| | 68, an eighth each | 1024 |
+|---|---|---|
+| `pty`, one writer | 47 K/s | 59 K/s |
+| `telkey`, four users | 9.8 ms | 9.7 ms |
+| `telcmd`, four users | 164 ms | 135 ms |
+| `telcmd`, six users | 167 ms | 136 ms |
+| `telcmd`, eight users | | 143 ms |
+
+A command is quicker than it was with a quarter each, 154 ms: the
+screenful is 1920 characters, under the 2000 of a pseudo-terminal's
+mark, so `cat` writes it and is gone, where it waited for `telnetd` to
+take each part. It costs 32K of memory, and gives back the 2.2K of the
+kernel's data that the 68 had.
 
 ## What is left
 
@@ -388,11 +416,6 @@ In the order the profile gives them.
   with a loop, a bit at a time: about 130 clocks for the 10 places of
   `lblkno`, in `rwip`, `bmap`, `namei` and the disk drivers. A routine
   in line that moves bytes first would be a fifth of that.
-- **The character blocks**, 68 of them in the kernel's data segment,
-  which has 1.8K to spare. In a segment of their own there could be
-  enough for every pseudo-terminal's high water mark: the eighth
-  above would not bind, and nothing typed would be lost for want of
-  one.
 - **A pipe is a file.** A byte through one costs `rwip`, `bmap` and a
   buffer each way, and that is most of `pipe`'s 2.8 ms now.
 - **`fork` and `exec`** are the copying and clearing of memory they

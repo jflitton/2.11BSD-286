@@ -49,7 +49,7 @@ struct timeval	boottime;
 struct callout	*callfree;
 struct callout	calltodo;
 int	cfreecount;
-struct cblock	*cfreelist;
+struct cblock	CLSPACE *cfreelist;
 char	curpri;
 dev_t	dumpdev;
 size_t	freemem;
@@ -366,11 +366,19 @@ static
 cinit()
 {
 	register int ccp;
-	register struct cblock *cp;
+	register struct cblock CLSPACE *cp;
 
 	ccp = (int)cfree;
 	ccp = (ccp + CROUND) & ~CROUND;
-	for (cp = (struct cblock *)ccp; cp <= &cfree[nclist - 1]; cp++) {
+#ifdef i286
+	/*
+	 * The blocks begin their segment, and a pointer to the first
+	 * of them would be a null one: it is not used.
+	 */
+	if (ccp == 0)
+		ccp = CROUND + 1;
+#endif
+	for (cp = (struct cblock CLSPACE *)ccp; cp <= &cfree[nclist - 1]; cp++) {
 		cp->c_next = cfreelist;
 		cfreelist = cp;
 		cfreecount += CBSIZE;
@@ -380,14 +388,11 @@ cinit()
 	 * No terminal's output may wait in more than an eighth of the
 	 * character blocks.  The high water marks are for lines of each
 	 * speed, and the fastest's, which is a pseudo-terminal's, was as
-	 * much as all the blocks hold: one program writing to one took
-	 * them all, each time its queue emptied, and another's output
-	 * then waited for whole seconds, with nothing for what was typed
-	 * at any terminal to be kept in, or echoed with.  What is typed
-	 * when there is no block for it is lost (ttyinput): at a quarter
-	 * each, six users' output on telnet took them all and a command
-	 * one of them typed never came to its shell.  Eight terminals at
-	 * an eighth still can; the cure is more blocks.
+	 * much as all the blocks held when there were 68 of them: one
+	 * program writing to one took them all, and what is typed when
+	 * there is no block for it is lost (ttyinput).  There are blocks
+	 * for every terminal's mark now (param.c) and this changes
+	 * nothing; it is for a kernel made with few.
 	 */
 	{
 		register int i;

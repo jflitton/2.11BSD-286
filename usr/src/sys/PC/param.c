@@ -61,7 +61,18 @@ int	ncallout = NCALL;
 int	nbuf = NBUF;
 int	nslot = NSLOT;
 
-#define NCLIST (20 + 8 * MAXUSERS)
+/*
+ * The character blocks of the terminals' queues, 32 bytes each for 30
+ * characters, in a segment of their own (CLSPACE, machparam.h), which
+ * could hold 2047.  This is enough for every terminal to have all it
+ * may at once, so that nothing typed is lost for want of one
+ * (ttyinput): a pseudo-terminal's output to its high water mark and
+ * one piece of a write past it, 2100 characters, and twice TTYHOG, 255,
+ * of what was typed, 90 blocks for each of 8; and the four screens and
+ * two serial lines, whose mark is 650, 44 each.  984, and the first is
+ * not used (cinit).
+ */
+#define NCLIST 1024
 int	nclist = NCLIST;
 
 #define	NNCH (NINODE * 11 / 10)
@@ -80,7 +91,7 @@ struct	callout callout[NCALL];
 struct	mount mount[NMOUNT];
 struct	buf buf[NBUF], bfreelist[BQUEUES];
 struct	bufhd bufhash[BUFHSZ];
-struct	cblock cfree[NCLIST];
+struct	cblock CLSPACE cfree[NCLIST];
 struct	namecache namecache[NNCH];
 char	uslot[NSLOT][UBYTES];
 struct	proc *slotproc[NSLOT];

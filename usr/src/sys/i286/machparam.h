@@ -181,6 +181,20 @@ int	_splset(int);
 #else
 #define	ANYSPACE
 #endif
+/*
+ * The character blocks of the terminals' queues (clist.h) are in a
+ * segment of their own, CLIST, and a pointer to one, or to a character
+ * in one, is CLSPACE: 16 bits, an offset in that segment, which the
+ * compiler loads ES with wherever such a pointer is followed.  Nothing
+ * says so when one is assigned to an ordinary pointer, which then points
+ * into the kernel's data at whatever is there.  To a program a queue's
+ * pointers are numbers, as any of the kernel's are.
+ */
+#ifdef KERNEL
+#define	CLSPACE		__based(__segname("CLIST"))
+#else
+#define	CLSPACE
+#endif
 #define	SUPERADD(add)	((int)(add)|01)
 #define	KERNELADD(add)	((int)(add)&~01)
 #define	ISSUPERADD(add)	((int)(add)&01)
