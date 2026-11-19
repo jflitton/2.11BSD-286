@@ -57,12 +57,16 @@ struct ifnet {
 		int	ifq_maxlen;
 		int	ifq_drops;
 	} if_snd;			/* output queue */
-/* procedure handles */
-	int	(*if_init)();		/* init routine */
-	int	(*if_output)();		/* output routine */
-	int	(*if_ioctl)();		/* ioctl routine */
-	int	(*if_reset)();		/* bus reset routine */
-	int	(*if_watchdog)();	/* timer routine */
+/*
+ * procedure handles: far, as the kernel has them, so that a program of
+ * any model reads the structure (netstat -i, which with near ones took
+ * the counts and if_next from the wrong place and showed one interface)
+ */
+	int	(__far *if_init)();	/* init routine */
+	int	(__far *if_output)();	/* output routine */
+	int	(__far *if_ioctl)();	/* ioctl routine */
+	int	(__far *if_reset)();	/* bus reset routine */
+	int	(__far *if_watchdog)();	/* timer routine */
 /* generic interface statistics */
 	long	if_ipackets;		/* packets received on interface */
 	long	if_ierrors;		/* input errors on interface */
