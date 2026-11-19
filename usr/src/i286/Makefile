@@ -235,13 +235,14 @@ diff_SRCS=	$(addprefix bin/diff/,diff.c diffdir.c diffreg.c)
 diff_FLAGS=	'-DDIFF="/bin/diff"' '-DDIFFH="/usr/libexec/diffh"' \
 		'-DPR="/bin/pr"'
 diffh_SRCS=	bin/diff/diffh.c
+strip_SRCS=	bin/strip.c
 makekey_SRCS=	libexec/makekey/makekey.c
 chroot_SRCS=	usr.sbin/chroot/chroot.c
 ac_SRCS=	usr.sbin/ac/ac.c
 shutdown_SRCS=	sbin/shutdown/shutdown.c
 TEXTPROGS=	$(USRBINSTD) $(UCBSTD) $(USRBINDIR) diff3 m4 patch shar \
 		traverse xinstall compress lock mkstr more tset su tar sed \
-		diff diffh makekey chroot ac shutdown
+		diff diffh strip makekey chroot ac shutdown
 
 # This port's own (docs/userland.md), each in a directory here.
 adduser_SRCS=	i286/adduser/adduser.c
@@ -424,14 +425,34 @@ $(foreach l,$(LIBRARIES),$(foreach m,s m,$(eval $(call library,$(l),$(m)))))
 # ROOTDISK is the disk it is to be on, for /etc/fstab: wd0, the first on
 # the AT disk controller, unless it is given, as sd0 is for the first
 # SCSI disk (make root ROOTDISK=sd0).
+#
+# The programs go in it without their symbol tables, as upstream's
+# install -s leaves them: tools/strip.py makes of each in obj/bin, which
+# keeps its own, the copy in obj/root/bin that root.proto names.  The
+# kernel loads neither the symbols nor their names, so the copies run the
+# same and are an eighth smaller.  make root STRIP=no copies the programs
+# as they are, for when the symbols are wanted on the system itself.
 R=	$(TOP)/obj/root
 ROOTSIZE= 8000
 ROOTDISK= wd0
+STRIP=	yes
 
-root:	$(R)/root.fs
+root:	$(R)/strip $(R)/root.fs
 
-$(R):
+$(R) $(R)/bin:
 	mkdir -p $@
+
+# Whether they are stripped.  When STRIP is other than it was, the copies
+# and the file system are removed, before make has looked at either, and
+# so made again whatever their times: a file made in the same second as
+# one it depends on passes for up to date.
+$(R)/strip: FORCE | $(R)
+	@echo $(STRIP) > $@.new
+	@cmp -s $@.new $@ && rm $@.new || \
+	    { rm -rf $(R)/bin $(R)/root.fs && mv $@.new $@; }
+$(R)/bin/%: $(O)/% $(TOP)/tools/strip.py | $(R)/bin
+	@if [ "$(STRIP)" = no ]; then cp $< $@; \
+	    else python3 -I $(TOP)/tools/strip.py $< $@; fi
 
 # /etc/passwd, which is master.passwd without the passwords and the
 # fields only the master file has, and the database that programs look
@@ -462,7 +483,7 @@ $(R)/termcap: $(wildcard $(SRC)/share/termcap/*) $(TOP)/tools/mktermcap.py \
 	python3 -I $(TOP)/tools/mktermcap.py $(SRC)/share/termcap $@
 
 $(R)/root.fs: root.proto $(wildcard etc/* root/* skel/*) \
-		$(addprefix $(O)/,$(PROGS)) \
+		$(addprefix $(R)/bin/,$(PROGS)) \
 		$(R)/passwd $(R)/passwd.dir $(R)/passwd.pag $(R)/fstab \
 		$(R)/syserrlst $(R)/empty $(R)/zero $(R)/termcap \
 		$(TOP)/obj/PC/unix $(TOP)/obj/stand/boot

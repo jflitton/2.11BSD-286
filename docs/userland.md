@@ -48,6 +48,7 @@ knows the cursor keys in insert mode too.
 make -C usr/src/lib/libc/i286   # crt0.o and libc.lib in obj/lib/s and obj/lib/m
 make -C usr/src/i286            # the programs, each in obj/bin
 make -C usr/src/i286 root       # obj/root/root.fs, a root file system
+make -C usr/src/i286 root STRIP=no   # the same, the programs with their symbols
 ```
 
 The root file system needs the kernel and `/boot` made first
@@ -670,14 +671,14 @@ returns the buffer.
 
 ## Programs that work on text and files
 
-The next 76 were chosen with that script: those of `usr.bin` and `ucb`,
+The next 77 were chosen with that script: those of `usr.bin` and `ucb`,
 and some of `bin`, `usr.sbin`, `sbin` and `libexec`, that need nothing
 but themselves, together with those that wanted a few lines changed. 58
 are compiled as upstream has them. All are small-model programs.
 
 | Where | Programs |
 |---|---|
-| `/bin` | `diff`, `sed`, `su`, `tar` |
+| `/bin` | `diff`, `sed`, `strip`, `su`, `tar` |
 | `/usr/bin` | `basename`, `cal`, `cb`, `checkeq`, `col`, `comm`, `crypt`, `deroff`, `fgrep`, `file`, `id`, `install`, `join`, `look`, `m4`, `mesg`, `patch`, `printf`, `ptx`, `renice`, `rev`, `shar`, `sort`, `spline`, `split`, `sum`, `tabs`, `touch`, `tr`, `traverse`, `tsort`, `tty`, `uname`, `uniq`, `units`, `whereis`, `xargs` |
 | `/usr/ucb` | `apply`, `checknr`, `clear`, `colcrt`, `colrm`, `compress`, `ctags`, `expand`, `fold`, `head`, `last`, `leave`, `lock`, `mkstr`, `more`, `printenv`, `script`, `soelim`, `strings`, `tail`, `tset`, `ul`, `unexpand`, `unifdef`, `users`, `wc`, `what`, `xstr`, `yes` |
 | `/usr/libexec` | `diff3`, `diffh`, `makekey` |
@@ -723,6 +724,9 @@ What the machine needed, each in an `#ifdef i286`:
   The size of a larger one does not fit the 16 bits `malloc` takes.
 - `diff` counts a directory's entries before it allocates for them, as
   on the PDP-11, where the VAX grows the list an entry at a time.
+- `strip` ends a file with its last segment and sets the sizes of the
+  two tables after that to zero: the symbols, and their names. With it
+  `install -s` works.
 
 Bugs, which the PDP-11 has too:
 
@@ -764,11 +768,11 @@ passes of `lint`; `spell`, which needs its word lists made; `indent`,
 where the script found 16 calls to read, each with another number of
 arguments than the function is defined with;
 the programs that read the kernel, `fstat`, `top` and `gcore`; those
-for object files, `nm`, `ar`, `ranlib`, `strip`, `size` and `ld`; and
+for object files, `nm`, `ar`, `ranlib`, `size` and `ld`; and
 the network's, which come next. `look` has no `/usr/dict/words` to
 search by default, the tree having none.
 
-`tests/programs` has the system run a check or more of each: 74 short
+`tests/programs` has the system run a check or more of each: 75 short
 scripts, each with what it must write, to the byte. They are in
 `tests/programs/checks`, with the files they read.
 
@@ -854,9 +858,24 @@ root's unless the list says otherwise, as it does for `at`, `atq`,
 run with the group `kmem`. The programs that work on text and files are
 listed [above](#programs-that-work-on-text-and-files).
 
-The file system is 8000 blocks of 1K, of which the system takes 3700.
-The 170 programs are 3 MB of that. They have their symbols, an eighth of
-their bytes, where upstream's `install -s` strips them.
+The programs are in it without their symbol tables, as upstream's
+`install -s` leaves them. `obj/bin` has each as it was linked, with its
+symbols, which is where to look up the address a program faulted at; the
+Makefile has `tools/strip.py` make of each the copy in `obj/root/bin`
+that `root.proto` names. The kernel loads neither the symbols nor their
+names (`kern_exec.c` reads the header, the table of segments and the
+segments), so a stripped program takes the same memory and starts the
+same; what it saves is an eighth of the file. `make root STRIP=no` copies
+the programs as they are, for when the symbols are wanted on the system
+itself, and making it either way after the other makes the copies and
+the file system again. `/unix` keeps its symbols always: `ps` and the
+rest look them up there ([programs that read the
+kernel](#programs-that-read-the-kernel)). The system's own `strip` makes
+of a file what `tools/strip.py` does, which `tests/programs` checks on
+the kernel.
+
+The file system is 8000 blocks of 1K, of which the system takes 3300.
+The 171 programs are 2.6 MB of that, and 3 MB with their symbols.
 
 ## Following a program
 
@@ -990,14 +1009,14 @@ copied files.
 `tests/programs` boots the same system from a disk with the root, a
 swap area and a small file system of checks, logs in as root on the
 first serial port, mounts that file system and runs its `check.sh`. For
-each of the 74 checks in `tests/programs/checks` it runs the check's
+each of the 75 checks in `tests/programs/checks` it runs the check's
 lines with the shell in an empty directory and compares what they wrote
 with what the check says they must, and says `ok` or shows what was
 written. A check is of one program, by its name, or of one use of it:
 `sort` has one for its options and one that sorts 6000 lines, more than
 it holds in memory, so that it merges files; `diff` has four, among
 them one of directories and one against an empty file. The test fails
-unless all 74 say `ok`. Then, at the terminal, it runs `tty` and `mesg`;
+unless all 75 say `ok`. Then, at the terminal, it runs `tty` and `mesg`;
 pages through a file and through a pipe with `more`; records a shell
 with `script`, which it leaves with ^D, and finds the command it typed
 in the file; locks the terminal with `lock`, gives it a wrong key and

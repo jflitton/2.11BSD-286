@@ -51,6 +51,9 @@ for line in open(src):
         out.write(line)
 open(os.path.join(dst, "names"), "w").write("".join(n + "\n" for n in names))
 EOF
+# The kernel as tools/strip.py leaves it: the system's strip must make
+# the same of /unix, which has its symbols for ps and the like.
+python3 -I "$top/tools/strip.py" "$top/obj/PC/unix" checks/d/unix.stripped
 cat > checks/check.sh <<'EOF'
 PATH=/bin:/sbin:/usr/sbin:/usr/ucb:/usr/bin
 export PATH
@@ -76,7 +79,7 @@ EOF
         echo "f /${f#checks/} 644 $f"
     done
 } > checks.proto
-python3 -I "$top/tools/mkfs.py" -s 400 checks.proto checks.fs >/dev/null
+python3 -I "$top/tools/mkfs.py" -s 800 checks.proto checks.fs >/dev/null
 
 stand=$top/obj/stand
 geometry=$(python3 -I "$top/tools/mkdisk.py" -p -b "$stand/hdboot.bin" \

@@ -53,12 +53,30 @@ strip(name)
 		status = 1;
 		goto out;
 	}
+#ifdef i286
+	/*
+	 * The file is to end with its last segment.  The symbols and then
+	 * their names follow that, and the header has the size of each.
+	 */
+	if (head.e.a_syms == 0 && head.e.a_strs == 0)
+		goto out;
+	{
+		register int i;
+
+		size = N_TXTOFF(head.e);
+		for (i = 0; i < head.e.a_nseg && i < NXSEG; i++)
+			size += (head.x[i].xs_filesz + 1) & ~1L;
+	}
+	head.e.a_syms = 0;
+	head.e.a_strs = 0;
+#else
 	if ((head.e.a_syms == 0) && ((head.e.a_flag & 1) != 0))
 		goto out;
 
 	size = N_DATOFF(head) + head.e.a_data;
 	head.e.a_syms = 0;
 	head.e.a_flag |= 1;
+#endif
 	if (ftruncate(f, size) < 0) {
 		fprintf(stderr, "strip: "); perror(name);
 		status = 1;

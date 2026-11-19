@@ -284,9 +284,9 @@ fgrep -v -c a words
 cd /mnt/d
 file /bin/ls /bin/csh /bin/su /bin/true /usr/ucb/which /dev/null /tmp words prog.c | tr -s '\011' ' '
 --
-/bin/ls: small model executable not stripped
-/bin/csh: medium model executable not stripped
-/bin/su: small model set-uid executable not stripped
+/bin/ls: small model executable
+/bin/csh: medium model executable
+/bin/su: small model set-uid executable
 /bin/true: executable shell script
 /usr/ucb/which: executable c-shell script
 /dev/null: character special (1/2)
@@ -557,6 +557,23 @@ ab
 xyz
 usage: cal [month] year
 1
+== strip
+cp /unix k
+file k | tr -s '\011' ' '
+strip k
+file k | tr -s '\011' ' '
+cmp k /mnt/d/unix.stripped && echo same
+strip k; cmp k /mnt/d/unix.stripped && echo again
+install -c -s /unix i
+cmp i k && echo installed
+strip /etc/motd
+--
+k: medium model executable not stripped
+k: medium model executable
+same
+again
+installed
+strip: /etc/motd not in a.out format
 == sum
 echo hello | sum
 sum /mnt/d/words | awk '{ print NF }'

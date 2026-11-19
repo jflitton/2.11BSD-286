@@ -164,6 +164,7 @@ DOS and OS/2 user's guide with nothing on ports or interrupts; not kept.)
 | `tools/fsck.py` | checks a file system in an image without changing it, or prints a file from it |
 | `tools/mkstubs.py` | writes system call stubs from a table of the calls' arguments, checked against the kernel's |
 | `tools/kpatch.py` | changes a variable in an executable file, by name |
+| `tools/strip.py` | copies an executable file without its symbol table, as `strip` leaves one: the programs in the root file system are such copies, unless it is made with `STRIP=no` |
 | `tools/farlint.py` | looks for far pointers that kernel code truncates without the compiler noticing |
 | `tools/preflight.py` | looks a program over before it is built: what the compiler rejects, calls that disagree with a definition in another file or in the library, lines that match what has gone wrong before, and whether it links and how large it is |
 | `tools/netcheck.py` | looks in the kernel's objects for calls and references between it and the network that do not switch the data segment; run at every link |
@@ -195,7 +196,7 @@ tests/libc/run.sh       # the C library, with a test program as init: 73
 tests/preflight/run.sh  # tools/preflight.py, on two files with one of each
                         # thing it looks for (no emulator)
 tests/programs/run.sh   # the programs that work on text and files, on the
-                        # system booted to multi-user: 74 checks, each a
+                        # system booted to multi-user: 75 checks, each a
                         # few lines for the shell and what they must write,
                         # and more, script, lock, tset and shutdown at a
                         # terminal
@@ -272,7 +273,7 @@ tests/vt/run.sh         # the console's terminal emulator, on the machine
   ([the C library and programs](docs/userland.md),
   [the console](docs/console.md), [the network](docs/network.md)).
 - `tests/programs` boots that system too, with a file system of checks
-  beside the root: 74 of them, each a few lines for the shell and what
+  beside the root: 75 of them, each a few lines for the shell and what
   they must write, to the byte, for `sort`, `sed`, `diff`, `tar`,
   `patch`, `m4`, `compress` and the other programs that work on text and
   files. Then it uses the ones that need a terminal, `more`, `script`,
@@ -353,7 +354,7 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   system's part of the disk: past its 1024 cylinders, or on a controller
   it does not know.
 - The C library is built for the small and medium models, and with them
-  170 of the system's programs: `init`, `getty`, `login`, the Bourne shell and the
+  171 of the system's programs: `init`, `getty`, `login`, the Bourne shell and the
   everyday commands in the small model, and in the medium the C shell,
   `tcsh`, and `ex`, which is `vi`, whose code the PDP-11 had to split
   into overlays ([the C library and programs](docs/userland.md)).
@@ -368,7 +369,7 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   `syslogd` keeps the log, of the kernel's messages too, `cron` runs
   each user's table and `at`'s queue, and `acctd` keeps the accounting
   of processes that `lastcomm` and `sa` read.
-  Of the programs that work on text and files there are 76, among them
+  Of the programs that work on text and files there are 77, among them
   `sort`, `sed`, `diff`, `patch`, `tar`, `compress`, `m4`, `more` and
   `su`; `tools/preflight.py` said which would compile and link as they
   are, and found the calls in the others that no compiler would.
