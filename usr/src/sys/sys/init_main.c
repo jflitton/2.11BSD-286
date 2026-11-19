@@ -288,6 +288,7 @@ main()
 	for (mp = _coremap; mp->m_size; mp++)
 		avail += mp->m_size;
 	printf("\nphys mem  = %D\n", ctob((long)physmem));
+	printf("buffers   = %D\n", (long)nbuf * MAXBSIZE);
 	printf("avail mem = %D\n", ctob(avail));
 	maxmem = MAXMEM;
 	printf("user mem  = %D\n", ctob((long)MAXMEM));
@@ -337,6 +338,7 @@ binit()
 	 * the physical address of its data, for the drivers, and a far
 	 * pointer to it, for the kernel.
 	 */
+	agekeep = nbuf > NBUFMIN ? nbuf - NBUFMIN : 0;
 	paddr = ctob((long)bpaddr);
 	left = (long)nbuf * MAXBSIZE;
 	for (i = 0; i < nbuf; i++, paddr += MAXBSIZE) {

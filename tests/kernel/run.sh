@@ -143,8 +143,11 @@ diskboot wdbig wd ide diskette "-g 5400,16,63 -p -o 5000000"
 # A SCSI disk on an Adaptec adapter set as it comes, shared by a
 # partition table, booted from through the adapter's BIOS.  The label
 # says it is a SCSI disk, from which /boot tells the kernel its root is
-# sd0a.
-diskboot sd sd scsi:330:11:5:0:DC000 disk "-p -g 20,64,32"
+# sd0a.  An eighth of the memory is buffers here and not a sixteenth,
+# 128 of them, so that there are some to keep what files had in them:
+# the other boots from a disk have the 64 of a machine with 1 MB.
+diskboot sd sd scsi:330:11:5:0:DC000 disk "-p -g 20,64,32" bufshare=8
+grep -q "^buffers   = 131072" "$top/obj/tests/kernel-sd/serial.txt"
 
 # Another on an adapter set otherwise, with its BIOS off, and at another
 # SCSI id, of 2.6 GB with the system at the end of it.  The kernel comes
@@ -156,5 +159,6 @@ diskboot sdlost sd scsi:334:10:6:5:0 diskette "-g 2600,64,32 -p -o 5000000" \
     diskroot=512 ahatest=3 ahatimeout=5
 grep -q "aha: an interrupt did not arrive" "$top/obj/tests/kernel-sdlost/serial.txt"
 grep -q "aha: no answer in 5 seconds" "$top/obj/tests/kernel-sdlost/serial.txt"
+grep -q "^buffers   = 65536" "$top/obj/tests/kernel-sdlost/serial.txt"
 
 echo "kernel: all six boots passed"

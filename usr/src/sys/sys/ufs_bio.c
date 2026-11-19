@@ -26,6 +26,25 @@ u_long tracebuf[TR_NUM_210];
 #endif
 
 /*
+ * The aged queue has the buffers whose blocks are not expected to be
+ * wanted again soon: a file's data read or written as far as the
+ * block's end, and what was written because its buffer was wanted or
+ * the disks were being brought up to date.  They were always the first
+ * to be given to another block, before anything on the queue of the
+ * rest, so however many buffers there were a file read twice came from
+ * the disk twice, and the rest, directories and inodes and indirect
+ * blocks, had nearly all of them.
+ *
+ * agekeep of them are kept now (getnewbuf): the buffers there are
+ * beyond NBUFMIN, so that the rest have what they always had, and a
+ * machine with only NBUFMIN is as it was.  nage is how many the queue
+ * has, not counting those with nothing in them, which are at its head
+ * and go first.
+ */
+int	nage;
+int	agekeep;
+
+/*
  * Read in (if necessary) the block and return a buffer pointer.
  */
 struct buf *
@@ -201,9 +220,11 @@ brelse(bp)
 	} else {
 		if (bp->b_flags & B_LOCKED)
 			flist = &bfreelist[BQ_LOCKED];
-		else if (bp->b_flags & B_AGE)
+		else if (bp->b_flags & B_AGE) {
 			flist = &bfreelist[BQ_AGE];
-		else
+			bp->b_flags |= B_AGED;
+			nage++;
+		} else
 			flist = &bfreelist[BQ_LRU];
 		binstailfree(bp, flist);
 	}
@@ -309,7 +330,9 @@ geteblk()
 /*
  * Find a buffer which is available for use.
  * Select something from a free list.
- * Preference is to AGE list, then LRU list.
+ * Preference is to the AGE list while it has a buffer with nothing in
+ * it or more than agekeep that have, then to the LRU list, then to the
+ * AGE list again.
  */
 struct buf *
 getnewbuf()
@@ -319,10 +342,13 @@ getnewbuf()
 
 loop:
 	s = splbio();
-	for (dp = &bfreelist[BQ_AGE]; dp > bfreelist; dp--)
-		if (dp->av_forw != dp)
-			break;
-	if (dp == bfreelist) {		/* no free blocks */
+	dp = &bfreelist[BQ_AGE];
+	if (dp->av_forw == dp ||
+	    (dp->av_forw->b_flags & B_AGED) && nage <= agekeep)
+		if (bfreelist[BQ_LRU].av_forw != &bfreelist[BQ_LRU])
+			dp = &bfreelist[BQ_LRU];
+	if (dp->av_forw == dp) {
+		dp = bfreelist;		/* no free blocks */
 		dp->b_flags |= B_WANTED;
 		sleep((caddr_t)dp, PRIBIO+1);
 		splx(s);

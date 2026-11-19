@@ -2,7 +2,10 @@
 # Test the system: boot it from a hard disk whose root file system was
 # not unmounted cleanly, which /etc/rc has fsck check before it starts
 # the system again, to multi-user; log in on the first serial port as
-# root, use the shell, the C shell, the editor, tcsh and some programs;
+# root, use the shell, the C shell, in which a file read a second time
+# must be read without a block from the disk (the "0+" in time's line:
+# the kernel's buffers keep files' data when there are more than 64 of
+# them), the editor, tcsh and some programs;
 # log in on two of the console's screens with the keyboard, and use the
 # editor there; make the password database as tools/mkpasswd.py made the
 # one on the disk, which must be the same; add a user with adduser, and
@@ -138,7 +141,8 @@ TIMEOUT=${TIMEOUT:-500} python3 -I "$top/tests/harness/runtest.py" \
     --type "/etc /tmp" 'sleep 30 &' \
     --type "[1] " 'kill %1' \
     --type "Terminated" 'time sleep 1' \
-    --type "sw" 'exit' \
+    --type "sw" 'cat /usr/share/misc/termcap > /dev/null; time cat /usr/share/misc/termcap > /dev/null' \
+    --type "% 0+" 'exit' \
     --type "# " 'ex /tmp/e' \
     --type "[New file]" "a${CR}alpha beta${CR}gamma${CR}.${CR}1s/beta/delta/p" \
     --type "alpha delta" 's/a\(/x/' \

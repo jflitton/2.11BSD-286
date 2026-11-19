@@ -105,12 +105,15 @@ space:=	$(empty) $(empty)
 # network that do not go through KScall and SKcall (docs/network.md).
 #
 # Message 1014 is the lack of a stack segment: the stacks are in the
-# kernel's data.  1027 is a variable defined in two files, which a header
-# that declares one without "extern" causes in every file that includes
-# it; the linker keeps the first and goes on, and here that is an error.
+# kernel's data (uslot, param.c).  The linker would still count 4K for a
+# stack against the 64K the data segment may be, so it is told 2 bytes,
+# and 1172 is its saying that is under 512.  1027 is a variable defined
+# in two files, which a header that declares one without "extern" causes
+# in every file that includes it; the linker keeps the first and goes on,
+# and here that is an error.
 $(O)/unix: $(addprefix $(O)/,$(OBJS))
-	@cd $(O) && { wlink op q format os2 name unix.ne disable 1014 \
-	    op nodefaultlibs,map=unix.map \
+	@cd $(O) && { wlink op q format os2 name unix.ne disable 1014,1172 \
+	    op nodefaultlibs,stack=2,map=unix.map \
 	    file $(subst $(space),$(comma),$(OBJS)) > unix.log 2>&1; r=$$?; \
 	    cat unix.log; \
 	    if [ $$r != 0 ] || grep -q 'W1027' unix.log; \

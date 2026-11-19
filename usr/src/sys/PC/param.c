@@ -34,7 +34,15 @@
  * a segment of its own.
  */
 #define	MAXUSERS 6
-#define	NBUF 64
+
+/*
+ * The most buffers there can be, 1K of data each.  How many there are
+ * is nbuf, which the kernel works out as it starts from the memory it
+ * finds (startup, machdep.c).  The data is outside the kernel's data
+ * segment; the headers are in it, 28 bytes each, and they are what
+ * keeps this from being more.
+ */
+#define	NBUF 256
 
 /*
  * Slots: the places in the kernel's data segment where a process's user
@@ -58,7 +66,9 @@ int	ninode = NINODE;
 int	nfile = NFILE;
 #define NCALL (16 + MAXUSERS)
 int	ncallout = NCALL;
-int	nbuf = NBUF;
+int	nbuf;			/* by the memory found (startup): */
+int	bufshare = 16;		/* this part of it, a sixteenth (patchable), */
+int	nbufmax = NBUF;		/* and no more than this (patchable, to less) */
 int	nslot = NSLOT;
 
 /*

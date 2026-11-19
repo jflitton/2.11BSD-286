@@ -70,6 +70,13 @@ struct buf
 #define	BQ_AGE		2		/* rubbish */
 #define	BQ_EMPTY	3		/* buffer headers with no memory */
 
+/*
+ * The buffers there are at least, which are all there were when the
+ * number was fixed.  Those there are beyond them are for keeping what
+ * the aged queue has (getnewbuf).
+ */
+#define	NBUFMIN		64
+
 /* Flags to low-level allocation routines. */
 #define B_CLRBUF	0x01	/* Request allocated buffer be cleared. */
 #define B_SYNC		0x02	/* Do all allocations synchronously. */
@@ -81,10 +88,20 @@ struct buf
 #define	bfpaddr(bp)	((long)(u_char)(bp)->b_xmem << 16 | (u_int)(bp)->b_un.b_addr)
 
 #if defined(KERNEL) && !defined(SUPERVISOR)
+#ifdef i286
+#define	BUFHSZ	128	/* must be power of 2: two to a chain with
+			   the most buffers there can be (param.c);
+			   with four, a file was read 3% slower */
+#else
 #define	BUFHSZ	16	/* must be power of 2 */
+#endif
 #define	BUFHASH(dev,blkno)	((struct buf *)&bufhash[((long)(dev) + blkno) & ((long)(BUFHSZ - 1))])
 extern struct	buf buf[];		/* the buffer pool itself */
 extern int	nbuf;			/* number of buffer headers */
+extern int	nbufmax;		/* and of them declared */
+extern int	bufshare;		/* the part of memory they are given */
+extern int	nage;			/* on the aged queue, not empty */
+extern int	agekeep;		/* of those, how many are kept */
 extern struct	bufhd bufhash[];	/* heads of hash lists */
 extern struct	buf bfreelist[];	/* heads of available lists */
 
@@ -106,6 +123,8 @@ struct	buf *breada();
 #define	B_BUSY		0x00008		/* not on av_forw/back list */
 #define	B_PHYS		0x00010		/* physical IO */
 #define	B_MAP		0x00020		/* alloc UNIBUS */
+#define	B_AGED		0x00020		/* (no UNIBUS here) on the aged queue
+					   with something in it: one of nage */
 #define	B_WANTED 	0x00040		/* issue wakeup when BUSY goes off */
 #define	B_AGE		0x00080		/* delayed write for correct aging */
 #define	B_ASYNC		0x00100		/* don't wait for I/O completion */
@@ -158,6 +177,10 @@ struct	buf *breada();
 #define	notavail(bp) { \
 	register int x = splbio(); \
 	bremfree(bp); \
+	if ((bp)->b_flags & B_AGED) { \
+		(bp)->b_flags &= ~B_AGED; \
+		nage--; \
+	} \
 	(bp)->b_flags |= B_BUSY; \
 	splx(x); \
 }

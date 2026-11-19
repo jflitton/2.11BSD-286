@@ -18,14 +18,16 @@ has file names that differ only by case.
 - 1 MB of memory at least, 640K and 384K above 1M, which is the least
   such a machine was sold with; 2 MB is what to have, so that a few
   users at once do not swap. The kernel, its buffers and the network
-  take 416K of whatever there is. More than that is for more users and
-  larger programs, not for the system:
+  take 422K of 1 MB. Of more memory a sixteenth is buffers, up to 256K
+  with 4 MB, and those past the first 64K keep what files had in them,
+  so that a file read again does not come from the disk again. The
+  rest of it is for more users and larger programs:
 
-  | memory | left for programs | free after booting, logged in | four users on telnet |
-  |---|---|---|---|
-  | 1 MB | 607K | 133K | within 4% of as quick as with 4 MB; 100K swapped out |
-  | 2 MB | 1.6 MB | 967K | nothing swapped |
-  | 4 MB | 3.6 MB | 2.9 MB | nothing swapped |
+  | memory | buffers | left for programs | free after booting, logged in | four users on telnet |
+  |---|---|---|---|---|
+  | 1 MB | 64K | 600K | 130 to 165K | within 4% of as quick as with 4 MB; 100K swapped out |
+  | 2 MB | 128K | 1.5 MB | 895K | nothing swapped |
+  | 4 MB | 256K | 3.4 MB | 2.7 MB | nothing swapped |
 
   That is the system in multi-user with its daemons, `inetd` among
   them: a dozen processes, 470K. The largest program is `tcsh`, 150K of code

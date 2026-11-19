@@ -115,6 +115,20 @@ startup()
 	fileNFILE = file + nfile;
 
 	/*
+	 * The buffers: a sixteenth of the memory (bufshare), to the
+	 * nearest, and not fewer than NBUFMIN, which is what a machine
+	 * with 1 MB gets, nor more than nbufmax, which is how many
+	 * headers there are unless it has been patched to less.  So 128
+	 * with 2 MB and 256 with 4 MB or more.
+	 */
+	nbuf = (physmem + bufshare * btoc(1024) / 2) /
+	    (bufshare * btoc(1024));
+	if (nbuf < NBUFMIN)
+		nbuf = NBUFMIN;
+	if (nbuf > nbufmax)
+		nbuf = nbufmax;
+
+	/*
 	 * The buffers' data.  binit gives each 64K of it a segment.
 	 */
 	if ((bpaddr = malloc(coremap, btoc((long)nbuf * MAXBSIZE))) == 0)

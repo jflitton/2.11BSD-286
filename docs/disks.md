@@ -194,7 +194,9 @@ that do not fit in memory are swapped to the disk. After the kernel has
 halted, `fsck.py` must find nothing wrong with the file system and must
 find the last file the test wrote. On the last boot the driver must also
 have said that an interrupt did not arrive and that a command got no
-answer.
+answer. The disk boots have the 64 buffers of a machine with 1 MB, but
+for the first of the SCSI ones, which has 128, so that some keep files'
+data.
 
 The emulated machine's own BIOS, as the tests have it set up, does not
 boot from a drive on an IDE controller, so for the IDE boots the
