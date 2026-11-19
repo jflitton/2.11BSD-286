@@ -27,6 +27,7 @@ d /usr/spool 755
 d /usr/spool/at 755:1.1
 d /usr/spool/at/past 755:1.1
 d /usr/spool/mqueue 755
+d /usr/spool/rwho 755
 d /usr/tmp 1777
 d /var 755
 d /var/run 755
@@ -57,6 +58,11 @@ f /etc/group 644 ../etc/group
 f /etc/shells 644 ../etc/shells
 f /etc/hosts 644 etc/hosts
 f /etc/inetd.conf 644 etc/inetd.conf
+f /etc/hosts.allow 644 etc/hosts.allow
+f /etc/hosts.deny 644 ../etc/hosts.deny
+f /etc/hosts.equiv 644 etc/hosts.equiv
+f /etc/ftpusers 644 ../etc/ftpusers
+f /etc/ntp.conf 644 ../etc/ntp.conf
 f /etc/syslog.conf 644 ../etc/syslog.conf
 f /etc/crontab 644 etc/crontab
 f /etc/services 644 ../etc/services
@@ -278,6 +284,37 @@ h /bin/e /bin/ed
 f /usr/sbin/chroot 4751 ../../../obj/root/bin/chroot
 f /usr/sbin/ac 755 ../../../obj/root/bin/ac
 f /sbin/shutdown 4750:0.5 ../../../obj/root/bin/shutdown
+f /bin/rcp 4755 ../../../obj/root/bin/rcp
+f /usr/ucb/rlogin 4755 ../../../obj/root/bin/rlogin
+f /usr/ucb/rsh 4755 ../../../obj/root/bin/rsh
+f /usr/ucb/ftp 755 ../../../obj/root/bin/ftp
+f /usr/ucb/tftp 755 ../../../obj/root/bin/tftp
+f /usr/ucb/finger 755 ../../../obj/root/bin/finger
+f /usr/ucb/talk 2755:4 ../../../obj/root/bin/talk
+f /usr/ucb/whois 755 ../../../obj/root/bin/whois
+f /usr/ucb/rwho 755 ../../../obj/root/bin/rwho
+f /usr/ucb/ruptime 755 ../../../obj/root/bin/ruptime
+f /usr/ucb/tcpdmatch 755 ../../../obj/root/bin/tcpdmatch
+f /usr/ucb/tcpdchk 755 ../../../obj/root/bin/tcpdchk
+f /usr/ucb/try-from 755 ../../../obj/root/bin/try-from
+f /usr/ucb/safe_finger 755 ../../../obj/root/bin/safe_finger
+f /usr/libexec/rlogind 755 ../../../obj/root/bin/rlogind
+f /usr/libexec/rshd 755 ../../../obj/root/bin/rshd
+f /usr/libexec/rexecd 755 ../../../obj/root/bin/rexecd
+f /usr/libexec/ftpd 755 ../../../obj/root/bin/ftpd
+f /usr/libexec/tftpd 755 ../../../obj/root/bin/tftpd
+f /usr/libexec/fingerd 755 ../../../obj/root/bin/fingerd
+f /usr/libexec/ntalkd 755 ../../../obj/root/bin/talkd
+f /usr/libexec/tcpd 1755 ../../../obj/root/bin/tcpd
+f /usr/sbin/rwhod 755 ../../../obj/root/bin/rwhod
+f /usr/sbin/nc 755 ../../../obj/root/bin/nc
+f /usr/sbin/traceroute 4551 ../../../obj/root/bin/traceroute
+f /usr/sbin/timed 755 ../../../obj/root/bin/timed
+f /usr/sbin/timedc 4555 ../../../obj/root/bin/timedc
+f /usr/sbin/ntp 755 ../../../obj/root/bin/ntp
+f /usr/sbin/ntpd 755 ../../../obj/root/bin/ntpd
+f /usr/sbin/ntpdc 755 ../../../obj/root/bin/ntpdc
+f /sbin/routed 755 ../../../obj/root/bin/routed
 c /dev/console 622 0 0
 c /dev/ttyv1 666 0 1
 c /dev/ttyv2 666 0 2

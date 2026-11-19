@@ -50,7 +50,7 @@ FILE	*ftrace;		/* output trace file */
 		ifp = if_iflookup(src); \
 		if (ifp) \
 			trace(&ifp->int_input, src, packet, size, \
-				ntohl(ifp->int_metric)); \
+				ifp->int_metric); \
 	  } \
 	  if (tracepackets) \
 		dumppacket(stdout, "from", src, packet, size); \

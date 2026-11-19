@@ -1,0 +1,340 @@
+The checks of tests/network: each is run by the system, as root, in an
+empty directory, once it has a user guest with the password Gu3st-pw and
+a user ftp, and must write what follows its "--", to the byte
+(tests/harness/checks.py).  The first names the machine, brings its
+Ethernet interface up and has inetd start the three daemons that
+/etc/inetd.conf has commented out; the rest rely on it.
+
+== setup
+hostname pc286
+echo "10.0.2.15 pc286" >> /etc/hosts
+ifconfig ne0 inet 10.0.2.15 netmask 255.255.255.0 up
+route add default 10.0.2.2 1 >/dev/null
+cat >> /etc/inetd.conf <<END
+exec stream tcp nowait root /usr/libexec/rexecd rexecd
+tftp dgram udp wait nobody /usr/libexec/tcpd tftpd
+ntalk dgram udp wait root /usr/libexec/ntalkd ntalkd
+END
+kill -1 `ps ax | grep "[i]netd" | awk '{print $1}'`
+sleep 2
+echo "localhost root" > /home/guest/.rhosts
+chown guest /home/guest/.rhosts
+hostname
+ifconfig ne0 | grep -c "inet 10.0.2.15"
+--
+pc286
+1
+== ntest
+cp /mnt/d/ntest .; chmod +x ntest
+./ntest; echo "status $?"
+--
+status 0
+== finger
+finger guest@localhost | sed -n 2,3p | tr -s '\011 ' '  '
+finger @localhost
+--
+Login: guest Name: Guest User
+Directory: /home/guest Shell: /bin/sh
+[localhost]
+must provide username
+
+== tcpdmatch
+tcpdmatch telnetd localhost
+echo "telnetd: 10.0.2. LOCAL" > hosts.allow
+echo "ALL: ALL" > hosts.deny
+tcpdmatch -d telnetd 10.0.2.2 | grep access
+tcpdmatch -d telnetd 10.9.9.9 | grep access
+tcpdmatch -d ftpd localhost | grep access
+tcpdchk
+--
+client:   hostname localhost
+client:   address  127.0.0.1
+server:   process  telnetd
+matched:  /etc/hosts.allow line 10
+access:   granted
+access:   granted
+access:   denied
+access:   denied
+== tcpd-refuse
+cp /etc/hosts.allow keep
+echo "telnetd: ALL" > /etc/hosts.allow
+echo quit > c
+ftp -n -v localhost < c
+cp keep /etc/hosts.allow
+sleep 1
+cat /usr/adm/messages /usr/adm/daemonlog | grep "refused connect" | sed 's/.*ftpd\[[0-9]*\]: //' | sort -u
+--
+Connected to localhost.
+421 Service not available, remote server has closed connection
+refused connect from localhost
+== try-from
+rsh localhost -l guest try-from
+--
+client address  (%a): 127.0.0.1
+client hostname (%n): localhost
+client username (%u): unknown
+client info     (%c): localhost
+server address  (%A): 127.0.0.1
+server hostname (%N): localhost
+server process  (%d): try-from
+server info     (%s): try-from@localhost
+== safe_finger
+safe_finger guest@localhost | sed -n 2p | tr -s '\011 ' '  '
+--
+ Login: guest Name: Guest User
+== rsh
+rsh localhost -l guest 'echo rsh-ok; id; pwd'
+rsh localhost -l guest cat /etc/services > s; cmp s /etc/services && echo same
+rsh localhost -l guest 'echo to-err >&2' 2>e; cat e
+rsh localhost -l guest wc < /etc/motd | tr -s ' ' ' '
+rsh localhost -l daemon echo no
+rsh localhost -n -l guest echo n-flag
+--
+rsh-ok
+uid=100(guest) gid=31(guest) groups=31(guest)
+/home/guest
+same
+to-err
+ 1 6 26
+Permission denied.
+n-flag
+== rcp
+rcp guest@localhost:/etc/services s1; cmp /etc/services s1 && echo in
+rcp /etc/termcap guest@localhost:t1; cmp /etc/termcap /home/guest/t1 && echo out
+mkdir d1 d1/sub; cp /etc/motd /etc/group d1; cp /etc/shells d1/sub
+rcp -rp d1 guest@localhost:d2
+ls -R /home/guest/d2
+rcp guest@localhost:nosuch s9
+rm -r /home/guest/d2 /home/guest/t1
+--
+in
+out
+group
+motd
+sub
+
+/home/guest/d2/sub:
+shells
+rcp: nosuch: No such file or directory
+== rexecd
+nc -w 5 localhost 512 < /mnt/d/rexec.in | od -c
+--
+0000000   \0   r   e   x   e   c   -   g   u   e   s   t  \n   e   r   r
+0000020   \n
+0000021
+== tftp
+cp /dev/null put; chmod 666 put
+tftp localhost <<END | sed 's/ in .*//'
+get /etc/services get
+put /etc/motd /tmp/w/put
+binary
+get /etc/termcap big
+get /etc/master.passwd no
+quit
+END
+echo
+cmp get /etc/services && echo get; cmp put /etc/motd && echo put; cmp big /etc/termcap && echo big
+--
+tftp> Received 1737 bytes
+tftp> Sent 27 bytes
+tftp> tftp> Received 145945 bytes
+tftp> Error code 2: Access violation
+
+get
+put
+big
+== ftp
+ftp -n -v localhost <<END | grep "^[1-5][0-9][0-9][ -]" | grep -v "bytes [sr]e" | sed 's/ ([0-9,]*)//'
+user guest Gu3st-pw
+prompt
+pwd
+system
+binary
+get /etc/termcap ft1
+put /etc/services ft2
+mkdir fd
+cd fd
+pwd
+cdup
+rename ft2 ft3
+size ft3
+delete nosuch
+ascii
+get /etc/motd ft4
+passive
+put /etc/group ft5
+append /etc/group ft5
+get ft5 ft6
+nlist . names
+rmdir fd
+delete ft5
+quit
+END
+cmp ft1 /etc/termcap && echo get; cmp /home/guest/ft3 /etc/services && echo put
+cmp ft4 /etc/motd && echo ascii; cat /etc/group /etc/group | cmp - ft6 && echo append
+sort names | tr '\012' ' '; echo .
+rm /home/guest/ft3
+--
+220 pc286 FTP server (Version 5.83 Sat Oct 26 15:17:31 PDT 1996) ready.
+331 Password required for guest.
+230 User guest logged in.
+257 "/home/guest" is current directory.
+215 UNIX Type: L8 Version: BSD-202610
+200 Type set to I.
+227 Entering Passive Mode
+150 Opening BINARY mode data connection for /etc/termcap (145945 bytes).
+226 Transfer complete.
+227 Entering Passive Mode
+150 Opening BINARY mode data connection for ft2.
+226 Transfer complete.
+257 MKD command successful.
+250 CWD command successful.
+257 "/home/guest/fd" is current directory.
+250 CWD command successful.
+350 File exists, ready for destination name
+250 RNTO command successful.
+213 1669
+550 nosuch: No such file or directory.
+200 Type set to A.
+227 Entering Passive Mode
+150 Opening ASCII mode data connection for /etc/motd (26 bytes).
+226 Transfer complete.
+200 PORT command successful.
+150 Opening ASCII mode data connection for ft5.
+226 Transfer complete.
+200 PORT command successful.
+150 Opening ASCII mode data connection for ft5.
+226 Transfer complete.
+200 PORT command successful.
+150 Opening ASCII mode data connection for ft5 (244 bytes).
+226 Transfer complete.
+200 PORT command successful.
+150 Opening ASCII mode data connection for file list.
+226 Transfer complete.
+250 RMD command successful.
+250 DELE command successful.
+221 Goodbye.
+get
+put
+ascii
+append
+.cshrc .login .profile .rhosts fd ft3 ft5 .
+== ftp-refuse
+ftp -n localhost <<END
+user root x
+user guest wrong
+user nosuch x
+quit
+END
+--
+User root access denied.
+Login failed.
+Login incorrect.
+Login failed.
+Login incorrect.
+Login failed.
+== ftp-anon
+mkdir /home/ftp/bin /home/ftp/etc /home/ftp/pub
+cp /bin/ls /home/ftp/bin; cp /etc/syserrlst /home/ftp/etc; cp /etc/motd /home/ftp/pub
+ftp -n -v localhost <<END | grep "^[1-5][0-9][0-9][ -]" | grep -v "bytes [sr]e" | sed 's/ ([0-9,]*)//'
+user anonymous someone@somewhere
+prompt
+pwd
+get pub/motd m
+cd /home
+put /etc/group pub/g
+nlist pub names
+dir pub list
+quit
+END
+cmp m /etc/motd && echo anon-get; cat names; awk '{print $1, $NF}' list
+--
+220 pc286 FTP server (Version 5.83 Sat Oct 26 15:17:31 PDT 1996) ready.
+331 Guest login ok, send ident as password.
+230 Guest login ok, access restrictions apply.
+257 "/" is current directory.
+227 Entering Passive Mode
+150 Opening ASCII mode data connection for pub/motd (26 bytes).
+226 Transfer complete.
+550 /home: No such file or directory.
+227 Entering Passive Mode
+553 pub/g: Permission denied.
+227 Entering Passive Mode
+150 Opening ASCII mode data connection for file list.
+226 Transfer complete.
+227 Entering Passive Mode
+150 Opening ASCII mode data connection for /bin/ls.
+226 Transfer complete.
+221 Goodbye.
+anon-get
+pub/motd
+total 1
+-rw-r--r-- motd
+== nc
+(echo from-listener | nc -l -p 4000 > out &)
+sleep 2; echo from-caller | nc -w 3 localhost 4000; sleep 1; cat out
+echo date | nc -w 3 localhost 1 | tr -d '\015' | sed 's/^[A-Z][a-z][a-z] .*/a date/'
+echo by-udp | nc -u -w 2 localhost 7
+nc -z -v -w 2 localhost 21 23 2>&1
+--
+from-listener
+from-caller
++Go
+a date
+by-udp
+localhost [127.0.0.1] 21 (ftp) open
+localhost [127.0.0.1] 23 (telnet) open
+== whois
+(nc -l -p 43 -w 6 < /etc/shells > q &)
+sleep 1; whois -h localhost somebody | sed -n 4,6p; tr -d '\015' < q
+--
+/bin/sh
+/bin/csh
+/bin/tcsh
+somebody
+== traceroute
+traceroute -n 127.0.0.1 2>&1 | sed 's/[0-9]* ms/N ms/g' | tr -s ' ' ' '
+traceroute -n -q 1 -m 2 -w 3 10.0.2.2 2>&1 | sed 's/[0-9]* ms/N ms/g' | tr -s ' ' ' ' | sed 2q
+--
+traceroute to 127.0.0.1 (127.0.0.1), 30 hops max, 38 byte packets
+ 1 127.0.0.1 N ms N ms N ms
+traceroute to 10.0.2.2 (10.0.2.2), 2 hops max, 38 byte packets
+ 1 10.0.2.2 N ms
+== rwho
+rwhod; sleep 5
+ruptime | awk '{print $1, $2}'
+rwho | awk '{print $1, $2}'
+ls /usr/spool/rwho
+kill `ps ax | grep "[r]whod" | awk '{print $1}'`
+--
+pc286 up
+root pc286:tty00
+whod.pc286
+== timed
+timed -M; sleep 25
+timedc msite
+timedc clockdiff pc286 | grep -c pc286
+kill `ps ax | grep "[t]imed -M" | awk '{print $1}'`
+--
+master timedaemon runs on pc286
+1
+== ntp
+echo "peer 10.0.2.9" > /etc/ntp.conf
+ntpd; sleep 5
+ntpdc -n localhost | sed -n 3p | awk '{print $1, $2, $3, $4}'
+ntp localhost | sed 's/: delay.*//'
+kill `ps ax | grep "[n]tpd" | awk '{print $1}'`
+--
+-10.0.2.9 wildcard 0 64
+localhost
+== routed
+routed -q -t log &
+sleep 4; kill `ps ax | grep "[r]outed -q" | awk '{print $1}'`; sleep 1
+grep -c "REQUEST from 10.0.2.15.520" log
+grep "^action" log | sed 's/, flags.*//'
+netstat -rn | grep "^10.0.2" | awk '{print $1, $2, $3}'
+--
+1
+action dst 10.0.0.0, router 10.0.2.15, metric 0
+action dst 10.0.2.0, router 10.0.2.15, metric 0
+10.0.2 10.0.2.15 U

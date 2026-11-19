@@ -35,6 +35,7 @@ static char sccsid[] = "@(#)main.c	6.0 (2.11BSD) 2026/1/14";
 #include <sys/file.h>
 
 #include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include <signal.h>
 #include <stdio.h>

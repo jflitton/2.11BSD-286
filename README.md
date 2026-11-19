@@ -195,6 +195,10 @@ tests/libc/run.sh       # the C library, with a test program as init: 73
                         # checks in the small model, 73 in the medium
 tests/preflight/run.sh  # tools/preflight.py, on two files with one of each
                         # thing it looks for (no emulator)
+tests/network/run.sh    # the network's programs, on the system booted to
+                        # multi-user with an emulated NE2000: 21 checks,
+                        # of ftp, rsh, rcp, tftp, finger, tcpd, nc and
+                        # the daemons, and rlogin and talk at terminals
 tests/programs/run.sh   # the programs that work on text and files, on the
                         # system booted to multi-user: 75 checks, each a
                         # few lines for the shell and what they must write,
@@ -279,6 +283,15 @@ tests/vt/run.sh         # the console's terminal emulator, on the machine
   files. Then it uses the ones that need a terminal, `more`, `script`,
   `lock` and `tset`, and stops the system with `shutdown`
   ([the C library and programs](docs/userland.md)).
+- `tests/network` boots it with the Ethernet card and has it run 21
+  checks of the same kind: `finger`, `rsh`, `rcp`, `tftp` and `ftp`, as
+  a user and as the anonymous one, against their daemons on the loopback
+  interface; `tcpd`'s rules and a connection it refuses; `nc`, `whois`
+  and `traceroute`; and `rwhod`, `timed`, `ntpd` and `routed` on the
+  Ethernet card, with the programs that ask them. Then root uses
+  `rlogin`, with a password and without, and talks with `talk` to a user
+  whom the host has logged in with `telnet`
+  ([the C library and programs](docs/userland.md#the-networks-programs)).
 - `tests/vt` is the console's terminal emulator, which touches no
   hardware, built with the C compiler of the machine the system is built
   on and run there: what each sequence leaves on the screen, where it
@@ -354,7 +367,7 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   system's part of the disk: past its 1024 cylinders, or on a controller
   it does not know.
 - The C library is built for the small and medium models, and with them
-  171 of the system's programs: `init`, `getty`, `login`, the Bourne shell and the
+  203 of the system's programs: `init`, `getty`, `login`, the Bourne shell and the
   everyday commands in the small model, and in the medium the C shell,
   `tcsh`, and `ex`, which is `vi`, whose code the PDP-11 had to split
   into overlays ([the C library and programs](docs/userland.md)).
@@ -373,6 +386,10 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   `sort`, `sed`, `diff`, `patch`, `tar`, `compress`, `m4`, `more` and
   `su`; `tools/preflight.py` said which would compile and link as they
   are, and found the calls in the others that no compiler would.
+  Of the network's there are 31 more: `ftp`, `rlogin`, `rsh`, `rcp`,
+  `tftp`, `finger` and `talk` with their daemons, `tcpd`, which lets a
+  connection through to a daemon or not, `nc`, `traceroute`, and
+  `rwhod`, `routed`, `timed` and `ntpd`.
   The system boots from its disk to multi-user, and one logs in on the
   console or a serial port, works in any of the three shells, and edits
   with `vi`.
@@ -385,8 +402,8 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   NE2000 and the cards and emulations that copy them, which finds out at
   boot what each does: where it is, how wide, how much memory, which
   interrupt. `/etc/rc.conf` gives the machine's address, `inetd` starts
-  at boot, and one logs in over the network with `telnet`
-  ([the network](docs/network.md)).
+  at boot, and one logs in over the network with `telnet` or `rlogin`,
+  and moves files with `ftp` or `rcp` ([the network](docs/network.md)).
 - That is the state in an emulated PS/2 Model 30 286. The system has
   also booted on a real machine and been logged in to over the network.
 - What the kernel does not have: quotas. The parts of it that no test reaches yet: `ptrace`, most of `sysctl`,
@@ -394,9 +411,8 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   swapping of shared code, and Unix-domain stream sockets.
 - What user space does not have: a library for the large model, and
   many of the programs: `mail`, without which `cron` and `at` cannot
-  send a job's owner what it printed; of the network's, `ftp`, `rlogin`
-  and the rest but `telnet`; the compiler and what works on object
-  files; and `nroff`.
+  send a job's owner what it printed; of the network's, `named` and
+  `identd`; the compiler and what works on object files; and `nroff`.
 - Upstream's programs are kept as 2.11BSD has them, changed only for
   bugs, the compiler and the settings each machine makes. Newer
   behaviour goes in programs of this port's own beside them: so far

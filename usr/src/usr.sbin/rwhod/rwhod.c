@@ -180,7 +180,7 @@ main()
 			syslog(LOG_WARNING, "%s: %m", path);
 			continue;
 		}
-#if vax || pdp11
+#if vax || pdp11 || i286
 		{
 			int i, n = (cc - WHDRSIZE)/sizeof(struct whoent);
 			struct whoent *we;

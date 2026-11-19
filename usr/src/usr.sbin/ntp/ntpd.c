@@ -121,6 +121,8 @@ static char *rcsid = "$Source: /usr/src/new/ntp/ntpd.c,v $ $Revision: 3.4.1.12 $
 #include "ntp.h"
 #include "patchlevel.h"
 
+extern double atof();
+
 #define	TRUE	1
 #define	FALSE	0
 
@@ -426,7 +428,7 @@ main(argc, argv)
 #ifdef	DEBUG
 			if (debug > 3) {
 				printf("\nInput ");
-				dump_pkt(dst, pkt, NULL);
+				dump_pkt(dst, pkt, (struct ntp_peer *)NULL);
 			}
 #endif
 			if ((pkt->status & VERSIONMASK) != NTPVERSION_1)
@@ -1135,7 +1137,7 @@ query_mode(dst, ntp, sock)
 	while (peer != NULL) {
 		cip->net_address = peer->src.sin_addr.s_addr;
 		if (peer->sock < 0)
-			cip->my_address = htonl(0);
+			cip->my_address = htonl(0L);
 		else
 			cip->my_address = addrs[peer->sock].sin.sin_addr.s_addr;
 		cip->port = peer->src.sin_port;	/* already in network order */

@@ -35,7 +35,7 @@ extern int sock;
 #define GOOD		1
 #define UNREACHABLE	2
 #define NONSTDTIME	3
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 #define HOSTDOWN 	0x7fff
 #else
 #define HOSTDOWN 	0x7fffffff

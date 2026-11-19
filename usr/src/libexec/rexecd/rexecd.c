@@ -26,8 +26,10 @@ static char sccsid[] = "@(#)rexecd.c	5.5 (2.11BSD) 2025/12/26";
 #include <netdb.h>
 #include <strings.h>
 #include <unistd.h>
+#include <stdarg.h>
 
 extern	int errno;
+int	error(char *, ...);
 
 /*
  * remote execute server:
@@ -194,14 +196,15 @@ doit(f, fromp)
 	exit(1);
 }
 
-error(fmt, a1, a2, a3)
-	char *fmt;
-	int a1, a2, a3;
+error(char *fmt, ...)
 {
 	char buf[BUFSIZ];
+	va_list ap;
 
 	buf[0] = 1;
-	(void) sprintf(buf+1, fmt, a1, a2, a3);
+	va_start(ap, fmt);
+	(void) vsprintf(buf+1, fmt, ap);
+	va_end(ap);
 	(void) write(2, buf, strlen(buf));
 }
 

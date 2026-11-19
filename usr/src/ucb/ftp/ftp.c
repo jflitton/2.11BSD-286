@@ -605,6 +605,7 @@ sendrequest(cmd, local, remote, printnames)
 	if (closefunc != NULL)
 		(*closefunc)(fin);
 	(void) fclose(dout);
+	data = -1;
 	(void) getreply(0);
 	(void) signal(SIGINT, oldintr);
 	if (oldintp)
@@ -944,6 +945,7 @@ break2:
 		(void) signal(SIGPIPE, oldintp);
 	(void) gettimeofday(&stop, (struct timezone *)0);
 	(void) fclose(din);
+	data = -1;
 	(void) getreply(0);
 	if (bytes > 0 && is_retr)
 		ptransfer("received", bytes, &start, &stop);
@@ -1708,7 +1710,7 @@ gunique(local)
 
 char *
 getpass(prompt)
-char *prompt;
+const char *prompt;
 {
 	struct sgttyb ttyb;
 	int flags;

@@ -51,6 +51,7 @@ static char sccsid[] = "@(#)ftpd.c	5.28.5	(2.11BSD) 2026/9/19";
 #include <strings.h>
 #include <syslog.h>
 #include <paths.h>
+#include <stdarg.h>
 
 #define	_PATH_FTPUSERS	"/etc/ftpusers"
 
@@ -76,6 +77,7 @@ extern	int  ftpd_pclose(), fclose();
 extern	char *getline();
 extern	char cbuf[];
 extern	off_t restart_point;
+extern	off_t lseek();
 
 struct	sockaddr_in ctrl_addr;
 struct	sockaddr_in data_source;
@@ -124,6 +126,8 @@ int	swaitint = SWAITINT;
 void	lostconn();
 void	myoob();
 FILE	*getdatasock(), *dataconn();
+int	reply(int, char *, ...), lreply(int, char *, ...);
+int	setproctitle(char *, ...);
 
 #ifdef SETPROCTITLE
 char	**Argv = NULL;		/* pointer to argument vector */
@@ -982,32 +986,40 @@ fatal(s)
 }
 
 /* VARARGS2 */
-reply(n, fmt, p0, p1, p2, p3, p4, p5)
-	int n;
-	char *fmt;
+reply(int n, char *fmt, ...)
 {
+	va_list ap;
+
 	printf("%d ", n);
-	printf(fmt, p0, p1, p2, p3, p4, p5);
+	va_start(ap, fmt);
+	vprintf(fmt, ap);
+	va_end(ap);
 	printf("\r\n");
 	(void)fflush(stdout);
 	if (debug) {
 		syslog(LOG_DEBUG, "<--- %d ", n);
-		syslog(LOG_DEBUG, fmt, p0, p1, p2, p3, p4, p5);
+		va_start(ap, fmt);
+		vsyslog(LOG_DEBUG, fmt, ap);
+		va_end(ap);
 }
 }
 
 /* VARARGS2 */
-lreply(n, fmt, p0, p1, p2, p3, p4, p5)
-	int n;
-	char *fmt;
+lreply(int n, char *fmt, ...)
 {
+	va_list ap;
+
 	printf("%d- ", n);
-	printf(fmt, p0, p1, p2, p3, p4, p5);
+	va_start(ap, fmt);
+	vprintf(fmt, ap);
+	va_end(ap);
 	printf("\r\n");
 	(void)fflush(stdout);
 	if (debug) {
 		syslog(LOG_DEBUG, "<--- %d- ", n);
-		syslog(LOG_DEBUG, fmt, p0, p1, p2, p3, p4, p5);
+		va_start(ap, fmt);
+		vsyslog(LOG_DEBUG, fmt, ap);
+		va_end(ap);
 	}
 }
 
@@ -1413,14 +1425,16 @@ send_file_list(whichfiles)
  */
 
 /*VARARGS1*/
-setproctitle(fmt, a, b, c)
-char *fmt;
+setproctitle(char *fmt, ...)
 {
 	register char *p, *bp, ch;
 	register int i;
 	char buf[BUFSIZ];
+	va_list ap;
 
-	(void) sprintf(buf, fmt, a, b, c);
+	va_start(ap, fmt);
+	(void) vsprintf(buf, fmt, ap);
+	va_end(ap);
 
 	/* make ps print our process name */
 	p = Argv[0];

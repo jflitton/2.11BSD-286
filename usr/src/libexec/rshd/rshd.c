@@ -52,13 +52,14 @@ static char sccsid[] = "@(#)rshd.c	5.17.1.5 (2.11BSD) 2026/9/21";
 #include <stdlib.h>
 #include <string.h>
 #include <paths.h>
+#include <stdarg.h>
 
 #define	_PATH_DEFPATH	"PATH=/bin:/usr/ucb:/usr/bin:/usr/sbin"
 
 int	keepalive = 1;
 int	check_all = 0;
 /*VARARGS1*/
-int	error();
+int	error(char *, ...);
 int	sent_null;
 
 /*ARGSUSED*/
@@ -170,7 +171,7 @@ doit(fromp)
 		syslog(LOG_NOTICE,
 		    "Connection received using IP options (ignored):%s", lbuf);
 		if (setsockopt(0, ipproto, IP_OPTIONS,
-		    (char *)NULL, &optsize) != 0) {
+		    (char *)NULL, 0) != 0) {
 			syslog(LOG_ERR, "setsockopt IP_OPTIONS NULL: %m");
 			exit(1);
 		}
@@ -396,15 +397,16 @@ doit(fromp)
  * for that connection first.
  */
 /*VARARGS1*/
-error(fmt, a1, a2, a3)
-	char *fmt;
-	int a1, a2, a3;
+error(char *fmt, ...)
 {
 	char buf[BUFSIZ], *bp = buf;
+	va_list ap;
 
 	if (sent_null == 0)
 		*bp++ = 1;
-	(void) sprintf(bp, fmt, a1, a2, a3);
+	va_start(ap, fmt);
+	(void) vsprintf(bp, fmt, ap);
+	va_end(ap);
 	(void) write(2, buf, strlen(buf));
 }
 

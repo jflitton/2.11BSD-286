@@ -31,46 +31,11 @@ make -s -C "$top/usr/src/i286" root | quiet
 # each whether it wrote that, and what it wrote if not.
 cd "$out"
 cp "$top/obj/root/root.fs" root.fs
-rm -rf checks && mkdir checks checks/t checks/x checks/d
-python3 -I - "$top/tests/programs/checks" checks <<'EOF'
-import os, sys
-src, dst = sys.argv[1:]
-out = None
-names = []
-for line in open(src):
-    if line.startswith("=file "):
-        out = open(os.path.join(dst, "d", line.split()[1]), "w")
-    elif line.startswith("== "):
-        name = line.split()[1]
-        assert name not in names, name
-        names.append(name)
-        out = open(os.path.join(dst, "t", name), "w")
-    elif line == "--\n" and out.name.startswith(os.path.join(dst, "t")):
-        out = open(os.path.join(dst, "x", name), "w")
-    elif out:
-        out.write(line)
-open(os.path.join(dst, "names"), "w").write("".join(n + "\n" for n in names))
-EOF
+rm -rf checks
+python3 -I "$top/tests/harness/checks.py" "$top/tests/programs/checks" checks
 # The kernel as tools/strip.py leaves it: the system's strip must make
 # the same of /unix, which has its symbols for ps and the like.
 python3 -I "$top/tools/strip.py" "$top/obj/PC/unix" checks/d/unix.stripped
-cat > checks/check.sh <<'EOF'
-PATH=/bin:/sbin:/usr/sbin:/usr/ucb:/usr/bin
-export PATH
-ok=0 bad=0
-for n in `cat /mnt/names`
-do
-	rm -rf /tmp/w; mkdir /tmp/w
-	(cd /tmp/w; sh /mnt/t/$n) >/tmp/out 2>&1 </dev/null
-	if cmp -s /tmp/out /mnt/x/$n
-	then
-		ok=`expr $ok + 1`; echo "ok $n"
-	else
-		bad=`expr $bad + 1`; echo "BAD $n"; cat /tmp/out; echo "END $n"
-	fi
-done
-echo "checks: $ok ok, $bad bad"
-EOF
 {
     echo "d /t 755"; echo "d /x 755"; echo "d /d 755"
     echo "f /check.sh 644 checks/check.sh"

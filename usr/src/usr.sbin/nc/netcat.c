@@ -75,6 +75,7 @@
 #include <signal.h>
 #include <fcntl.h>		/* O_WRONLY et al */
 #include <unistd.h>
+#include <stdarg.h>
 
 /* handy stuff: */
 #define SA struct sockaddr	/* socket overgeneralization braindeath */
@@ -214,13 +215,13 @@ int o_quit = -1; /* 0 == quit-now; >0 == quit after o_quit seconds */
    fake varargs -- need to do this way because we wind up calling through
    more levels of indirection than vanilla varargs can handle, and not all
    machines have vfprintf/vsyslog/whatever!  6 params oughta be enough. */
-void holler (str, p1, p2, p3, p4, p5, p6)
+static void vholler (str, ap)
   char * str;
-  char * p1, * p2, * p3, * p4, * p5, * p6;
+  va_list ap;
 {
   FILE *o_holler_out = (o_holler_stderr ? stderr : stdout);
   if (o_verbose) {
-    fprintf (o_holler_out, str, p1, p2, p3, p4, p5, p6);
+    vfprintf (o_holler_out, str, ap);
 #ifdef HAVE_BIND
     if (h_errno) {		/* if host-lookup variety of error ... */
       if (h_errno > 4)		/* oh no you don't, either */
@@ -236,6 +237,15 @@ void holler (str, p1, p2, p3, p4, p5, p6)
       fprintf (o_holler_out, "\n");
     fflush (o_holler_out);
   }
+} /* vholler */
+
+void holler (char * str, ...)
+{
+  va_list ap;
+
+  va_start (ap, str);
+  vholler (str, ap);
+  va_end (ap);
 } /* holler */
 
 void *
@@ -257,12 +267,14 @@ memmove(void *dest, const void *src, size_t n)
 
 /* bail :
    error-exit handler, callable from anywhere */
-void bail (str, p1, p2, p3, p4, p5, p6)
-  char * str;
-  char * p1, * p2, * p3, * p4, * p5, * p6;
+void bail (char * str, ...)
 {
+  va_list ap;
+
   o_verbose = 1;
-  holler (str, p1, p2, p3, p4, p5, p6);
+  va_start (ap, str);
+  vholler (str, ap);
+  va_end (ap);
   close (netfd);
   exit (1);
 } /* bail */

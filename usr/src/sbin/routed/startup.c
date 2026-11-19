@@ -45,7 +45,7 @@ ifinit()
         if (ioctl(s, SIOCGIFCONF, (char *)&ifc) < 0) {
                 syslog(LOG_ERR, "ioctl (get interface configuration)");
 		close(s);
-                return (0);
+                return;
         }
         ifr = ifc.ifc_req;
 	lookforinterfaces = 0;

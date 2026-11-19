@@ -61,6 +61,7 @@ extern	char *globerr;
 extern	int usedefault;
 extern  int transflag;
 extern  char tmpline[];
+extern	int reply(int, char *, ...), lreply(int, char *, ...);
 char	**glob();
 
 off_t	restart_point;
@@ -410,8 +411,8 @@ cmd:		USER SP username CRLF
 		= {
 #ifdef unix
 #ifdef BSD
-			reply(215, "UNIX Type: L%d Version: BSD-%d",
-				NBBY, BSD);
+			reply(215, "UNIX Type: L%d Version: BSD-%ld",
+				NBBY, (long)BSD);
 #else /* BSD */
 			reply(215, "UNIX Type: L%d", NBBY);
 #endif /* BSD */
@@ -449,7 +450,7 @@ cmd:		USER SP username CRLF
 			if ($2 && $4 != NULL) {
 				struct stat stbuf;
 				if (stat((char *) $4, &stbuf) < 0)
-					perror_reply(550, "%s", (char *) $4);
+					perror_reply(550, (char *) $4);
 				else if ((stbuf.st_mode&S_IFMT) != S_IFREG) {
 					reply(550, "%s: not a plain file.",
 						(char *) $4);

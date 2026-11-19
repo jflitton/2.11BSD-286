@@ -244,6 +244,102 @@ TEXTPROGS=	$(USRBINSTD) $(UCBSTD) $(USRBINDIR) diff3 m4 patch shar \
 		traverse xinstall compress lock mkstr more tset su tar sed \
 		diff diffh strip makekey chroot ac shutdown
 
+# The network's other programs.  The remote login, shell and copy, and
+# their daemons, with rexecd; ftp, tftp, finger and talk, and theirs;
+# whois, nc and traceroute; rwhod, which tells the network who is logged
+# in, for rwho and ruptime; routed, timed and ntpd, which keep the
+# routes and the clock with other machines.  rshd, rexecd and ftpd hold
+# a command line or a pattern's expansion on the stack, and ftp the
+# latter.  ftpd's commands are a grammar.  timed's checksum is in a
+# directory for the machine, as the PDP-11's is.
+rlogin_SRCS=	ucb/rlogin/rlogin.c
+rsh_SRCS=	ucb/rsh.c
+rcp_SRCS=	bin/rcp.c
+rlogind_SRCS=	libexec/rlogind/rlogind.c
+rlogind_LIBS=	-lutil
+rshd_SRCS=	libexec/rshd/rshd.c
+rshd_FLAGS=	-stack 16384
+rexecd_SRCS=	libexec/rexecd/rexecd.c
+rexecd_FLAGS=	-stack 16384
+ftp_SRCS=	$(addprefix ucb/ftp/,cmds.c cmdtab.c ftp.c glob.c main.c \
+		ruserpass.c domacro.c)
+ftp_FLAGS=	-I$(SRC)/ucb/ftp -stack 16384
+ftpd_SRCS=	$(addprefix libexec/ftpd/,ftpd.c glob.c logwtmp.c popen.c \
+		vers.c) $(G)/ftpcmd.c
+ftpd_FLAGS=	-DSETPROCTITLE -Dunix -stack 16384
+tftp_SRCS=	$(addprefix ucb/tftp/,main.c tftp.c tftpsubs.c)
+tftpd_SRCS=	libexec/tftpd/tftpd.c libexec/tftpd/tftpsubs.c
+finger_SRCS=	$(addprefix ucb/finger/,finger.c lprint.c net.c sprint.c \
+		util.c)
+finger_FLAGS=	-DSECSPERDAY=86400 -DDAYSPERNYEAR=365
+fingerd_SRCS=	libexec/fingerd/fingerd.c
+talk_SRCS=	$(addprefix ucb/talk/,talk.c get_names.c display.c io.c \
+		ctl.c init_disp.c msgs.c get_addrs.c ctl_transact.c \
+		invite.c look_up.c)
+talk_LIBS=	-lcurses -ltermcap
+talkd_SRCS=	$(addprefix libexec/talkd/,announce.c print.c process.c \
+		table.c talkd.c)
+whois_SRCS=	ucb/whois.c
+rwho_SRCS=	ucb/rwho.c
+ruptime_SRCS=	ucb/ruptime.c
+rwhod_SRCS=	usr.sbin/rwhod/rwhod.c
+nc_SRCS=	usr.sbin/nc/netcat.c usr.sbin/nc/inet_aton.c
+nc_FLAGS=	-DGENERIC
+traceroute_SRCS= usr.sbin/traceroute/traceroute.c
+routed_SRCS=	$(addprefix sbin/routed/,af.c if.c input.c main.c output.c \
+		startup.c tables.c timer.c trace.c inet.c)
+TIMEDCOMM=	byteorder.c measure.c i286/cksum.c
+timed_SRCS=	$(addprefix usr.sbin/timed/,acksend.c candidate.c correct.c \
+		master.c networkdelta.c readmsg.c slave.c timed.c \
+		$(TIMEDCOMM))
+timed_FLAGS=	-DMEASURE
+timedc_SRCS=	$(addprefix usr.sbin/timed/,cmds.c cmdtab.c timedc.c \
+		$(TIMEDCOMM))
+timedc_FLAGS=	-DMEASURE
+NTPFLAGS=	-DGENERIC_UNS_BUG -DSUN_FLT_BUG -DDEBUG -DLOG_NTP=LOG_LOCAL3
+ntp_SRCS=	usr.sbin/ntp/ntp.c usr.sbin/ntp/ntpsubs.c
+ntp_FLAGS=	$(NTPFLAGS)
+ntpd_SRCS=	$(addprefix usr.sbin/ntp/,ntpd.c ntpsubs.c ntp_proto.c \
+		ntp_sock.c ntp_adjust.c read_local.c read_psti.c)
+ntpd_FLAGS=	$(NTPFLAGS)
+ntpdc_SRCS=	usr.sbin/ntp/ntpdc.c
+ntpdc_FLAGS=	$(NTPFLAGS)
+# ntest is ntp's check of its arithmetic, which its Makefile runs when
+# it has built the rest (tests/network runs it).
+ntest_SRCS=	usr.sbin/ntp/test.c usr.sbin/ntp/ntpsubs.c
+ntest_FLAGS=	$(NTPFLAGS)
+# tcpd stands between inetd and a daemon, and lets a connection through
+# or not by /etc/hosts.allow and /etc/hosts.deny; what it and its
+# companions share is a library, libwrap, as its Makefile has it, from
+# which each takes what it does not define itself.  A rule's options
+# and a banner's text are on the stack.
+WRAPFLAGS=	-DFACILITY=LOG_DAEMON -DHOSTS_ACCESS -DPARANOID \
+		-DDAEMON_UMASK=022 '-DREAL_DAEMON_DIR="/usr/libexec"' \
+		-DKILL_IP_OPTIONS -DSEVERITY=LOG_INFO -DRFC931_TIMEOUT=10 \
+		'-DHOSTS_DENY="/etc/hosts.deny"' \
+		'-DHOSTS_ALLOW="/etc/hosts.allow"' -DALWAYS_HOSTNAME
+WRAPPROG=	$(WRAPFLAGS) -I$(SRC)/libexec/tcpd -stack 16384
+tcpd_SRCS=	libexec/tcpd/tcpd.c
+tcpd_FLAGS=	$(WRAPPROG)
+tcpd_LIBS=	-lwrap
+tcpdmatch_SRCS=	$(addprefix libexec/tcpd/,tcpdmatch.c fakelog.c inetcf.c \
+		scaffold.c)
+tcpdmatch_FLAGS= $(WRAPPROG)
+tcpdmatch_LIBS=	-lwrap
+tcpdchk_SRCS=	$(addprefix libexec/tcpd/,tcpdchk.c fakelog.c inetcf.c \
+		scaffold.c)
+tcpdchk_FLAGS=	$(WRAPPROG)
+tcpdchk_LIBS=	-lwrap
+try-from_SRCS=	libexec/tcpd/try-from.c libexec/tcpd/fakelog.c
+try-from_FLAGS=	$(WRAPPROG)
+try-from_LIBS=	-lwrap
+safe_finger_SRCS= libexec/tcpd/safe_finger.c
+safe_finger_FLAGS= $(WRAPFLAGS)
+NET2PROGS=	rlogin rsh rcp rlogind rshd rexecd ftp ftpd tftp tftpd \
+		finger fingerd talk talkd whois rwho ruptime rwhod nc \
+		traceroute routed timed timedc ntp ntpd ntpdc ntest tcpd \
+		tcpdmatch tcpdchk try-from safe_finger
+
 # This port's own (docs/userland.md), each in a directory here.
 adduser_SRCS=	i286/adduser/adduser.c
 OWNPROGS=	adduser
@@ -251,7 +347,7 @@ OWNPROGS=	adduser
 PROGS=	init getty login sh csh ls mkdir stty test hostname mknod mount \
 	umount reboot sleep ex exrecover expreserve tcsh $(BINSTD) \
 	$(NETPROGS) $(SYSPROGS) $(KMEMPROGS) $(LOGPROGS) $(YACCPROGS) \
-	$(TEXTPROGS) $(OWNPROGS)
+	$(TEXTPROGS) $(NET2PROGS) $(OWNPROGS)
 
 # The libraries the programs use besides the C library: NAME_LIB lists a
 # library's sources, and NAME_LIBFLAGS what it is compiled with.  Each is
@@ -266,7 +362,20 @@ termcap_LIBFLAGS= -DCM_N -DCM_GT -DCM_B -DCM_D -DNOSCCS
 m_LIB=		$(addprefix usr.lib/libom/,asin.c atan.c hypot.c jn.c j0.c \
 		j1.c pow.c gamma.c log.c sin.c sqrt.c tan.c tanh.c sinh.c \
 		erf.c exp.c floor.c)
-LIBRARIES=	util termcap m
+curses_LIB=	$(addprefix usr.lib/libcurses/,addch.c addstr.c box.c clear.c \
+		clrtobot.c clrtoeol.c cr_put.c cr_tty.c curses.c delch.c \
+		deleteln.c delwin.c endwin.c erase.c fullname.c getch.c \
+		getstr.c idlok.c id_subwins.c initscr.c insch.c insertln.c \
+		longname.c move.c mvprintw.c mvscanw.c mvwin.c newwin.c \
+		overlay.c overwrite.c printw.c putchar.c refresh.c scanw.c \
+		scroll.c toucholap.c standout.c touchwin.c tstp.c unctrl.c)
+curses_LIBFLAGS= -DNOSCCS
+wrap_LIB=	$(addprefix libexec/tcpd/,hosts_access.c options.c shell_cmd.c \
+		rfc931.c eval.c hosts_ctl.c refuse.c percent_x.c \
+		clean_exit.c fix_options.c socket.c tli.c workarounds.c \
+		update.c misc.c diag.c percent_m.c)
+wrap_LIBFLAGS=	$(WRAPFLAGS)
+LIBRARIES=	util termcap m curses wrap
 
 all:	$(addprefix $(O)/,$(PROGS))
 
@@ -354,6 +463,9 @@ $(G)/bc.c: $(SRC)/usr.bin/bc.y $(YACC) | $(G)
 	@$(call yacc,$<,$@)
 $(G)/make.c: $(SRC)/bin/make/gram.y $(YACC) | $(G)
 	@echo yacc make/gram.y
+	@$(call yacc,$<,$@)
+$(G)/ftpcmd.c: $(SRC)/libexec/ftpd/ftpcmd.y $(YACC) | $(G)
+	@echo yacc ftpd/ftpcmd.y
 	@$(call yacc,$<,$@)
 
 A=	$(SRC)/bin/awk

@@ -49,7 +49,7 @@ inet_hash(sin, hp)
 	    }
 	hp->afh_nethash = n;
 	hp->afh_hosthash = ntohl(sin->sin_addr.s_addr);
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 	hp->afh_hosthash &= 0x7fff;
 #else
 	hp->afh_hosthash &= 0x7fffffff;

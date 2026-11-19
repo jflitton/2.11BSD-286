@@ -105,7 +105,7 @@ main(argc, argv)
 	fromlen = sizeof (from);
 	if (getpeername(0, &from, &fromlen) < 0) {
 		syslog(LOG_ERR, "Couldn't get peer name of remote host: %m");
-		fatalperror("Can't get peer name of remote host");
+		fatalperror(0, "Can't get peer name of remote host");
 	}
 	if (keepalive &&
 	    setsockopt(0, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof (on)) < 0)
@@ -216,7 +216,7 @@ doit(f, fromp)
 		syslog(LOG_NOTICE,
 		    "Connection received using IP options (ignored):%s", lbuf);
 		if (setsockopt(0, ipproto, IP_OPTIONS,
-		    (char *)NULL, &optsize) != 0) {
+		    (char *)NULL, 0) != 0) {
 			syslog(LOG_ERR, "setsockopt IP_OPTIONS NULL: %m");
 			exit(1);
 		}

@@ -5,8 +5,8 @@
 #
 # Upstream's ../../etc/rc is the PDP-11's (its buses, its network
 # interfaces) and calls some things that are not built here yet: the
-# quota programs, savecore, and the network's other daemons.  What this
-# does of it, it does as that does.
+# quota programs, savecore, named, sendmail and lpd.  What this does of
+# it, it does as that does.
 
 HOME=/; export HOME
 PATH=/bin:/sbin:/usr/sbin:/usr/bin; export PATH
@@ -97,9 +97,26 @@ rm -f /var/run/acctd.pid
 accton /usr/adm/acct;	echo -n ' accounting'	>/dev/console 2>&1
 echo '.'					>/dev/console 2>&1
 
-# inetd, which answers telnet (/etc/inetd.conf).
+# inetd, which answers telnet, ftp and the rest (/etc/inetd.conf), and
+# the daemons /etc/rc.conf asks for.
 echo -n starting network daemons:		>/dev/console 2>&1
+if [ "${routed-NO}" = YES ]
+then
+	routed $routedflags; echo -n ' routed'	>/dev/console 2>&1
+fi
 inetd;		echo -n ' inetd'		>/dev/console 2>&1
+if [ "${rwhod-NO}" = YES ]
+then
+	rwhod;	echo -n ' rwhod'		>/dev/console 2>&1
+fi
+if [ "${timed-NO}" = YES ]
+then
+	timed $timedflags; echo -n ' timed'	>/dev/console 2>&1
+fi
+if [ "${ntpd-NO}" = YES ]
+then
+	ntpd;	echo -n ' ntpd'			>/dev/console 2>&1
+fi
 echo '.'					>/dev/console 2>&1
 
 date						>/dev/console 2>&1

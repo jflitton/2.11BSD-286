@@ -74,8 +74,9 @@ makes them N bytes at most.
 The programs are listed in `usr/src/i286/Makefile` with their sources,
 and with `NAME_MODEL = m` for one that is medium-model; each is compiled
 and linked in one run of `tools/cc`, and what the compiler says goes to
-`obj/bin/log`. `libutil`, `libtermcap` and `libm` are built for each
-model a program wants, in `obj/lib/s` or `obj/lib/m`. Upstream's own
+`obj/bin/log`. `libutil`, `libtermcap`, `libm`, `libcurses` and `libwrap`
+are built for each model a program wants, in `obj/lib/s` or
+`obj/lib/m`. Upstream's own
 Makefiles are not used: they install as they go, with the PDP-11's
 tools. The build also needs a C compiler for the machine it runs on,
 `cc` unless `HOSTCC` names another, for the tree's `yacc` and `lex`
@@ -769,12 +770,153 @@ where the script found 16 calls to read, each with another number of
 arguments than the function is defined with;
 the programs that read the kernel, `fstat`, `top` and `gcore`; those
 for object files, `nm`, `ar`, `ranlib`, `size` and `ld`; and
-the network's, which come next. `look` has no `/usr/dict/words` to
+the network's, which came next. `look` has no `/usr/dict/words` to
 search by default, the tree having none.
 
 `tests/programs` has the system run a check or more of each: 75 short
 scripts, each with what it must write, to the byte. They are in
 `tests/programs/checks`, with the files they read.
+
+## The network's programs
+
+After `telnet` came the rest of what the network is used with: 31
+programs and `ntest`, `ntp`'s check of its own arithmetic. 18 are
+compiled as upstream has them. All are small-model programs; `ftp` is
+the largest, with 54K of code.
+
+| Where | Programs |
+|---|---|
+| `/bin` | `rcp` |
+| `/usr/ucb` | `finger`, `ftp`, `rlogin`, `rsh`, `ruptime`, `rwho`, `safe_finger`, `talk`, `tcpdchk`, `tcpdmatch`, `tftp`, `try-from`, `whois` |
+| `/usr/libexec` | `fingerd`, `ftpd`, `ntalkd`, `rexecd`, `rlogind`, `rshd`, `tcpd`, `tftpd` |
+| `/usr/sbin`, `/sbin` | `nc`, `ntp`, `ntpd`, `ntpdc`, `rwhod`, `timed`, `timedc`, `traceroute`; `routed` |
+
+`ntalkd` is `talkd` in the tree and in `obj/bin`. `rcp`, `rlogin`, `rsh`
+and `traceroute` run as root, to bind a reserved port or open a raw
+socket, `timedc` too, and `talk` with the group `tty`, as upstream
+installs them.
+
+Two libraries came with them. `talk` draws its two windows with
+`libcurses`, which is upstream's as it stands but for one declaration:
+its `printw` hands the address of its last argument to the library's
+`vfprintf`, which the calling convention and this `stdarg.h` let it do
+([the ABI](abi.md)). `tcpd` and its four companions share `libwrap`,
+which upstream's Makefile makes for them too: `tcpdmatch` and `tcpdchk`
+define some of its functions themselves, and take only the rest from it.
+
+What the compiler needed:
+
+- A function of a program's own that formats a message and is called
+  with whatever the message takes: `error` in `rcp`, `rshd` and
+  `rexecd`, `reply`, `lreply` and `setproctitle` in `ftpd`, and `holler`
+  and `bail` in `nc`. Each took a fixed number of `int`s or pointers and
+  passed them all on; `ftpd` gave its `reply` a `long` among them. They
+  are variadic now.
+- `ftp` has a `getpass` of its own, whose argument is `const` now, as
+  the header's is. `routed`'s `ifinit` returned a value in one place
+  and none elsewhere, and no caller looked. Casts, of a null pointer in
+  `ntpd` and of an address in `routed`.
+- `libcurses` declared `tgoto` at the end of a list of static
+  variables, and so as static.
+
+What the machine needed:
+
+- `timed` has its Internet checksum in a directory for the machine. The
+  PDP-11's is C whose assembly an `ed` script finishes; the 286's is
+  `timed/i286/cksum.c`, in C alone.
+- The PDP-11's branch where it is there for the 16-bit `int`: the value
+  `timed` and `timedc` use for a host that does not answer, the mask on
+  `routed`'s hash, and the size of the buffer `ntpdc` asks for.
+  `rwhod` writes what it receives to a file for `rwho` and `ruptime`,
+  with the numbers turned from the network's byte order, on the 286 as
+  on the VAX and the PDP-11.
+- `rshd` and `rexecd` hold a command line on the stack, of 5K, `ftp`
+  and `ftpd` what a pattern expands to, and `tcpd` and its companions a
+  rule's options and a banner. They are linked with a stack of 16K.
+- `ftpd` did not declare `lseek`, and so took half of what it returns,
+  where a restarted transfer is to begin, for whether it failed. On the
+  PDP-11 that is the upper half, which serves; here it is the lower,
+  and a transfer restarted at 32768 was refused. It is declared now.
+- `ftpd` says what kind of system it is only where `unix` is defined,
+  as the PDP-11's compiler defines it. Here the Makefile does, for
+  `ftpd`, and `ftp` then sends files as they are, without being told.
+
+Bugs, which the PDP-11 has too:
+
+- `ftp` opens a data connection on the descriptor it used for the last,
+  after closing that one in case it is still open. In passive mode,
+  which is how it starts, the last was closed when its transfer ended,
+  and `put` has by then opened the file to send, which gets the same
+  number. So a `put` after a `get` closed its own file, and then read
+  from the new connection, which had nothing to say: both ends waited.
+  It forgets the descriptor when the transfer ends now.
+- `ftpd` answered a failed `MDTM` with `%s` and the error, having given
+  the routine a format where it takes a name. Its answer to `SYST`
+  printed the system's version, a `long`, as an `int`.
+- `rlogind` left out the descriptor in a call of its `fatalperror`,
+  for when it cannot tell who has connected. It and `rshd` gave
+  `setsockopt` the address of a length where the length goes.
+- `tftp` did not declare `inet_addr`, so an address given in numbers
+  lost its upper half.
+- `ntpd` did not declare `atof`, for the size of a jump in time it will
+  make at once; gave `htonl` an `int` twice; and shifted an `int` 1 by
+  18 where it works out how fast to correct the clock.
+- `routed` gave `ntohl` an `int`, a metric already in the machine's
+  order, on its way to a trace record, and printed that record's metric,
+  a `short`, as a `long`.
+
+What upstream does that the test's author did not expect, and that is
+left as it is:
+
+- `routed -s` on a machine with one interface never sends its routes,
+  since all of them are through the interface it would send them on; so
+  it does not hear itself, takes the interface to be dead after three
+  minutes, and deletes the network's route from the kernel. `routed -q`
+  listens only, and leaves the interface alone. Upstream's `rc.conf`
+  says not to run it at all.
+- `ntpd` passes over a peer that is the machine itself, as upstream's
+  `ntp.conf` names, and `ntpdc` waits for ever on an `ntpd` that has no
+  peers: its alarm does not interrupt the read.
+- `rlogin`'s `~.` is taken by the first `rlogin` when one is inside
+  another, and ends both.
+- `fingerd` runs with `-s`, and then answers a request that names no
+  user with `must provide username`.
+- `nc -r`, for ports in a random order, asks for 64K, which comes to
+  none. `safe_finger` stops reading after 100000 bytes, counted in an
+  `int`; its minute's limit is what stops it.
+- `tcpd` knows a client's user only if the client runs `identd`, which
+  nothing here does yet.
+- Anonymous `ftp` is confined to the home directory of the user `ftp`,
+  and what is not under it is not there: `/bin/ls` for `dir`, and
+  `/etc/syserrlst`, without which an error is `Unknown error: 2`.
+- The Bourne shell has no functions, and a here document for a command
+  put in the background is gone before the command reads it.
+
+`inetd.conf` is as upstream's now: `ftpd`, `telnetd`, `rshd` and
+`rlogind` are started through `tcpd`, `fingerd` as `nobody`, and
+`rexecd`, `tftpd` and `ntalkd` are there to be turned on. `tcpd` goes
+by `/etc/hosts.allow` and `/etc/hosts.deny`. Upstream's `hosts.allow`
+lets in its example domain and the hosts whose names have no dot, and
+its `hosts.deny` refuses the rest, which on a network without names is
+everyone but the machine itself; the port's `hosts.allow` lets in
+everyone, as before there was a `tcpd`, and says how to narrow that.
+`hosts.equiv` names `localhost`. `/etc/rc` starts `rwhod`, `routed`,
+`timed` and `ntpd` if `/etc/rc.conf` says to, as upstream's does; none
+is on as shipped.
+
+Left out: `identd`, which reads the kernel's tables to find whose a
+connection is, with the others that read the kernel; `comsat` and
+`biff`, and `popper`, which wait for `mail`; `named` and its tools,
+though the library's resolver is there to ask another machine's;
+`mkhosts`, for a table of hosts the library here does not read;
+`slattach`, since the kernel has no serial line interface; `trpt` and
+`trsp`, since it does not keep the traces they print; `rmt`, for
+tapes; and `rdist`, `tn3270`, `tip` and `uucp`.
+
+`tests/network` has the system run these, on the loopback interface
+and, for the daemons that speak to the whole network, on the Ethernet
+card: 21 checks in `tests/network/checks`, and `rlogin` and `talk` at
+terminals.
 
 ## The root file system
 
@@ -830,10 +972,12 @@ upstream's order, it starts `syslogd`; has `expreserve` save what `ex`
 was editing when the system went down; clears `/tmp`; starts `update`,
 which has the kernel write what it holds for the disks every 30
 seconds, and `cron`; turns accounting on ([the log, and what the clock
-runs](#the-log-and-what-the-clock-runs)); and starts `inetd`, whose
-`inetd.conf` is this port's own, as is a `hosts` that names only
-`localhost`; `services` and `protocols` are upstream's ([the
-network](network.md)).
+runs](#the-log-and-what-the-clock-runs)); and starts `inetd`, and the
+daemons `rc.conf` asks for ([the network's
+programs](#the-networks-programs)). `inetd.conf`, `hosts.allow` and
+`hosts.equiv` are this port's own, as is a `hosts` that names only
+`localhost`; `services`, `protocols`, `hosts.deny`, `ftpusers` and
+`ntp.conf` are upstream's ([the network](network.md)).
 
 The programs: `init`, `getty`, `login`, `sh`, `csh`, `ls`, `cat`, `cp`,
 `mv`, `rm`, `ln`, `mkdir`, `rmdir`, `chmod`, `chgrp`, `cmp`, `dd`, `df`,
@@ -856,7 +1000,8 @@ other names as hard links, and also `[` and `halt`. It makes everything
 root's unless the list says otherwise, as it does for `at`, `atq`,
 `atrm` and their queue, which are `daemon`'s, and for the programs that
 run with the group `kmem`. The programs that work on text and files are
-listed [above](#programs-that-work-on-text-and-files).
+listed [above](#programs-that-work-on-text-and-files), and the
+network's others [after them](#the-networks-programs).
 
 The programs are in it without their symbol tables, as upstream's
 `install -s` leaves them. `obj/bin` has each as it was linked, with its
@@ -874,8 +1019,8 @@ kernel](#programs-that-read-the-kernel)). The system's own `strip` makes
 of a file what `tools/strip.py` does, which `tests/programs` checks on
 the kernel.
 
-The file system is 8000 blocks of 1K, of which the system takes 3300.
-The 171 programs are 2.6 MB of that, and 3 MB with their symbols.
+The file system is 8000 blocks of 1K, of which the system takes 4200.
+The 203 programs are 3.3 MB of that, and 3.6 MB with their symbols.
 
 ## Following a program
 
@@ -1025,6 +1170,35 @@ sequence that clears a VT100; and stops the system with `shutdown -h
 now` and a message, which must be shown before the system halts.
 Afterwards `tools/fsck.py` must find nothing wrong with the root.
 
+`tests/network` boots it with the Ethernet card, logs in as root on
+the serial port, adds the users `guest` and `ftp`, and runs the 21
+checks of `tests/network/checks` in the same way. The first names the
+machine, brings its interface up at the address the emulator's network
+expects, and has `inetd` read its table again with `rexecd`, `tftpd`
+and `ntalkd` turned on. The rest use each program against its daemon on
+the machine itself: `finger` through `fingerd`; `tcpdmatch` and
+`tcpdchk` on the rules, `try-from` run by `rsh` to say what `tcpd` knows
+of a client, and an `ftp` that `tcpd` refuses and logs once the rules
+leave `ftpd` out; `rsh` with a command's output, its errors, its input,
+and a user who has no `.rhosts`; `rcp` each way and of a directory;
+`rexecd`; `tftp` with a file each way, the 146K termcap, and one it may
+not read; `ftp` as a user, with files each way in both modes, a
+directory made and removed, a file renamed, appended to and deleted,
+then as root and with a wrong password, which are refused, and as
+`anonymous`, who may read and list and not write; `nc` both ways over
+TCP, to `inetd`'s own `tcpmux` and `echo`, and scanning two ports;
+`whois` against an `nc` that listens; `traceroute` to the machine and
+to the gateway; `rwhod` with `rwho` and `ruptime`; `timed`, which makes
+itself the network's master, with `timedc`; `ntpd` with `ntpdc` and
+`ntp`, and `ntest`, in which `ntp` checks its arithmetic; and `routed`
+with its trace. Then root uses `rlogin` to the user, with `.rhosts` and
+then with a password; from there `rsh` and a second `rlogin`, which
+`hosts.equiv` lets through; and `~.` to leave. The host logs the user
+in with `telnet`, which `tcpd` now stands before, root asks for the
+user with `talk`, the user answers what the daemon wrote on the
+terminal, each sees what the other types, and an interrupt ends it for
+both.
+
 Not done, or not tested:
 
 - The large model has no library, and the three helpers for `__huge`
@@ -1038,12 +1212,23 @@ Not done, or not tested:
   its owner through `/bin/mail`, which is not built. That `mail` hands
   letters to `sendmail`, and it tells `comsat` of a new one over the
   network. So these wait for `mail` and `sendmail`.
-- Many programs are not built yet: `mail` and what waits for it; the
-  network's but `telnet`, so no `ftp`, `rlogin` or `rsh`; the compiler
+- Many programs are not built yet: `mail` and what waits for it; of
+  the network's, `named` and `identd`; the compiler
   and what works on object files; `nroff` and the rest for documents;
   the line printer's; and `disklabel`. With no `disklabel`, a partition
   can be made a file system only where `tools/mkdisk.py` labelled it
   one: the kernel mounts nothing else.
+- Of the network's programs, `tests/network` has only the machine
+  itself to talk to, and the emulator's gateway for one hop of
+  `traceroute`: nothing has been tried against another system's `ftpd`,
+  `rlogind` or `rwhod`, nor has a name been looked up with another
+  machine's name server. `rwhod`, `timed` and `routed` hear only their
+  own broadcasts there, and `ntpd` has a peer that never answers.
+  `rexecd` is given its request by `nc`, there being no client for it
+  but the library's `rexec`. `ftp`'s macros, its `.netrc` and its
+  transfers between two other machines, `tftpd` writing anywhere but to
+  a file made ready for it, and `talk` with a machine other than its own
+  are not tried.
 - Of the programs that work on text and files, `tests/programs` gives
   each a check or a few, not every option. `su` is tried only from root,
   which is asked for no password; `lock` only with a key typed for it,
@@ -1055,8 +1240,8 @@ Not done, or not tested:
   Ratfor, `awk`'s saving and restoring of itself (`-S` and `-R`), and
   `make` with archives, with its built-in rules or with anything but
   the simplest description file, have not been tried. Of the tree's
-  other grammars, `eqn`, `ftpd`, `rdist`, `struct` and `named`'s tools
-  wait for their programs.
+  other grammars, `eqn`, `rdist`, `struct` and `named`'s tools wait
+  for their programs.
 - Nothing trims the logs or the accounting file. Upstream's `crontab`
   has `/usr/adm/daily`, `weekly` and `monthly` do that, and the tree has
   no such scripts. `acctd` stops when the file system is nearly full;

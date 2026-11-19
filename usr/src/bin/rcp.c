@@ -40,6 +40,7 @@ static char sccsid[] = "@(#)rcp.c	5.20.3 (2.11BSD) 2026/9/21";
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <stdarg.h>
 
 #define	_PATH_BSHELL	"/bin/sh"
 #define	_PATH_CP	"/bin/cp"
@@ -66,6 +67,8 @@ typedef struct _buf {
 	int	cnt;
 	char	*buf;
 } BUF;
+
+int error(char *, ...);
 
 main(argc, argv)
 	int argc;
@@ -834,20 +837,24 @@ allocbuf(bp, fd, blksize)
 }
 
 /* VARARGS1 */
-error(fmt, a1, a2, a3)
-	char *fmt;
-	int a1, a2, a3;
+error(char *fmt, ...)
 {
 	static FILE *fp;
+	va_list ap;
 
 	++errs;
 	if (!fp && !(fp = fdopen(rem, "w")))
 		return;
 	(void)fprintf(fp, "%c", 0x01);
-	(void)fprintf(fp, fmt, a1, a2, a3);
+	va_start(ap, fmt);
+	(void)vfprintf(fp, fmt, ap);
+	va_end(ap);
 	(void)fflush(fp);
-	if (!iamremote)
-		(void)fprintf(stderr, fmt, a1, a2, a3);
+	if (!iamremote) {
+		va_start(ap, fmt);
+		(void)vfprintf(stderr, fmt, ap);
+		va_end(ap);
+	}
 }
 
 nospace()

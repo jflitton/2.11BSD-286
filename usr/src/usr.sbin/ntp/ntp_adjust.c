@@ -185,7 +185,7 @@ adj_logical(offset)
 		else if (update_timer > 0) {
 			ai = abs(compliance);
 			ai = (double)(1<<CLOCK_COMP) - 
-				(double)(1<<CLOCK_FACTOR) * ai;
+				(double)(1L<<CLOCK_FACTOR) * ai;
 			if (ai < 1.0)		/* max(... , 1.0) */
 				ai = 1.0;
 			drift_comp += offset / (ai * (double)update_timer);

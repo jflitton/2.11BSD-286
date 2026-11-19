@@ -111,7 +111,7 @@ create_sockets(port)
 	addrs[0].sin.sin_family = AF_INET;
 	addrs[0].sin.sin_port = 0;
 	addrs[0].sin.sin_addr.s_addr = INADDR_ANY;
-	addrs[0].sin.sin_mask.s_addr = htonl(~0);
+	addrs[0].sin.sin_mask.s_addr = htonl(~0L);
 	addrs[0].name = "wildcard";
 
 	if ((addrs[0].fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -167,7 +167,7 @@ create_sockets(port)
 	addrs[nintf].sin.sin_port = 0;
 	addrs[nintf].sin.sin_addr.s_addr = INADDR_ANY;
 	addrs[nintf].name = "wild";
-	addrs[nintf].mask.sin_addr.s_addr = htonl(~0);
+	addrs[nintf].mask.sin_addr.s_addr = htonl(~0L);
 
 	nintf = 1;
 

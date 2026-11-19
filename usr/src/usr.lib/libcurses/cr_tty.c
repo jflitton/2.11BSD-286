@@ -31,8 +31,8 @@ static char	*_PC,
 			&SO, &SR, &TA, &TE, &TI, &UC, &UE, &UP, &US,
 			&VB, &VS, &VE, &AL_PARM, &DL_PARM, &UP_PARM,
 			&DOWN_PARM, &LEFT_PARM, &RIGHT_PARM,
-		},
-		*tgoto();
+		};
+char		*tgoto();
 
 char		_tspace[2048];		/* Space for capability strings */
 

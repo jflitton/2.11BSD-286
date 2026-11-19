@@ -116,7 +116,7 @@ main(argc, argv)
 	char *argv[];
 {
 	char *p;
-#ifdef	pdp11
+#if	defined(pdp11) || defined(i286)
 	int on = 4*1024;
 #else
 	int on = 48*1024;

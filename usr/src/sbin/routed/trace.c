@@ -213,9 +213,10 @@ dumptrace(fd, dir, ifd)
 			t = ifd->ifd_records;
 		if (t->ift_size == 0)
 			continue;
-		fprintf(fd, "%.24s: metric=%D\n", ctime(&t->ift_stamp),
+		fprintf(fd, "%.24s: metric=%d\n", ctime(&t->ift_stamp),
 			t->ift_metric);
-		dumppacket(fd, dir, &t->ift_who, t->ift_packet, t->ift_size);
+		dumppacket(fd, dir, (struct sockaddr_in *)&t->ift_who,
+		    t->ift_packet, t->ift_size);
 	}
 }
 

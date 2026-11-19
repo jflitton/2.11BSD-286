@@ -30,10 +30,10 @@ C here (docs/userland.md), found four ways.
   compiled again with a definition appended for every function it calls
   and another file defines, an empty one with the same arguments, and
   the compiler checks the file's calls against those.  The same is done
-  for the C library, libutil, libtermcap and libm, and for the system
-  calls, whose arguments sys/syscalls.tab gives.  A function that a
-  prototype in scope declares is left to the compiler, which converts
-  its arguments.
+  for the C library, libutil, libtermcap, libcurses and libm, and for
+  the system calls, whose arguments sys/syscalls.tab gives.  A function
+  that a prototype in scope declares is left to the compiler, which
+  converts its arguments.
 
   What is found is one of:
 
@@ -126,7 +126,7 @@ LIBDIRS = ["lib/libc/i286/sys", "lib/libc/i286/gen", "lib/libc/gen",
            "lib/libc/compat-4.1", "lib/libc/compat-43",
            "lib/libc/compat-sys5", "lib/libc/inet", "lib/libc/net",
            "lib/libc/net/named", "lib/libc/ns", "usr.lib/libutil",
-           "usr.lib/libtermlib", "usr.lib/libom"]
+           "usr.lib/libtermlib", "usr.lib/libom", "usr.lib/libcurses"]
 LIBFILES = ["lib/libc/pdp/gen/atof.c", "lib/libc/pdp/gen/ecvt.c"]
 SYSTAB = os.path.join(LIBC, "i286", "sys", "syscalls.tab")
 # The library's assembly: arguments as in syscalls.tab, d a double, and
@@ -139,7 +139,7 @@ ASM = {"setjmp": ("p", "int"), "_setjmp": ("p", "int"),
 # Called with a varying number of arguments by design, though defined
 # with a fixed one.
 OPTIONAL = {"open", "fcntl", "execl", "execle", "execlp"}
-EXTRALIBS = ["m", "termcap", "util"]
+EXTRALIBS = ["m", "curses", "termcap", "util"]
 
 SIZE = {"int": 2, "ptr": 2, "fn": 2, "long": 4, "far": 4, "dbl": 8}
 STUB = {"int": "int %s", "long": "long %s", "ptr": "void *%s",
