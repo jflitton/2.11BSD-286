@@ -7,6 +7,13 @@
  *
  * The break cannot be moved to the very end of a 64K segment this way:
  * that address is 0 in 16 bits.
+ *
+ * sbrk's increment is an int, and 32768 or more is a negative one.  The
+ * PDP-11's sbrk adds it to the break in 16 bits and asks no more, so
+ * such an increment grows the segment when taking it away would pass
+ * zero, and dd, whose buffer may be 54K, counts on it.  So does this
+ * one.  What it refuses is an increment that would carry the break past
+ * the end of the segment and leave it lower than it was.
  */
 #include <errno.h>
 
@@ -33,8 +40,7 @@ sbrk(incr)
 	char *old = _curbrk;
 	unsigned new = (unsigned)old + incr;
 
-	if (incr > 0 && new <= (unsigned)old ||
-	    incr < 0 && new > (unsigned)old) {
+	if (incr > 0 && new <= (unsigned)old) {
 		errno = ENOMEM;
 		return ((char *)-1);
 	}

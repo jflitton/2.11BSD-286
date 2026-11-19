@@ -36,7 +36,7 @@
 #endif
 
 double	modf(), ldexp(), frexp(), atof();
-char	*sbrk();
+char	*sbrk(), *brk();
 char	*ctime();
 
 int	checks, failed;
@@ -176,7 +176,19 @@ memory()
 	char *p[40], *q, *brk0;
 	int i, ok;
 
+	/*
+	 * An increment over 32767 is a negative int, and grows the
+	 * segment all the same: dd asks for its buffer so.
+	 */
 	brk0 = sbrk(0);
+	q = sbrk((int)33000U);
+	ok = q == brk0 && sbrk(0) == brk0 + 33000U;
+	if (ok) {
+		q[32999] = 7;
+		ok = q[32999] == 7;
+	}
+	brk(brk0);
+	check(ok && sbrk(0) == brk0, "the break moves 33000 at once, and back");
 	ok = 1;
 	for (i = 0; i < 40; i++) {
 		p[i] = malloc(100 + i * 17);

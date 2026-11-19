@@ -192,8 +192,8 @@ tests/pm/run.sh         # the kernel's start-up and trap entry: 54 checks
 tests/user/run.sh       # a process in ring 3: 58 checks
 tests/kernel/run.sh     # the kernel, with a test program as init, booted
                         # six times: 51 checks, then 67 on each of five disks
-tests/libc/run.sh       # the C library, with a test program as init: 73
-                        # checks in the small model, 73 in the medium
+tests/libc/run.sh       # the C library, with a test program as init: 74
+                        # checks in the small model, 74 in the medium
 tests/preflight/run.sh  # tools/preflight.py, on two files with one of each
                         # thing it looks for (no emulator)
 tests/bench/run.sh      # how fast the system is: its benchmark, each

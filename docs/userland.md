@@ -1073,7 +1073,7 @@ last exceptions the harness lists when a test fails.
 `tests/libc` boots the kernel with a test program as `/etc/init` on a
 RAM disk. The program is built for both models; the small-model one is
 `init`, and when it is done it runs the medium-model one, whose code is
-packed into 8K segments so that it has four of them. Each checks, 73
+packed into 8K segments so that it has four of them. Each checks, 74
 times: printf and scanf with integers, strings
 and floating point; files through stdio, with seeks; the string
 routines; `atoi`, `strtol`, `atof`, `modf`, `ldexp`, `frexp`, `qsort`;
