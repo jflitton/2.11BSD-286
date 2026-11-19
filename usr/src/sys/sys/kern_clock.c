@@ -141,6 +141,18 @@ hardclock(pc, ps)
 
 #ifdef UCB_METER
 int	dk_ndrive = DK_NDRIVE;
+long	cp_time[CPUSTATES];
+int	dk_busy;
+long	dk_time[DK_NDRIVE];
+long	dk_seek[DK_NDRIVE];
+long	dk_xfer[DK_NDRIVE];
+long	dk_wds[DK_NDRIVE];
+long	dk_wps[DK_NDRIVE];
+char	*dk_name[DK_NDRIVE];
+int	dk_unit[DK_NDRIVE];
+int	dk_n;
+long	tk_nin;
+long	tk_nout;
 /*
  * Gather statistics on resource utilization.
  *

@@ -56,7 +56,7 @@ extern	int nflag;
 extern	int sflag;
 extern	char *plural();
 
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 #define klseek slseek
 #endif
 

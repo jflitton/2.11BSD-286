@@ -17,6 +17,7 @@
 #include "disk.h"
 #include "pcdisk.h"
 #include "ahareg.h"
+#include "dk.h"
 
 #define	NSD		4
 #define	SDTRIES		4	/* times a transfer is tried */
@@ -30,6 +31,9 @@ struct sd {
 } sd[NSD];
 int	nsd;			/* how many were found */
 static char sdlooked;		/* 1 looking, 2 have looked */
+#ifdef UCB_METER
+static	int	sd_dkn = -1;	/* number for iostat */
+#endif
 
 struct disklabel __far sdlabel[NSD];
 
@@ -163,6 +167,11 @@ sdprobe(target)
 	sp->sd_dk.dk_label = &sdlabel[nsd];
 	printf("sd%d: id %d: %s, %D MB\n", nsd, target, name, size / 2048);
 	nsd++;
+#ifdef UCB_METER
+	/* how fast it moves words is not known: iostat leaves it out */
+	if (sd_dkn < 0)
+		dk_alloc(&sd_dkn, NSD, "sd", 0L);
+#endif
 }
 
 sdopen(dev, flag, mode)
@@ -237,6 +246,15 @@ sdstart()
 		return;
 	sdtab.b_active = 1;
 	sp = &sd[dkunit(bp->b_dev)];
+#ifdef UCB_METER
+	if (sd_dkn >= 0 && sdtries == 0) {
+		int dkn = sd_dkn + dkunit(bp->b_dev);
+
+		dk_busy |= 1 << dkn;
+		dk_xfer[dkn]++;
+		dk_wds[dkn] += bp->b_bcount >> 6;
+	}
+#endif
 	sect = bp->b_blkno + sp->sd_start +
 	    sp->sd_dk.dk_parts[dkpart(bp->b_dev)].p_offset;
 	n = bp->b_bcount >> 9;
@@ -299,6 +317,10 @@ sdintr(how)
 	sdtries = 0;
 	sdtab.b_active = 0;
 	sdtab.b_actf = bp->av_forw;
+#ifdef UCB_METER
+	if (sd_dkn >= 0)
+		dk_busy &= ~(1 << (sd_dkn + dkunit(bp->b_dev)));
+#endif
 	iodone(bp);
 	sdstart();
 }

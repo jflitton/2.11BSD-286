@@ -31,8 +31,18 @@
  */
 #define	MAXCOMLEN	MAXNAMLEN	/* <= MAXNAMLEN, >= sizeof(ac_comm) */
 
+/*
+ * Programs read this structure out of the kernel too (ps, w), so it is
+ * laid out the same whatever the model of the program reading it.  An
+ * address in the process is far, as the kernel has it: the trampoline
+ * and the signal handlers, and the base of the signal stack, which is
+ * far in a struct sigaltstack only in the kernel, as signal.h says with
+ * __SIGALTSTACK_FAR; a program that defines KERNEL to include this, as
+ * pstat does, has had signal.h without it.  The kernel's own pointers
+ * are near, as they are in a small- or medium-model program.
+ */
 struct	pcb {			/* fake pcb structure */
-	int	(*pcb_sigc)();	/* pointer to trampoline code in user space */
+	int	(__far *pcb_sigc)();	/* trampoline code in user space */
 };
 
 struct	fps {
@@ -88,7 +98,7 @@ struct user {
 	short	u_model;		/* memory model of the program */
 
 /* 1.3 - signal management */
-	int	(*u_signal[NSIG])();	/* disposition of signals */
+	int	(__far *u_signal[NSIG])();	/* disposition of signals */
 	long	u_sigmask[NSIG];	/* signals to be blocked */
 	long	u_sigonstack;		/* signals to take on sigstack */
 	long	u_sigintr;		/* signals that interrupt syscalls */
@@ -96,7 +106,15 @@ struct user {
 	int	u_code;			/* ``code'' to trap */
 	char	dummy2;			/* Room for another flags byte */
 	char	u_psflags;		/* Process Signal flags */
+#ifdef __SIGALTSTACK_FAR
 	struct	sigaltstack u_sigstk;	/* signal stack info */
+#else
+	struct {			/* the same, as the kernel has it */
+		char __far *ss_base;
+		int	ss_size;
+		int	ss_flags;
+	} u_sigstk;
+#endif
 
 /* 1.4 - descriptor management */
 	struct	file *u_ofile[NOFILE];	/* file structures for open files */

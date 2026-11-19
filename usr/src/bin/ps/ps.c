@@ -37,15 +37,27 @@
 #include <sys/user.h>
 #include <sys/proc.h>
 #include <utmp.h>
+#ifdef i286
+#include <machine/seg.h>
+#endif
 #include "psout.h"
 
 #define	within(x,y,z)	(((unsigned)(x) >= (y)) && ((unsigned)(x) < (z)))
 #define	round(x,y) ((long) ((((long) (x) + (long) (y) - 1L) / (long) (y)) * (long) (y)))
 
+#ifdef i286
+	struct	nlist nl[7];
+#else
 	struct	nlist nl[4];
+#endif
 #define	X_PROC		0
 #define X_NPROC		1
 #define	X_HZ		2
+#ifdef i286
+#define	X_SLOTPROC	3
+#define	X_USLOT		4
+#define	X_PSEG		5
+#endif
 
 /*
  * This is no longer the size of a symbol's name, symbols can be much
@@ -59,6 +71,9 @@
 extern	char	*__progname;
 
 	struct	proc *mproc, proc[8];
+#ifdef i286
+	int	mprocx;		/* mproc's place in the kernel's table */
+#endif
 	struct	user	u;
 	int	hz;
 	int	chkpid	= 0;
@@ -154,6 +169,11 @@ main (argc, argv)
 	nl[X_PROC].n_un.n_name = "_proc";
 	nl[X_NPROC].n_un.n_name = "_nproc";
 	nl[X_HZ].n_un.n_name = "_hz";
+#ifdef i286
+	nl[X_SLOTPROC].n_un.n_name = "_slotproc";
+	nl[X_USLOT].n_un.n_name = "_uslot";
+	nl[X_PSEG].n_un.n_name = "_pseg";
+#endif
 
 	if	((ioctl(fileno(stdout), TIOCGWINSZ, &ws) != -1 &&
 		 ioctl(fileno(stderr), TIOCGWINSZ, &ws) != -1 &&
@@ -281,6 +301,9 @@ main (argc, argv)
 		for (j = nread / sizeof (struct proc) - 1; j >= 0; j--)	{
 			mproc	= &proc[j];
 			procp	= mproc;
+#ifdef i286
+			mprocx	= i + j;
+#endif
 			/* skip processes that don't exist */
 			if (procp->p_stat == 0)
 				continue;
@@ -340,6 +363,11 @@ savcom(puid)
 	long	txtsiz, datsiz, stksiz;
 	int	septxt;
 
+#ifdef i286
+	if (getu286())
+		return(0);
+	saddr = datmap.f1 + up->u_stack0;
+#else
 	if (procp->p_flag & SLOAD) {
 		addr = ctob((off_t) procp->p_addr);
 		daddr = ctob((off_t) procp->p_daddr);
@@ -366,6 +394,7 @@ savcom(puid)
 	datmap.f2 = saddr;
 	datmap.b2 = stackbas(stksiz);
 	datmap.e2 = stacktop(stksiz);
+#endif
 	tp = gettty();
 	if ((tptr && strncmp(tptr,tp,2)) || (strncmp(mytty, tp, 2) && !aflg))
 		return(0);
@@ -378,7 +407,11 @@ savcom(puid)
 	a->o_pri = procp->p_pri;
 	a->o_nice = procp->p_nice;
 	a->o_addr0 = procp->p_addr;
+#ifdef i286
+	a->o_size = ctod(procp->p_dsize + USIZE);
+#else
 	a->o_size = ctod(procp->p_dsize + procp->p_ssize + USIZE);
+#endif
 	a->o_wchan = procp->p_wchan;
 	a->o_pgrp = procp->p_pgrp;
 	strncpy(a->o_tty, tp, sizeof (a->o_tty));
@@ -398,6 +431,81 @@ savcom(puid)
 	else
 		return(getcmd(a,saddr));
 }
+
+#ifdef i286
+/*
+ * Find mproc's user structure, read it into u, and set up file and
+ * datmap for the segment its stack is in; non-zero if it cannot be.
+ *
+ * The user structure is in one of the kernel's slots, in its data
+ * segment, while the process is the one there, and at p_addr in memory
+ * otherwise, also when the process is swapped out.  The stack is at the
+ * top of the segment u_dseg names, between the data and the break; where
+ * that segment is, in memory or on the swap device, is in the kernel's
+ * table of every process's segments, pseg, which is in a segment of its
+ * own (docs/processes.md).  A zombie has neither.
+ *
+ * The proc table is read from /dev/kmem a piece at a time, from where
+ * the last piece ended, so what is read here leaves that place as it
+ * was.
+ */
+getu286()
+{
+	off_t here;
+	int r;
+
+	here = lseek(kmem, (off_t)0, L_INCR);
+	r = getu286x();
+	lseek(kmem, here, L_SET);
+	return(r);
+}
+
+getu286x()
+{
+	register struct proc *procp = mproc;
+	struct proc *inslot, *kp;
+	struct pseg ps;
+	off_t addr;
+
+	if (procp->p_stat == SZOMB) {
+		bzero((char *)&u, sizeof (u));
+		file = mem;
+		bzero((char *)&datmap, sizeof (datmap));
+		return(0);
+	}
+	kp = (struct proc *)nl[X_PROC].n_value + mprocx;
+	lseek(kmem, (off_t)nl[X_SLOTPROC].n_value +
+	    procp->p_slot * sizeof (inslot), 0);
+	if (read(kmem, (char *)&inslot, sizeof (inslot)) != sizeof (inslot))
+		return(1);
+	if (inslot == kp) {
+		file = kmem;
+		addr = (off_t)nl[X_USLOT].n_value + procp->p_slot * UBYTES;
+	} else {
+		file = mem;
+		addr = ctob((off_t)procp->p_addr);
+	}
+	lseek(file, addr, 0);
+	if (read(file, (char *)&u, sizeof (u)) != sizeof (u))
+		return(1);
+
+	lseek(kmem, ((off_t)nl[X_PSEG].n_ovly << 16) + nl[X_PSEG].n_value +
+	    (mprocx * NSEG + u.u_dseg) * (off_t)sizeof (ps), 0);
+	if (read(kmem, (char *)&ps, sizeof (ps)) != sizeof (ps))
+		return(1);
+	if (procp->p_flag & SLOAD) {
+		datmap.f1 = ctob((off_t)ps.ps_addr);
+		file = mem;
+	} else {
+		datmap.f1 = (off_t)ps.ps_swap << 9;
+		file = swap;
+	}
+	datmap.b1 = 0;
+	datmap.e1 = (off_t)ps.ps_limit + 1;
+	datmap.b2 = datmap.e2 = datmap.f2 = 0;
+	return(0);
+}
+#endif
 
 char *
 gettty()
@@ -583,7 +691,9 @@ nlist()
 	stroff = N_STROFF(hbuf);
 	fseek(nlistf_fp, sa, L_SET);
 
+#ifndef i286
 	addchan("u", 0140000);	/* XXX - _u on 2.11BSD will _never_ change */
+#endif
 	while	(nsyms--)
 		{
 		fread(&nbuf,sizeof(nbuf),1,nlistf_fp);
@@ -604,7 +714,12 @@ nlist()
 		fseek(strfp, nbuf.n_un.n_strx + stroff, L_SET);
 		fread(name, MAXSYMLEN, 1, strfp);
 
+#ifdef i286
+		/* a wait channel is an address in the kernel's data segment */
+		if	(!nflg && nbuf.n_ovly == hbuf.e.a_dseg)
+#else
 		if	(!nflg)
+#endif
 			addchan(name + 1, nbuf.n_value);
 		if	(nllen)
 			{
@@ -624,7 +739,8 @@ nlist()
 	fclose(nlistf_fp);
 	fclose(strfp);
 	if	(!nflg)
-		qsort(wchand,nchans,sizeof(WCHAN),wchancomp);
+		qsort(wchand,nchans,sizeof(WCHAN),
+		    (int (*)(const void *, const void *))wchancomp);
 	}
 
 perrexit(msg)
@@ -789,7 +905,11 @@ register struct psout	*a;
 	int	cc, nbad, abuf [ARGLIST];
 
 	a->o_args[0] = 0;	/* in case of early return */
+#ifdef i286
+	addr += ctob((off_t) u.u_ssize) - ARGLIST*sizeof(int);
+#else
 	addr += ctob((off_t) mproc->p_ssize) - ARGLIST*sizeof(int);
+#endif
 
 	/* look for sh special */
 	lseek(file, addr + ARGLIST*sizeof(int) - sizeof (char **), 0);

@@ -4,18 +4,22 @@
 # the system again, to multi-user; log in on the first serial port as
 # root, use the shell, the C shell, the editor, tcsh and some programs;
 # log in on two of the console's screens with the keyboard, and use the
-# editor there; make the password database as tools/mkpasswd.py made
-# the one on the disk, which must be the same; add a user with adduser,
-# and make, check and mount a file system; ping the loopback interface
-# and log in over it with telnet as that user, in the C shell, who
-# changes the full name with chfn and the password with passwd and logs
-# in again with the new one; set up its Ethernet interface with
-# /etc/rc.conf and /etc/netstart, ping the network's gateway, and log in
-# from the host with telnet, sending a file each way and using vi in a
-# big window; and halt it.  The kernel, /boot,
-# the C library, the programs and the root file system are all built as
-# they would be for a real machine (usr/src/sys/PC, usr/src/sys/i286stand,
-# usr/src/lib/libc/i286, usr/src/i286).
+# editor there; make the password database as tools/mkpasswd.py made the
+# one on the disk, which must be the same; add a user with adduser, and
+# make, check and mount a file system; look at the processes, the
+# kernel's tables, the system's counts and the disk's with ps, pstat,
+# vmstat and iostat; ping the loopback interface and log in over it with
+# telnet as that user, in the C shell, who looks at its processes, the
+# users and the connections with ps, w and netstat, changes the full
+# name with chfn and the password with passwd and logs in again with the
+# new one; set up its Ethernet interface with /etc/rc.conf and
+# /etc/netstart, ping the network's gateway, show the address it found
+# for it with arp and flush the routes with route, and log in from the
+# host with telnet, sending a file each way and using vi in a big
+# window; and halt it.  The kernel, /boot, the C library, the programs
+# and the root file system are all built as they would be for a real
+# machine (usr/src/sys/PC, usr/src/sys/i286stand, usr/src/lib/libc/i286,
+# usr/src/i286).
 #
 # The Ethernet card is 86Box's NETCARD, ne2k8 if it is not set: an NE2000
 # that is 8 bits wide, as the PicoMEM's is.  ne2k is one 16 bits wide,
@@ -158,6 +162,7 @@ TIMEOUT=${TIMEOUT:-500} python3 -I "$top/tests/harness/runtest.py" \
     --type "# " 'fsck /dev/rwd0d' \
     --type "# " 'mount /dev/wd0d /mnt; cp /etc/termcap /etc/motd /mnt; mkdir /mnt/d; df /mnt' \
     --type "# " 'umount /mnt; fsck -p /dev/rwd0d; fsck -f /dev/rwd0d' \
+    --type "# " 'ps axl | grep "[i]netd"; vmstat -s | grep "system c""alls"; iostat; pstat -T' \
     --type "# " 'ifconfig lo0' \
     --type "netmask" 'ping -c 2 127.0.0.1' \
     --type "packet loss" 'telnet 127.0.0.1' \
@@ -166,6 +171,7 @@ TIMEOUT=${TIMEOUT:-500} python3 -I "$top/tests/harness/runtest.py" \
     --type "login: " 'guest' \
     --type "Password:" 'Gu3st-pw' \
     --type "% " 'echo "tel""net-in"; who; echo "as-gu""est"; ls -l /etc/passwd; cat /etc/master.passwd' \
+    --type "% " 'sleep 20 & ps axu | grep "[s]leep 20"; w -s | grep "^gu""est"; echo "est-`netstat -n | grep -c ESTAB`"; kill %1' \
     --type "% " "setenv EDITOR ed; chfn${CR}!sleep 2${CR}/^Full Name/s/Guest User/Gus Guest/${CR}w${CR}q" \
     --type "% " 'sleep 3; grep guest /etc/passwd; passwd' \
     --type "Old password:" 'Gu3st-pw' \
@@ -180,6 +186,7 @@ TIMEOUT=${TIMEOUT:-500} python3 -I "$top/tests/harness/runtest.py" \
     --type "new-pw-ok" "${CTRLD}" \
     --type "foreign host" '. /etc/rc.conf; address=10.0.2.15 gateway=10.0.2.2; . /etc/netstart; ifconfig ne0' \
     --type "broadcast 10.0.2.255" 'ping -c 3 10.0.2.2; route add default 10.0.2.2 1' \
+    --type "File exists" 'arp -a; route -f; echo "fl""ushed"' \
     --telnet "login: " 'root' \
     --telnet "# " 'echo "over""-ne0" $TERM; who' \
     --telnet "(10.0.2.2)" "cat >/tmp/in; echo \"in\"\"-done\"
@@ -189,7 +196,7 @@ $services$services$services${CTRLD}" \
     --telnet "[New file]" "ione${CR}twoX${DEL}${CR}three${ESC}${KHOME}dd${KEND}${KDELETE}:wq" \
     --telnet "# " 'cat /tmp/bs; echo "vi""-done"' \
     --telnet "vi-done" "${CTRLD}" \
-    --type "File exists" 'sleep 5; who; cat /tmp/k; echo "@ex""it 00"; sync; reboot -h' \
+    --type "flushed" 'sleep 5; who; cat /tmp/k; echo "@ex""it 00"; sync; reboot -h' \
     --boot system
 
 serial=$top/obj/tests/system/serial.txt
@@ -211,12 +218,16 @@ for want in "shell-ok /root" "/tmp/dir" "same" "xa" "xb" "xc" "status 3" \
     "\*\* Phase 5 - Check Free List" "FILE SYSTEM WAS MODIFIED" \
     "^/dev/wd0d .* /mnt" "/dev/rwd0d: file system is clean; not checking" \
     "^5 files, " \
+    "selwait .* inetd" " [0-9][0-9]* system calls" " tin tout bps tps msps" \
+    "[0-9]/ *[0-9]* processes" "swapmap entries, .* kB used" \
     "(ptyp0)" "Login incorrect" "telnet-in" "guest  *ttyp0 .*(localhost)" \
+    "^guest  *[0-9]*  *0  *[0-9]* p0  *0:00 sleep 20" "^guest  *p0 " "est-2" \
     "/etc/master.passwd: Permission denied" "Changing password for guest" \
     "new-pw-ok" "Connection closed by foreign host" \
     "ne0 at 0x300 irq 3: " \
     "inet 10.0.2.15 netmask 0xffffff00 broadcast 10.0.2.255" \
     "3 packets transmitted, 3 packets received" "File exists" \
+    "(10.0.2.2) at " "default  *10.0.2.2  *done" \
     "root  *console" "root  *ttyv1" "root  *tty00" "halting"; do
     if ! grep -q "$want" "$serial"; then
         echo "system: no \"$want\" in what the system wrote" >&2

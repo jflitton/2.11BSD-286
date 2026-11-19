@@ -86,6 +86,7 @@ struct	sigaction {
  */
 struct	sigaltstack {
 #ifdef KERNEL
+#define	__SIGALTSTACK_FAR	/* for sys/user.h */
 	char __far *ss_base;		/* signal stack base */
 #else
 	char	*ss_base;		/* signal stack base */

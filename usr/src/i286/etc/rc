@@ -60,6 +60,11 @@ fi
 umount -a
 mount -a					>/dev/console 2>&1
 
+# The names of the devices, for devname(3), and the kernel's symbols
+# that ps needs, so that it need not read them from /unix each time.
+dev_mkdb
+ps -U						>/dev/console 2>&1
+
 rm -f /etc/nologin
 
 # The network, as /etc/rc.conf describes it (/etc/netstart), and inetd,

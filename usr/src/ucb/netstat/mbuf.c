@@ -46,7 +46,7 @@ static struct mbtypes {
 int nmbtypes = sizeof(mbstat.m_mtypes) / sizeof(short);
 bool seen[NMBTYPES];		/* "have we seen this type yet?" */
 
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 #define klseek slseek
 #endif
 

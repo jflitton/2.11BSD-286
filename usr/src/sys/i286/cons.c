@@ -51,7 +51,8 @@
 
 struct	tty cons[NCONS];
 static	struct vt vt[NCONS];
-static	int ncons;		/* NCONS, or 0 with no display */
+int	ncons;			/* NCONS, or 0 with no display; pstat
+				   reads it */
 static	int shown;		/* the screen on the display */
 static	int crtc;		/* the CRT controller's index register */
 static	int curstart;		/* CRTC_CURSTART as the BIOS left it */

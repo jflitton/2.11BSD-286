@@ -92,6 +92,12 @@ offset into the string table, a type byte, the overlay number, and a
 value is the offset within that segment. The string table begins with its
 own length in 4 bytes, as in 2.11BSD.
 
+`nlist` reads it (`lib/libc/gen/nlist.c`, with the header and table of
+segments as a `struct xexec`, `sys/exec.h`). `/dev/kmem` takes a kernel
+symbol's segment and offset as an offset of its own, the segment in the
+high 16 bits ([programs that read the
+kernel](userland.md#programs-that-read-the-kernel)).
+
 ## Not settled
 
 - Where the stack sits in a small-model data segment. A 286 segment has no

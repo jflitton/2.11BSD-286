@@ -264,6 +264,33 @@ Handlers run on a stack of their own, so that a process's kernel stack
 need not have room for them. On the way back to a process, if another
 process should run, the kernel switches then.
 
+## Counting
+
+The kernel keeps upstream's counts (`UCB_METER`), which `vmstat` and
+`iostat` read ([programs that read the
+kernel](userland.md#programs-that-read-the-kernel)). Each tick of the
+clock is charged to user time, nice time, system time or idle
+(`gatherstats` in `sys/kern_clock.c`):
+
+- a process's own code, at its nice, is user or nice time;
+- the kernel with no process running, interrupted at level 0, which is
+  the kernel waiting in `idle()`, is idle;
+- anything else in the kernel is system time.
+
+On the PDP-11 the level that was interrupted is in the processor status
+the interrupt saved. Here `intr` notes it for the clock (`intrcpl`).
+`idle()` sets `noproc`, which says that no process is running, as the
+PDP-11's does. Before it did, the time the machine waited was charged
+to process 0 as system time, and `ps` showed the swapper with all of it.
+
+Traps and system calls are counted in `trap.c`, interrupts and the
+software ones (the clock's and the network's) in `intr` and
+`spllower`, context switches in `swtch`, and swaps where they happen.
+The disk drivers count each transfer and how much it moved, and mark the
+drive busy while it lasts, which the clock counts too (`dk_xfer`,
+`dk_wds`, `dk_busy`, `dk_time`). The counts cost 472 bytes of the
+kernel's data segment, and a little under 1.5K of code.
+
 ## Signals
 
 The kernel continues a process in the trampoline code it named when it

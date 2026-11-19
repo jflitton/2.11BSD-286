@@ -34,7 +34,7 @@ extern	int nflag;
 extern	char *interface;
 extern	int unit;
 extern	char *routename(), *netname(), *ns_phost(), *index();
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 #define klseek slseek
 #endif
 
@@ -62,7 +62,7 @@ intpr(interval, ifnetaddr)
 		return;
 	}
 	klseek(kmem, ifnetaddr, 0);
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 	{
 	unsigned int x;
 	read(kmem, &x, sizeof x);
@@ -207,7 +207,7 @@ sidewaysintpr(interval, off)
 	void catchalarm();
 
 	klseek(kmem, off, 0);
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 	{
 	unsigned int x;
 	read(kmem, &x, sizeof (x));

@@ -562,6 +562,8 @@ fpdrop()
  */
 int	cpl;
 u_int	ipending;		/* requests put off, a bit a line */
+int	intrcpl;		/* the level the last interrupt came in at,
+				   which the clock wants (clock.c) */
 u_int	spending;		/* software interrupts wanted */
 #define	SP_CLOCK	1
 #define	SP_NET		2		/* setsoftnet (mch_net.s) */
@@ -647,11 +649,15 @@ intr(tf)
 	outb(PIC1, PIC_EOI);
 	if (irqhand[irq] == 0)
 		return;			/* and its line stays shut */
+#ifdef UCB_METER
+	cnt.v_intr++;
+#endif
 	if (irqlevel[irq] <= cpl) {
 		ipending |= bit;
 		return;
 	}
 	s = cpl;
+	intrcpl = s;
 	cpl = irqlevel[irq];
 	enable();
 	callirq(irq, tf);
@@ -691,6 +697,9 @@ again:
 #ifdef INET
 	if ((spending & SP_NET) && cpl < IPL_NET) {
 		spending &= ~SP_NET;
+#ifdef UCB_METER
+		cnt.v_soft++;
+#endif
 		s = cpl;
 		cpl = IPL_NET;
 		enable();
@@ -702,6 +711,9 @@ again:
 #endif
 	if ((spending & SP_CLOCK) && cpl < IPL_SOFTCLOCK) {
 		spending &= ~SP_CLOCK;
+#ifdef UCB_METER
+		cnt.v_soft++;
+#endif
 		s = cpl;
 		cpl = IPL_SOFTCLOCK;
 		enable();

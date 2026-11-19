@@ -53,7 +53,9 @@ struct tty {
 #define	t_rec	t_nu.t_n.T_rec		/* have a complete record */
 	} t_nu;
 	struct	clist t_outq;		/* device */
-	int	(*t_oproc)();		/* device */
+	int	(__far *t_oproc)();	/* device: far, as the kernel has
+					   it, so that a program of any
+					   model reads the structure */
 	struct	proc *t_rsel;		/* tty */
 	struct	proc *t_wsel;
 				caddr_t	T_LINEP;	/* ### */

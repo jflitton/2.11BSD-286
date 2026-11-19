@@ -19,6 +19,11 @@
 #include <sys/proc.h>
 #include <sys/ioctl.h>
 #include <sys/tty.h>
+#ifdef i286
+#include <sys/file.h>
+#include <nlist.h>
+#include <machine/seg.h>
+#endif
 
 #define	NMAX	sizeof(utmp.ut_name)
 #define	LMAX	sizeof(utmp.ut_line)
@@ -75,6 +80,25 @@ struct addrmap {
 	long	b2, e2; long f2;
 };
 struct addrmap datmap;
+
+#ifdef i286
+/*
+ * Where a process's user structure and stack are is the kernel's to
+ * say, in its tables (getu286), which are read through /dev/kmem.
+ */
+struct	nlist nl[] = {
+#define	X_PROC		0
+	{ "_proc" },
+#define	X_SLOTPROC	1
+	{ "_slotproc" },
+#define	X_USLOT		2
+	{ "_uslot" },
+#define	X_PSEG		3
+	{ "_pseg" },
+	{ 0 },
+};
+int	kmem;
+#endif
 
 main(argc, argv)
 	char **argv;
@@ -374,6 +398,16 @@ register struct smproc *smp;
 		perror(doing);
 		exit(1);
 	}
+#ifdef i286
+	if ((kmem = open("/dev/kmem", 0)) < 0) {
+		perror("/dev/kmem");
+		exit(1);
+	}
+	if (nlist("/unix", nl) != 0) {
+		fprintf(stderr, "%s: no namelist in /unix\n", program);
+		exit(1);
+	}
+#endif
 	mib[0] = CTL_KERN;
 	mib[1] = KERN_PROC;
 	mib[2] = KERN_PROC_ALL;
@@ -418,6 +452,13 @@ register struct smproc *smp;
 		if (p->p_stat==0 || p->p_stat==SZOMB || p->p_pgrp==0)
 			continue;
 		/* find & read in the user structure */
+#ifdef i286
+		if (getu286(kp))
+			continue;
+		if (up.u_ttyp == NULL)
+			continue;
+		saddr = datmap.f1 + up.u_stack0;
+#else
 		if (p->p_flag & SLOAD) {
 			addr = ctob((long)p->p_addr);
 			daddr = ctob((long)p->p_daddr);
@@ -446,9 +487,14 @@ register struct smproc *smp;
 		datmap.b2 = stackbas(stksiz);
 		datmap.e2 = stacktop(stksiz);
 		datmap.f2 = saddr;
+#endif
 
 		/* save the interesting parts */
+#ifdef i286
+		smp->w_addr = saddr + ctob((long)up.u_ssize) - ARGLIST;
+#else
 		smp->w_addr = saddr + ctob((long)p->p_ssize) - ARGLIST;
+#endif
 		smp->w_pid = p->p_pid;
 		smp->w_igintr = (int)(((up.u_signal[2]==1) + 2*(up.u_signal[2]>1) + 3*(up.u_signal[3]==1)) + 6*(up.u_signal[3]>1));
 		smp->w_time = up.u_ru.ru_utime + up.u_ru.ru_stime;
@@ -473,6 +519,63 @@ register struct smproc *smp;
 	np = smp - pr;
 	free(kpt);
 }
+
+#ifdef i286
+/*
+ * Find the user structure of the process kp describes, read it into up,
+ * and set up file and datmap for the segment its stack is in; non-zero
+ * if it cannot be.  As ps does it.
+ *
+ * The user structure is in one of the kernel's slots, in its data
+ * segment, while the process is the one there, and at p_addr in memory
+ * otherwise, also when the process is swapped out.  The stack is at the
+ * top of the segment u_dseg names, between the data and the break; where
+ * that segment is, in memory or on the swap device, is in the kernel's
+ * table of every process's segments, pseg, which is in a segment of its
+ * own (docs/processes.md).
+ */
+getu286(kp)
+	struct kinfo_proc *kp;
+{
+	register struct proc *p = &kp->kp_proc;
+	struct proc *inslot;
+	struct pseg ps;
+	int px;
+	long addr;
+
+	px = kp->kp_eproc.e_paddr - (struct proc *)nl[X_PROC].n_value;
+	lseek(kmem, (long)nl[X_SLOTPROC].n_value + p->p_slot * sizeof (inslot),
+	    L_SET);
+	if (read(kmem, (char *)&inslot, sizeof (inslot)) != sizeof (inslot))
+		return(1);
+	if (inslot == kp->kp_eproc.e_paddr) {
+		file = kmem;
+		addr = (long)nl[X_USLOT].n_value + p->p_slot * UBYTES;
+	} else {
+		file = swmem;
+		addr = ctob((long)p->p_addr);
+	}
+	lseek(file, addr, L_SET);
+	if (read(file, (char *)&up, sizeof (up)) != sizeof (up))
+		return(1);
+
+	lseek(kmem, ((long)nl[X_PSEG].n_ovly << 16) + nl[X_PSEG].n_value +
+	    (px * NSEG + up.u_dseg) * (long)sizeof (ps), L_SET);
+	if (read(kmem, (char *)&ps, sizeof (ps)) != sizeof (ps))
+		return(1);
+	if (p->p_flag & SLOAD) {
+		datmap.f1 = ctob((long)ps.ps_addr);
+		file = swmem;
+	} else {
+		datmap.f1 = (long)ps.ps_swap << 9;
+		file = swap;
+	}
+	datmap.b1 = 0;
+	datmap.e1 = (long)ps.ps_limit + 1;
+	datmap.b2 = datmap.e2 = datmap.f2 = 0;
+	return(0);
+}
+#endif
 
 /*
  * getargs: given a pointer to a proc structure, this looks at the swap area

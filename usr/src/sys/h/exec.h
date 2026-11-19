@@ -39,6 +39,18 @@ unsigned long	xs_filesz;	/* bytes of it in the file */
 unsigned long	xs_memsz;	/* bytes in memory: the rest are zero */
 };
 
+/*
+ * The header with the table of segments after it, where the PDP-11 has
+ * the sizes of its overlays (struct ovlhdr): what a program reads to
+ * find the symbol table, which follows the segments (a.out.h).  A file
+ * has fewer segments than a process has slots (NSEG, machine/seg.h).
+ */
+#define	NXSEG		31
+struct	xexec {
+	struct	exec	e;
+	struct	exseg	x[NXSEG];
+};
+
 #define	A_MAGIC		0x0286
 
 #define	A_SMALL		1	/* one code segment, near data */

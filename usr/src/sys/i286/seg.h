@@ -63,6 +63,7 @@ struct segdesc {
 #define	SD_P		0x80		/* present */
 #define	SD_DPL		0x60		/* ring that may use it */
 #define	SD_S		0x10		/* code or data, not a system segment */
+#define	SD_EXEC		0x08		/* with SD_S: code */
 #define	SD_CODE		0x9B		/* ring 0 code, readable */
 #define	SD_DATA		0x93		/* ring 0 data, writable */
 #define	SD_UCODE	0xFB		/* ring 3 code, readable */

@@ -29,7 +29,7 @@ static char sccsid[] = "@(#)route.c	5.13.1 (2.11BSD GTE) 1/1/94";
 
 #include <netdb.h>
 
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 #define klseek slseek
 #endif
 

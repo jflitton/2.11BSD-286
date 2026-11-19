@@ -42,9 +42,12 @@
 # compiler makes no such mark, so every program that formats has the
 # real one.
 #
-# Left out for now: nlist (gen/nlist.c and pdp/gen/nsym.c read the
-# PDP-11's a.out format, not this system's), profiling (mcrt0, gmon),
-# and the PDP-11's compat-2.9.
+# nlist is gen/nlist.c as it is, with gen/nsym.c here in place of
+# ../pdp/gen/nsym.c: what it reads is this system's format, which the
+# headers give it (sys/exec.h, a.out.h).
+#
+# Left out for now: profiling (mcrt0, gmon), and the PDP-11's
+# compat-2.9.
 
 TOP:=	$(abspath ../../../../..)
 LIBC:=	$(TOP)/usr/src/lib/libc
@@ -79,7 +82,7 @@ GEN=	abort alarm atoi atol calloc closedir crypt ctime ctype_ daemon \
 	getgrgid getgrnam getlogin getgrouplist gethostname getpagesize \
 	getpass getpwent getloadavg getmntinfo getttyent getttynam \
 	getusershell getwd initgroups isatty isctype malloc mktemp ndbm \
-	opendir perror popen psignal qsort random readdir regex scandir \
+	nlist opendir perror popen psignal qsort random readdir regex scandir \
 	seekdir setmode sethostname setenv siglist signal siginterrupt \
 	sigsetops sleep strcasecmp strftime swab sysctl syslog system \
 	swapdevname syserrlst telldir time timezone ttyname ttyslot ualarm \
@@ -110,13 +113,15 @@ NET=	getnbyaddr getnbyname getnent getpent getpname getproto getsbyname \
 NAMED=	gethnamadr sethostent
 NS=	ns_addr ns_ntoa
 MDSYS=	brk execl execle execv iovec setlogin sigaction sigaltstack
+MDGENC=	nsym
 MDSYSS=	sigtramp
 MDGEN=	ldexp modf setjmp
 MDNET=	htons
 CRT=	i4m i4d chp
 
 COBJS=	$(GEN) $(GENC) $(PDPGEN) $(STDIO) $(STDLIB) $(STRING) $(COMPAT41) \
-	$(COMPAT43) $(COMPAT5) $(INET) $(NET) $(NAMED) $(NS) $(MDSYS)
+	$(COMPAT43) $(COMPAT5) $(INET) $(NET) $(NAMED) $(NS) $(MDSYS) \
+	$(MDGENC)
 SOBJS=	$(MDSYSS) $(MDGEN) $(MDNET) $(CRT)
 OBJS=	$(addprefix $(OBJ)/,$(addsuffix .o,$(COBJS) $(SOBJS)))
 
@@ -140,6 +145,9 @@ define compile
 endef
 
 $(OBJ)/%.o: $(LIBC)/gen/%.c $(HDRS) | $(OBJ)
+	$(call compile)
+# this directory's before ../pdp's, which has a nsym.c too
+$(OBJ)/%.o: $(MD)/gen/%.c $(HDRS) | $(OBJ)
 	$(call compile)
 $(OBJ)/%.o: $(LIBC)/pdp/gen/%.c $(HDRS) | $(OBJ)
 	$(call compile)

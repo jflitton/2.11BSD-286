@@ -24,7 +24,7 @@ static char sccsid[] = "@(#)host.c	5.4 (2.11BSD) 2024/9/20";
 extern	int kmem;
 extern 	int nflag;
 extern	char *inetname();
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 #define klseek slseek
 #endif
 

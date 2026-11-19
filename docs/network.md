@@ -294,9 +294,10 @@ controller is set; the driver has not run on one, nor on any real card.
   the other goes, which the card's 16K would allow; the multicast
   filter; the workaround for the early DP8390s that want a remote read
   before each remote write.
-- `netstat`, `arp`, and `route -f`, which reads the kernel's tables
-  through `/dev/kmem` and `nlist`; `syslogd`, `ftp`, `ftpd`, `rlogin`,
-  `rlogind`, the mail system.
+- `syslogd`, `ftp`, `ftpd`, `rlogin`, `rlogind`, the mail system.
+  (`netstat`, `arp` and `route -f` read the network's tables through
+  `/dev/kmem`: [programs that read the
+  kernel](userland.md#programs-that-read-the-kernel).)
 - Unix-domain sockets are compiled in and not tried beyond `syslog`'s
   connect to a `/dev/log` that is not there.
 - `recvmsg` and `sendmsg` in the C library: the kernel's `struct

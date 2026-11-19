@@ -32,6 +32,9 @@ static char sccsid[] = "@(#)pstat.c	5.11 (2.11BSD) 2026/1/27";
 #include <sys/tty.h>
 #include <sys/conf.h>
 #include <sys/vm.h>
+#ifdef i286
+#include <machine/seg.h>
+#endif
 #include <nlist.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,7 +64,11 @@ struct nlist nl[] = {
 #define	SNSWAP	7
 	{ "_nswap" },
 #define	SNKL	8
+#ifdef i286
+	{ "_ncons" },
+#else
 	{ "_nkl11" },
+#endif
 #define	SWAPMAP	9
 	{ "_swapmap" },
 #define	SDH	10
@@ -96,6 +103,16 @@ struct nlist nl[] = {
 	{ "_buf" },
 #define SUBMAP 25
 	{ "_ub_map" },
+#ifdef i286
+#define	SCOM	26
+	{ "_com_tty" },
+#define	SNCOM	27
+	{ "_ncom" },
+#define	SSLOTPROC 28
+	{ "_slotproc" },
+#define	SUSLOT	29
+	{ "_uslot" },
+#endif
 	{ "" }
 };
 
@@ -413,7 +430,11 @@ doproc()
 		return;
 	}
 	printf("%d/%d processes\n", np, nproc);
+#ifdef i286
+printf("    LOC  S       F PRI      SIG   UID SLP TIM  CPU  NI   PGRP    PID   PPID    ADDR SLOT    SIZE   WCHAN    LINK   TEXTP     SIGM\n");
+#else
 printf("    LOC  S       F PRI      SIG   UID SLP TIM  CPU  NI   PGRP    PID   PPID    ADDR   SADDR   DADDR    SIZE   WCHAN    LINK   TEXTP     SIGM\n");
+#endif
 	for (pp=xproc; pp<&xproc[nproc]; pp++) {
 		if (pp->p_stat==0 && allflg==0)
 			continue;
@@ -431,9 +452,15 @@ printf("    LOC  S       F PRI      SIG   UID SLP TIM  CPU  NI   PGRP    PID   P
 		printf(" %6d", pp->p_pid);
 		printf(" %6d", pp->p_ppid);
 		printf(" %#7o", pp->p_addr);
+#ifdef i286
+		/* the slot, and the size of all its own segments */
+		printf(" %4d", pp->p_slot);
+		printf(" %7d", pp->p_dsize);
+#else
 		printf(" %#7o", pp->p_saddr);
 		printf(" %#7o", pp->p_daddr);
 		printf(" %7d", pp->p_dsize+pp->p_ssize);
+#endif
 		printf(" %#7o", pp->p_wchan);
 		printf(" %#7o", pp->p_link);
 		printf(" %#7o", pp->p_textp);
@@ -455,7 +482,13 @@ dotty()
 		printf("pstat: out of memory\n");
 		return;
 	}
+#ifdef i286
+	dottytype("cons", SKL, SNKL);
+	if (nl[SNCOM].n_type != 0)
+		dottytype("com", SCOM, SNCOM);
+#else
 	dottytype("kl", SKL, SNKL);
+#endif
 	if (nl[SNDZ].n_type != 0)
 		dottytype("dz", SDZ, SNDZ);
 	if (nl[SNDH].n_type != 0)
@@ -546,12 +579,27 @@ dousr()
 	long	*ip;
 	register i, j;
 
+#ifdef i286
+	{
+	off_t uaddr;
+	int fd;
+
+	uaddr = ctob((off_t)ubase);
+	fd = uslot286(&uaddr) ? fc : fm;
+	lseek(fd, uaddr, 0);
+	read(fd, &U, sizeof(U));
+	}
+	printf("pcb\t%#lx\n", (long)U.u_pcb.pcb_sigc);
+	printf("fps\t%#.1o %#.1o %#.1o\n", U.u_fps.u_fpstate[0],
+		U.u_fps.u_fpstate[1], U.u_fps.u_fpstate[2]);
+#else
 	lseek(fm, ubase << 6, 0);
 	read(fm, &U, sizeof(U));
 	printf("pcb\t%.1o\n", U.u_pcb.pcb_sigc);
 	printf("fps\t%.1o %g %g %g %g %g %g\n", U.u_fps.u_fpsr, 
 		U.u_fps.u_fpregs[0], U.u_fps.u_fpregs[1], U.u_fps.u_fpregs[2],
 		U.u_fps.u_fpregs[3], U.u_fps.u_fpregs[4], U.u_fps.u_fpregs[5]);
+#endif
 	printf("fpsaved\t%d\n", U.u_fpsaved);
 	printf("fperr\t%.1o %.1o\n", U.u_fperr.f_fec, U.u_fperr.f_fea);
 	printf("procp\t%.1o\n", U.u_procp);
@@ -588,6 +636,12 @@ dousr()
 	for	(i = 0; i < sizeof (label_t) / sizeof (int); i++)
 		printf("%.1o ", U.u_rsave.val[i]);
 	printf("\n");
+#ifdef i286
+	printf("dseg\t%d\n", U.u_dseg);
+	printf("stack0\t%u\n", U.u_stack0);
+	printf("break\t%u\n", U.u_break);
+	printf("model\t%d\n", U.u_model);
+#else
 	printf("uisa");
 	for	(i = 0; i < sizeof (U.u_uisa) / sizeof (short); i++)
 		{
@@ -615,11 +669,16 @@ dousr()
 		if	(i%8 == 7) printf("\n");
 		}
 	if	(i%8) printf("\n");
+#endif
 	printf("signal");
 	for	(i = 0; i < NSIG; i++)
 		{
 		if	(i%8 == 0) printf("\t");
+#ifdef i286
+		printf("%lx ", (long)U.u_signal[i]);
+#else
 		printf("%.1o ", U.u_signal[i]);
+#endif
 		if	(i%8 == 7) printf("\n");
 		}
 	if	(i%8) printf("\n");
@@ -636,8 +695,14 @@ dousr()
 	printf("oldmask\t%.1lo\n", U.u_oldmask);
 	printf("code\t%u\n", U.u_code);
 	printf("psflags\t%d\n", U.u_psflags);
+#ifdef i286
+	printf("ss_base\t%lx ss_size %.1o ss_flags %.1o\n",
+		(long)U.u_sigstk.ss_base, U.u_sigstk.ss_size,
+		U.u_sigstk.ss_flags);
+#else
 	printf("ss_base\t%.1o ss_size %.1o ss_flags %.1o\n",
 		U.u_sigstk.ss_base, U.u_sigstk.ss_size, U.u_sigstk.ss_flags);
+#endif
 	printf("ofile");
 	for	(i = 0; i < NOFILE; i++)
 		{
@@ -675,8 +740,13 @@ dousr()
 		U.u_timer[1].it_value);
 	printf("start\t%ld\n", U.u_start);
 	printf("acflag\t%d\n", U.u_acflag);
+#ifdef i286
+	printf("prof\t%lx %u %u %u\n", (long)U.u_prof.pr_base,
+		U.u_prof.pr_size, U.u_prof.pr_off, U.u_prof.pr_scale);
+#else
 	printf("prof\t%.1o %u %u %u\n", U.u_prof.pr_base, U.u_prof.pr_size,
 		U.u_prof.pr_off, U.u_prof.pr_scale);
+#endif
 	printf("rlimit cur\t");
 	for	(i = 0; i < RLIM_NLIMITS; i++)
 		{
@@ -701,6 +771,38 @@ dousr()
 		minor(U.u_ncache.nc_dev));
 	printf("login\t%*s\n", MAXLOGNAME, U.u_login);
 }
+
+#ifdef i286
+/*
+ * ubase is a process's p_addr, as ps -l shows it.  Its user structure
+ * is there unless the process is the one in its slot, in the kernel's
+ * data segment (docs/processes.md); if it is, *uaddr is made the
+ * place in /dev/kmem, and the answer is 1.
+ */
+uslot286(uaddr)
+	off_t *uaddr;
+{
+	struct proc p, *inslot;
+	u_int nproc, i;
+
+	nproc = pgetw((off_t)nl[SNPROC].n_value);
+	for (i = 0; i < nproc; i++) {
+		lseek(fc, (off_t)nl[SPROC].n_value + i * sizeof (p), 0);
+		if (read(fc, &p, sizeof (p)) != sizeof (p))
+			break;
+		if (p.p_stat == 0 || p.p_stat == SZOMB || p.p_addr != ubase)
+			continue;
+		lseek(fc, (off_t)nl[SSLOTPROC].n_value +
+		    p.p_slot * sizeof (inslot), 0);
+		read(fc, &inslot, sizeof (inslot));
+		if (inslot != (struct proc *)nl[SPROC].n_value + i)
+			return(0);
+		*uaddr = (off_t)nl[SUSLOT].n_value + p.p_slot * UBYTES;
+		return(1);
+	}
+	return(0);
+}
+#endif
 
 oatoi(s)
 char *s;
@@ -788,14 +890,26 @@ int nlind;
 	struct	mapent	*maptbl;
 	char	*name;
 
+#ifdef i286
+	/*
+	 * The PDP-11 shifts by a negative count, which its ash takes as a
+	 * shift right and the 286 does not; and here both maps count in
+	 * 512 bytes, a click being a sector of the swap device.
+	 */
+	mshift = 1;
+#endif
 	switch(nlind) {
 	case SWAPMAP:
 		name = "swapmap";
+#ifndef i286
 		mshift = -1;	/* disk blocks -> kBytes */
+#endif
 		break;
 	case SCOREMAP:
 		name = "coremap";
+#ifndef i286
 		mshift = -4;	/* clicks -> kBytes */
+#endif
 		break;
 	case SUBMAP:
 		name = "ub_map";
@@ -828,8 +942,13 @@ int nlind;
 		freetot += size;
 		if (size>freemax) freemax = size;
 		if(flag) {
+#ifdef i286
+			printf(nlind == SCOREMAP ? "%#7o %6u %6u\n" : "%7d %6u %6u\n",
+				maptbl[i].m_addr, size, size>>mshift);
+#else
 			printf(nlind == SCOREMAP ? "%#7o %6u %6u\n" : "%7d %6u %6u\n",
 				maptbl[i].m_addr, size, size<<mshift);
+#endif
 		}
 	}
 
@@ -842,8 +961,13 @@ int nlind;
 		       (nswap-freetot)/2, freetot/2, freemax/2);
 		break;
 	case SCOREMAP:
+#ifdef i286
+		printf("%4u kB free, %4u kB max\n", 
+			freetot/2, freemax/2);
+#else
 		printf("%4u kB free, %4u kB max\n", 
 			freetot/16, freemax/16);
+#endif
 		break;
 	case SUBMAP:
 		printf("%4u    free, %4u    max\n", 
@@ -904,10 +1028,14 @@ dobuf()
 			putf((long)bp->b_flags&B_LOCKED, 'L');
 			putf((long)bp->b_flags&B_UBAREMAP,'u');
 			putf((long)bp->b_flags&B_RAMREMAP,'r');
-			pbufbp(abuf, abufe, bp->b_forw);
-			pbufbp(abuf, abufe, bp->b_back);
-			pbufbp(abuf, abufe, bp->av_forw);
-			pbufbp(abuf, abufe, bp->av_back);
+			pbufbp((struct buf *)abuf, (struct buf *)abufe,
+			    bp->b_forw);
+			pbufbp((struct buf *)abuf, (struct buf *)abufe,
+			    bp->b_back);
+			pbufbp((struct buf *)abuf, (struct buf *)abufe,
+			    bp->av_forw);
+			pbufbp((struct buf *)abuf, (struct buf *)abufe,
+			    bp->av_back);
 			printf("%4d,%3d", major(bp->b_dev), minor(bp->b_dev));
 			printf("%8ld ", bp->b_blkno);
 			printf("\n");

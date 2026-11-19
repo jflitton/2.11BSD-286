@@ -154,7 +154,7 @@ DOS and OS/2 user's guide with nothing on ports or interrupts; not kept.)
 | `tools/mkpasswd.py` | makes `/etc/passwd` and the password database from `master.passwd`, as `mkpasswd -p` does |
 | `tools/ne2aout.py` | turns the linker's output into the system's executable format; `--dump` prints one |
 | `tools/mkfd.py` | makes a bootable diskette image from an executable, with a file system image for the kernel's RAM disk if wanted |
-| `tools/mkfs.py` | makes a file system image from a list of files |
+| `tools/mkfs.py` | makes a file system image from a list of files, with their modes and groups |
 | `tools/mkdisk.py` | makes a hard disk image: a partition table or none, a label, partitions, and the sectors that boot it |
 | `tools/fsck.py` | checks a file system in an image without changing it, or prints a file from it |
 | `tools/mkstubs.py` | writes system call stubs from a table of the calls' arguments, checked against the kernel's |
@@ -240,8 +240,9 @@ tests/vt/run.sh         # the console's terminal emulator, on the machine
   two of the console's screens with the keyboard, edits with `vi` on
   one, and checks what the screens showed. Back on the serial port it
   adds a user with `adduser`, makes a file system, checks it and mounts
-  it, pings the loopback interface, and logs in over it with `telnet` as
-  the new user, who changes the full name and the password. It
+  it, runs `ps`, `vmstat` and `iostat`, pings the loopback interface,
+  and logs in over it with `telnet` as the new user, who runs `ps`, `w`
+  and `netstat` and changes the full name and the password. It
   sets up the Ethernet interface, an NE2000 of the emulator's on a
   network of the emulator's own, pings the gateway, and the host logs in
   over it with telnet, sends a file each way, and edits with `vi` in a
@@ -324,10 +325,14 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   system's part of the disk: past its 1024 cylinders, or on a controller
   it does not know.
 - The C library is built for the small and medium models, and with them
-  64 of the system's programs: `init`, `getty`, `login`, the Bourne shell and the
+  72 of the system's programs: `init`, `getty`, `login`, the Bourne shell and the
   everyday commands in the small model, and in the medium the C shell,
   `tcsh`, and `ex`, which is `vi`, whose code the PDP-11 had to split
   into overlays ([the C library and programs](docs/userland.md)).
+  `ps`, `w`, `pstat`, `vmstat`, `iostat`, `netstat` and `arp` read the
+  kernel's tables, as on the PDP-11, through `nlist` and `/dev/kmem`,
+  which reaches every segment of the kernel; the kernel keeps upstream's
+  counts of what it does for them.
   The system boots from its disk to multi-user, and one logs in on the
   console or a serial port, works in any of the three shells, and edits
   with `vi`.
@@ -344,12 +349,12 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   ([the network](docs/network.md)).
 - That is the state in an emulated PS/2 Model 30 286. The system has
   also booted on a real machine and been logged in to over the network.
-- What the kernel does not have: quotas. The parts of it that no test reaches yet: `ptrace`, `sysctl`,
+- What the kernel does not have: quotas. The parts of it that no test reaches yet: `ptrace`, most of `sysctl`,
   core dumps beyond being written, `fork` when memory is short,
   swapping of shared code, and Unix-domain sockets.
 - What user space does not have: a library for the large model, and
-  most of the programs, among them `more`, `mail`, `ps`, `cron`, and of
-  the network's `netstat`, `ftp` and `syslogd`.
+  most of the programs, among them `more`, `mail`, `cron`, and of the
+  network's `ftp` and `syslogd`.
 - Upstream's programs are kept as 2.11BSD has them, changed only for
   bugs, the compiler and the settings each machine makes. Newer
   behaviour goes in programs of this port's own beside them: so far

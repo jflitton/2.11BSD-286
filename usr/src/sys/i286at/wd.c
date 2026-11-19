@@ -16,6 +16,7 @@
 #include "disklabel.h"
 #include "disk.h"
 #include "pcdisk.h"
+#include "dk.h"
 
 #define	NWD		2
 #define	WD_IRQ		14
@@ -74,6 +75,9 @@ struct wd {
 	char	wd_lba;		/* sectors are named by number */
 	char	wd_state;
 } wd[NWD];
+#ifdef UCB_METER
+static	int	wd_dkn = -1;	/* number for iostat */
+#endif
 #define	WD_UNKNOWN	0	/* wd_state: not looked for yet */
 #define	WD_ABSENT	1
 #define	WD_PRESENT	2
@@ -226,6 +230,11 @@ out:
 		first = 0;
 		setirq(WD_IRQ, IPL_BIO, wdintr, 0);
 	}
+#ifdef UCB_METER
+	/* words a second as a drive of 3600 turns a minute moves them */
+	if (wd_dkn < 0)
+		dk_alloc(&wd_dkn, NWD, "wd", 60L * wp->wd_sects * 256L);
+#endif
 }
 
 wdopen(dev, flag, mode)
@@ -348,6 +357,10 @@ wddone(bp)
 	wdtab.b_active = 0;
 	wdtab.b_actf = bp->av_forw;
 	bp->b_resid = wdx.x_left << 9;
+#ifdef UCB_METER
+	if (wd_dkn >= 0)
+		dk_busy &= ~(1 << (wd_dkn + dkunit(bp->b_dev)));
+#endif
 	iodone(bp);
 }
 
@@ -372,6 +385,15 @@ wdstart()
 			wdx.x_addr = bfpaddr(bp);
 			wdx.x_left = bp->b_bcount >> 9;
 			wdx.x_tries = 0;
+#ifdef UCB_METER
+			if (wd_dkn >= 0) {
+				int dkn = wd_dkn + dkunit(bp->b_dev);
+
+				dk_busy |= 1 << dkn;
+				dk_xfer[dkn]++;
+				dk_wds[dkn] += bp->b_bcount >> 6;
+			}
+#endif
 		}
 		if (wdx.x_tries++ < WDTRIES && wdcmd(bp) == 0)
 			return;

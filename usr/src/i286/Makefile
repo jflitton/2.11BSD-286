@@ -107,7 +107,8 @@ telnetd_FLAGS=	-I$(SRC)/libexec/getty
 telnetd_LIBS=	-ltermcap
 inetd_SRCS=	usr.sbin/inetd/inetd.c
 route_SRCS=	sbin/route/route.c
-NETPROGS=	ifconfig ping route telnet telnetd inetd
+arp_SRCS=	usr.sbin/arp/arp.c
+NETPROGS=	ifconfig ping route arp telnet telnetd inetd
 
 # Those that look after the file systems, the password file and users.
 update_SRCS=	usr.sbin/update/update.c
@@ -123,13 +124,26 @@ chpass_SRCS=	$(addprefix bin/chpass/,chpass.c field.c util.c)
 chpass_FLAGS=	-I$(SRC)/bin/chpass
 SYSPROGS=	update fsck mkfs newfs passwd mkpasswd vipw chown chpass
 
+# Those that read the kernel's tables, and dev_mkdb, whose database
+# devname(3) looks devices up in for them.
+ps_SRCS=	bin/ps/ps.c
+ps_FLAGS=	-I$(SRC)/bin/ps
+dev_mkdb_SRCS=	usr.sbin/dev_mkdb/dev_mkdb.c
+w_SRCS=		ucb/w.c
+vmstat_SRCS=	ucb/vmstat.c
+iostat_SRCS=	usr.bin/iostat.c
+netstat_SRCS=	$(addprefix ucb/netstat/,host.c inet.c if.c main.c mbuf.c \
+		route.c unix.c ns.c)
+pstat_SRCS=	usr.sbin/pstat/pstat.c
+KMEMPROGS=	ps w vmstat iostat netstat pstat dev_mkdb
+
 # This port's own (docs/userland.md), each in a directory here.
 adduser_SRCS=	i286/adduser/adduser.c
 OWNPROGS=	adduser
 
 PROGS=	init getty login sh csh ls mkdir stty test hostname mknod mount \
 	umount reboot sleep ex exrecover expreserve tcsh $(BINSTD) \
-	$(NETPROGS) $(SYSPROGS) $(OWNPROGS)
+	$(NETPROGS) $(SYSPROGS) $(KMEMPROGS) $(OWNPROGS)
 
 # The libraries the programs use besides the C library: NAME_LIB lists a
 # library's sources, and NAME_LIBFLAGS what it is compiled with.  Each is

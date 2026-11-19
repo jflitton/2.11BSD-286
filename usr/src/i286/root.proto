@@ -69,6 +69,7 @@ f /bin/csh 755 ../../../obj/bin/csh
 f /bin/tcsh 755 ../../../obj/bin/tcsh
 f /bin/login 4755 ../../../obj/bin/login
 f /bin/ls 755 ../../../obj/bin/ls
+f /bin/ps 2755:2 ../../../obj/bin/ps
 f /bin/mkdir 755 ../../../obj/bin/mkdir
 f /bin/stty 755 ../../../obj/bin/stty
 f /bin/test 755 ../../../obj/bin/test
@@ -127,12 +128,20 @@ f /usr/sbin/update 755 ../../../obj/bin/update
 f /usr/sbin/vipw 755 ../../../obj/bin/vipw
 f /usr/sbin/chown 755 ../../../obj/bin/chown
 f /usr/sbin/adduser 755 ../../../obj/bin/adduser
+f /usr/sbin/dev_mkdb 755 ../../../obj/bin/dev_mkdb
+f /usr/sbin/arp 2755:2 ../../../obj/bin/arp
+f /usr/sbin/pstat 2755:2 ../../../obj/bin/pstat
 f /sbin/ifconfig 755 ../../../obj/bin/ifconfig
 f /sbin/ping 4755 ../../../obj/bin/ping
 f /sbin/route 755 ../../../obj/bin/route
 f /usr/sbin/inetd 755 ../../../obj/bin/inetd
 f /usr/libexec/telnetd 755 ../../../obj/bin/telnetd
 f /usr/ucb/telnet 755 ../../../obj/bin/telnet
+f /usr/ucb/w 2755:2 ../../../obj/bin/w
+h /usr/ucb/uptime /usr/ucb/w
+f /usr/ucb/vmstat 2755:2 ../../../obj/bin/vmstat
+f /usr/ucb/netstat 2755:2 ../../../obj/bin/netstat
+f /usr/bin/iostat 2755:2 ../../../obj/bin/iostat
 h /sbin/halt /sbin/reboot
 c /dev/console 622 0 0
 c /dev/ttyv1 666 0 1
@@ -157,14 +166,14 @@ c /dev/ttyp4 666 6 4
 c /dev/ttyp5 666 6 5
 c /dev/ttyp6 666 6 6
 c /dev/ttyp7 666 6 7
-c /dev/mem 640 1 0
-c /dev/kmem 640 1 1
+c /dev/mem 640:2 1 0
+c /dev/kmem 640:2 1 1
 c /dev/null 666 1 2
 b /dev/rd0 600 0 0
 b /dev/rd1 600 0 1
 b /dev/wd0a 640 1 0
 c /dev/rwd0a 640 8 0
-b /dev/wd0b 640 1 1
+b /dev/wd0b 640:2 1 1
 c /dev/rwd0b 640 8 1
 b /dev/wd0c 640 1 2
 c /dev/rwd0c 640 8 2
@@ -180,7 +189,7 @@ b /dev/wd0h 640 1 7
 c /dev/rwd0h 640 8 7
 b /dev/wd1a 640 1 8
 c /dev/rwd1a 640 8 8
-b /dev/wd1b 640 1 9
+b /dev/wd1b 640:2 1 9
 c /dev/rwd1b 640 8 9
 b /dev/wd1c 640 1 10
 c /dev/rwd1c 640 8 10
@@ -196,7 +205,7 @@ b /dev/wd1h 640 1 15
 c /dev/rwd1h 640 8 15
 b /dev/sd0a 640 2 0
 c /dev/rsd0a 640 9 0
-b /dev/sd0b 640 2 1
+b /dev/sd0b 640:2 2 1
 c /dev/rsd0b 640 9 1
 b /dev/sd0c 640 2 2
 c /dev/rsd0c 640 9 2
@@ -212,7 +221,7 @@ b /dev/sd0h 640 2 7
 c /dev/rsd0h 640 9 7
 b /dev/sd1a 640 2 8
 c /dev/rsd1a 640 9 8
-b /dev/sd1b 640 2 9
+b /dev/sd1b 640:2 2 9
 c /dev/rsd1b 640 9 9
 b /dev/sd1c 640 2 10
 c /dev/rsd1c 640 9 10

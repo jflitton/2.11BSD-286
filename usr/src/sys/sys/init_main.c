@@ -78,6 +78,12 @@ struct timeval	time;
 struct vmtotal	total;
 int	updlock;
 struct proc	*zombproc;
+#ifdef UCB_METER
+struct vmrate	cnt, rate;
+struct vmsum	sum;
+struct forkstat	forkstat;
+u_short	avefree, avefree30;
+#endif
 
 extern	size_t physmem;
 extern	struct	mapent _coremap[];

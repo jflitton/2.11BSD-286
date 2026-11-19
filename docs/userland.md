@@ -150,10 +150,11 @@ Left out:
   reference to `fltused`, which brings in the real `stdio/pfcom.c`; this
   one makes no such mark, so every program that formats has the real
   one, about 2K.
-- `nlist`, which reads the PDP-11's a.out format and not this system's,
-  so `ps` and the like wait for it; profiling; `recvmsg` and `sendmsg`,
-  whose structures need converting and whose kernel side is not written;
-  and the PDP-11's `compat-2.9`.
+- Profiling; `recvmsg` and `sendmsg`, whose structures need converting
+  and whose kernel side is not written; and the PDP-11's `compat-2.9`.
+
+`nlist` is in it, reading this system's format ([programs that read the
+kernel](#programs-that-read-the-kernel)).
 
 The system's error messages are in `/etc/syserrlst`, not in each
 program's data, as on the PDP-11. `tools/mkerrlst.py` makes the file from
@@ -188,6 +189,12 @@ files, and 6K of the shell's. The compiler refers to a static variable by
 name too, or, for one declared in a function, by its offset in `_BSS`,
 which is in the instruction or data the reference is in; that offset is
 changed as the variable moves.
+
+The kernel is linked without communals, and the headers it shares with
+programs declare its variables `extern` where upstream's defined them,
+with each defined once in the kernel. A program that relied on a header
+for a variable of its own defines it now: `netstat` read the kernel's
+count of open files into the `nfile` that `sys/file.h` gave it.
 
 **Its own keywords.** Old programs use `inline`, `near`, `far`,
 `interrupt` and others as names. The first is a keyword here and the rest
@@ -236,7 +243,8 @@ the PDP-11's never were. Three of `tcsh`'s signal handlers were
 declared to take nothing, and the compiler will not pass a function of
 that type to `signal`, whose prototype takes a `void (*)(int)`; they are
 declared with the `int` now. Its `qsort` of `~user` names has a cast of
-its comparison function, as its other `qsort`s have.
+its comparison function, as its other `qsort`s have, and so does `ps`'s
+of the kernel's wait channels.
 
 **PCC's member names.** PCC let a structure member's name be used with a
 pointer to any structure, and the Bourne shell reaches every kind of
@@ -289,7 +297,9 @@ a union (`bin/sh/mode.h`); the shell's few other such uses have casts.
   never negative and `$<` did not stop at a byte with its high bit set.
   `ifconfig` gave its `NEXTARG` the 32-bit branch's value, which a
   16-bit `int` cuts short, so that `netmask`, `metric`, `broadcast` and
-  `ipdst` never took the argument after them. `telnetd` passed a 0 where
+  `ipdst` never took the argument after them. `route` printed an
+  address as four `long`s to a `%u` that takes an `int`, which the
+  PDP-11's branch casts. `telnetd` passed a 0 where
   `lmode` takes a `long`, a bug on any 16-bit machine, and `ping` worked
   out its average time in microseconds in an `int`, which a 16-bit one
   holds only to 32 ms. The programs have many more such conditionals, to
@@ -302,6 +312,104 @@ quota calls fail with EINVAL, which `login` looks for, rather than end
 the caller with SIGSYS; and `execve` gives the arguments and environment
 room above the program's stack, so that the stack size a program is
 linked with is its own (8K by default).
+
+## Programs that read the kernel
+
+`ps`, `w` (which is also `uptime`), `pstat`, `vmstat`, `iostat`,
+`netstat`, `arp` and `route -f` look at the kernel's tables as they do
+on the PDP-11. Each finds a table
+by its name in `/unix` with `nlist` and reads it through `/dev/kmem`, and
+`ps` and `w` read a process's user structure and arguments through
+`/dev/mem` and the swap device. They run with group `kmem`, which those
+devices and the swap partitions belong to, as upstream installs them.
+`tools/mkfs.py` gives a file a group when its mode in `root.proto` is
+followed by one, as in `2755:2`.
+
+`nlist` is upstream's `gen/nlist.c`, reading this system's format
+([executable format](executable-format.md)). `sys/exec.h` has a `struct
+xexec`, the header with the table of segments after it, in the place of
+the PDP-11's table of overlays, and `N_SYMOFF` and `N_STROFF` in
+`a.out.h` add up the segments' sizes from it (`lib/libc/i286/gen/nsym.c`).
+`ps` has its own copy of `nlist`, which the same headers serve. A
+symbol's value is its segment, in `n_ovly`, and its offset in that
+segment.
+
+`/dev/kmem` takes an offset as a far pointer is made: the kernel's
+segment in the high 16 bits, counting from 1 as the executable does,
+and the offset in it in the low. A symbol's `n_ovly` and `n_value` are
+then where to read it. Segment 0 is the kernel's data segment, so an
+offset below 64K is an address in that segment, as on the PDP-11, and a
+program that knows only `n_value` reads what is there. Most of the
+kernel's tables are in that segment. The tables of every process's
+segments (`pseg`) are in a segment of their own, and the network's
+variables and mbufs are in another. Code can be read through
+`/dev/kmem` and not written.
+
+The PDP-11's `ps` works out a process's user structure and stack from
+`p_addr`, `p_daddr` and `p_saddr`. On the 286 it reads the kernel's
+tables instead ([processes](processes.md)):
+
+- The user structure is in one of the kernel's slots while the process
+  is the one in it, which `slotproc` says, and at `p_addr` otherwise.
+  It stays in memory when the process is swapped out.
+- The arguments are at the top of the stack, in the segment `u_dseg`
+  names, between the data and the break.
+- Where that segment is, in memory or on the swap device, is in `pseg`.
+
+That lookup is a function of its own in `ps`, `getu286`, and `w` has a
+copy of it. So `w` needs `nlist` and `/dev/kmem` too, which upstream's
+does not.
+
+The top of the stack is laid out as on the PDP-11, a word of zero with
+the strings below it, so `ps` finds the arguments as it does there. It
+shows what a program has written over its own arguments: an interactive
+`csh` writes `-` over its name's first letter, as upstream's does, and
+`init` blanks its second argument. `ps` takes the names of wait
+channels from the kernel's data segment only, since a wait channel is
+an address in it.
+
+The PDP-11's network is in a space of its own, which `netstat`, `arp`
+and `route -f` reach at an address the kernel gives them (`_netdata`).
+On the 286 the network's pointers are offsets in its own data segment.
+They reach them with that segment's number in the high 16 bits, the
+number the symbols give for the network's variables, and otherwise take
+the PDP-11's way through their code.
+
+`pstat` lists a process's slot and the size of all its own segments,
+where the PDP-11's lists the addresses and sizes of its data and stack.
+Its `-u` takes a process's `p_addr`, as `ps -l` shows it, and reads the
+user structure from the process's slot if the process is the one in it.
+It prints the 286's fields in place of the PDP-11's segmentation
+registers, overlays and FP11, with the addresses in the process in
+hexadecimal, as selector and offset. It lists the console's terminals
+and the serial ports, whose counts the kernel keeps for it as the
+PDP-11's does for its own lines (`ncons`, `ncom`). It gives the maps of
+memory and of the swap area in kilobytes by shifting right, where the
+PDP-11's shifts left by a negative count, which its `ash` takes as a
+shift right and the 286 does not.
+
+A program reads the kernel's structures with its own idea of their
+layout, so they are laid out the same in every model. The addresses in
+the process that the user structure holds are declared far, as the
+kernel has them: the signal handlers, the trampoline and the signal
+stack's base. So is a terminal's output routine, `t_oproc`, which is far
+in the medium-model kernel. `signal.h` gives a `struct sigaltstack` a
+far base only in the kernel, and says so with `__SIGALTSTACK_FAR`, which
+`user.h` goes by rather than by `KERNEL`: `pstat` defines `KERNEL` to
+include `user.h`, and has had `signal.h` without it. The kernel's own
+pointers are near, as in a small- or medium-model program, so a
+large-model program could not read these structures as they are.
+
+`/etc/rc` runs `dev_mkdb`, which makes `/var/run/dev.db`. That is the
+database in which `devname(3)` finds a device's name, for the terminals
+`ps` shows and for the swap device. Then `rc` runs `ps -U`, which keeps
+the symbols `ps` needs in `/var/run/psdatabase`, so that it need not
+read `/unix` each time.
+
+`vmstat` and `iostat` read the counts the kernel keeps with `UCB_METER`
+([processes](processes.md#counting)): the time spent in user, system and
+idle, the system calls, traps, interrupts and context switches, forks,
+swaps, the name cache, and each disk's transfers.
 
 ## The root file system
 
@@ -343,8 +451,10 @@ in `fstab` that was not unmounted cleanly, the root first and alone; if
 it had to change the root, which is mounted, `rc` starts the system
 again with `reboot -n`, so that nothing the kernel held of the old is
 written over what `fsck` wrote. From single user `rc` checks nothing,
-that having been done by hand. `mount -a` mounts the rest of `fstab`.
-Then `rc` reads `/etc/rc.conf`, which names the machine and gives the
+that having been done by hand. `mount -a` mounts the rest of `fstab`,
+and `dev_mkdb` and `ps -U` make the databases of devices and of the
+kernel's symbols that `ps` reads ([programs that read the
+kernel](#programs-that-read-the-kernel)). Then `rc` reads `/etc/rc.conf`, which names the machine and gives the
 Ethernet interface's address, netmask and gateway, and runs
 `/etc/netstart`, which sets up the loopback interface and, if `rc.conf`
 gives an address, the Ethernet interface and the default route, as
@@ -360,13 +470,14 @@ The programs: `init`, `getty`, `login`, `sh`, `csh`, `ls`, `cat`, `cp`,
 `du`, `echo`, `ed`, `grep`, `kill`, `nice`, `od`, `pr`, `pwd`, `stty`,
 `sync`, `tee`, `test` (and `[`), `time`, `who`, `wall`, `write`, `date`,
 `hostname`, `hostid`, `pagesize`, `passwd`, `chpass` (and `chfn` and
-`chsh`), `tcsh`, `/usr/bin/sleep`, and in `/sbin` `mount`, `umount`,
-`mknod`, `fsck`, `mkfs`, `newfs`, `mkpasswd`, `reboot` and `halt`.
-`/usr/ucb` has `ex`, `vi` and `view`, one file under three names, as
-upstream has them, and `/usr/sbin` has `update`, `vipw`, `chown`,
-`adduser`, `exrecover` and `expreserve`. For the network there are
-`ifconfig`, `ping` and `route` in `/sbin`, `inetd` in `/usr/sbin`,
-`telnetd` in `/usr/libexec` and `telnet` in `/usr/ucb`. `tools/mkfs.py`
+`chsh`), `ps`, `tcsh`, `/usr/bin/sleep` and `/usr/bin/iostat`, and in
+`/sbin` `mount`, `umount`, `mknod`, `fsck`, `mkfs`, `newfs`, `mkpasswd`,
+`reboot` and `halt`. `/usr/ucb` has `ex`, `vi` and `view`, one file
+under three names, as upstream has them, `w` and `uptime`, one file
+under two, and `vmstat`. `/usr/sbin` has `update`, `vipw`, `chown`,
+`adduser`, `dev_mkdb`, `pstat`, `exrecover` and `expreserve`. For the network there are
+`ifconfig`, `ping` and `route` in `/sbin`, `inetd` and `arp` in `/usr/sbin`,
+`telnetd` in `/usr/libexec`, and `telnet` and `netstat` in `/usr/ucb`. `tools/mkfs.py`
 makes these other names as hard links, and also `[` and `halt`.
 
 ## Following a program
@@ -432,12 +543,18 @@ password; and lists the home directory, where the files from `/usr/skel`
 must be the user's. It makes a file system in the spare partition with
 `newfs`, checks it with `fsck`, mounts it, copies files to it, unmounts
 it, and checks it twice more: `fsck -p` must leave it alone as clean,
-and `fsck -f` must find the files. It shows the loopback interface with
+and `fsck -f` must find the files. `ps axl` must show `inetd` waiting in
+`select`, and `vmstat -s`, `iostat` and `pstat -T` must print their
+counts. It shows
+the loopback interface with
 `ifconfig`, pings it, and logs in over it with `telnet` as the new user,
 with a wrong password first, which must be refused. The user's shell is
 `csh`, which runs the `.cshrc` and `.login` from `/usr/skel`. `who` must
 show the login on `ttyp0` from `localhost`, and the user must be able to
 see who owns `/etc/passwd` and not to read `master.passwd`. The user
+puts `sleep` in the background, which `ps axu` must show as the user's on
+`ttyp0` with its arguments; `w` must show the user there; and `netstat`
+must show the connection twice, from each end. The user
 changes the full name with `chfn`, editing with `ed`, which
 `/etc/passwd` must then show, and the password, which `passwd` must
 first ask for, and logs out with ^D; `telnet` must report the connection
@@ -447,8 +564,9 @@ since `exit` in an interactive Bourne shell goes back to its prompt, as
 upstream's shell has it (`exitsh` in `bin/sh/error.c`). It sets up the
 Ethernet interface, an NE2000 of the emulator's on a network of its own,
 by reading `/etc/rc.conf` and running `/etc/netstart` with an address
-and a gateway given; pings the gateway; and adds the default route
-again, which `route` must refuse, `netstart` having added it. Meanwhile
+and a gateway given; pings the gateway; adds the default route again,
+which `route` must refuse, `netstart` having added it; and has `arp`
+show the gateway's address, and `route -f` flush the default route. Meanwhile
 the host logs in over telnet through that network, where `who` must show
 the login from the gateway, and sends `/etc/services` three times into
 `cat`, which must give a file the same as the system's copies; then the
@@ -477,12 +595,15 @@ Not done, or not tested:
   letters to `sendmail`, and it tells `comsat` of a new one over the
   network. So these wait for `mail` and `sendmail`.
 - Most programs are not built: of `/usr/bin` and `/usr/ucb` only
-  `sleep`, `ex` and `vi` (not `more`), and no `ps`, `cron`, `syslogd`,
-  `swapon` or `disklabel`. With no `disklabel`, a partition can be made
-  a file system only where `tools/mkdisk.py` labelled it one: the kernel
-  mounts nothing else. Of the network's, `route` is built without
-  `-f`, which reads the kernel's tables through `/dev/kmem` and `nlist`,
-  and `netstat`, `arp`, `ftp` and the rest are not built.
+  `sleep`, `iostat`, `ex`, `vi`, `w`, `vmstat`, `netstat` and `telnet`
+  (not `more`), and no `cron`, `syslogd`, `swapon` or `disklabel`. With
+  no `disklabel`, a partition can be made a file system only where
+  `tools/mkdisk.py` labelled it one: the kernel mounts nothing else. Of
+  the network's, `ftp` and the rest are not built.
+- `iostat`'s seek times (`msps`) are 0. An IDE or SCSI drive seeks by
+  itself, so its driver counts no seeks, as upstream's MSCP driver
+  counts none; upstream's drivers count them where they give the drive
+  a seek to do.
 - `fsck` keeps its tables in what is left of 56K of data, as on the
   PDP-11: room for a file system of about 40 MB with an inode for each
   4K, `newfs`'s default. A bigger one needs a scratch file, `fsck -t`,

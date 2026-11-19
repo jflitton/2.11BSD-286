@@ -24,7 +24,11 @@ main(argc, argv)
 	char **argv;
 {
 	if (argc >= 2 && strcmp(argv[1], "-a") == 0) {
+#ifdef i286
+		char *kernel = "/unix", *mem = "/dev/kmem";
+#else
 		char *kernel = "/netnix", *mem = "/dev/mem";
+#endif
 
 		if (argc >= 3)
 			kernel = argv[2];
@@ -268,11 +272,13 @@ dump(kernel, mem)
 	extern int h_errno;
 
 	nlist(kernel, nl);
+#ifndef i286
 	nlist(unix2_10, kl);
 	if(kl[X_NETDATA].n_type == 0) {
 		fprintf(stderr, "arp: %s: bad namelist\n", unix2_10);
 		exit(1);
 	}
+#endif
 	if(nl[X_ARPTAB_SIZE].n_type == 0) {
 		fprintf(stderr, "arp: %s: bad namelist\n", kernel);
 		exit(1);
@@ -282,9 +288,19 @@ dump(kernel, mem)
 		fprintf(stderr, "arp: cannot open %s\n", mem);
 		exit(1);
 	}
+#ifdef i286
+	/*
+	 * The table is in the network's data segment, which /dev/kmem
+	 * reaches with the segment's number, which the symbols give, in
+	 * the high 16 bits.
+	 */
+	lseek(mf, ((long)nl[X_ARPTAB_SIZE].n_ovly << 16) +
+	    nl[X_ARPTAB_SIZE].n_value, 0);
+#else
 	lseek(mf, (long)kl[X_NETDATA].n_value, 0);
 	read(mf, &base2_10, sizeof(base2_10));
 	lseek(mf, (long)nl[X_ARPTAB_SIZE].n_value + ctob((long)base2_10), 0);
+#endif
 	read(mf, &arptab_size, sizeof arptab_size);
 	if (arptab_size <=0 || arptab_size > 1000) {
 		fprintf(stderr, "arp: %s: namelist wrong\n", kernel);
@@ -296,7 +312,11 @@ dump(kernel, mem)
 		fprintf(stderr, "arp: can't get memory for arptab\n");
 		exit(1);
 	}
+#ifdef i286
+	lseek(mf, ((long)nl[X_ARPTAB].n_ovly << 16) + nl[X_ARPTAB].n_value, 0);
+#else
 	lseek(mf, (long)nl[X_ARPTAB].n_value + ctob((long)base2_10), 0);
+#endif
 	if (read(mf, (char *)at, sz) != sz) {
 		perror("arp: error reading arptab");
 		exit(1);

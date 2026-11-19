@@ -39,19 +39,24 @@ clkstart()
 
 /*
  * tf is what the clock interrupted, or 0 if the tick was put off, which
- * only the kernel can have done.
+ * only the kernel can have done.  The kernel interrupted at level 0 is
+ * the kernel with nothing to do (idle(), mch_trap.s), or a process in a
+ * system call, which gatherstats tells apart (noproc); at a higher level
+ * it is busy with a device.
  */
 static
 clkintr(arg, tf)
 	int arg;
 	register struct trapframe *tf;
 {
+	extern int intrcpl;
+
 	if (tf == 0)
 		hardclock(0, 0);
 	else if (USERMODE(tf->tf_cs))
 		hardclock(tf->tf_ip, CLK_USER | CLK_BASE);
 	else
-		hardclock(tf->tf_ip, 0);
+		hardclock(tf->tf_ip, intrcpl == 0 ? CLK_BASE : 0);
 }
 
 static

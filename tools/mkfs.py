@@ -22,7 +22,9 @@ with # are ignored.  Modes are octal.
     h PATH OTHER                    another name for OTHER, a file
 
 FILE is relative to the directory PROTO is in.  The root directory exists
-already.  Everything is owned by root.
+already.  Everything is owned by root, and is in group 0 unless MODE is
+followed by a colon and the number of another: 2755:2 is a program that
+runs with group kmem.
 """
 import os
 import struct
@@ -47,6 +49,7 @@ class Inode:
         self.nlink = 0
         self.data = b""         # contents, for a file, link or directory
         self.rdev = 0
+        self.gid = 0
         self.entries = None     # a directory's: [(name, inode number)]
 
 
@@ -117,6 +120,13 @@ def main():
             ip.nlink = 2
             dp.nlink += 1
 
+    def made(kind, mode):
+        """An inode of KIND with MODE, which may give a group."""
+        mode, _, gid = mode.partition(":")
+        ip = Inode(kind | int(mode, 8))
+        ip.gid = int(gid or 0)
+        return ip
+
     for n, line in enumerate(open(proto), 1):
         w = line.split()
         if not w or w[0].startswith("#"):
@@ -124,13 +134,13 @@ def main():
         try:
             kind, path = w[0], w[1]
             if kind == "d":
-                ip = Inode(IFDIR | int(w[2], 8))
+                ip = made(IFDIR, w[2])
                 ip.entries = []
             elif kind == "f":
-                ip = Inode(IFREG | int(w[2], 8))
+                ip = made(IFREG, w[2])
                 ip.data = open(os.path.join(here, w[3]), "rb").read()
             elif kind in "cb":
-                ip = Inode((IFCHR if kind == "c" else IFBLK) | int(w[2], 8))
+                ip = made(IFCHR if kind == "c" else IFBLK, w[2])
                 ip.rdev = int(w[3]) << 8 | int(w[4])
             elif kind == "l":
                 ip = Inode(IFLNK | 0o777)
@@ -201,7 +211,8 @@ def main():
                     part = rest[k:k + NINDIR]
                     singles.append(alloc(struct.pack("<%dL" % len(part), *part)))
                 addr[5] = alloc(struct.pack("<%dL" % len(singles), *singles))
-        d = struct.pack("<HHHHl7L5HH3l", ip.mode, ip.nlink, 0, 0, len(ip.data),
+        d = struct.pack("<HHHHl7L5HH3l", ip.mode, ip.nlink, 0, ip.gid,
+                        len(ip.data),
                         *addr, 0, 0, 0, 0, 0, 0, now, now, now)
         assert len(d) == 64
         off = (number + 2 * INOPB - 1) * 64     # itod and itoo

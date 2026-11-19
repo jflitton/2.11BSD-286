@@ -41,7 +41,7 @@ static char sccsid[] = "@(#)ns.c	5.8.1 (2.11BSD GTE) 1/1/94";
 #define SANAMES
 #include <netns/spp_debug.h>
 
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 #define klseek slseek
 #endif
 

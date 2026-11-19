@@ -20,7 +20,7 @@ E=	$(SYS)/i286if
 C=	$(SYS)/PC
 CRT=	$(TOP)/usr/src/lib/libc/i286/crt
 
-OPTS=	-DINET
+OPTS=	-DINET -DUCB_METER
 DEFS=	-DKERNEL $(OPTS) -I$(C) -I$(H) -I$(TOP)/usr/include
 # 131 and 107: calls to functions with no prototype, and functions that
 # return nothing in particular; the tree's C is full of both.  121: a

@@ -44,6 +44,7 @@ static	char compresent[NCOM];
 static	char comattached[NCOM];
 static	char comcurspeed[NCOM];	/* what the port is set to, B0 if not */
 struct	tty com_tty[NCOM];
+int	ncom = NCOM;		/* for pstat */
 int	comstart();
 static	int comintr();
 extern	char partab[];

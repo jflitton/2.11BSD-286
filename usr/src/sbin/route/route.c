@@ -78,18 +78,6 @@ main(argc, argv)
  * Purge all entries in the routing tables not
  * associated with network interfaces.
  */
-#ifdef i286
-/*
- * The tables are read from /dev/kmem, at addresses from the kernel's
- * namelist; on the 286 they are in the network's data segment, which
- * neither reaches, and there is no nlist.
- */
-flushroutes()
-{
-	fprintf(stderr, "route: -f is not supported on the 286\n");
-	exit(1);
-}
-#else
 #include <nlist.h>
 
 struct nlist nl[] = {
@@ -109,6 +97,15 @@ struct nlist kl[] = {
 	{ "_netdata" },
 	"",
 };
+#endif
+
+#ifdef i286
+/*
+ * The tables are in the network's data segment, and its pointers are
+ * offsets in it, which /dev/kmem reaches with the segment's number,
+ * which the symbols give, in the high 16 bits.
+ */
+long netbase;
 #endif
 
 flushroutes()
@@ -142,6 +139,9 @@ flushroutes()
 		printf("route: \"rthashsize\", symbol not in namelist\n");
 		exit(1);
 	}
+#ifdef i286
+	netbase = (long)nl[N_RTHOST].n_ovly << 16;
+#endif
 #ifdef pdp11
 	kmem = open("/dev/mem", 0);
 #else
@@ -155,6 +155,8 @@ flushroutes()
 	lseek(kmem, (off_t)kl[N_NETDATA].n_value, 0);
 	read(kmem, &base2_10, sizeof(base2_10));
 	lseek(kmem, (off_t)nl[N_RTHASHSIZE].n_value + ctob((long)base2_10), 0);
+#elif defined(i286)
+	lseek(kmem, (off_t)nl[N_RTHASHSIZE].n_value + netbase, 0);
 #else
 	lseek(kmem, (off_t)nl[N_RTHASHSIZE].n_value, 0);
 #endif
@@ -163,6 +165,8 @@ flushroutes()
 
 #ifdef pdp11
 	lseek(kmem, (off_t)nl[N_RTHOST].n_value + ctob((long)base2_10), 0);
+#elif defined(i286)
+	lseek(kmem, (off_t)nl[N_RTHOST].n_value + netbase, 0);
 #else
 	lseek(kmem, (off_t)nl[N_RTHOST].n_value, 0);
 #endif
@@ -176,6 +180,8 @@ again:
 		while (m) {
 #ifdef pdp11
 			lseek(kmem, (off_t)m + ctob((long)base2_10), 0);
+#elif defined(i286)
+			lseek(kmem, (off_t)m + netbase, 0);
 #else
 			lseek(kmem, (off_t)m, 0);
 #endif
@@ -197,6 +203,8 @@ again:
 	if (doinghost) {
 #ifdef pdp11
 		lseek(kmem, (off_t)nl[N_RTNET].n_value+ctob((long)base2_10), 0);
+#elif defined(i286)
+		lseek(kmem, (off_t)nl[N_RTNET].n_value + netbase, 0);
 #else
 		lseek(kmem, (off_t)nl[N_RTNET].n_value, 0);
 #endif
@@ -207,7 +215,6 @@ again:
 	close(kmem);
 	free(routehash);
 }
-#endif
 
 char *
 routename(sa)
@@ -251,7 +258,7 @@ routename(sa)
 		if (cp)
 			strcpy(line, cp);
 		else {
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 #define C(x)	(((int)(x)) & 0xff)
 #else
 #define C(x)	((x) & 0xff)
