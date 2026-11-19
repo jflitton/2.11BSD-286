@@ -135,7 +135,14 @@ iostat_SRCS=	usr.bin/iostat.c
 netstat_SRCS=	$(addprefix ucb/netstat/,host.c inet.c if.c main.c mbuf.c \
 		route.c unix.c ns.c)
 pstat_SRCS=	usr.sbin/pstat/pstat.c
-KMEMPROGS=	ps w vmstat iostat netstat pstat dev_mkdb
+# top shows the processes that are using the processor, and tracebuf the
+# kernel's counts of what its buffers saved the disk; sysctl asks the
+# kernel, and needs neither its memory nor its names.
+top_SRCS=	ucb/top/top.c
+top_LIBS=	-lcurses -ltermcap
+tracebuf_SRCS=	usr.sbin/tracebuf/tracebuf.c
+sysctl_SRCS=	bin/sysctl/sysctl.c
+KMEMPROGS=	ps w vmstat iostat netstat pstat dev_mkdb top tracebuf sysctl
 
 # The system log and what the clock runs: syslogd, logger which writes
 # to it and dmesg which shows what the kernel has printed; cron and
@@ -342,7 +349,8 @@ NET2PROGS=	rlogin rsh rcp rlogind rshd rexecd ftp ftpd tftp tftpd \
 
 # This port's own (docs/userland.md), each in a directory here.
 adduser_SRCS=	i286/adduser/adduser.c
-OWNPROGS=	adduser
+bench_SRCS=	i286/bench/bench.c
+OWNPROGS=	adduser bench
 
 PROGS=	init getty login sh csh ls mkdir stty test hostname mknod mount \
 	umount reboot sleep ex exrecover expreserve tcsh $(BINSTD) \

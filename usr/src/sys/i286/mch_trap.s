@@ -29,6 +29,9 @@
         extern  _runrun, _cpl, _ipending, _spending, _noproc
         global  _idt, trapret, _intnest
         global  _tr_popes, _tr_popds, _tr_iret
+; Nothing links to these: they are in the symbol table so that a profile
+; (tools/kprof.py) names the code after each, not the function before it.
+        global  vec0, allsys, alltraps, allintr, raise, lower, runpend
 
         BSS
         resb    INTSTACK        ; the stack interrupts are handled on

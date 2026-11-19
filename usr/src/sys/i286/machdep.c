@@ -33,6 +33,12 @@
 #include "../machine/cpu.h"
 
 struct user *uptr;		/* the running process's user structure */
+/*
+ * Where in a user structure the name of the program is.  Nothing in the
+ * kernel uses it: a profiler outside the machine does, which reads the
+ * running program's name from memory at each sample (tools/kprof.py).
+ */
+int	ucomm = (int)((struct user *)0)->u_comm;
 extern char uslot[][UBYTES];	/* param.c */
 extern struct proc *slotproc[];	/* who is in each slot */
 extern int nslot;

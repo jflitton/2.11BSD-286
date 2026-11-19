@@ -164,6 +164,7 @@ DOS and OS/2 user's guide with nothing on ports or interrupts; not kept.)
 | `tools/fsck.py` | checks a file system in an image without changing it, or prints a file from it |
 | `tools/mkstubs.py` | writes system call stubs from a table of the calls' arguments, checked against the kernel's |
 | `tools/kpatch.py` | changes a variable in an executable file, by name |
+| `tools/kprof.py` | says where the system spent its time: the functions, in the kernel and in programs, that the samples `runtest.py --profile` took of the emulated processor fell in |
 | `tools/strip.py` | copies an executable file without its symbol table, as `strip` leaves one: the programs in the root file system are such copies, unless it is made with `STRIP=no` |
 | `tools/farlint.py` | looks for far pointers that kernel code truncates without the compiler noticing |
 | `tools/preflight.py` | looks a program over before it is built: what the compiler rejects, calls that disagree with a definition in another file or in the library, lines that match what has gone wrong before, and whether it links and how large it is |
@@ -195,6 +196,10 @@ tests/libc/run.sh       # the C library, with a test program as init: 73
                         # checks in the small model, 73 in the medium
 tests/preflight/run.sh  # tools/preflight.py, on two files with one of each
                         # thing it looks for (no emulator)
+tests/bench/run.sh      # how fast the system is: its benchmark, each
+                        # of 16 tests timed by the system's clock and by
+                        # the emulator's, and a profile of each; fails
+                        # only if the measuring does
 tests/network/run.sh    # the network's programs, on the system booted to
                         # multi-user with an emulated NE2000: 21 checks,
                         # of ftp, rsh, rcp, tftp, finger, tcpd, nc and
@@ -292,6 +297,14 @@ tests/vt/run.sh         # the console's terminal emulator, on the machine
   `rlogin`, with a password and without, and talks with `talk` to a user
   whom the host has logged in with `telnet`
   ([the C library and programs](docs/userland.md#the-networks-programs)).
+- `tests/bench` boots it and runs `bench`, this port's benchmark, while
+  the harness times each test by the marks it writes and samples where
+  the processor is. It prints what each test took and leaves
+  `tools/kprof.py`'s account of where the time went. It is run for
+  those, and to compare one build with another; it fails if `bench`,
+  the timing or the profile does not work, or `top`, `tracebuf` or
+  `sysctl`, which it tries on the way
+  ([performance](docs/performance.md)).
 - `tests/vt` is the console's terminal emulator, which touches no
   hardware, built with the C compiler of the machine the system is built
   on and run there: what each sequence leaves on the screen, where it
@@ -340,6 +353,11 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   [the C library and programs](docs/userland.md),
   [the console](docs/console.md),
   [the network](docs/network.md).
+- The system's speed can be measured, and where its time goes found:
+  a benchmark of this port's own, `bench`, and a profile by sampling
+  the emulated processor from outside it, of the kernel and of
+  programs. Nothing has been made faster yet; what the first
+  measurements show is listed ([performance](docs/performance.md)).
 - A C program can be compiled, linked, converted to the executable format
   and run in an emulated PS/2 Model 30 286.
 - The helper routines compiled code calls for 32-bit multiply and divide
@@ -367,7 +385,7 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   system's part of the disk: past its 1024 cylinders, or on a controller
   it does not know.
 - The C library is built for the small and medium models, and with them
-  203 of the system's programs: `init`, `getty`, `login`, the Bourne shell and the
+  207 of the system's programs: `init`, `getty`, `login`, the Bourne shell and the
   everyday commands in the small model, and in the medium the C shell,
   `tcsh`, and `ex`, which is `vi`, whose code the PDP-11 had to split
   into overlays ([the C library and programs](docs/userland.md)).
@@ -416,5 +434,5 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
 - Upstream's programs are kept as 2.11BSD has them, changed only for
   bugs, the compiler and the settings each machine makes. Newer
   behaviour goes in programs of this port's own beside them: so far
-  `adduser`, and an editor in the manner of `vim` is to come
+  `adduser` and `bench`, and an editor in the manner of `vim` is to come
   ([the C library and programs](docs/userland.md)).

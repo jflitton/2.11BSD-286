@@ -92,6 +92,7 @@ f /bin/tcsh 755 ../../../obj/root/bin/tcsh
 f /bin/login 4755 ../../../obj/root/bin/login
 f /bin/ls 755 ../../../obj/root/bin/ls
 f /bin/ps 2755:2 ../../../obj/root/bin/ps
+f /bin/sysctl 755 ../../../obj/root/bin/sysctl
 f /bin/mkdir 755 ../../../obj/root/bin/mkdir
 f /bin/stty 755 ../../../obj/root/bin/stty
 f /bin/test 755 ../../../obj/root/bin/test
@@ -179,6 +180,7 @@ f /usr/bin/lex 755 ../../../obj/root/bin/lex
 f /usr/libdata/lex/ncform 444 ../usr.bin/lex/ncform
 f /usr/libdata/lex/nrform 444 ../usr.bin/lex/nrform
 f /usr/sbin/pstat 2755:2 ../../../obj/root/bin/pstat
+f /usr/sbin/tracebuf 2755:2 ../../../obj/root/bin/tracebuf
 f /sbin/ifconfig 755 ../../../obj/root/bin/ifconfig
 f /sbin/ping 4755 ../../../obj/root/bin/ping
 f /sbin/route 755 ../../../obj/root/bin/route
@@ -188,8 +190,10 @@ f /usr/ucb/telnet 755 ../../../obj/root/bin/telnet
 f /usr/ucb/w 2755:2 ../../../obj/root/bin/w
 h /usr/ucb/uptime /usr/ucb/w
 f /usr/ucb/vmstat 2755:2 ../../../obj/root/bin/vmstat
+f /usr/ucb/top 2755:2 ../../../obj/root/bin/top
 f /usr/ucb/netstat 2755:2 ../../../obj/root/bin/netstat
 f /usr/bin/iostat 2755:2 ../../../obj/root/bin/iostat
+f /usr/bin/bench 755 ../../../obj/root/bin/bench
 h /sbin/halt /sbin/reboot
 f /usr/bin/basename 755 ../../../obj/root/bin/basename
 f /usr/bin/cal 755 ../../../obj/root/bin/cal

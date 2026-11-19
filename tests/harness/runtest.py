@@ -4,6 +4,7 @@
 usage: runtest.py NAME SOURCE...
        runtest.py [--hd IMAGE,CYLINDERS,HEADS,SECTORS[,BUS]] [--until TEXT]
                   [--resets N] [--net CARD[:PORT:IRQ]] [--term TYPE:COLSxROWS]
+                  [--mark TEXT] [--profile KERNEL[:MS]]
                   [--type AFTER TEXT | --key AFTER TEXT | --telnet AFTER TEXT]...
                   --boot NAME [EXECUTABLE [FILESYSTEM]]
 
@@ -62,6 +63,25 @@ line "telnet:".  86Box with the automation socket only.  The connection
 refuses to give a terminal type or a window size unless --term is
 given, and then gives TYPE, and a window COLS wide and ROWS high.
 
+With --mark, each time the machine writes TEXT to the serial port, the
+emulated time, to the millisecond, goes to marks.txt as a line: the time
+in milliseconds since the machine started, where in serial.txt the TEXT
+is, and what the machine had written on that line before it.  A program
+that writes TEXT just before and just after a piece of work has that
+work timed by a clock that is not the system's own.  Text the machine
+echoes counts, so a typed line that has TEXT in it must have it divided
+by quotes.  With --profile the machine is stopped every MS milliseconds
+of emulated time on average, 5 if not given, and where its processor is
+goes to profile.txt with the name of the program that is running, which
+is read from the memory of KERNEL, the kernel that is running, with its
+symbol table.  tools/kprof.py takes the samples and reports on them.
+Each costs a few milliseconds of the host's time and none of the
+machine's.  The samples are from 1 to 2 MS - 1 milliseconds apart, by a
+generator of random numbers that starts the same each run: at even
+intervals they would keep step with the system's clock (kprof.py).
+The time the --key steps take is not sampled.  Both are for 86Box with
+the automation socket only.
+
 A program given is put on a diskette image by tools/mkfd.py, behind the
 boot sector, usr/src/sys/i286stand/fdboot.s, and the emulator boots it.
 What the program writes to the serial port is printed.  The program ends by
@@ -91,6 +111,7 @@ Needs `. tools/env.sh` and nasm.
 import json
 import mmap
 import os
+import random
 import shutil
 import signal
 import socket
@@ -175,6 +196,8 @@ RESETS = 0              # --resets: how many resets are not failures
 TYPE = []               # --type, --key, --telnet: [kind, after, text]
 NET = None              # --net: (card, port, irq, the host's port)
 TERM = None             # --term: (type, columns, rows)
+MARK = None             # --mark: the text whose every writing is timed
+PROFILE = None          # --profile: (kernel, milliseconds between samples)
 
 
 class Typist:
@@ -644,13 +667,44 @@ def run_86box_socket(box, img, out):
         pos = 0
         typist = Typist()
         tel = None
+        marks = []              # (emulated ms, where in the output)
+        markpos = 0
+        sampler = None
+        if PROFILE:
+            sys.path.insert(0, os.path.join(TOP, "tools"))
+            import kprof
+            sampler = kprof.Sampler(auto.ask, PROFILE[0], os.path.join(out, "profile.txt"))
+            spread = random.Random(1)
+        now = sample = auto.ask("status")["ms"]     # when the next one is due
+
+        def advance(ms):
+            """Run the machine for MS of emulated time, a sample's worth
+            at a time if it is being profiled, and note each MARK that
+            comes.  Returns the emulated time."""
+            nonlocal now, markpos, sample
+            end = now + ms
+            while now < end:
+                if sampler and sample <= now:
+                    sample = now + spread.randint(1, 2 * PROFILE[1] - 1)
+                n = (min(end, sample) if sampler else end) - now
+                if MARK:
+                    r = auto.ask("wait serial %d 1 %d %s" % (n, markpos, MARK))
+                    if r["matched"]:
+                        marks.append((r["ms"], r["at"]))
+                        markpos = r["at"] + len(MARK)
+                else:
+                    r = auto.ask("step %d" % n)
+                now = r["ms"]
+                if sampler and now >= sample:
+                    sampler.sample(now)
+            return now
         resets = RESETS
         booting = None          # where the serial output was at a reset
         screens = open(os.path.join(out, "screen.txt"), "w", encoding="utf-8")
         def keep(rows):
             screens.write("".join(r.rstrip() + "\n" for r in rows) + "=" * 80 + "\n")
         while not seen and not ended(raw.decode("latin-1")):
-            late = auto.ask("step 200")["ms"] >= TIMEOUT * 1000
+            late = advance(200) >= TIMEOUT * 1000
             r = auto.ask("serial read 1 %d" % pos)
             raw += bytes.fromhex(r["data"])
             pos = r["next"]
@@ -658,7 +712,7 @@ def run_86box_socket(box, img, out):
             # it may be echoing each with the BIOS.
             for c in typist.next(raw.decode("latin-1")) or b"":
                 auto.ask("serial write 1 %02x" % c)
-                auto.ask("step 20")
+                advance(20)
             if typist.kind() == "key":
                 rows, cursor = screen(auto)
                 text = typist.nextkey(rows, cursor)
@@ -691,6 +745,16 @@ def run_86box_socket(box, img, out):
         if typist.before is not None:
             keep(screen(auto)[0])
         screens.close()
+        if sampler:
+            sampler.close()
+        if MARK:
+            # What the machine wrote after the last look is still to read.
+            r = auto.ask("serial read 1 %d" % pos)
+            raw += bytes.fromhex(r["data"])
+            with open(os.path.join(out, "marks.txt"), "w") as f:
+                for ms, at in marks:
+                    line = raw[raw.rfind(b"\n", 0, at) + 1:at].decode("latin-1")
+                    f.write("%d %d %s\n" % (ms, at, line.replace("\r", "")))
         auto.ask("quit")
         auto.close()
     except (EOFError, OSError):
@@ -711,6 +775,8 @@ def run_86box_socket(box, img, out):
 def run_86box_pty(box, img, out):
     if any(t[0] in ("key", "telnet") for t in TYPE):
         sys.exit("--key and --telnet need an 86Box with the automation socket")
+    if MARK or PROFILE:
+        sys.exit("--mark and --profile need an 86Box with the automation socket")
     p, vm = start_86box(box, img, out,
                         "serial1_passthrough_enabled = 1\n\n"
                         "[Serial Passthrough Device #1]\nmode = 0\n"
@@ -772,7 +838,7 @@ def run_86box(img, out):
 
 
 def main():
-    global HD, UNTIL, RESETS, NET, TERM
+    global HD, UNTIL, RESETS, NET, TERM, MARK, PROFILE
     emu = os.environ.get("EMU", "86box")
     if emu not in ("86box", "qemu"):
         sys.exit("EMU must be 86box or qemu")
@@ -818,6 +884,20 @@ def main():
         if not NET:
             sys.exit("--term: needs --net")
         del sys.argv[1:3]
+    if len(sys.argv) > 2 and sys.argv[1] == "--mark":
+        MARK = sys.argv[2]
+        del sys.argv[1:3]
+    if len(sys.argv) > 2 and sys.argv[1] == "--profile":
+        try:
+            kernel, _, ms = sys.argv[2].partition(":")
+            PROFILE = (kernel, int(ms or "5"))
+            if PROFILE[1] < 1:
+                raise ValueError
+        except ValueError:
+            sys.exit(__doc__)
+        del sys.argv[1:3]
+    if (MARK or PROFILE) and emu != "86box":
+        sys.exit("--mark and --profile: need 86Box")
     kinds = {"--type": "serial", "--key": "key", "--telnet": "telnet"}
     while len(sys.argv) > 3 and sys.argv[1] in kinds:
         if sys.argv[1] == "--telnet" and not NET:

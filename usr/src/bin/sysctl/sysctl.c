@@ -148,7 +148,7 @@ main(argc, argv)
 	if (argc == 0)
 		usage();
 	while (argc-- > 0)
-		parse(*argv, 1);
+		parse(*argv++, 1);
 	exit(0);
 }
 
@@ -339,6 +339,7 @@ parse(string, flags)
 	case CTL_MACHDEP:
 		if (mib[1] == CPU_CONSDEV)
 			special |= CONSDEV;
+#ifdef CPU_TMSCP	/* a machine with those controllers: the PDP-11 */
 		if (mib[1] == CPU_TMSCP) {
 			len = sysctl_tmscp(string, &bufp, mib, flags, &type);
 			if (len >= 0)
@@ -351,6 +352,7 @@ parse(string, flags)
 				goto doit;
 			return;
 		}
+#endif
 		break;
 
 	case CTL_FS:
@@ -485,6 +487,7 @@ doit:
 	}
 }
 
+#ifdef CPU_TMSCP
 struct	ctlname tmscpname[]  = TMSCP_NAMES;
 struct	list tmscplist = { tmscpname, TMSCP_MAXID };
 
@@ -536,6 +539,7 @@ sysctl_mscp(string, bufpp, mib, flags, typep)
 	*typep = mscpname[indx].ctl_type;
 	return (3);
 }
+#endif /* CPU_TMSCP */
 
 /*
  * Initialize the set of debugging names

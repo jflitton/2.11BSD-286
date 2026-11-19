@@ -69,6 +69,10 @@ typedef struct udata_s
 	time_t	o_ttime;	/* u_utime + u_stime */
 	time_t	o_dtime;	/* o_ttime - o_LastTime */
 	size_t	o_tsize;	/* text size */
+#ifdef i286
+	size_t	o_ssize;	/* u_ssize: a process's stack is part of */
+				/* a segment here, and has no p_ssize */
+#endif
 	char	o_comm[OCOMMLEN];	/* u_comm */
 	/*
 	 * details from last update
@@ -96,10 +100,23 @@ struct nlist nl[] = {
 	{ "_nproc" },
 #define	X_HZ	3
 	{ "_hz" },
+#ifdef i286
+#define	X_SLOTPROC 4
+	{ "_slotproc" },
+#define	X_USLOT	5
+	{ "_uslot" },
+#endif
 	{ "" },
 };
 
-	int	nproc_sym, proc_sym, hz_sym;
+/* Addresses in the kernel's data, which may be in the upper half of it. */
+	u_int	nproc_sym, proc_sym, hz_sym;
+
+#ifdef i286
+#define	SSIZE(p, a)	((a)->o_ssize)
+#else
+#define	SSIZE(p, a)	((p)->p_ssize)
+#endif
 
 static long		upd_us = DRATE;	/* delay between updates */
 static struct proc	*proctab;	/* buffer to contain proc array */
@@ -185,6 +202,39 @@ static	int fuser(idx, uid)
 	return(1);
 }
 
+#ifdef i286
+/*
+ * Read the user structure of the process pp, which is not a zombie,
+ * into up; -1 if it cannot be.  As ps and w do it: the structure is in
+ * one of the kernel's slots, in its data segment, while the process is
+ * the one there, which slotproc says, and at p_addr in memory otherwise,
+ * also when the process is swapped out (docs/processes.md).
+ */
+static	int getu286(pp, up)
+	struct proc	*pp;
+	struct user	*up;
+{
+	struct proc	*inslot;
+	off_t		addr;
+	int		pifile;
+
+	if(readat(kmem, (off_t) nl[X_SLOTPROC].n_value +
+	    pp->p_slot * sizeof(inslot), (char *) &inslot, sizeof(inslot)) < 0)
+		return(-1);
+	if(inslot == (struct proc *) (proc_sym + (pp - proctab) * sizeof(*pp)))
+	{
+		addr = (off_t) nl[X_USLOT].n_value + (long) pp->p_slot * UBYTES;
+		pifile = kmem;
+	}
+	else
+	{
+		addr = ctob((off_t) pp->p_addr);
+		pifile = mem;
+	}
+	return(readat(pifile, addr, (char *) up, sizeof(*up)));
+}
+#endif
+
 static	getu(pp, a)
 	struct proc	*pp;
 	struct udata_s	*a;
@@ -195,6 +245,10 @@ static	getu(pp, a)
 	int			pifile;
 	int			i;
 
+#ifdef i286
+	if(pp->p_stat != SZOMB && getu286(pp, up) < 0)
+		return(0);
+#else
 	if(pp->p_flag & SLOAD)	/* in memory */
 	{
 		addr = ctob((off_t) pp->p_addr);
@@ -211,8 +265,12 @@ static	getu(pp, a)
 		perror("read");
 		return(0);
 	}
+#endif
 
 	a->o_tsize	= 0;
+#ifdef i286
+	a->o_ssize	= 0;
+#endif
 	a->o_utime	= 0;
 	a->o_stime	= 0;
 	a->o_ttime	= 0;
@@ -224,6 +282,9 @@ static	getu(pp, a)
 		return(1);
 
 	a->o_tsize	= up->u_tsize;
+#ifdef i286
+	a->o_ssize	= up->u_ssize;
+#endif
 	a->o_utime	= up->u_ru.ru_utime;
 	a->o_stime	= up->u_ru.ru_stime;
 	a->o_ttime	= a->o_utime + a->o_stime;
@@ -282,7 +343,7 @@ static	int sortcmp(i1, i2)
 	case 5:
 		return p2->p_dsize - p1->p_dsize;
 	case 6:
-		return p2->p_ssize - p1->p_ssize;
+		return SSIZE(p2, u2) - SSIZE(p1, u1);
 	case 7:
 		return p1->p_stat - p2->p_stat;
 	case 9:
@@ -323,7 +384,7 @@ static	int update()
 	}
 
 	/* read the current proc table into buffer */
-	readat(kmem, (off_t) proc_sym, proctab, ptsz);
+	readat(kmem, (off_t) proc_sym, (char *) proctab, ptsz);
 
 	for(np = i = 0; i < nproc; i++)
 	{
@@ -387,7 +448,11 @@ static	int GetMemStats(totmem, freemem)
 	for(tfree = i = 0; i < cmsz / sizeof(struct mapent); i++)
 		tfree += map[i].m_size;
 	*totmem = physmem;
+#ifdef i286
+	*freemem = ctob(tfree);		/* clicks are 512 bytes */
+#else
 	*freemem = (long) tfree*64;
+#endif
 	return(0);
 }
 
@@ -571,7 +636,7 @@ int	max;
 {
 	int	i;
 
-	qsort((char *)procidx, np, sizeof(int), sortcmp);
+	qsort((char *)procidx, np, sizeof(int), (int (*)())sortcmp);
 	for(i = 0; i < np; i++)
 	{
 		register struct proc	*p = &proctab[procidx[i]];
@@ -588,7 +653,7 @@ int	max;
 			printw("%4d",	p->p_nice);
 			printw("%5.1fK", (ctob(a->o_tsize))/1024.0);
 			printw("%5.1fK", (ctob(p->p_dsize))/1024.0);
-			printw("%5.1fK", (ctob(p->p_ssize))/1024.0);
+			printw("%5.1fK", (ctob(SSIZE(p, a)))/1024.0);
 			printw(" %c",   (p->p_stat>6)? '?' : states[p->p_stat]);
 			printw("%c", 	(p->p_flag & SLOAD)? ' ':'s');
 			printw("%8.2f ", a->o_ttime/fhz);
@@ -946,9 +1011,9 @@ int main(int argc, char *argv[])
 				usage(argv[0]);
 				exit(1);
 		}
-		argc -= optind;
-		argv += optind;
 	}
+	argc -= optind;
+	argv += optind;
 
 	gethostname(host, sizeof(host)-1);
 	host[sizeof(host)-1] = 0;

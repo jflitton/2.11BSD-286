@@ -22,6 +22,9 @@
 
         global  _nofault
         extern  _gdt:wrt DGROUP
+; Nothing links to these: they are in the symbol table so that a profile
+; (tools/kprof.py) names the code after each, not the function before it.
+        global  copy, str, window
 
         BSS
 _nofault:

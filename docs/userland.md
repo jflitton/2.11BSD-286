@@ -33,7 +33,14 @@ of the files in `/usr/skel`, all the user's; and runs `passwd`. The
 entry is added with the password `*`, which nothing matches, so that the
 account cannot be used until `passwd` has given it one. It is in C
 rather than the shell: the Bourne shell has no arithmetic, to find a
-free uid with, and would run `expr` for each sum. The next planned is an editor in the manner of `vim`, beside
+free uid with, and would run `expr` for each sum.
+
+The second is `bench`, a benchmark, which 2.11BSD has none of: 16
+tests, each a fixed amount of one kind of work, of the processor, system
+calls, pipes, `fork` and `exec`, the file system, a pseudo-terminal and
+TCP, timed by the system's clock ([performance](performance.md)).
+
+The next planned is an editor in the manner of `vim`, beside
 `vi`: one that fills a window of any size, where `vi` refuses a window
 bigger than its copy of the screen ("Screen too large for internal
 buffer"); whose Home and End go to the start and end of the line, where
@@ -488,6 +495,31 @@ read `/unix` each time.
 ([processes](processes.md#counting)): the time spent in user, system and
 idle, the system calls, traps, interrupts and context switches, forks,
 swaps, the name cache, and each disk's transfers.
+
+`top`, `tracebuf` and `sysctl` came with the tools for measuring the
+system ([performance](performance.md)). `tracebuf`, which prints the
+kernel's counts of what its buffers saved the disk, is as upstream has
+it. `top` reads the table of processes through `/dev/kmem` and each
+one's user structure for its times and its name, and finds that as `ps`
+and `w` do, with a copy of their lookup (`getu286`); it takes the size
+of the stack from the user structure, a process here having no
+`p_ssize`, and counts free memory in this machine's clicks, where it
+had the PDP-11's 64 bytes written out. Three things in it were wrong on
+any machine and are put right:
+
+- It kept the addresses of the kernel's tables in an `int` and widened
+  that to seek to them, so a table in the upper half of the kernel's
+  data, as the table of processes is here, was sought at a negative
+  offset.
+- It adjusted `argc` and `argv` inside the loop that reads its options,
+  so only the first option given was taken.
+- It passed the table of processes to its own `readat` as the wrong
+  type of pointer, and its comparison to `qsort` likewise.
+
+`sysctl` knows the PDP-11's names under `machdep` for its tape and disk
+controllers, which are now there only where the machine's `cpu.h`
+defines them. Given several names it printed the first one once for
+each: `parse(*argv, 1)` in a loop that never moved `argv`.
 
 ## The log, and what the clock runs
 
@@ -984,14 +1016,15 @@ The programs: `init`, `getty`, `login`, `sh`, `csh`, `ls`, `cat`, `cp`,
 `du`, `echo`, `ed`, `grep`, `kill`, `nice`, `od`, `pr`, `pwd`, `stty`,
 `sync`, `tee`, `test` (and `[`), `time`, `who`, `wall`, `write`, `date`,
 `hostname`, `hostid`, `pagesize`, `passwd`, `chpass` (and `chfn` and
-`chsh`), `ps`, `tcsh`, `expr`, `awk` and `make`, and in `/usr/bin`
-`sleep`, `iostat`, `find`, `crontab`, `at`, `atq`, `atrm`, `egrep`,
+`chsh`), `ps`, `sysctl`, `tcsh`, `expr`, `awk` and `make`, and in
+`/usr/bin` `sleep`, `iostat`, `bench`, `find`, `crontab`, `at`, `atq`, `atrm`, `egrep`,
 `bc`, `dc`, `yacc` and `lex`, and in `/sbin` `mount`, `umount`,
 `mknod`, `fsck`, `mkfs`, `newfs`, `mkpasswd`, `dmesg`, `reboot` and
 `halt`. `/usr/ucb` has `ex`, `vi` and `view`, one file under three
 names, as upstream has them, `w` and `uptime`, one file under two,
-`vmstat`, `logger` and `lastcomm`. `/usr/sbin` has `update`, `vipw`,
-`chown`, `adduser`, `dev_mkdb`, `pstat`, `syslogd`, `cron`, `accton`,
+`vmstat`, `top`, `logger` and `lastcomm`. `/usr/sbin` has `update`,
+`vipw`, `chown`, `adduser`, `dev_mkdb`, `pstat`, `tracebuf`, `syslogd`,
+`cron`, `accton`,
 `sa`, `exrecover` and `expreserve`, and `/usr/libexec` `atrun` and
 `acctd`. For the network there are `ifconfig`, `ping` and `route` in
 `/sbin`, `inetd` and `arp` in `/usr/sbin`, `telnetd` in `/usr/libexec`,
@@ -1019,8 +1052,8 @@ kernel](#programs-that-read-the-kernel)). The system's own `strip` makes
 of a file what `tools/strip.py` does, which `tests/programs` checks on
 the kernel.
 
-The file system is 8000 blocks of 1K, of which the system takes 4200.
-The 203 programs are 3.3 MB of that, and 3.6 MB with their symbols.
+The file system is 8000 blocks of 1K, of which the system takes 4300.
+The 207 programs are 3.4 MB of that, and 3.9 MB with their symbols.
 
 ## Following a program
 
@@ -1198,6 +1231,16 @@ in with `telnet`, which `tcpd` now stands before, root asks for the
 user with `talk`, the user answers what the daemon wrote on the
 terminal, each sees what the other types, and an interrupt ends it for
 both.
+
+`tests/bench` boots it and runs `bench`, and is run for what it
+measures ([performance](performance.md)). It is a test of the tools
+for measuring: that each of `bench`'s 16 tests gives a result, and the
+same time by the emulator's clock as by the system's; that the profile
+taken meanwhile puts the sieve's time in `bench`'s `sieve` and the
+least system call's in the kernel's `syscall`; that `bench` takes
+tests by name and does twice the work when asked; and that `tracebuf`
+prints its counts, `sysctl` four values by name and the whole list, and
+`top` a screen with its own process on it, which `q` ends.
 
 Not done, or not tested:
 
