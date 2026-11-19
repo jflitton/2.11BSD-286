@@ -270,7 +270,11 @@ rexecd_SRCS=	libexec/rexecd/rexecd.c
 rexecd_FLAGS=	-stack 16384
 ftp_SRCS=	$(addprefix ucb/ftp/,cmds.c cmdtab.c ftp.c glob.c main.c \
 		ruserpass.c domacro.c)
-ftp_FLAGS=	-I$(SRC)/ucb/ftp -stack 16384
+# -Dunix: ftp asks the server what it is only if this is UNIX with bytes
+# of 8 bits (cmds.c), and takes files as they are, not as text, from one
+# that says it is too.  Without it every file came as text, a character
+# at a time, 29 K/s where 130 K/s is had, and less its CRs before LFs.
+ftp_FLAGS=	-I$(SRC)/ucb/ftp -Dunix -stack 16384
 ftpd_SRCS=	$(addprefix libexec/ftpd/,ftpd.c glob.c logwtmp.c popen.c \
 		vers.c) $(G)/ftpcmd.c
 ftpd_FLAGS=	-DSETPROCTITLE -Dunix -stack 16384

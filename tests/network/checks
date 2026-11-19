@@ -254,7 +254,7 @@ cmp m /etc/motd && echo anon-get; cat names; awk '{print $1, $NF}' list
 230 Guest login ok, access restrictions apply.
 257 "/" is current directory.
 227 Entering Passive Mode
-150 Opening ASCII mode data connection for pub/motd (26 bytes).
+150 Opening BINARY mode data connection for pub/motd (26 bytes).
 226 Transfer complete.
 550 /home: No such file or directory.
 227 Entering Passive Mode
