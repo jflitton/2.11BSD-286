@@ -525,12 +525,32 @@ What a file's block costs the processor now, read in order from the
 SCSI disk, is 1.75 ms, of which `bmap` is 14%, the copy to the program
 11% and the buffers three tenths.
 
+Reading ahead cost what is read from the buffers, and the first
+version of it more than it had to. `breada` looked for the block, then
+for each block ahead, and only then read; and a file's first block,
+which had not counted as read in order, now did. A program run again
+and a pipe go that way all day with nothing to fetch: on the SCSI disk
+running a program was 4.7% slower (31.8 ms to 33.3) and a pipe carried
+4% less (646 K/s to 620), which `tests/bench`, on the IDE disk, did
+not show. Now `breada` asks first whether the last of the blocks ahead
+is here and if it is only reads, and a pipe is not read ahead of at
+all, its blocks being in the buffers or written from them one at a
+time. A pipe carries 657 K/s and a byte through one and back is 3632
+us where it was 3732; running a program is 32.5 ms, the 2% left being
+the first block's asking. The file figures above did not move.
+
 On a real machine the first run of it filled the file system: a fault
 in the joining of transfers that the emulator's disk, which is never
 behind, could not show (docs/disks.md), and that a slow one in
-`tests/kernel` shows now. What was timed there before that: the 146K
-file read a second time at 730 K/s, from the buffers. The file tests
-have not been timed there yet.
+`tests/kernel` shows now. With that put right, and before `breada`
+asked first, a megabyte was written to a file there at 359 K/s where
+it had been 307, and read at 455 where it had been 349; a file of 146K
+was read a second time at 730 K/s, from the buffers; the shell's
+command was 312 ms for 343. Running a program, 36.0 ms for 34.5, and
+the pipe, 520 K/s for 541, showed there what is in the paragraph
+above. `stat` was 1467 us for 1417, which nothing here accounts for:
+it reads no block, and in the emulator it is 1325 us before and after
+on either size of root.
 
 ## What is left
 

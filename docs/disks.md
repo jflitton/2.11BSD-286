@@ -150,8 +150,9 @@ adapter and `sd.c` the disks on it.
   That is 4.7 ms for each command and the data at 5 MB/s for as much
   of the time as the adapter has the bus, to within 2%. Most of the
   4.7 ms was that disk's own, which was slow to answer then for a
-  reason that was cured: the same read at 11 and 4 gave 3.3 MB/s
-  afterwards, 1 ms a command. The processor
+  reason that was not found: the same read at 11 and 4 gave 3.3 MB/s
+  later the same day, 1 ms a command, with nothing changed in what
+  the read goes through. The processor
   loses the bus 200 ns for each byte whichever it is, but at 15 and 1
   it has the bus a sixteenth of the time while a transfer lasts, and
   the longest, 64K, lasts 14 ms: interrupts are served that much more

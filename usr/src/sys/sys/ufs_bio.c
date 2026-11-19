@@ -85,6 +85,13 @@ bread(dev, blkno)
  * Read in the block, like bread, but also start I/O on the
  * read-ahead block (which is not allocated to the caller).
  * With more than one block to read ahead it is breadrun's.
+ *
+ * Whether there is anything to start is asked first, and of the last
+ * of the blocks ahead only: with that one here it is taken that all
+ * are, and the block is bread's.  That is all a file costs here that
+ * is read again from the buffers, or a program run again.  Where the
+ * last is here and others before it are not, those are read as they
+ * are come to.
  */
 struct buf *
 breada(dev, blkno, rablkno, n)
@@ -95,7 +102,19 @@ breada(dev, blkno, rablkno, n)
 {
 	register struct buf *bp, *rabp;
 
-	if (n > 1 && ramax > 1 && (bdevsw[major(dev)].d_flags & D_RUNS))
+	if (rablkno == 0)
+		return (bread(dev, blkno));
+	if (n > ramax)
+		n = ramax;
+	if (n > RAMAX)
+		n = RAMAX;
+	if (n < 1)
+		n = 1;
+	if (incore(dev, rablkno + (n - 1))) {
+		trace(TR_BREADHITRA);
+		return (bread(dev, blkno));
+	}
+	if (n > 1 && (bdevsw[major(dev)].d_flags & D_RUNS))
 		return (breadrun(dev, blkno, rablkno, n));
 	bp = NULL;
 	/*
@@ -117,24 +136,19 @@ breada(dev, blkno, rablkno, n)
 	}
 
 	/*
-	 * If there's a read-ahead block, start i/o
-	 * on it also (as above).
+	 * Start i/o on the read-ahead block, which was not here
+	 * when asked above (as above).
 	 */
-	if (rablkno) {
-		if (!incore(dev, rablkno)) {
-			rabp = getblk(dev, rablkno);
-			if (rabp->b_flags & (B_DONE|B_DELWRI)) {
-				brelse(rabp);
-				trace(TR_BREADHITRA);
-			} else {
-				rabp->b_flags |= B_READ|B_ASYNC;
-				rabp->b_bcount = DEV_BSIZE;	/* XXX? KB */
-				(*bdevsw[major(dev)].d_strategy)(rabp);
-				trace(TR_BREADMISSRA);
-				u.u_ru.ru_inblock++;	/* pay in advance */
-			}
-		} else
-			trace(TR_BREADHITRA);	
+	rabp = getblk(dev, rablkno);
+	if (rabp->b_flags & (B_DONE|B_DELWRI)) {
+		brelse(rabp);
+		trace(TR_BREADHITRA);
+	} else {
+		rabp->b_flags |= B_READ|B_ASYNC;
+		rabp->b_bcount = DEV_BSIZE;	/* XXX? KB */
+		(*bdevsw[major(dev)].d_strategy)(rabp);
+		trace(TR_BREADMISSRA);
+		u.u_ru.ru_inblock++;	/* pay in advance */
 	}
 
 	/*
@@ -193,10 +207,6 @@ breadrun(dev, blkno, rablkno, n)
 		else
 			trace(TR_BREADHIT);
 	}
-	if (n > ramax)
-		n = ramax;
-	if (n > RAMAX)
-		n = RAMAX;
 	for (nra = 0, k = 0; k < n; k++, rablkno++) {
 		if (incore(dev, rablkno)) {
 			trace(TR_BREADHITRA);

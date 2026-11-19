@@ -234,9 +234,12 @@ rwip(ip, uio, ioflag)
 			 * block at each block, or on a disk whose driver
 			 * makes one command of several transfers (D_RUNS)
 			 * by several blocks at some of them, and there
-			 * bmap is asked how many it can be.
+			 * bmap is asked how many it can be.  Not a pipe,
+			 * whose blocks are in the buffers or were written
+			 * from them one at a time.
 			 */
-			seq = lbn == 0 || ip->i_lastr + 1 == lbn;
+			seq = (ip->i_flag & IPIPE) == 0 &&
+			    (lbn == 0 || ip->i_lastr + 1 == lbn);
 			bn = bmap(ip, lbn, B_READ, seq && RATIME(lbn) &&
 			    (bdevsw[major(dev)].d_flags & D_RUNS) ?
 			    flags | B_RUN : flags);
