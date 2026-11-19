@@ -35,12 +35,14 @@ digit(c)
 {
 	return(c>='0' && c <= '9');
 }
-error(s,p,d)
-	char *s, *p, *d;
+error(char *s, ...)
 	{
+	va_list ap;
 	fprintf(errorf,"\"%s\", line %d: (Error) ",
 		fptr > 0 ? sargv[fptr] : "<stdin>", yyline);
-	fprintf(errorf,s,p,d);
+	va_start(ap, s);
+	vfprintf(errorf,s,ap);
+	va_end(ap);
 	putc('\n',errorf);
 # ifdef DEBUG
 	if(debug && sect != ENDSECTION) {
@@ -56,12 +58,14 @@ error(s,p,d)
 	exit(1);	/* error return code */
 	}
 
-warning(s,p,d)
-	char *s, *p, *d;
+warning(char *s, ...)
 	{
+	va_list ap;
 	fprintf(errorf,"\"%s\", line %d: (Warning) ",
 		fptr > 0 ? sargv[fptr] : "<stdin>", yyline);
-	fprintf(errorf,s,p,d);
+	va_start(ap, s);
+	vfprintf(errorf,s,ap);
+	va_end(ap);
 	putc('\n',errorf);
 	fflush(errorf);
 	fflush(fout);
@@ -402,7 +406,8 @@ gch(){
 	return(c);
 	}
 mn2(a,d,c)
-  int a,d,c;
+  int a;
+  INTPTR d,c;
 	{
 	name[tptr] = a;
 	left[tptr] = d;
@@ -438,7 +443,8 @@ mn2(a,d,c)
 	return(tptr++);
 	}
 mn1(a,d)
-  int a,d;
+  int a;
+  INTPTR d;
 	{
 	name[tptr] = a;
 	left[tptr] = d;

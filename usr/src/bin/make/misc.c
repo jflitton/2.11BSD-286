@@ -285,7 +285,7 @@ static char qbuf[QBUFMAX];
 if(p == NULL)
 	{
 	qbuf[0] = '\0';
-	return;
+	return(qbuf);
 	}
 
 qbufp = qbuf;

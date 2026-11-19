@@ -46,7 +46,7 @@ int ctable[2*NCH] = {
 250,251,252,253,254,255};
 # endif
 int ZCH = NCH;
-FILE *fout = NULL, *errorf = {stdout};
+FILE *fout = NULL, *errorf;	/* stdout, which main makes it */
 int sect = DEFSECTION;
 int prev = '\n';	/* previous input character */
 int pres = '\n';	/* present input character */
@@ -55,8 +55,12 @@ char *pushptr = pushc;
 char *slptr = slist;
 
 # if (unix || ibm)
-char *cname = "/usr/libdata/lex/ncform";
-char *ratname = "/usr/libdata/lex/nrform";
+# ifndef NCFORM		/* where the drivers are, unless the compiler is told */
+# define NCFORM "/usr/libdata/lex/ncform"
+# define NRFORM "/usr/libdata/lex/nrform"
+# endif
+char *cname = NCFORM;
+char *ratname = NRFORM;
 # endif
 
 # ifdef gcos
@@ -89,8 +93,8 @@ int chset;	/* 1 = char set modified */
 FILE *fin, *fother;
 int fptr;
 int *name;
-int *left;
-int *right;
+INTPTR *left;
+INTPTR *right;
 int *parent;
 char *nullstr;
 int tptr;

@@ -33,9 +33,7 @@ of the files in `/usr/skel`, all the user's; and runs `passwd`. The
 entry is added with the password `*`, which nothing matches, so that the
 account cannot be used until `passwd` has given it one. It is in C
 rather than the shell: the Bourne shell has no arithmetic, to find a
-free uid with, and `expr`, which has, is not built, since it is a `yacc`
-grammar and the tree's `yacc` does not run on the machines the system is
-built on. The next planned is an editor in the manner of `vim`, beside
+free uid with, and would run `expr` for each sum. The next planned is an editor in the manner of `vim`, beside
 `vi`: one that fills a window of any size, where `vi` refuses a window
 bigger than its copy of the screen ("Screen too large for internal
 buffer"); whose Home and End go to the start and end of the line, where
@@ -75,9 +73,12 @@ makes them N bytes at most.
 The programs are listed in `usr/src/i286/Makefile` with their sources,
 and with `NAME_MODEL = m` for one that is medium-model; each is compiled
 and linked in one run of `tools/cc`, and what the compiler says goes to
-`obj/bin/log`. `libutil` and `libtermcap` are built for each model a
-program wants, in `obj/lib/s` or `obj/lib/m`. Upstream's own Makefiles
-are not used: they install as they go, with the PDP-11's tools.
+`obj/bin/log`. `libutil`, `libtermcap` and `libm` are built for each
+model a program wants, in `obj/lib/s` or `obj/lib/m`. Upstream's own
+Makefiles are not used: they install as they go, with the PDP-11's
+tools. The build also needs a C compiler for the machine it runs on,
+`cc` unless `HOSTCC` names another, for the tree's `yacc` and `lex`
+([grammars](#grammars-yacc-and-lex)).
 
 Three programs are medium-model so far. `csh` was linked with two
 overlays on the PDP-11; here its 67K of code is in two segments, and its
@@ -504,6 +505,95 @@ make the file, so it is in the root file system, empty.
 
 `find` is built because `/etc/rc` clears `/tmp` with it.
 
+## Grammars: yacc and lex
+
+`expr`, `awk`, `egrep`, `bc` and `make` each have a grammar for `yacc`,
+and `awk` a scanner for `lex`, which is itself a `yacc` grammar. The C
+is made from them by the tree's own `yacc` and `lex`, not by whatever
+the machine the system is built on has under those names, so that the
+tables and the parser around them, `yaccpar`, are upstream's. The
+Makefile builds the two with that machine's C compiler, in `obj/host`,
+and runs them there; the C they make is in `obj/gen`.
+
+Both are C of before the standard, and are compiled as such
+(`-std=gnu89`, with the compiler's complaints about missing return
+values and about integers passed for pointers made warnings again).
+They were written for machines where a pointer is the size of an `int`,
+and the machine they are built on now is not one. What that took:
+
+- `yacc` keeps the grammar's rules in an array of `int` and then, in
+  the same array, the items of its states, which are two pointers each.
+  That works wherever a pointer may be stored at an `int`'s alignment,
+  but the items take twice the room they did. `files`, which sets the
+  size of `yacc`'s tables, let `HUGE` be given to the compiler in place
+  of its `MEDIUM`, and the path of `yaccpar` likewise; the build's
+  `yacc` has both. The tables written do not depend on the size, which
+  `tests/system` shows by the way: the system's own `yacc` is `MEDIUM`.
+- `lex` keeps either a number or a pointer to characters in the left
+  and right of each node of its parse tree, and in the values of its
+  grammar's symbols, all of them `int`. They are an `INTPTR` now, which
+  is `int` unless the compiler is told otherwise; the build's `lex` is
+  told `long`. The functions that take one are declared with their
+  parameters when it is not `int`, so that a number passed is widened.
+  It also asked `malloc` for the tree's memory once, to see whether
+  there was enough, by way of an `int`; that goes by way of a pointer.
+- `lex` gave `errorf` the value `stdout` where it is defined, which
+  needs `stdout` to be a constant; `main` gives it now. The paths of
+  its drivers, `ncform` and `nrform`, may be given to the compiler.
+  `lex` has an `index` of its own, with the arguments the other way
+  round from the library's, and calls it undeclared; the compiler is
+  told not to take it for the library's (`-fno-builtin-index`).
+- Each has an `error` that takes a format and sometimes an argument.
+  Both are variadic now, with `vfprintf`, which this system's compiler
+  wanted too ([strictness](#what-this-compiler-needed)).
+
+`lex` chooses its character set with `#ifdef unix`, which the PDP-11's
+compiler defines and this one does not; the Makefile gives it `-Dunix`.
+
+`awk`'s Makefile makes three more files, and so does this one: `awk.h`,
+the tokens' numbers, which `yacc -d` writes; `token.c` with its table of
+the tokens' names made from that, by `sed` where upstream has an `ex`
+script, and at present the same as the file in the tree; and
+`proctab.c`, the function that runs each token, which is written by a
+program of `awk`'s own, `proc`, built for the machine the build runs on.
+`proc` used `tokname`, which returns a pointer, undeclared.
+
+The system has `yacc` and `lex` themselves too, in `/usr/bin`, with
+`yaccpar` in `/usr/share/misc` and `lex`'s drivers in
+`/usr/libdata/lex`. `tests/system` has each make C of `awk`'s grammar
+and scanner, which must be byte for byte what the build's made: so the
+programs on the 286 and the ones compiled for the build's machine, from
+the same source, agree. There is no C compiler on the system to give
+their output to, so the libraries that go with them, `liby` and `libln`,
+are not built.
+
+`awk` uses floating point throughout, and the mathematical library for
+`sqrt`, `exp` and `log`. `libm` is `usr.lib/libom`, the older of
+upstream's two and the one in C, which is what upstream installs under
+that name on the PDP-11. As in the Seventh Edition, this `awk` reads its
+input even when the program is only a `BEGIN`.
+
+`bc` compiles its input for `dc`, which it runs, and `bc -l` reads its
+library of functions from `/usr/share/misc/lib.b`. `dc` could not copy a
+number that was zero: such a number has no digits, `copy` asked
+`malloc` for no bytes, and this patch level's `malloc` returns nothing
+for that, which `dc` took for memory running out ("out of space:
+copy"). The routine that allocates a new number already asks for one
+byte more for that reason; the one that copies does now. Any sum that
+passed through zero failed, among them `bc -l`'s arctangent.
+
+What else the compiler wanted of these programs, all of the kinds listed
+[above](#what-this-compiler-needed): `expr`'s `match` and `yyerror`
+declare their parameters; `awk`'s `error` is variadic and declared in
+`awk.def`; `egrep` passes `execute` a null pointer, not a 0; `bc`'s
+`bundle`, which walked up the stack from its first argument, is
+variadic, and a string passed to `output` is cast; `dc` casts between
+its two kinds of block where it passes one for the other; `make`'s
+signal handler is `void`, and an array of characters is initialized with
+a string, not a character. `make`'s `mkqlist` returned no value for an
+empty list, where it had just made its buffer the empty string; it
+returns the buffer.
+
 ## The root file system
 
 `usr/src/i286/root.proto` lists it: the kernel and `/boot`, `/etc/init`,
@@ -568,8 +658,9 @@ The programs: `init`, `getty`, `login`, `sh`, `csh`, `ls`, `cat`, `cp`,
 `du`, `echo`, `ed`, `grep`, `kill`, `nice`, `od`, `pr`, `pwd`, `stty`,
 `sync`, `tee`, `test` (and `[`), `time`, `who`, `wall`, `write`, `date`,
 `hostname`, `hostid`, `pagesize`, `passwd`, `chpass` (and `chfn` and
-`chsh`), `ps`, `tcsh`, and in `/usr/bin` `sleep`, `iostat`, `find`,
-`crontab`, `at`, `atq` and `atrm`, and in `/sbin` `mount`, `umount`,
+`chsh`), `ps`, `tcsh`, `expr`, `awk` and `make`, and in `/usr/bin`
+`sleep`, `iostat`, `find`, `crontab`, `at`, `atq`, `atrm`, `egrep`,
+`bc`, `dc`, `yacc` and `lex`, and in `/sbin` `mount`, `umount`,
 `mknod`, `fsck`, `mkfs`, `newfs`, `mkpasswd`, `dmesg`, `reboot` and
 `halt`. `/usr/ucb` has `ex`, `vi` and `view`, one file under three
 names, as upstream has them, `w` and `uptime`, one file under two,
@@ -658,7 +749,17 @@ it, which does not fit: the kernel's complaint must reach
 `/usr/adm/messages`, once another message has woken `syslogd`. `find`
 must list the directories of `/usr/spool` and run a command on a file
 it finds by name, `lastcomm` must list the `stty` of root's login, and
-`sa -m` must have a line for root. It shows
+`sa -m` must have a line for root. `expr` must add, match a pattern and
+take part of a string; `egrep` must count the lines that begin with
+either of two names; `bc -l` must give 2 to the 64th and pi to ten
+places, which is `dc`'s work, and `dc` must write 255 in base 16. `awk`
+must format numbers, call the mathematical functions, pick a line of
+`fstab` by one of its fields, count words in an array and split a
+string. `make` must make a file from another by a rule that uses `$@`
+and `$?`, and the second time find it up to date. And the system's
+`yacc` and `lex` must make of `awk`'s grammar and scanner, on a file
+system the test puts them on, the same C as the build's own made
+([grammars](#grammars-yacc-and-lex)). It shows
 the loopback interface with
 `ifconfig`, pings it, and logs in over it with `telnet` as the new user,
 with a wrong password first, which must be refused. The user's shell is
@@ -699,8 +800,9 @@ shell and then `vi`'s insert mode must obey, `vi` must draw its last
 line on the window's last, and in `vi` Home, End and Delete must go to
 the top line, go to the bottom one and delete a character. Last it runs
 `who`, and halts the machine with `reboot -h`. Afterwards
-`tools/fsck.py` must find nothing wrong with either file system, and
-must find the copied files.
+`tools/fsck.py` must find nothing wrong with the root or with either of
+the file systems the test mounted and wrote on, and must find the
+copied files.
 
 Not done, or not tested:
 
@@ -716,12 +818,20 @@ Not done, or not tested:
   letters to `sendmail`, and it tells `comsat` of a new one over the
   network. So these wait for `mail` and `sendmail`.
 - Most programs are not built: of `/usr/bin` and `/usr/ucb` only
-  `sleep`, `iostat`, `find`, `crontab`, the `at` programs, `ex`, `vi`,
-  `w`, `vmstat`, `netstat`, `logger`, `lastcomm` and `telnet` (not
-  `more`), and no `disklabel`. With
+  `sleep`, `iostat`, `find`, `crontab`, the `at` programs, `egrep`,
+  `bc`, `dc`, `yacc`, `lex`, `ex`, `vi`, `w`, `vmstat`, `netstat`,
+  `logger`, `lastcomm` and `telnet` (not `more` or `sort`), and no
+  `disklabel`. With
   no `disklabel`, a partition can be made a file system only where
   `tools/mkdisk.py` labelled it one: the kernel mounts nothing else. Of
   the network's, `ftp` and the rest are not built.
+- `yacc` and `lex` are on a system with no C compiler to give their
+  output to, and `liby` and `libln` are not built. `lex -r`, for
+  Ratfor, `awk`'s saving and restoring of itself (`-S` and `-R`), and
+  `make` with archives, with its built-in rules or with anything but
+  the simplest description file, have not been tried. Of the tree's
+  other grammars, `eqn`, `ftpd`, `rdist`, `struct` and `named`'s tools
+  wait for their programs.
 - Nothing trims the logs or the accounting file. Upstream's `crontab`
   has `/usr/adm/daily`, `weekly` and `monthly` do that, and the tree has
   no such scripts. `acctd` stops when the file system is nearly full;

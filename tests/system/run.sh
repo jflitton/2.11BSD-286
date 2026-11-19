@@ -11,7 +11,10 @@
 # vmstat and iostat; find in the log what the kernel printed as it
 # started, a line from logger, and the kernel's complaint when a small
 # file system is filled; use find, and read the accounting with lastcomm
-# and sa; ping the loopback interface and log in over it with
+# and sa; reckon with expr, awk, bc and dc, search with egrep, make a
+# file with make, and have yacc and lex make of awk's grammar and
+# scanner what the ones the system was built with made; ping the
+# loopback interface and log in over it with
 # telnet as that user, in the C shell, who looks at its processes, the
 # users and the connections with ps, w and netstat, gives cron a table
 # and at a job, changes the full name with chfn and the password with
@@ -62,12 +65,23 @@ with open(sys.argv[1], "r+b") as f:
     f.write(struct.pack("<H", flags & ~0x2000))
 EOF
 
+# A file system of awk's grammar and scanner, and the C that the yacc and
+# lex the system's programs are built with (obj/host) make of them: the
+# system's own must make the same.
+rm -rf gram && mkdir gram
+cp "$top/usr/src/bin/awk/awk.g.y" "$top/usr/src/bin/awk/awk.lx.l" gram
+(cd gram && "$top/obj/host/yacc" -d awk.g.y >/dev/null &&
+    mv y.tab.c awk.g.c && mv y.tab.h awk.g.h &&
+    "$top/obj/host/lex" awk.lx.l && mv lex.yy.c awk.lx.c)
+for f in gram/*; do echo "f /${f#gram/} 644 $f"; done > gram.proto
+python3 -I "$top/tools/mkfs.py" -s 400 gram.proto gram.fs >/dev/null
+
 # An IDE disk shared by a partition table, as tests/kernel's first, with
-# that in partition a, a swap area in b, room for a file system in d, and
-# for one in e that the kernel is too big a file for.
+# that in partition a, a swap area in b, room for a file system in d,
+# for one in e that the kernel is too big a file for, and that one in f.
 stand=$top/obj/stand
 geometry=$(python3 -I "$top/tools/mkdisk.py" -p -b "$stand/hdboot.bin" \
-    -m "$stand/mbr.bin" system.img a=root.fs b=swap:4000 d=fs:4000 e=fs:200 | tail -1)
+    -m "$stand/mbr.bin" system.img a=root.fs b=swap:4000 d=fs:4000 e=fs:200 f=gram.fs | tail -1)
 
 # Each text to type waits for something only the system writes: a typed
 # line is echoed, so what it waits for is split by quotes when typed.
@@ -172,6 +186,12 @@ TIMEOUT=${TIMEOUT:-500} python3 -I "$top/tests/harness/runtest.py" \
     --type "# " 'echo dmesg-`dmesg | grep -c "mem  *="`; logger -t test "lo""gged"; sleep 2; grep "t: log""ged" /usr/adm/messages /usr/adm/debuglog' \
     --type "# " 'newfs wd0e >/dev/null; mount /dev/wd0e /mnt; cp /unix /mnt; umount /mnt; logger -t test woken; sleep 2; grep "unix: [a-z/]" /usr/adm/messages' \
     --type "# " 'find /usr/spool -type d -print; find /tmp -name mp.orig -exec echo "fou""nd" {} \; ; echo acct-`lastcomm stty | grep -c tty00`; sa -m' \
+    --type "# " 'echo ex-`expr 3 + 4 \* 5`-`expr abcdef : "ab\(.*\)f"`-`expr substr abcdef 2 3`; echo eg-`egrep -c "^(root|daemon):" /etc/passwd`; echo "2^64; scale=10; 4*a(1)" | bc -l; echo "16 o 255 p" | dc' \
+    --type "# " 'awk "BEGIN { printf \"%d %5.2f %s|\", 7/2, 22/7, substr(\"awkward\", 1, 3); print sqrt(2), int(exp(1)*100), length(\"four\") }" </dev/null' \
+    --type "# " 'awk "\$3 == \"swap\" { print \"awk-\" NR \"-\" NF \"-\" \$1 } { n += length(\$2) } END { print \"len-\" n }" /etc/fstab' \
+    --type "# " 'echo a b a c a b | awk "{ for (i = 1; i <= NF; i++) c[\$i]++ } END { print \"cnt-\" c[\"a\"] c[\"b\"] c[\"c\"]; n = split(\"x:y:z\", f, \":\"); print \"spl-\" n f[3] }"' \
+    --type "# " "cd /tmp; echo 'b: a' >Makefile; echo '${TAB}cp a b; echo made-\$@-from-\$?' >>Makefile; echo 1 >a; make; make; cd /" \
+    --type "# " 'mount /dev/wd0f /mnt; cd /mnt; yacc -d awk.g.y; cmp y.tab.c awk.g.c && cmp y.tab.h awk.g.h && echo "yacc""-same"; lex awk.lx.l; cmp lex.yy.c awk.lx.c && echo "lex""-same"; cd /; umount /mnt' \
     --type "# " 'ifconfig lo0' \
     --type "netmask" 'ping -c 2 127.0.0.1' \
     --type "packet loss" 'telnet 127.0.0.1' \
@@ -236,6 +256,9 @@ for want in "shell-ok /root" "/tmp/dir" "same" "xa" "xb" "xc" "status 3" \
     "/usr/adm/debuglog:.* test: logged" "unix: phys mem  = [0-9]" \
     "unix: /mnt: file system full" "^/usr/spool/at/past" "found /tmp/mp.orig" \
     "acct-[1-9]" "^root  *[0-9]*  *[0-9.]*cpu" \
+    "ex-23-cde-bcd" "eg-2" "^18446744073709551616" "^3.1415926532" "^FF" \
+    "^3  3.14 awk|1.41421 271 4" "awk-2-6-/dev/wd0b" "len-5" "cnt-321" \
+    "spl-3z" "made-b-from-a" "\`b' is up to date" "yacc-same" "lex-same" \
     "(ptyp0)" "Login incorrect" "telnet-in" "guest  *ttyp0 .*(localhost)" \
     "^guest  *[0-9]*  *0  *[0-9]* p0  *0:00 sleep 20" "^guest  *p0 " "est-2" \
     "no crontab for guest" "^\* \* \* \* \* date >/tmp/gcron" \
@@ -325,4 +348,5 @@ python3 -I "$top/tools/fsck.py" -x /tmp/dir/m system.img | grep -q "for the 286"
 python3 -I "$top/tools/fsck.py" -p d system.img
 python3 -I "$top/tools/fsck.py" -p d -x /termcap system.img |
     cmp -s - "$top/obj/root/termcap"
-echo "system: checked its root, logged in on a serial port, the screens and over telnet by the loopback interface and the Ethernet card, used sh, csh, vi and tcsh, added a user with a password, made a file system, read the log and the accounting, ran the user's jobs with cron and at, and halted"
+python3 -I "$top/tools/fsck.py" -p f system.img
+echo "system: checked its root, logged in on a serial port, the screens and over telnet by the loopback interface and the Ethernet card, used sh, csh, vi and tcsh, added a user with a password, made a file system, read the log and the accounting, used expr, awk, egrep, bc, dc and make, had yacc and lex make what the build's made, ran the user's jobs with cron and at, and halted"

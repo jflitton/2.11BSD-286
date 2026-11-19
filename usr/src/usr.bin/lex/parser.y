@@ -241,14 +241,13 @@ yylex(){
 						sectbegin = TRUE;
 						i = treesize*(sizeof(*name)+sizeof(*left)+
 							sizeof(*right)+sizeof(*nullstr)+sizeof(*parent))+ALITTLEEXTRA;
-						c = (int)myalloc(i,1);
-						if(c == 0)
+						p = myalloc(i,1);
+						if(p == 0)
 							error("Too little core for parse tree");
-						p = (char *)c;
 						free(p);
 						name = (int *)myalloc(treesize,sizeof(*name));
-						left = (int *)myalloc(treesize,sizeof(*left));
-						right = (int *)myalloc(treesize,sizeof(*right));
+						left = (INTPTR *)myalloc(treesize,sizeof(*left));
+						right = (INTPTR *)myalloc(treesize,sizeof(*right));
 						nullstr = myalloc(treesize,sizeof(*nullstr));
 						parent = (int *)myalloc(treesize,sizeof(*parent));
 						if(name == 0 || left == 0 || right == 0 || parent == 0 || nullstr == 0)
@@ -398,7 +397,7 @@ yylex(){
 					prev = *p;
 					*p = 0;
 					bptr = p+1;
-					yylval = (int)buf;
+					yylval = (INTPTR)buf;
 					if(digit(buf[0]))
 						warning("Substitution strings may not begin with digits");
 					return(freturn(STR));
@@ -411,7 +410,7 @@ yylex(){
 				if(*p == 0)
 					warning("No translation given - null string assumed");
 				scopy(p,token);
-				yylval = (int)token;
+				yylval = (INTPTR)token;
 				prev = '\n';
 				return(freturn(STR));
 				}
@@ -562,7 +561,7 @@ yylex(){
 					}
 				if(slptr > slist+STARTSIZE)		/* note not packed ! */
 					error("Too many start conditions used");
-				yylval = (int)t;
+				yylval = (INTPTR)t;
 				x = SCON;
 				break;
 			case '"':
@@ -588,7 +587,7 @@ yylex(){
 					x = CHAR;
 					}
 				else {
-					yylval = (int)token;
+					yylval = (INTPTR)token;
 					x = STR;
 					}
 				break;
@@ -632,9 +631,9 @@ yylex(){
 					while(p <ccptr && scomp(token,p) != 0)p++;
 					}
 				if(p < ccptr)	/* found it */
-					yylval = (int)p;
+					yylval = (INTPTR)p;
 				else {
-					yylval = (int)ccptr;
+					yylval = (INTPTR)ccptr;
 					scopy(token,ccptr);
 					ccptr += slength(token) + 1;
 					if(ccptr >= ccl+CCLSIZE)
@@ -653,7 +652,7 @@ yylex(){
 					}
 				if(alpha(peek)){
 					i = 0;
-					yylval = (int)token;
+					yylval = (INTPTR)token;
 					token[i++] = c;
 					while(alpha(peek))
 						token[i++] = gch();

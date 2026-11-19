@@ -13,8 +13,14 @@
  * #endif
  */
 	/* location of the parser text file */
+	/* (another may be given when yacc is compiled, and so may HUGE:
+	/* both are, for the yacc that the system itself is built with) */
+# ifndef PARSER
 # define PARSER "/usr/share/misc/yaccpar"
+# endif
 
 	/* basic size of the Yacc implementation */
 /* # define HUGE */
+# ifndef HUGE
 #define MEDIUM
+# endif

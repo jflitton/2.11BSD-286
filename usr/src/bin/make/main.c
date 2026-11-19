@@ -57,8 +57,8 @@ register int i, j;
 int descset, nfargs;
 TIMETYPE tjunk;
 char c, *s;
-static char onechar[2] = 'X';
-int intrupt();
+static char onechar[2] = "X";
+void intrupt();
 char *op = options + 1;
 
 #ifdef METERFILE
@@ -206,7 +206,9 @@ exit(0);
 
 #include <sys/stat.h>
 
-intrupt()
+void
+intrupt(sig)
+int sig;
 {
 struct varblock *varptr();
 char *p;

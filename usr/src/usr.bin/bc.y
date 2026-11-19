@@ -19,6 +19,7 @@ static	char *sccsid = "@(#)bc.y	4.3.3 (2.11BSD) 2025/12/25";
 
 %{
 #include <stdio.h>
+#include <stdarg.h>
 FILE *in;
 char cary[1000], *cp = { cary };
 char string[1000], *str = {string};
@@ -43,7 +44,7 @@ start	:
 		={	bundle( 6,pre, $7, post ,"0",numb[lev],"Q");
 			conout( $$, $2 );
 			rcrs = crs;
-			output( "" );
+			output( (int *)"" );
 			lev = bindx = 0;
 			}
 	;
@@ -477,17 +478,19 @@ int b_space [ b_sp_max ];
 int * b_sp_nxt = { b_space };
 
 int bdebug = 0;
-bundle(a){
-	int i, *p, *q;
+bundle(int a, ...){
+	int i, *q;
+	va_list p;
 
-	p = &a;
-	i = *p++;
+	va_start(p, a);
+	i = a;
 	q = b_sp_nxt;
 	if( bdebug ) printf("bundle %d elements at %o\n",i,  q );
 	while(i-- > 0){
 		if( b_sp_nxt >= & b_space[b_sp_max] ) yyerror( "bundling space exceeded" );
-		* b_sp_nxt++ = *p++;
+		* b_sp_nxt++ = va_arg(p, int);
 	}
+	va_end(p);
 	* b_sp_nxt++ = 0;
 	yyval = (int)q;
 	return( (int)q );

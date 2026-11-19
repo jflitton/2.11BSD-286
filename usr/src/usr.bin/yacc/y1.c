@@ -191,11 +191,14 @@ summary(){ /* output the summary on the tty */
 	}
 
 /* VARARGS1 */
-error(s,a1) char *s; { /* write out error comment */
-	
+error( char *s, ... ) { /* write out error comment */
+	va_list ap;
+
 	++nerrors;
 	fprintf( stderr, "\n fatal error: ");
-	fprintf( stderr, s,a1);
+	va_start( ap, s );
+	vfprintf( stderr, s, ap );
+	va_end( ap );
 	fprintf( stderr, ", line %d\n", lineno );
 	if( !fatfl ) return;
 	summary();

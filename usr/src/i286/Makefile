@@ -165,13 +165,46 @@ find_SRCS=	usr.bin/find/find.c
 LOGPROGS=	syslogd logger dmesg cron crontab $(ATPROGS) accton acctd \
 		lastcomm sa find
 
+# Those with a grammar for yacc, and yacc and lex themselves.  The
+# grammars are made into C by the tree's own yacc and lex, built for the
+# machine the system is built on (below) in obj/host, and the C is in
+# obj/gen.
+H=		$(TOP)/obj/host
+G=		$(TOP)/obj/gen
+YSRC=		$(SRC)/usr.bin/yacc
+LSRC=		$(SRC)/usr.bin/lex
+expr_SRCS=	$(G)/expr.c
+yacc_SRCS=	$(addprefix usr.bin/yacc/,y1.c y2.c y3.c y4.c)
+lex_SRCS=	$(addprefix usr.bin/lex/,lmain.c sub1.c sub2.c header.c) \
+		$(G)/lex.c
+lex_FLAGS=	-Dunix -I$(LSRC)
+# awk's are its grammar and its scanner, in obj/gen/awk with what its
+# Makefile makes besides: awk.h, the tokens' numbers as yacc gives them;
+# token.c with the table of their names made from that, as the ex script
+# there makes it; and proctab.c, the function that runs each token,
+# which a program of awk's own, proc, writes.
+AWKG=		$(G)/awk
+awk_SRCS=	$(addprefix $(AWKG)/,awk.g.c awk.lx.c token.c proctab.c) \
+		$(addprefix bin/awk/,b.c main.c tran.c lib.c run.c parse.c \
+		freeze.c)
+awk_FLAGS=	-I$(AWKG) -I$(SRC)/bin/awk
+awk_LIBS=	-lm
+egrep_SRCS=	$(G)/egrep.c
+bc_SRCS=	$(G)/bc.c
+dc_SRCS=	usr.bin/dc/dc.c
+make_SRCS=	$(addprefix bin/make/,ident.c main.c doname.c misc.c files.c \
+		dosys.c) $(G)/make.c
+make_FLAGS=	-I$(SRC)/bin/make -I$(SRC)/bin/ar
+YACCPROGS=	expr yacc lex awk egrep bc dc make
+
 # This port's own (docs/userland.md), each in a directory here.
 adduser_SRCS=	i286/adduser/adduser.c
 OWNPROGS=	adduser
 
 PROGS=	init getty login sh csh ls mkdir stty test hostname mknod mount \
 	umount reboot sleep ex exrecover expreserve tcsh $(BINSTD) \
-	$(NETPROGS) $(SYSPROGS) $(KMEMPROGS) $(LOGPROGS) $(OWNPROGS)
+	$(NETPROGS) $(SYSPROGS) $(KMEMPROGS) $(LOGPROGS) $(YACCPROGS) \
+	$(OWNPROGS)
 
 # The libraries the programs use besides the C library: NAME_LIB lists a
 # library's sources, and NAME_LIBFLAGS what it is compiled with.  Each is
@@ -181,13 +214,18 @@ util_LIB=	$(addprefix usr.lib/libutil/,login.c logout.c logwtmp.c \
 		dkcksum.c)
 termcap_LIB=	$(addprefix usr.lib/libtermlib/,termcap.c tgoto.c tputs.c)
 termcap_LIBFLAGS= -DCM_N -DCM_GT -DCM_B -DCM_D -DNOSCCS
-LIBRARIES=	util termcap
+# libm is the library of mathematical functions that upstream installs
+# under that name, libom, the older of its two and the one in C.
+m_LIB=		$(addprefix usr.lib/libom/,asin.c atan.c hypot.c jn.c j0.c \
+		j1.c pow.c gamma.c log.c sin.c sqrt.c tan.c tanh.c sinh.c \
+		erf.c exp.c floor.c)
+LIBRARIES=	util termcap m
 
 all:	$(addprefix $(O)/,$(PROGS))
 
 .PHONY:	all root clean FORCE
 
-$(O) $(O)/log $(EXO) $(TCO):
+$(O) $(O)/log $(EXO) $(TCO) $(H) $(G) $(AWKG):
 	mkdir -p $@
 
 HDRS:=	$(wildcard $(TOP)/usr/include/*.h $(SRC)/sys/h/*.h $(SRC)/sys/i286/*.h)
@@ -208,6 +246,89 @@ $(O)/$(1): $$(call srcs,$(1)) $(HDRS) \
 	    > $(O)/log/$(1) 2>&1 || { cat $(O)/log/$(1); exit 1; }
 endef
 $(foreach p,$(PROGS),$(eval $(call prog,$(p))))
+
+# What the build itself runs, made in obj/host by the C compiler of the
+# machine it is run on, HOSTCC: the tree's yacc and lex, so that the
+# parsers and scanners in the system's programs are what upstream's yacc
+# and lex make of the grammars, whatever the machine has by those names.
+# Both are C of before the standard, which the compiler is asked to take
+# as it finds it; it is left its own knowledge of the library's
+# functions, which is all that a program that calls printf undeclared
+# has to go by where such a function is not called as others are, but
+# for index, since lex has one of its own.  This yacc has the larger of
+# its two sets of tables, its items being twice the size where a pointer
+# is twice an int, and reads the tree's yaccpar; this lex keeps a
+# pointer or a number in a long, and reads the tree's ncform.  The
+# tables they write are the same as those of the system's own
+# (tests/system).
+HOSTCC=	cc
+HOSTCFLAGS= -std=gnu89 -w -fno-strict-aliasing \
+	-Wno-error=return-mismatch -Wno-error=int-conversion
+YACC=	$(H)/yacc
+LEX=	$(H)/lex
+
+$(YACC): $(addprefix $(YSRC)/,y1.c y2.c y3.c y4.c dextern files yaccpar) | $(H)
+	@echo hostcc yacc
+	@$(HOSTCC) $(HOSTCFLAGS) -DHUGE '-DPARSER="$(YSRC)/yaccpar"' -o $@ \
+	    $(filter %.c,$^)
+
+$(LEX): $(addprefix $(LSRC)/,lmain.c sub1.c sub2.c header.c ldefs.c once.c \
+		parser.y ncform nrform) $(YACC)
+	@echo hostcc lex
+	@$(call yacc,$(LSRC)/parser.y,$(H)/lex.y.c)
+	@$(HOSTCC) $(HOSTCFLAGS) -fno-builtin-index -Dunix -DINTPTR=long \
+	    '-DNCFORM="$(LSRC)/ncform"' '-DNRFORM="$(LSRC)/nrform"' \
+	    -I$(LSRC) -o $@ $(addprefix $(LSRC)/,lmain.c sub1.c sub2.c \
+	    header.c) $(H)/lex.y.c
+
+# yacc and lex leave their files, under names of their own, in the
+# directory they run in: each runs in one made for it.
+# $(call yacc,GRAMMAR,C) makes C of GRAMMAR, and with a third argument
+# that file of the tokens' numbers as well; $(call lex,SOURCE,C)
+# likewise.
+yacc=	rm -rf $(2).d && mkdir -p $(2).d && cd $(2).d && \
+	$(YACC) $(if $(3),-d) $(1) && mv y.tab.c $(2) && \
+	$(if $(3),mv y.tab.h $(3) &&) cd .. && rm -rf $(2).d
+lex=	rm -rf $(2).d && mkdir -p $(2).d && cd $(2).d && \
+	$(LEX) $(1) && mv lex.yy.c $(2) && cd .. && rm -rf $(2).d
+
+$(G)/expr.c: $(SRC)/bin/expr.y $(YACC) | $(G)
+	@echo yacc expr.y
+	@$(call yacc,$<,$@)
+$(G)/lex.c: $(LSRC)/parser.y $(YACC) | $(G)
+	@echo yacc lex/parser.y
+	@$(call yacc,$<,$@)
+
+$(G)/egrep.c: $(SRC)/usr.bin/egrep.y $(YACC) | $(G)
+	@echo yacc egrep.y
+	@$(call yacc,$<,$@)
+$(G)/bc.c: $(SRC)/usr.bin/bc.y $(YACC) | $(G)
+	@echo yacc bc.y
+	@$(call yacc,$<,$@)
+$(G)/make.c: $(SRC)/bin/make/gram.y $(YACC) | $(G)
+	@echo yacc make/gram.y
+	@$(call yacc,$<,$@)
+
+A=	$(SRC)/bin/awk
+$(AWKG)/awk.g.c: $(A)/awk.g.y $(YACC) | $(AWKG)
+	@echo yacc awk.g.y
+	@$(call yacc,$<,$@,$(AWKG)/awk.h)
+$(AWKG)/awk.h: $(AWKG)/awk.g.c ;
+$(AWKG)/awk.lx.c: $(A)/awk.lx.l $(LEX) | $(AWKG)
+	@echo lex awk.lx.l
+	@$(call lex,$<,$@)
+$(AWKG)/token.c: $(A)/token.c $(AWKG)/awk.h
+	@{ sed '/= *{$$/q' $<; \
+	  sed -n 's/^# *define *\([^ ]*\) \(.*\)/"\1", \2,/p' $(AWKG)/awk.h; \
+	  sed -n '/^};$$/,$$p' $<; } > $@
+$(H)/awkproc: $(A)/proc.c $(AWKG)/token.c $(AWKG)/awk.h | $(H)
+	@echo hostcc awk/proc
+	@$(HOSTCC) $(HOSTCFLAGS) -I$(AWKG) -o $@ $(A)/proc.c $(AWKG)/token.c
+$(AWKG)/proctab.c: $(H)/awkproc
+	@$(H)/awkproc > $@.new && mv $@.new $@
+$(O)/awk: $(A)/awk.def
+$(O)/yacc: $(YSRC)/dextern $(YSRC)/files
+$(O)/lex: $(LSRC)/ldefs.c $(LSRC)/once.c
 
 # ex's sources with its messages taken out, and the file they are in.
 $(EXO)/exstrings: $(addprefix $(SRC)/ucb/ex/,$(EX)) \
@@ -302,5 +423,5 @@ $(R)/root.fs: root.proto $(wildcard etc/* root/* skel/*) \
 	python3 -I $(TOP)/tools/mkfs.py -s $(ROOTSIZE) root.proto $@
 
 clean:
-	rm -rf $(O) $(EXO) $(TCO) $(R) $(foreach l,$(LIBRARIES),$(LIB)/[sm]/$(l) \
+	rm -rf $(O) $(EXO) $(TCO) $(H) $(G) $(R) $(foreach l,$(LIBRARIES),$(LIB)/[sm]/$(l) \
 	    $(LIB)/[sm]/lib$(l).lib)

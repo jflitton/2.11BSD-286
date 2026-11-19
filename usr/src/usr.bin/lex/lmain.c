@@ -14,6 +14,7 @@ main(argc,argv)
   int argc;
   char **argv; {
 	register int i;
+	errorf = stdout;	/* not a constant everywhere, to give it at its definition */
 # ifdef DEBUG
 #include <signal.h>
 	signal(SIGBUS,buserr);

@@ -3,6 +3,7 @@ static char sccsid[] = "@(#)lib.c	4.5 (2.11BSD) 2026/5/10";
 #endif
 
 #include "stdio.h"
+#include <stdarg.h>
 #include "awk.def"
 #include "awk.h"
 #include "ctype.h"
@@ -207,11 +208,14 @@ yyerror(s) char *s; {
 	errorflag = 2;
 }
 
-error(f, s, a1, a2, a3, a4, a5, a6, a7)
-	char *s, *a1, *a2, *a3, *a4, *a5, *a6, *a7;
+error(int f, char *s, ...)
 {
+	va_list ap;
+
 	fprintf(stderr, "awk: ");
-	fprintf(stderr, s, a1, a2, a3, a4, a5, a6, a7);
+	va_start(ap, s);
+	vfprintf(stderr, s, ap);
+	va_end(ap);
 	fprintf(stderr, "\n");
 	if (NR && *NR > 0)
 		fprintf(stderr, " record number %g\n", *NR);

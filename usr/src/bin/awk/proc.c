@@ -63,6 +63,7 @@ struct xx
 #define SIZE	LASTTOKEN - FIRSTTOKEN
 char *table[SIZE];
 char *names[SIZE];
+char *tokname();
 main()
 {	struct xx *p;
 	int i;

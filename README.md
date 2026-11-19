@@ -64,6 +64,11 @@ tools/install-watcom.sh              # unpack this host's build into toolchain/
 . tools/env.sh                       # wcc, wasm, wlink, wlib, wdis on PATH
 ```
 
+The build also uses the C compiler of the machine it runs on, `cc`, for
+the tree's own `yacc` and `lex`, which make the parsers and scanners of
+the system's programs ([the C library and programs](docs/userland.md)),
+and for `tests/vt`.
+
 Why Open Watcom, from compiling test code and 448 unmodified files of this
 tree with each candidate (November 2026):
 
@@ -244,8 +249,10 @@ tests/vt/run.sh         # the console's terminal emulator, on the machine
   adds a user with `adduser`, makes a file system, checks it and mounts
   it, runs `ps`, `vmstat` and `iostat`, looks in the log for what the
   kernel and `logger` wrote there, fills a small file system so that the
-  kernel complains, reads the accounting with `lastcomm` and `sa`, pings
-  the loopback interface,
+  kernel complains, reads the accounting with `lastcomm` and `sa`,
+  reckons with `expr`, `awk`, `bc` and `dc`, uses `egrep` and `make`,
+  has the system's `yacc` and `lex` make of `awk`'s grammar and scanner
+  the same C as the build's own made, pings the loopback interface,
   and logs in over it with `telnet` as the new user, who runs `ps`, `w`
   and `netstat`, gives `cron` and `at` each a job that must run as the
   user, and changes the full name and the password. It
@@ -331,10 +338,14 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   system's part of the disk: past its 1024 cylinders, or on a controller
   it does not know.
 - The C library is built for the small and medium models, and with them
-  86 of the system's programs: `init`, `getty`, `login`, the Bourne shell and the
+  94 of the system's programs: `init`, `getty`, `login`, the Bourne shell and the
   everyday commands in the small model, and in the medium the C shell,
   `tcsh`, and `ex`, which is `vi`, whose code the PDP-11 had to split
   into overlays ([the C library and programs](docs/userland.md)).
+  `expr`, `awk`, `egrep`, `bc` and `make` have grammars, which the
+  tree's own `yacc` and `lex` make into C, built for the machine the
+  system is built on; the system has `yacc` and `lex` too, and they
+  write the same C there.
   `ps`, `w`, `pstat`, `vmstat`, `iostat`, `netstat` and `arp` read the
   kernel's tables, as on the PDP-11, through `nlist` and `/dev/kmem`,
   which reaches every segment of the kernel; the kernel keeps upstream's

@@ -491,7 +491,7 @@ out:
 	nfile = argc;
 	if (argc<=0) {
 		if (lflag) exit(1);
-		execute(0);
+		execute((char *)0);
 	}
 	else while (--argc >= 0) {
 		execute(*argv);

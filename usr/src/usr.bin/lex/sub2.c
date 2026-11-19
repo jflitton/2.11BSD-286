@@ -40,7 +40,7 @@ cfoll(v)
 				*pcptr++ = 0;
 				if(pcptr > pchar + pchlen)
 					error("Too many packed character classes");
-				left[v] = (int)p;
+				left[v] = (INTPTR)p;
 				name[v] = RCCL;	/* RNCCL eliminated */
 # ifdef DEBUG
 				if(debug && *p){
@@ -326,7 +326,7 @@ nextstate(s,c)
 		j = name[curpos];
 		if(j < NCH && j == c
 		|| j == RSTR && c == right[curpos]
-		|| j == RCCL && member(c,left[curpos])){
+		|| j == RCCL && member(c,(char *)left[curpos])){
 			f = foll[curpos];
 			number = *f;
 			newpos = f+1;

@@ -129,6 +129,7 @@ extern int	pairstack[], paircnt;
 #define isrec(n)	(donefld && n.osub==CFLD && n.otype==OCELL && n.optr->nval!=EMPTY)
 obj	nullproc();
 obj	relop();
+int	error(int, char *, ...);
 
 #define MAXSYM	50
 #define	HAT	0177	/* matches ^ in regular expr */

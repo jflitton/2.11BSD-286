@@ -1,6 +1,7 @@
 /*	ldefs.c	4.1	83/08/11	*/
 
 # include <stdio.h>
+# include <stdarg.h>
 # define PP 1
 # ifdef unix
 
@@ -80,6 +81,22 @@
 # define PC 1
 # define PS 1
 
+/*
+ * A number or a pointer to characters: the left and right of a node of
+ * the parse tree are one or the other, and so are the values of the
+ * grammar's symbols.  It is an int where a pointer fits in one, as on
+ * any machine lex was written for.  Where lex is built to run on a
+ * machine of another kind, INTPTR is given to the compiler as a type
+ * that holds either, and the functions that take one are declared so
+ * that a number passed to them becomes one.
+ */
+# ifndef INTPTR
+# define INTPTR int
+# else
+int mn1(int, INTPTR), mn2(int, INTPTR, INTPTR);
+# endif
+# define YYSTYPE INTPTR
+
 # ifdef DEBUG
 # define LINESIZE 110
 extern int yydebug;
@@ -111,8 +128,8 @@ extern int prev;	/* previous input character */
 extern int pres;	/* present input character */
 extern int peek;	/* next input character */
 extern int *name;
-extern int *left;
-extern int *right;
+extern INTPTR *left;
+extern INTPTR *right;
 extern int *parent;
 extern char *nullstr;
 extern int tptr;
@@ -162,3 +179,4 @@ extern int scon;
 extern char *psave;
 extern char *calloc(), *myalloc();
 extern int buserr(), segviol();
+extern int error(char *, ...), warning(char *, ...);

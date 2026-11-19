@@ -491,7 +491,7 @@ sempty:
 			if (q!=NULL) release(q);
 			s = pop();
 			EMPTY;
-			salterwd(p,s);
+			salterwd((struct wblk *)p,s);
 			sptr->val = p;
 			continue;
 		case ';':
@@ -1786,7 +1786,7 @@ salterwd(hptr,n)
 struct wblk *hptr;
 struct blk *n;
 {
-	if(hptr->rdw == hptr->lastw)more(hptr);
+	if(hptr->rdw == hptr->lastw)more((struct blk *)hptr);
 	*hptr->rdw++ = n;
 	if(hptr->rdw > hptr->wtw)hptr->wtw = hptr->rdw;
 	return;
@@ -1936,7 +1936,8 @@ register char *p;
 unsigned nbytes;
 {
 	register char *q, *r;
-	q = r = malloc(nbytes);
+	/* a number that is zero has no digits, and malloc gives nothing for nothing */
+	q = r = malloc(nbytes ? nbytes : 1);
 	if(q==0)
 		return(0);
 	while(nbytes--)

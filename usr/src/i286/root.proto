@@ -18,6 +18,8 @@ d /usr/sbin 755
 d /usr/libexec 755
 d /usr/share 755
 d /usr/share/misc 755
+d /usr/libdata 755
+d /usr/libdata/lex 755
 d /usr/preserve 755
 d /usr/adm 755
 d /usr/spool 755
@@ -157,6 +159,18 @@ f /usr/libexec/acctd 700 ../../../obj/bin/acctd
 f /usr/ucb/lastcomm 755 ../../../obj/bin/lastcomm
 f /usr/sbin/sa 755 ../../../obj/bin/sa
 f /usr/bin/find 755 ../../../obj/bin/find
+f /bin/expr 755 ../../../obj/bin/expr
+f /bin/awk 755 ../../../obj/bin/awk
+f /usr/bin/egrep 755 ../../../obj/bin/egrep
+f /usr/bin/bc 755 ../../../obj/bin/bc
+f /usr/bin/dc 755 ../../../obj/bin/dc
+f /usr/share/misc/lib.b 444 ../share/misc/lib.b
+f /bin/make 755 ../../../obj/bin/make
+f /usr/bin/yacc 755 ../../../obj/bin/yacc
+f /usr/share/misc/yaccpar 444 ../usr.bin/yacc/yaccpar
+f /usr/bin/lex 755 ../../../obj/bin/lex
+f /usr/libdata/lex/ncform 444 ../usr.bin/lex/ncform
+f /usr/libdata/lex/nrform 444 ../usr.bin/lex/nrform
 f /usr/sbin/pstat 2755:2 ../../../obj/bin/pstat
 f /sbin/ifconfig 755 ../../../obj/bin/ifconfig
 f /sbin/ping 4755 ../../../obj/bin/ping

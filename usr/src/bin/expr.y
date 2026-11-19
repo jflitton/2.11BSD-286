@@ -200,6 +200,7 @@ char *index(s, t) char *s, *t; {
 }
 
 char *match(s, p)
+char *s, *p;
 {
 	register char *rv;
 
@@ -666,7 +667,7 @@ static char *sccsid = "@(#)expr.y	4.5 (2.11BSD) 2022/9/17";
 #endif
 
 yyerror(s)
-
+char *s;
 {
 	fprintf(stderr, "%s\n", s);
 	exit(2);
