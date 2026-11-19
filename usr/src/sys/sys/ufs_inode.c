@@ -660,16 +660,26 @@ indirtrunc(ip, bn, lastbn, level, aflags)
 	if (level == SINGLE)
 		trsingle(ip, bp, last, aflags);
 	else {
-		register daddr_t __far *bstart, __far *bstop;
+		register daddr_t __far *bap;
+		register int i;
 
-		bstart = (daddr_t __far *)mapin(bp);
-		bstop = &bstart[last];
-		bstart += NINDIR - 1;
+		/*
+		 * The entries are counted, from the last down to the one
+		 * after last, not pointed at and the pointers compared, as
+		 * upstream has it: last is -1 to free them all, and the
+		 * address of the entry before the first is not below the
+		 * first's when the buffer begins its segment.  It wraps to
+		 * the segment's top, the loop ends before it starts, and
+		 * every block under this one is left in no file and not
+		 * free: one file in sixty-four of those removed that had a
+		 * double indirect block, by which buffer the copy got.
+		 */
+		bap = (daddr_t __far *)mapin(bp);
 		/*
 		 * Recursively free totally unused blocks.
 		 */
-		for (;bstart > bstop;--bstart) {
-			nb = *bstart;
+		for (i = NINDIR - 1; i > (int)last; i--) {
+			nb = bap[i];
 			if (nb) {
 				mapout(bp);
 				indirtrunc(ip,nb,(daddr_t)-1, level-1, aflags);
@@ -685,7 +695,7 @@ indirtrunc(ip, bn, lastbn, level, aflags)
 		if (lastbn >= 0) {
 
 			mapin(bp);
-			nb = *bstop;
+			nb = bap[(int)last];
 			mapout(bp);
 			last = lastbn % factor;
 			if (nb != 0)
