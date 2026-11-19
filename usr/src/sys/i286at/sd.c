@@ -56,7 +56,16 @@ static int sdtries;		/* of the command that is out */
  */
 #define	SDNSEG		AHA_NSEG
 #define	SDMAXLEN	64		/* sectors */
-static int sdn;			/* transfers in the command that is out */
+
+/*
+ * The transfers of the command that is out, in order, and how many.
+ * They are off the queue while it is: disksort puts a read after the
+ * first write it finds, and what it put among the transfers of a
+ * command would be given back with them when the command ended, never
+ * having been read.
+ */
+static struct buf *sdcur;
+static int sdn;
 static int sdalone;		/* this many more go one to a command: a
 				   command of several failed, and which
 				   of them it was is to be found */
@@ -262,24 +271,31 @@ sdstart()
 	u_int n;		/* sectors: nothing here is counted in a
 				   long, whose shifts are slow */
 
-	if ((bp = sdtab.b_actf) == NULL)
-		return;
+	if ((bp = sdcur) == NULL) {
+		if ((bp = sdtab.b_actf) == NULL)
+			return;
+		n = bp->b_bcount >> 9;
+		sdn = 1;
+		np = bp;
+		if (sdalone == 0)
+			while (np->av_forw != NULL && sdn < SDNSEG &&
+			    np->av_forw->b_dev == bp->b_dev &&
+			    ((np->av_forw->b_flags ^ bp->b_flags) & B_READ) == 0 &&
+			    np->av_forw->b_blkno == bp->b_blkno + n &&
+			    n < SDMAXLEN &&
+			    (np->av_forw->b_bcount >> 9) <= SDMAXLEN - n) {
+				np = np->av_forw;
+				n += np->b_bcount >> 9;
+				sdn++;
+			}
+		sdcur = bp;
+		sdtab.b_actf = np->av_forw;
+		np->av_forw = NULL;
+	} else
+		for (n = 0, np = bp; np != NULL; np = np->av_forw)
+			n += np->b_bcount >> 9;
 	sdtab.b_active = 1;
 	sp = &sd[dkunit(bp->b_dev)];
-	n = bp->b_bcount >> 9;
-	sdn = 1;
-	if (sdalone == 0)
-		for (np = bp->av_forw; np != NULL && sdn < SDNSEG;
-		    np = np->av_forw) {
-			if (np->b_dev != bp->b_dev ||
-			    ((np->b_flags ^ bp->b_flags) & B_READ) ||
-			    np->b_blkno != bp->b_blkno + n ||
-			    n >= SDMAXLEN ||
-			    (np->b_bcount >> 9) > SDMAXLEN - n)
-				break;
-			n += np->b_bcount >> 9;
-			sdn++;
-		}
 #ifdef UCB_METER
 	if (sd_dkn >= 0 && sdtries == 0) {
 		int dkn = sd_dkn + dkunit(bp->b_dev);
@@ -317,7 +333,7 @@ static
 sdintr(how)
 	int how;
 {
-	register struct buf *bp = sdtab.b_actf;
+	register struct buf *bp = sdcur, *np;
 	register struct ccb *cp = &ahaccb;
 	register int key;
 	static int failed;
@@ -343,12 +359,19 @@ sdintr(how)
 			return;
 		}
 		/*
-		 * Of several, the error is one's: each of them is sent
-		 * again by itself, to succeed or to have the error.
+		 * Of several, the error is one's: they go back to the
+		 * head of the queue and each is sent by itself, to
+		 * succeed or to have the error.
 		 */
 		if (sdn > 1) {
-			printf("sd%d: a command for %d transfers failed: each is sent by itself\n",
+			printf("sd%d: %d-block command failed, retrying singly\n",
 			    dkunit(bp->b_dev), sdn);
+			for (np = bp; np->av_forw != NULL; np = np->av_forw)
+				;
+			if ((np->av_forw = sdtab.b_actf) == NULL)
+				sdtab.b_actl = np;
+			sdtab.b_actf = bp;
+			sdcur = NULL;
 			sdalone = sdn;
 			sdtries = 0;
 			sdstart();
@@ -356,8 +379,8 @@ sdintr(how)
 		}
 		harderr(bp, "sd");
 		if (how < 0)
-			printf("%s\n", how == AHA_DEAD ? "the adapter is dead" :
-			    "no answer");
+			printf("%s\n", how == AHA_DEAD ? "adapter dead" :
+			    "timeout");
 		else if (key >= 0)
 			printf("sense key %d, code %x/%x\n", key,
 			    cp->cc_cdb[cp->cc_cdblen + 12],
@@ -373,15 +396,12 @@ sdintr(how)
 	if (sd_dkn >= 0)
 		dk_busy &= ~(1 << (sd_dkn + dkunit(bp->b_dev)));
 #endif
-	/*
-	 * The queue is the command's until each of its transfers has
-	 * been taken off and given back.
-	 */
-	for (n = sdn; n > 0; n--) {
-		bp = sdtab.b_actf;
-		sdtab.b_actf = bp->av_forw;
+	sdcur = NULL;
+	while (bp != NULL) {
+		np = bp->av_forw;
 		bp->b_resid = bp->b_flags & B_ERROR ? bp->b_bcount : 0;
 		iodone(bp);
+		bp = np;
 	}
 	if (sdalone)
 		sdalone--;

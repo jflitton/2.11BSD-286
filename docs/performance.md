@@ -523,8 +523,14 @@ now          448      573       323      353
 
 What a file's block costs the processor now, read in order from the
 SCSI disk, is 1.75 ms, of which `bmap` is 14%, the copy to the program
-11% and the buffers three tenths. None of this has been timed on a
-real machine yet.
+11% and the buffers three tenths.
+
+On a real machine the first run of it filled the file system: a fault
+in the joining of transfers that the emulator's disk, which is never
+behind, could not show (docs/disks.md), and that a slow one in
+`tests/kernel` shows now. What was timed there before that: the 146K
+file read a second time at 730 K/s, from the buffers. The file tests
+have not been timed there yet.
 
 ## What is left
 

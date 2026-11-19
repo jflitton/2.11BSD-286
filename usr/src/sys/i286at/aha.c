@@ -35,7 +35,10 @@ int	ahatimeout = 30;
  * of: 1, the 20th interrupt is ignored as if it had not arrived; 2, the
  * 30th command is never given to the adapter; 4, the first command for
  * several of a disk's transfers at once is taken to have failed each
- * time it is tried (sdintr).  (patchable)
+ * time it is tried (sdintr); 8, a command's end is not looked at until
+ * the clock's next tick, as if the disk took that long, so that
+ * transfers gather in the queue behind the one that is out, as they do
+ * on a real disk and not on an emulator's.  (patchable)
  */
 int	ahatest = 0;
 
@@ -63,7 +66,7 @@ static struct {
 #define	A_ABSENT	1
 #define	A_PRESENT	2
 
-static int ahaintr(), ahawatch(), ahacmd();
+static int ahaintr(), ahawatch(), ahacmd(), ahalate();
 
 /*
  * How the adapter takes its turns on the AT bus, which is what a disk's
@@ -545,6 +548,32 @@ ahapoll()
 	return (st == MBI_FREE ? AHA_LOST : st);
 }
 
+/* Take what the mailboxes in have.  Called at splbio. */
+static
+ahadone()
+{
+	register int st;
+	long pa;
+
+	while ((st = ahaget(&pa)) != MBI_FREE) {
+		if (!aha.a_busy || pa != aha.a_ccbpa || st == MBI_NOTFOUND) {
+			printf("aha: stray completion %d for %X\n", st, pa);
+			continue;
+		}
+		aha.a_busy = 0;
+		(*aha.a_done)(st);
+	}
+}
+
+static
+ahalate()
+{
+	register int s = splbio();
+
+	ahadone();
+	splx(s);
+}
+
 static
 ahaintr(arg, tf)
 	int arg;
@@ -563,15 +592,11 @@ ahaintr(arg, tf)
 		return;
 	outb(aha.a_base + AHA_CTRL, CTRL_IRST);
 	if (fl & IF_SCRD)
-		printf("aha: the SCSI bus was reset\n");
-	while ((st = ahaget(&pa)) != MBI_FREE) {
-		if (!aha.a_busy || pa != aha.a_ccbpa || st == MBI_NOTFOUND) {
-			printf("aha: stray answer %d for %X\n", st, pa);
-			continue;
-		}
-		aha.a_busy = 0;
-		(*aha.a_done)(st);
-	}
+		printf("aha: SCSI bus reset\n");
+	if ((ahatest & 8) && tf)
+		timeout(ahalate, (caddr_t)0, 1);
+	else
+		ahadone();
 }
 
 /*

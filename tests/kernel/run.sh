@@ -145,8 +145,13 @@ diskboot wdbig wd ide diskette "-g 5400,16,63 -p -o 5000000"
 # says it is a SCSI disk, from which /boot tells the kernel its root is
 # sd0a.  An eighth of the memory is buffers here and not a sixteenth,
 # 128 of them, so that there are some to keep what files had in them:
-# the other boots from a disk have the 64 of a machine with 1 MB.
-diskboot sd sd scsi:330:11:5:0:DC000 disk "-p -g 20,64,32" bufshare=8
+# the other boots from a disk have the 64 of a machine with 1 MB.  And
+# a command's end is not seen until the clock's next tick (ahatest), so
+# that transfers wait in the queue behind the one that is out, as on a
+# real disk, and are sent several to a command, writes as well as
+# reads, while others arrive: the emulator's disk answers too soon for
+# any of that.
+diskboot sd sd scsi:330:11:5:0:DC000 disk "-p -g 20,64,32" bufshare=8 ahatest=8
 grep -q "^buffers   = 131072" "$top/obj/tests/kernel-sd/serial.txt"
 
 # Another on an adapter set otherwise, with its BIOS off, and at another
@@ -161,7 +166,7 @@ diskboot sdlost sd scsi:334:10:6:5:0 diskette "-g 2600,64,32 -p -o 5000000" \
     diskroot=512 ahatest=7 ahatimeout=5
 grep -q "aha: an interrupt did not arrive" "$top/obj/tests/kernel-sdlost/serial.txt"
 grep -q "aha: no answer in 5 seconds" "$top/obj/tests/kernel-sdlost/serial.txt"
-grep -q "sd0: a command for [0-9]* transfers failed" "$top/obj/tests/kernel-sdlost/serial.txt"
+grep -q "sd0: [0-9]*-block command failed" "$top/obj/tests/kernel-sdlost/serial.txt"
 grep -q "^buffers   = 65536" "$top/obj/tests/kernel-sdlost/serial.txt"
 
 echo "kernel: all six boots passed"

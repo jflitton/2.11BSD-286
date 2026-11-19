@@ -160,7 +160,13 @@ adapter and `sd.c` the disks on it.
   before ends: the adapter is given a list of where each one's data is
   and fills or empties them in turn, so still nothing is copied. A
   command costs the processor and the disk as much for 1K as for 16K,
-  and a file is a row of 1K transfers.
+  and a file is a row of 1K transfers. The transfers of the command
+  that is out are off the queue until it ends. `disksort` puts a read
+  after the first write in the queue, which was among them when they
+  were left there, and the read was then given back with the writes
+  when their command ended, never having been read: on a real disk,
+  where writes do wait and join, that was a block of the free list
+  read as whatever its buffer held, and "file system full".
 - The transfers have to be in the queue together for that. Blocks
   written to a file get there when the disk is slower than the program
   writing. Blocks read from a file would come one at a time, each as
@@ -213,12 +219,17 @@ partition, and writes, reads and removes files of 300K. Its 24 processes
 that do not fit in memory are swapped to the disk. After the kernel has
 halted, `fsck.py` must find nothing wrong with the file system and must
 find the last file the test wrote. On the last boot the driver must also
-have said that an interrupt did not arrive and that a command got no
-answer, and, its first command for several transfers having been made
-to fail each time it was tried, that each of them was sent by itself.
-The disk boots have the 64 buffers of a machine with 1 MB, but for the
-first of the SCSI ones, which has 128, so that some keep files' data
-(docs/performance.md).
+have said that an interrupt was lost and that a command timed out,
+and, its first command for several transfers having been made to fail
+each time it was tried, that it tried them singly. The disk boots
+have the 64 buffers of a machine with 1 MB, but for the first of the
+SCSI ones, which has 128, so that some keep files' data
+(docs/performance.md). That boot also has every command's end seen
+only at the clock's next tick (`ahatest`), which is a slow disk: the
+emulator's own answers before a second transfer can be queued, so
+without it no write is ever joined to another, and nothing arrives
+while a command for several is out. That is how the fault above went
+unseen until a real disk found it.
 
 The emulated machine's own BIOS, as the tests have it set up, does not
 boot from a drive on an IDE controller, so for the IDE boots the
