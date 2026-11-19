@@ -39,6 +39,7 @@
 #define	AC_INQUIRY	0x04	/* replies board, options, two of firmware */
 #define	AC_BUSON	0x07	/* how long it holds the AT bus, */
 #define	AC_BUSOFF	0x08	/*   and lets it go, microseconds */
+#define	AC_SPEED	0x09	/* its speed on the AT bus, a code */
 #define	AC_RETCONF	0x0B	/* replies DMA channel, interrupt, SCSI id */
 #define	AC_RETSETUP	0x0D	/* count: replies that much of how it is set */
 #define	AC_EXTBIOS	0x28	/* C and later: replies flags, lock code */

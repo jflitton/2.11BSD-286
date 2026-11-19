@@ -1068,6 +1068,13 @@ cpu_sysctl(name, namelen, oldp, oldlenp, newp, newlen)
 			return (ENOTDIR);
 		return (sysctl_rdstruct(oldp, oldlenp, newp,
 		    &cons[0].t_dev, sizeof (cons[0].t_dev)));
+	case CPU_AHABUSON:
+	case CPU_AHABUSOFF:
+	case CPU_AHASPEED:
+		if (namelen != 1)
+			return (ENOTDIR);
+		return (ahasysctl(name[0] - CPU_AHABUSON, oldp, oldlenp,
+		    newp, newlen));
 	default:
 		return (EOPNOTSUPP);
 	}

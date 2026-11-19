@@ -126,7 +126,13 @@ adapter and `sd.c` the disks on it.
   it go (7 and 5 microseconds, set by the driver so that a diskette
   drive is not kept waiting), and for each disk whether it and the
   adapter agreed to pass data synchronously, how many nanoseconds a
-  byte, and how many bytes ahead of the acknowledgements.
+  byte, and how many bytes ahead of the acknowledgements. The three of
+  the AT bus can be read and set while the system runs, between
+  commands: `sysctl machdep.aha_buson`, `aha_busoff` (microseconds) and
+  `aha_speed` (50, 57, 67, 80 or 100, tenths of a megabyte a second).
+  The first two only share the bus out. A speed that the machine's
+  memory cannot keep up with spoils what is read and written, the file
+  system's own blocks with the rest.
 - One command is out at a time, for the whole of a transfer.
 - A transfer that fails is tried four times, unless the target has
   understood it and refused, or is not there.

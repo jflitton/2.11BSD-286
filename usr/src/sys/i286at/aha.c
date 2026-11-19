@@ -16,6 +16,7 @@
 #include "param.h"
 #include "systm.h"
 #include "kernel.h"
+#include "errno.h"
 #include "ahareg.h"
 
 static int ahaports[] = { 0x330, 0x334, 0x230, 0x234, 0x130, 0x134 };
@@ -58,7 +59,44 @@ static struct {
 #define	A_ABSENT	1
 #define	A_PRESENT	2
 
-static int ahaintr(), ahawatch();
+static int ahaintr(), ahawatch(), ahacmd();
+
+/*
+ * How the adapter takes its turns on the AT bus, which is what a disk's
+ * speed comes to when the SCSI bus is quicker than that: the
+ * microseconds it holds the bus, and lets it go, and its speed there in
+ * tenths of a megabyte a second, 0 for as its switches or its own
+ * set-up program left it.  The first two are what other drivers for it
+ * use, for the sake of a diskette drive's DMA, which waits while the
+ * adapter has the bus; the adapter's own are 11 and 4.  sysctl changes
+ * them (machdep.aha_buson, aha_busoff, aha_speed), and they are given
+ * again when the adapter is reset.  A speed the machine's memory cannot
+ * keep up with spoils what is read and written.
+ */
+static int ahatune[3] = { 7, 5, 0 };
+static u_char ahaspeeds[] = { 50, 67, 80, 100, 57 };	/* AC_SPEED's codes */
+
+/* Give the adapter the value of one of them: 0 if it took it. */
+static int
+ahaset(which, v)
+	int which, v;
+{
+	static u_char cmd[] = { AC_BUSON, AC_BUSOFF, AC_SPEED };
+	u_char c[2], r[1];
+	register int i;
+
+	if (which == 2) {
+		if (v == 0)
+			return (0);
+		for (i = 0; ahaspeeds[i] != v; i++)
+			if (i == sizeof (ahaspeeds) - 1)
+				return (-1);
+		v = i;
+	}
+	c[0] = cmd[which];
+	c[1] = v;
+	return (ahacmd(c, 2, r, 0));
+}
 
 static
 put3(p, v)
@@ -199,13 +237,8 @@ ahasetup(how)
 		outb(0x0B, 0xC0);
 		outb(0x0A, 0);
 	}
-	/* Shorter turns on the bus than it would take, for the diskette. */
-	c[0] = AC_BUSON;
-	c[1] = 7;
-	(void) ahacmd(c, 2, r, 0);
-	c[0] = AC_BUSOFF;
-	c[1] = 5;
-	(void) ahacmd(c, 2, r, 0);
+	for (e = 0; e < 3; e++)
+		(void) ahaset(e, ahatune[e]);
 
 	bzero(ahamb, sizeof (ahamb));
 	aha.a_mbo = aha.a_mbi = 0;
@@ -254,6 +287,51 @@ ahahow(target)
 		    50 * (v >> 4 & 7), v & 0x0F, v);
 	else
 		printf("aha: id %d: asynchronous (%x)\n", target, v);
+}
+
+/*
+ * sysctl's side of ahatune.  What is read is what the adapter says it
+ * has, when there is one and no command is out, and otherwise what it
+ * was last given.  It is given a new value only between commands, so a
+ * write may find it busy and need trying again.
+ */
+ahasysctl(which, oldp, oldlenp, newp, newlen)
+	int which;
+	void __far *oldp;
+	size_t *oldlenp;
+	void __far *newp;
+	size_t newlen;
+{
+	u_char c[2], r[4];
+	int v, e, s, idle;
+
+	v = ahatune[which];
+	s = splbio();
+	idle = aha.a_state == A_PRESENT && !aha.a_busy;
+	c[0] = AC_RETSETUP;
+	c[1] = sizeof (r);
+	if (idle && ahacmd(c, 2, r, sizeof (r)) == 0)
+		v = which < 2 ? r[2 + which] :
+		    r[1] < sizeof (ahaspeeds) ? ahaspeeds[r[1]] : 0;
+	splx(s);
+	if (e = sysctl_int(oldp, oldlenp, newp, newlen, &v))
+		return (e);
+	if (!newp)
+		return (0);
+	if (which == 0 && (v < 2 || v > 15) ||
+	    which == 1 && (v < 1 || v > 64) || which == 2 && v == 0)
+		return (EINVAL);
+	s = splbio();
+	if (aha.a_state != A_PRESENT)
+		e = ENXIO;
+	else if (aha.a_busy)
+		e = EBUSY;
+	else if (ahaset(which, v))
+		e = which == 2 ? EINVAL : EIO;
+	else
+		ahatune[which] = v;
+	splx(s);
+	return (e);
 }
 
 /*
