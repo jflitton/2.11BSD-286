@@ -375,6 +375,25 @@ cinit()
 		cfreelist = cp;
 		cfreecount += CBSIZE;
 	}
+#ifdef i286
+	/*
+	 * No terminal's output may wait in more than a quarter of the
+	 * character blocks.  The high water marks are for lines of each
+	 * speed, and the fastest's, which is a pseudo-terminal's, was as
+	 * much as all the blocks hold: one program writing to one took
+	 * them all, each time its queue emptied, and another's output
+	 * then waited for whole seconds, with nothing for what was typed
+	 * at any terminal to be kept in, or echoed with.
+	 */
+	{
+		register int i;
+		extern short tthiwat[];
+
+		for (i = 0; i < 16; i++)
+			if (tthiwat[i] > cfreecount / 4)
+				tthiwat[i] = cfreecount / 4;
+	}
+#endif
 }
 
 #if defined(INET) && !defined(i286)
