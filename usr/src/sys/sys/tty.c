@@ -1274,6 +1274,30 @@ ttycheckoutq(tp, wait)
 }
 
 /*
+ * A writer found no c-lists free.  If its own terminal's output has
+ * more than the low water mark waiting, then that output going out is
+ * what will free some, and the writer is woken as soon as it has, as
+ * one over the high water mark is.  Otherwise other terminals have
+ * them, and it looks again when the next second begins, as upstream
+ * did in either case: which held a pseudo-terminal, read from as fast
+ * as it is written to, to one fill of every c-list a second.
+ */
+ttyclwait(tp)
+	register struct tty *tp;
+{
+	register int s;
+
+	ttstart(tp);
+	s = spltty();
+	if (tp->t_outq.c_cc > TTLOWAT(tp)) {
+		tp->t_state |= TS_ASLEEP;
+		sleep((caddr_t)&tp->t_outq, TTOPRI);
+	} else
+		sleep((caddr_t)&lbolt, TTOPRI);
+	splx(s);
+}
+
+/*
  * Called from the device's write routine after it has
  * calculated the tty-structure given as argument.
  */
@@ -1369,8 +1393,7 @@ loop:
 					tp->t_rocount = 0;
 					if (ttyoutput(*cp, tp) >= 0) {
 					    /* no c-lists, wait a bit */
-					    ttstart(tp);
-					    sleep((caddr_t)&lbolt, TTOPRI);
+					    ttyclwait(tp);
 					    goto loop;
 					}
 					cp++, cc--;
@@ -1398,8 +1421,7 @@ loop:
 #endif
 			if (i > 0) {
 				/* out of c-lists, wait a bit */
-				ttstart(tp);
-				sleep((caddr_t)&lbolt, TTOPRI);
+				ttyclwait(tp);
 				goto loop;
 			}
 			if (tp->t_flags&FLUSHO || tp->t_outq.c_cc > hiwat)
