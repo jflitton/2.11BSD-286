@@ -201,7 +201,10 @@ count of open files into the `nfile` that `sys/file.h` gave it.
 `interrupt` and others as names. The first is a keyword here and the rest
 are macros the compiler predefines; `tools/cc` undefines and renames
 them. The system's headers write the keywords with two underscores when
-they mean them.
+they mean them. `_leave`, `_try`, `_except` and `_finally` are predefined
+too, for the compiler's exception handling, and undefined the same way:
+`curses.h` has a member `_leave`, so no program that includes it
+compiled.
 
 **Strictness.** The compiler rejects, as errors:
 
@@ -314,6 +317,76 @@ quota calls fail with EINVAL, which `login` looks for, rather than end
 the caller with SIGSYS; and `execve` gives the arguments and environment
 room above the program's stack, so that the stack size a program is
 linked with is its own (8K by default).
+
+## Before a program is built
+
+`tools/preflight.py` looks a program over, a C file or a directory of
+them, and says what the two sections above lead one to expect of it. It
+is run over a batch of programs before any of them is built, to see
+which need nothing, which need what, and which hide a bug that no build
+will show.
+
+- **What the compiler rejects**, counted by kind, with what each kind
+  has usually wanted.
+- **Calls that disagree across files.** The compiler holds a call to an
+  old-style definition's arguments only within one file. Between files,
+  and between a program and the library, the PDP-11 had `lint`, which
+  this tree does not carry. The script has the compiler do it. It
+  appends to each file a call of every function the file defines, with a
+  structure for every argument, and reads the types out of the
+  complaints, typedefs resolved. Then it compiles each file again with
+  an empty definition appended for every function the file calls and
+  another file defines, taking arguments of those sizes, and the
+  compiler checks the file's own calls against them. The library's
+  functions are worked out the same way from its sources, once, and the
+  system calls' from `sys/syscalls.tab`. A function with a prototype in
+  scope is left alone: the compiler converts its arguments. What comes
+  out is sorted by what it costs: a *wrong size* (an `int` where a
+  `long` is taken, or a function returning a `long` that the caller
+  never declared and whose result it uses) is a bug on the PDP-11 too; a
+  different *count* is to be read; an `int` for a pointer is the same
+  size and only counted.
+- **Traps**: lines that match something that has gone wrong before. A
+  conditional on the machine, the kernel's memory, an executable's
+  header, `varargs.h`, the break and `end`, a null pointer to `ioctl`, a
+  year after "19", an allocation of a bare count. A list to read.
+- **A trial build**: if every file compiles, the program is linked, with
+  whichever libraries it turns out to need, small model and then
+  medium. That gives the names the libraries lack, names defined twice,
+  the size, and the functions with 1K or more of local variables for
+  the 8K stack.
+
+`tests/preflight` runs it on two files that have one of each thing it
+looks for across files, and calls that are right.
+
+Run over the 182 programs and directories of `bin`, `usr.bin`, `ucb`,
+`sbin`, `usr.sbin` and `libexec` that are not built yet, which takes ten
+seconds, it found that 118 compile as they are and 103 of those link;
+33 more have five errors or fewer. It found 60 calls of the wrong size
+in 15 programs: `lseek` given an `unsigned` offset in `trpt` and `trsp`
+and its result taken as an `int` in `lpr` and `ftpd`, `inet_addr`
+undeclared in `tftp`, a `long` for `getpwuid` in `id`, an `int` for
+`ntohl` in `routed`. It found `socket`, `bind` and `connect` called with
+an argument short, in `whois` and others written before the calls took
+a length; and `shutdown` defining a `warn` of its own beside the
+library's. It does not look into subdirectories, so `sendmail`, `named`
+and the like are given by their own directories.
+
+Run over the 94 programs that are built, each with the sources and flags
+`usr/src/i286/Makefile` gives it, it agreed with the build, in that all
+compile and link, and found what the build could not. `dd` called
+`gettimeofday` with one argument, so the kernel was given whatever lay
+above it on the stack as the place to put the time zone. `netstat`'s
+`plural` took an `int` and was given a `long` 135 times, which reads the
+low half here and the high half on the PDP-11, where every count was
+plural. The shell and `w` compared `lseek`'s result as an `int` without
+declaring it, `test` gave `isatty` a `long`, and `bc` left with `exit()`
+and so with whatever status the stack held. Those are fixed. What it
+still lists there is to be read and is not wrong: functions that take
+their arguments by address, as `tcsh`'s `mkprintf` does, or are called
+with trailing arguments left off, as in `ex` and `csh`; and `sethostid`,
+which `unistd.h` declares as an `int` and the library defines as a
+`long`, returning 0 or -1 either way.
 
 ## Programs that read the kernel
 

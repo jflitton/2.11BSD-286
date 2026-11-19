@@ -56,6 +56,7 @@ extern	int errno, optind;
 #define IGINT		(1+3*1)		/* ignoring both SIGINT & SIGQUIT */
 
 long	round();
+long	lseek();
 char	*getargs();
 char	*getptr();
 

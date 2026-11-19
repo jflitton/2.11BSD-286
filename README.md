@@ -165,6 +165,7 @@ DOS and OS/2 user's guide with nothing on ports or interrupts; not kept.)
 | `tools/mkstubs.py` | writes system call stubs from a table of the calls' arguments, checked against the kernel's |
 | `tools/kpatch.py` | changes a variable in an executable file, by name |
 | `tools/farlint.py` | looks for far pointers that kernel code truncates without the compiler noticing |
+| `tools/preflight.py` | looks a program over before it is built: what the compiler rejects, calls that disagree with a definition in another file or in the library, lines that match what has gone wrong before, and whether it links and how large it is |
 | `tools/netcheck.py` | looks in the kernel's objects for calls and references between it and the network that do not switch the data segment; run at every link |
 | `tools/untap.py` | splits a SimH `.tap` tape image into its files |
 | `tools/tar2git.py` | commits tar archives to a branch without unpacking them |
@@ -191,6 +192,8 @@ tests/kernel/run.sh     # the kernel, with a test program as init, booted
                         # six times: 51 checks, then 67 on each of five disks
 tests/libc/run.sh       # the C library, with a test program as init: 73
                         # checks in the small model, 73 in the medium
+tests/preflight/run.sh  # tools/preflight.py, on two files with one of each
+                        # thing it looks for (no emulator)
 tests/system/run.sh     # the system, booted from a hard disk to multi-user:
                         # checks its root with fsck and starts again,
                         # logs in on a serial port and on two of the

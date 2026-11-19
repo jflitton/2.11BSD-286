@@ -12,6 +12,7 @@ static char sccsid[] = "@(#)name.c	4.5 (2.11BSD) 2026/5/11";
 #include	"defs.h"
 
 PROC BOOL	chkid();
+long		lseek();
 
 NAMNOD	ps2nod	= {	NIL,		NIL,		ps2name},
 	fngnod	= {	NIL,		NIL,		fngname},

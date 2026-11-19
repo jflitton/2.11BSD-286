@@ -409,7 +409,7 @@ filebit:	if (fs->stat.st_mode & i && fs->rcode >= 0)
 		sp->type = INTEGER;
 		break;
 	case ISTTY:
-		sp->u.num = isatty(sp->u.num);
+		sp->u.num = isatty((int)sp->u.num);
 		sp->type = BOOLEAN;
 		break;
 	case NULSTR:

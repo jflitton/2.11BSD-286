@@ -386,7 +386,7 @@ char	**argv;
 		setitimer(ITIMER_REAL, &itv, NULL);
 	}
 
-	gettimeofday(&tstart);
+	gettimeofday(&tstart, NULL);
 loop:
 	if(ibc-- == 0) {
 		ibc = 0;

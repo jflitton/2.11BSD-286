@@ -59,7 +59,10 @@ IGNORED = {"-i", "-n", "-z", "-V", "-X", "-x", "-g"}
 # which the compiler predefines as a macro for __interrupt, as it does
 # the others here.  The system's headers write the keywords with two
 # underscores, __far and the rest, when they mean them.
-MACROS = ["interrupt", "far", "near", "huge", "cdecl", "pascal", "fortran"]
+# curses.h has a member _leave, one of four the compiler predefines for
+# its structured exception handling.
+MACROS = ["interrupt", "far", "near", "huge", "cdecl", "pascal", "fortran",
+          "_leave", "_try", "_except", "_finally"]
 
 
 def fail(msg):
@@ -122,6 +125,13 @@ def check_model(paths, model):
             fail("%s is compiled for the %s model, not the %s" %
                  (p, MODEL_NAMES.get(min(other), min(other)),
                   MODEL_NAMES[model]))
+
+
+def compiler_flags(cflags):
+    """What every C file is compiled with, around the caller's own flags."""
+    return ["-I" + os.path.join(TOP, "usr", "include")] + cflags + \
+        ["-wcd=131", "-wcd=107", "-wcd=121"] + \
+        ["-U" + k for k in MACROS] + ["-Dinline=inline_"]
 
 
 def compile_c(src, obj, model, cflags):
@@ -213,9 +223,7 @@ def main():
     if packcode is not None and model == "s":
         fail("-packcode: the small model has one code segment")
     lib = os.path.join(LIBS, model)
-    cflags = ["-I" + os.path.join(TOP, "usr", "include")] + cflags + \
-        ["-wcd=131", "-wcd=107", "-wcd=121"] + \
-        ["-U" + k for k in MACROS] + ["-Dinline=inline_"]
+    cflags = compiler_flags(cflags)
     sources = [f for f in files if f.endswith((".c", ".s"))]
     if compile_only and out and len(sources) > 1:
         fail("-o with -c and more than one file")

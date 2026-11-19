@@ -565,7 +565,7 @@ yyinit(argc,argv) int argc; char *argv[];{
 int *getout(){
 	printf("q");
 	fflush(stdout);
-	exit();
+	exit(0);
 }
 
 int *
@@ -587,12 +587,12 @@ char **argv;
 		if((argv[1][1] == 'd')||(argv[1][1] == 'c')){
 			yyinit(--argc, ++argv);
 			yyparse();
-			exit();
+			exit(0);
 		}
 		if(argv[1][1] != 'l'){
 			printf("unrecognizable argument\n");
 			fflush(stdout);
-			exit();
+			exit(1);
 		}
 		argv[1] = "/usr/share/misc/lib.b";
 	}
@@ -604,7 +604,7 @@ char **argv;
 		close(p[1]);
 		yyinit(argc, argv);
 		yyparse();
-		exit();
+		exit(0);
 	}
 	close(0);
 	dup(p[0]);

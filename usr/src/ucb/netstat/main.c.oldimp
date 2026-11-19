@@ -508,7 +508,7 @@ klseek(fd, base, off)
 
 char *
 plural(n)
-	int n;
+	long n;
 {
 
 	return (n != 1 ? "s" : "");
