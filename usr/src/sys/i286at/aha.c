@@ -254,38 +254,59 @@ ahasetup(how)
 }
 
 /*
+ * The adapter's speed on the AT bus as it reports it, in tenths of a
+ * megabyte a second, for reading memory or for writing it.  The byte is
+ * one of AC_SPEED's five codes or, with its top bit, the lengths of a
+ * cycle's parts: the pulse, 100 ns and 50 more for each of three bits'
+ * count, the read's and the write's apart, and the pause after it, 100
+ * ns or 150.  A cycle moves two bytes.  An adapter set up by its own
+ * program reports the second kind.  (Technical reference, 5-6.)
+ */
+static int
+aharate(b, wr)
+	register int b;
+	int wr;
+{
+	if (b < sizeof (ahaspeeds))
+		return (ahaspeeds[b]);
+	if (!(b & 0x80))
+		return (0);
+	return (20000 / (100 + 50 * ((wr ? b : b >> 4) & 7) +
+	    (b & 0x08 ? 150 : 100)));
+}
+
+/*
  * Say how data is passed, which is what a disk's speed comes to and
  * cannot be seen from anything else: with a target of -1, how the
- * adapter is set to pass it over the AT bus, and whether it will ask a
- * target to pass it synchronously; with a target, what the two agreed,
- * which the adapter knows once it has sent the target a command.  The
- * period is counted from 100 ns by a CF or a CP and from 200 by those
- * before, in steps of 50: a real CF's came to what its disk said it had
- * agreed, and the others' are by what other drivers do, so the byte it
- * comes from is printed after, as the adapter gave it.  Called at
- * splbio, with no command outstanding.
+ * adapter is set to pass it over the AT bus; with a target, what the
+ * two agreed, which the adapter knows once it has sent the target a
+ * command.  The period is counted from 100 ns by the C series, by its
+ * technical reference (5-11), and a real CF's came to what its disk
+ * said it had agreed; from 200 by a B, by what other drivers do.  The
+ * bytes these come from are printed too, as the adapter gave them.
+ * Called at splbio, with no command outstanding.
  */
 ahahow(target)
 	int target;
 {
-	static char *speed[] = { "5.0", "6.7", "8.0", "10", "5.7" };
 	u_char c[2], r[16];
-	register int v;
+	register int v, w;
 
 	c[0] = AC_RETSETUP;
 	c[1] = sizeof (r);
 	if (ahacmd(c, 2, r, sizeof (r)))
 		return;
 	if (target < 0) {
-		printf("aha: the AT bus at %s MB/s, held %d us and let go %d; synchronous transfers %s\n",
-		    r[1] < 5 ? speed[r[1]] : "its own", r[2], r[3],
-		    r[0] & 1 ? "asked for" : "not asked for");
+		v = aharate(r[1], 0);
+		w = aharate(r[1], 1);
+		printf("aha: the AT bus read at %d.%d MB/s and written at %d.%d (%x), held %d us and let go %d\n",
+		    v / 10, v % 10, w / 10, w % 10, r[1], r[2], r[3]);
 		return;
 	}
 	v = r[8 + target];
 	if (v & 0x80)
 		printf("aha: id %d: synchronous, %d ns a byte, %d bytes ahead (%x)\n",
-		    target, (aha.a_board[0] >= 'E' ? 100 : 200) +
+		    target, (aha.a_board[0] >= 'D' ? 100 : 200) +
 		    50 * (v >> 4 & 7), v & 0x0F, v);
 	else
 		printf("aha: id %d: asynchronous (%x)\n", target, v);
@@ -313,8 +334,7 @@ ahasysctl(which, oldp, oldlenp, newp, newlen)
 	c[0] = AC_RETSETUP;
 	c[1] = sizeof (r);
 	if (idle && ahacmd(c, 2, r, sizeof (r)) == 0)
-		v = which < 2 ? r[2 + which] :
-		    r[1] < sizeof (ahaspeeds) ? ahaspeeds[r[1]] : 0;
+		v = which < 2 ? r[2 + which] : aharate(r[1], 0);
 	splx(s);
 	if (e = sysctl_int(oldp, oldlenp, newp, newlen, &v))
 		return (e);

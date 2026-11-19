@@ -124,7 +124,8 @@ adapter and `sd.c` the disks on it.
   and the driver says both when it finds them, as the adapter reports
   them: the AT bus's speed and how long the adapter holds it and lets
   it go (7 and 5 microseconds, set by the driver so that a diskette
-  drive is not kept waiting), and for each disk whether it and the
+  drive is not kept waiting; the adapter takes the 5 as 4, counting
+  the time it lets go in fours), and for each disk whether it and the
   adapter agreed to pass data synchronously, how many nanoseconds a
   byte, and how many bytes ahead of the acknowledgements. The three of
   the AT bus can be read and set while the system runs, between
