@@ -90,6 +90,53 @@ u_long	ntohl(), htonl();
 #define	IPL_CLOCK	6
 #define	IPL_HIGH	7
 
+#ifdef KERNEL
+/*
+ * The spl routines, in line: they are called some hundreds of times in
+ * the kernel and as often as anything in it, and a far call and its
+ * return take five times what the work does.  Each raises the level if
+ * it is lower, and returns what it was.  splx and spl0 set it, and if
+ * anything was put off meanwhile call splpend (mch_trap.s), which runs
+ * what the new level allows and changes no register but ES.
+ *
+ * The variables are named through SS, the kernel's data segment
+ * always, because the network's code has these too and its DS is its
+ * own (tools/netcheck.py lets it name these three, so, and no other).
+ * mch_trap.s has the same routines to call, under the same names, for
+ * assembly.
+ */
+extern int	cpl;
+extern unsigned	ipending, spending;
+int	splpend(void);
+int	_splraise(int);
+int	_splset(int);
+#pragma aux _splraise = \
+	"mov ax,ss:cpl" \
+	"cmp ax,bx" \
+	"jae done" \
+	"mov ss:cpl,bx" \
+	"done:" \
+	parm [bx] value [ax] modify exact [ax];
+#pragma aux _splset = \
+	"xchg ax,ss:cpl" \
+	"mov bx,ss:ipending" \
+	"or bx,ss:spending" \
+	"jz done" \
+	"call far ptr splpend" \
+	"done:" \
+	parm [ax] value [ax] modify exact [ax bx es];
+#define	splsoftclock()	_splraise(IPL_SOFTCLOCK)
+#define	splnet()	_splraise(IPL_NET)
+#define	splbio()	_splraise(IPL_BIO)
+#define	splimp()	_splraise(IPL_IMP)
+#define	spltty()	_splraise(IPL_TTY)
+#define	spl5()		_splraise(IPL_TTY)
+#define	splclock()	_splraise(IPL_CLOCK)
+#define	splhigh()	_splraise(IPL_HIGH)
+#define	splx(s)		_splset(s)
+#define	spl0()		_splset(0)
+#endif
+
 /*
  * What the clock interrupted, as hardclock and softclock are told it.
  */

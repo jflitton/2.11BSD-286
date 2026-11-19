@@ -125,8 +125,14 @@ if ! grep -q "^checks: $n ok, 0 bad" "$serial"; then
     echo "network: not all $n checks ran" >&2
     exit 1
 fi
+# What is typed at an rlogin's "Last login" is typed before the shell
+# there has written its prompt, and may be echoed, all of it, before
+# the prompt too: then what the command writes follows the prompt on
+# one line.  So rl-pw and rl-two are not looked for at a line's start;
+# the quotes where they are typed keep the echo from being taken for
+# them.
 for want in "^rl-in vt100 /dev/ttyp0" "pc286.guest  *ttyp0 .*(localhost)" \
-    "Connection closed\." "^rl-pw" "^rsh-equiv" "^rl-two /dev/ttyp1" \
+    "Connection closed\." "rl-pw" "^rsh-equiv" "rl-two /dev/ttyp1" \
     "^Closed connection." "Waiting for your party to respond" \
     "Connection established" "hello-from-guest" "^after-talk" \
     "^root  *tty00" "halting"; do

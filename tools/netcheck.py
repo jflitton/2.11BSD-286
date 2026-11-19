@@ -45,11 +45,17 @@ ALLOWED = {
     "_bcopy", "_bzero", "_bcmp", "_copyin", "_copyout", "_copyinstr",
     "_copyoutstr", "_copystr", "_fubyte", "_subyte", "_fuword", "_suword",
     "_splsoftclock", "_splnet", "_splbio", "_splimp", "_spltty", "_spl5",
-    "_splclock", "_splhigh", "_splx", "_spl0",
+    "_splclock", "_splhigh", "_splx", "_spl0", "_splpend",
     "_insque", "_remque", "_strlen",
     "_inb", "_outb", "_inw", "_outw", "_insb", "_insw", "_outsb", "_outsw",
     "__I4M", "__U4M", "__I4D", "__U4D",
 }
+
+# Kernel variables the network may name, in instructions that reach them
+# through SS and in no others: the level interrupts are held off at and
+# what is waiting for it to drop, for the spl routines, which are in
+# line in the network's code as in the kernel's (machparam.h).
+VIA_SS = {"_cpl", "_ipending", "_spending"}
 
 # Functions that form near addresses of their stack slots on purpose, as
 # KSPACE pointers or as near pointers handed to the kernel (net_mac.h),
@@ -116,6 +122,16 @@ def scan(path):
     return defs, externs, calls
 
 
+def notss(path):
+    """Instructions that name a VIA_SS variable without going through SS."""
+    out = subprocess.run(["wdis", path], capture_output=True, text=True,
+                         check=True).stdout.splitlines()
+    names = re.compile(r"\b(%s)\b" % "|".join(sorted(VIA_SS)))
+    return [line.strip() for line in out
+            if names.search(line) and re.match(r"^[0-9A-F]{4}\s", line)
+            and not USES_SS.search(line)]
+
+
 def bare(path):
     """Near addresses of stack slots formed with no SS beside them."""
     out = subprocess.run(["wdis", path], capture_output=True, text=True,
@@ -157,7 +173,11 @@ def main():
             if oside == side:
                 continue
             if side == "network":
-                if kind == "kernel data":
+                if kind == "kernel data" and name in VIA_SS:
+                    for line in notss(p):
+                        bad.append("%s: names the kernel's %s, not through "
+                                   "SS: %s" % (p, name, line))
+                elif kind == "kernel data":
                     bad.append("%s: names the kernel's variable %s (%s)"
                                % (p, name, where))
                 elif kind == "code" and name in calls and name not in ALLOWED:

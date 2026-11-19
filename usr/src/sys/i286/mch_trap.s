@@ -149,7 +149,8 @@ allintr:
 
 ; Interrupt priority.  cpl is the level; an interrupt whose level is not
 ; above it is put off by intr(), which notes it in ipending.  These
-; raise the level, and return what it was for splx to put back.
+; raise the level, and return what it was for splx to put back.  C does
+; the same in line (machparam.h); these are for what is not C.
 ;
 ; The network calls these too, with DS its own data segment, so they
 ; reach the kernel's data through SS, which is always the kernel's.
@@ -189,9 +190,19 @@ ENTRY splx
 lower:  xchg    ax, [ss:_cpl]
         mov     bx, [ss:_ipending]
         or      bx, [ss:_spending]
-        jnz     .run
+        jnz     _splpend
         retf
-.run:   push    ax
+
+; splpend(): the level has been set and something was put off: run what
+; the level allows.  C has the routines above in line (machparam.h) and
+; calls this from there, as they come here, so it changes no register
+; but BX and ES.  ES it could not put back: what the caller had there
+; may be a process's selector, and what runs here may be the end of that
+; segment.
+ENTRY splpend
+        push    ax
+        push    cx
+        push    dx
         pushf
         cli
         push    ds
@@ -200,6 +211,8 @@ lower:  xchg    ax, [ss:_cpl]
         call    runpend
         pop     ds
         popf
+        pop     dx
+        pop     cx
         pop     ax
         retf
 
