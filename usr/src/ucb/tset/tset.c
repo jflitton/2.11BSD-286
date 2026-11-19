@@ -672,7 +672,7 @@ found:
 		if	(TtyType[1] != '\0')
 			TtyType = askuser(TtyType + 1);
 		else
-			TtyType = askuser(NULL);
+			TtyType = askuser((char *)NULL);
 		}
 
 	/* Find the termcap entry.  If it doesn't exist, ask the user. */
@@ -680,7 +680,7 @@ found:
 		{
 		(void)fprintf(stderr, "tset: terminal type %s is unknown\n", 
 				TtyType);
-		TtyType = askuser(NULL);
+		TtyType = askuser((char *)NULL);
 		}
 	if	(i == -1)
 		fatal("termcap", strerror(errno ? errno : ENOENT));

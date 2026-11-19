@@ -50,6 +50,8 @@ char	hostname[MAXHOSTNAMELEN];
 
 void	finish(), timeout();
 time_t	getsdt();
+/* The library has a warn too, in the file its err is in, which is called. */
+static	warn();
 
 struct	utmp utmp;
 int	sint;
@@ -336,6 +338,7 @@ badform:
 	/*NOTREACHED*/
 }
 
+static
 warn(term, sdt, now, type)
 	FILE *term;
 	time_t sdt, now;

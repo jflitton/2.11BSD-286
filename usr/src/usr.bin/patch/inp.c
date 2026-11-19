@@ -103,7 +103,7 @@ char *filename;
     if ((filemode & S_IFMT) & ~S_IFREG)
 	fatal("%s is not a normal file--can't patch.\n", filename);
     i_size = filestat.st_size;
-#ifdef	pdp11
+#if	defined(pdp11) || defined(i286)
 /*
  * csh.1 was 65392 bytes long and caused patch to core dump because
  * malloc() couldn't cope.

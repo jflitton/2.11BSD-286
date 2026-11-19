@@ -92,6 +92,7 @@ char		*cursorm;	/* cursor movement */
 char		cursorhome[40];	/* contains cursor movement to home */
 char		*EodClr;	/* clear rest of screen */
 char		*tgetstr();
+int		execute(char *, char *, char *, ...);
 int		Mcol = 80;	/* number of columns */
 int		Wrap = 1;	/* set if automargins */
 int		soglitch;	/* terminal has standout mode glitch */
@@ -448,7 +449,7 @@ register int num_lines;
 	Ungetc (c, f);
 	setjmp (restore);
 	Pause = 0; startup = 0;
-	if ((num_lines = command (NULL, f)) == 0)
+	if ((num_lines = command ((char *)NULL, f)) == 0)
 	    return;
 	if (hard && promptlen > 0)
 		erase (0);
@@ -1055,7 +1056,7 @@ register FILE *f;
 	    fflush (stdout);
 	    if (lastp) {
 		write (2,"\r", 1);
-		search (NULL, f, nlines);	/* Use previous r.e. */
+		search ((char *)NULL, f, nlines);	/* Use previous r.e. */
 	    }
 	    else {
 		ttyin (cmdbuf, 78, '/');
@@ -1302,9 +1303,7 @@ register int n;
     }
 }
 
-execute (filename, cmd, args)
-char *filename;
-char *cmd, *args;
+execute (char *filename, char *cmd, char *args, ...)
 {
 	int id;
 	int n;

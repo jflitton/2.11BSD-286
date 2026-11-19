@@ -13,6 +13,13 @@ static	char sccsid[] = "@(#)file.c	4.12.3 (2.11BSD) 1997/7/29";
 #include <errno.h>
 #include <string.h>
 
+#ifdef i286
+/* The PDP-11's other magic numbers, which a.out.h has not got here. */
+#define	A_MAGIC4	0405
+#define	A_MAGIC5	0430
+#define	A_MAGIC6	0431
+#endif
+
 int in;
 int i  = 0;
 char buf[BUFSIZ];
@@ -131,6 +138,22 @@ char *file;
 	}
 	switch(*(int *)buf) {
 
+#ifdef i286
+	case A_MAGIC:
+		switch (((struct exec *)buf)->a_model) {
+		case A_SMALL:
+			printf("small model ");
+			break;
+		case A_MEDIUM:
+			printf("medium model ");
+			break;
+		case A_LARGE:
+			printf("large model ");
+			break;
+		}
+		goto exec;
+#endif
+
 	case 0413:
 		printf("demand paged ");
 
@@ -163,6 +186,14 @@ exec:
 		if (mbuf.st_mode & S_ISVTX)
 			printf("sticky ");
 		printf("executable");
+#ifdef i286
+		if (*(int *)buf == A_MAGIC) {
+			if (((struct exec *)buf)->a_syms != 0)
+				printf(" not stripped");
+			printf("\n");
+			return;
+		}
+#endif
 		if(((int *)buf)[4] != 0)
 			printf(" not stripped");
 		if (((int *)buf)[1] == 0 && ((int *)buf)[2] != 0 &&

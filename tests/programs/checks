@@ -1,0 +1,784 @@
+# What tests/programs/run.sh has the system do.
+#
+# "=file NAME" begins a file, /mnt/d/NAME on the system.  "== NAME" begins
+# a check: the lines to "--" are given to sh there, in an empty directory,
+# and must write exactly the lines after it.  A check is named for the
+# program it is of, with a suffix if the program has more than one.
+=file words
+pear
+apple
+fig
+apple
+banana
+cherry
+fig
+=file nums
+10
+9
+100
+-3
+2
+=file tab
+root:0:wheel
+daemon:1:daemon
+guest:100:guest
+bin:3:bin
+=file one
+one
+two
+three
+four
+five
+=file two
+one
+two
+THREE
+four
+five
+six
+=file three
+one
+2
+three
+four
+five
+=file prog.c
+foo(a)
+int a;
+{
+	return a;
+}
+main()
+{
+	foo(1);
+}
+== apply
+apply 'echo %1 %1' a b
+apply -2 echo a b c d
+--
+a a
+b b
+a b
+c d
+== basename
+basename /usr/bin/sort
+basename /a/b/file.c .c
+--
+sort
+file
+== cal
+cal 9 1752 | sed 's/ *$//' | sed 5q
+cal 2 2000 | grep -c 29
+--
+   September 1752
+ S  M Tu  W Th  F  S
+       1  2 14 15 16
+17 18 19 20 21 22 23
+24 25 26 27 28 29 30
+1
+== cb
+echo 'main(){int a;if(a){a=1;}}' | cb
+--
+main(){
+	int a;
+	if(a){
+		a=1;
+	}
+}
+== checkeq
+(echo .EQ; echo 'x sup 2'; echo .EN; echo .EN; echo .EQ; echo 'y') >f
+checkeq f
+--
+f:
+   Spurious EN, line 4
+   Unfinished EQ
+== checknr
+(echo .DS; echo text; echo '\fIitalic') >f
+checknr f
+--
+3: Unmatched \fI
+1: Unmatched .DS
+== col
+printf 'plain\n' | col
+printf 'abc\b\b\bxyz\n' | col -b
+--
+plain
+xyz
+== colcrt
+printf 'a\b_bc\n' | colcrt
+--
+abc
+-
+== colrm
+echo abcdefgh | colrm 3 5
+echo abcdefgh | colrm 4
+--
+abfgh
+abc
+== comm
+sort /mnt/d/words | uniq >a
+(echo apple; echo date; echo fig) >b
+comm -12 a b
+comm -23 a b
+--
+apple
+fig
+banana
+cherry
+pear
+== compress
+cp /etc/termcap f
+compress f
+ls
+uncompress f.Z
+cmp f /etc/termcap && echo same
+compress </etc/services | zcat | cmp - /etc/services && echo piped
+compress -c /etc/services >s.Z
+ls -l /etc/services s.Z | awk '{ n[NR] = $4 } END { if (n[2] * 10 < n[1] * 7) print "smaller" }'
+--
+f.Z
+same
+piped
+smaller
+== crypt
+echo secret text | crypt key >c
+grep -c secret c
+crypt key <c
+--
+0
+secret text
+== ctags
+cp /mnt/d/prog.c f.c
+ctags f.c
+tr '\011' ' ' <tags
+--
+Mf f.c /^main()$/
+foo f.c /^foo(a)$/
+== deroff
+(echo '.SH NAME'; echo 'the \fBbold\fP word'; echo '.PP'; echo 'next line') | deroff | sed 's/ *$//'
+--
+  NAME
+the  bold  word
+
+next line
+== diff
+cd /mnt/d
+diff one two; echo $?
+diff one one; echo $?
+diff -e one two
+diff -c one two | sed 1,2d
+echo 'one  two' >/tmp/w/a; echo 'one two ' >/tmp/w/b
+diff -b /tmp/w/a /tmp/w/b; echo $?
+--
+3c3
+< three
+---
+> THREE
+5a6
+> six
+1
+0
+5a
+six
+.
+3c
+THREE
+.
+***************
+*** 1,5 ****
+  one
+  two
+! three
+  four
+  five
+--- 1,6 ----
+  one
+  two
+! THREE
+  four
+  five
++ six
+0
+== diff-empty
+cp /dev/null e
+diff e /mnt/d/three
+diff /mnt/d/three e | sed 1q
+--
+0a1,5
+> one
+> 2
+> three
+> four
+> five
+1,5d0
+== diff-h
+sed '5s/.*/CHANGED/' /etc/services >s
+diff -h /etc/services s | sed 2d
+diff -h /mnt/d/one /mnt/d/two | sed 1q
+--
+5c5
+---
+> CHANGED
+3,$c3,$
+== diff-r
+mkdir a b a/s b/s
+cp /mnt/d/one a/f; cp /mnt/d/two b/f
+cp /mnt/d/nums a/same; cp /mnt/d/nums b/same
+echo x >a/only; echo y >b/s/deep; echo z >a/s/deep
+diff -r a b
+--
+diff -r a/f b/f
+3c3
+< three
+---
+> THREE
+5a6
+> six
+Only in a: only
+Common subdirectories: a/s and b/s
+diff -r a/s/deep b/s/deep
+1c1
+< z
+---
+> y
+== diff3
+cd /mnt/d
+diff3 one two three
+--
+====
+1:2,3c
+  two
+  three
+2:2,3c
+  two
+  THREE
+3:2,3c
+  2
+  three
+====2
+1:5a
+2:6c
+  six
+3:5a
+== e
+(echo 2p; echo q) | e - /mnt/d/one
+--
+two
+== expand
+printf 'a\tb\n' | expand
+printf 'a\tb\n' | expand -4
+--
+a       b
+a   b
+== fgrep
+cd /mnt/d
+fgrep -c 'apple
+fig' words
+fgrep -n -x pear words
+fgrep -v -c a words
+--
+4
+1:pear
+3
+== file
+cd /mnt/d
+file /bin/ls /bin/csh /bin/su /bin/true /usr/ucb/which /dev/null /tmp words prog.c | tr -s '\011' ' '
+--
+/bin/ls: small model executable not stripped
+/bin/csh: medium model executable not stripped
+/bin/su: small model set-uid executable not stripped
+/bin/true: executable shell script
+/usr/ucb/which: executable c-shell script
+/dev/null: character special (1/2)
+/tmp: append-only directory
+words: ascii text
+prog.c: c program text
+== fold
+echo abcdefghij | fold -4
+--
+abcd
+efgh
+ij
+== head
+cd /mnt/d
+head -2 words
+head -1 one two
+--
+pear
+apple
+==> one <==
+one
+
+==> two <==
+one
+== id
+id
+id -un
+id -u daemon
+whoami
+groups
+--
+uid=0(root) gid=1(daemon) groups=1(daemon), 0(wheel)
+root
+1
+root
+daemon wheel
+== install
+install -c -m 751 /bin/echo e
+install -c -o daemon -g staff -m 4711 /bin/echo f
+ls -lg e f | awk '{ print $1, $3, $4, $NF }'
+cmp e /bin/echo && echo same
+--
+-rwxr-x--x root wheel e
+-rws--x--x daemon staff f
+same
+== join
+(echo 1 one; echo 2 two; echo 3 three) >a
+(echo 1 uno; echo 3 tres; echo 4 cuatro) >b
+join a b
+join -a1 a b | sed -n 2p
+sort -t: +2 /mnt/d/tab >c
+join -t: -j1 3 -j2 3 -o 1.1 2.1 c c | sed -n 1p
+--
+1 one uno
+3 three tres
+2 two
+bin:bin
+== last
+last root | sed 1q | awk '{ print $1, $2 }'
+last -1 | awk 'END { print NR }'
+--
+root tty00
+1
+== leave
+leave +0100 >o
+awk '{ print $1, $2, $3 }' o
+sleep 2
+ps ax | grep -c '[l]eave +'
+kill `ps ax | awk '/[l]eave \+/ { print $1 }'`
+--
+Alarm set for
+1
+== look
+sort /mnt/d/words | uniq >a
+look ch a
+look -f BAN a
+--
+cherry
+banana
+== m4
+cat >f <<'!'
+define(`hello', `Hello, $1!')dnl
+hello(world)
+eval(3*(4+5)) eval(7%4) eval(1<<10)
+ifelse(a, a, yes, no) ifelse(a, b, yes, no)
+len(abcdef) substr(abcdef, 2, 3) index(abcdef, cd)
+define(`n', 1)define(`n', incr(n))n
+divert(1)two
+divert(0)dnl
+one
+!
+m4 f
+--
+Hello, world!
+27 3 1024
+yes no
+6 cde 2
+2
+one
+two
+== mkstr
+echo 'main() { error("Bad thing %d\n", 3); }' >f.c
+mkstr - msgs x f.c
+cat xf.c
+tr '\0' '\012' <msgs
+--
+main() { error(0, 3); }
+Bad thing %d
+
+== nohup
+nohup echo hi
+cat nohup.out
+--
+Sending output to 'nohup.out'
+hi
+== patch
+cd /tmp/w
+cp /mnt/d/one a
+diff /mnt/d/one /mnt/d/two >p
+patch a p >/dev/null 2>&1
+cmp a /mnt/d/two && echo normal
+diff -c /mnt/d/two /mnt/d/three >q
+patch a q >/dev/null 2>&1
+cmp a /mnt/d/three && echo context
+patch -R a q >/dev/null 2>&1
+cmp a /mnt/d/two && echo reversed
+ls
+--
+normal
+context
+reversed
+a
+a~
+p
+q
+== printenv
+HOME=/x printenv HOME
+printenv | grep -c '^PATH='
+--
+/x
+1
+== printf
+printf '%5d|%-5s|%x|%c|%5.2f\n' 42 ab 255 z 3.14159
+printf 'a\tb\\\n' | tr '\011' T
+--
+   42|ab   |ff|z| 3.14
+aTb\
+== ptx
+echo 'the quick brown fox' | ptx
+--
+.xx "" "the quick" "brown fox" ""
+.xx "" "the quick brown" "fox" ""
+.xx "" "the" "quick brown fox" ""
+== renice
+renice 4 $$ | sed 's/^[0-9]*/PID/'
+--
+PID: old priority 0, new priority 4
+== rev
+echo hello | rev
+--
+olleh
+== sed
+cd /mnt/d
+sed -n 2p one
+sed 's/e/E/g' one | sed 3q
+sed -e '/apple/d' -e 's/^/> /' words | sed -n '$p'
+echo `sed -n '/two/,/four/p' one`
+echo abcabc | sed 'y/abc/xyz/'
+echo `sed -n '1!G;h;$p' one`
+echo 'a    b  c' | sed -e ':a' -e 's/  / /' -e 'ta'
+sed '$!N;s/\n/+/' one
+sed -n '/three/w /tmp/w/out' one; cat /tmp/w/out
+sed '2r nums' one | sed -n '3,4p'
+sed -n '$=' words
+sed 's/\(t\)\(.*\)/\2\1/' one | sed -n 2,3p
+--
+two
+onE
+two
+thrEE
+> fig
+two three four
+xyzxyz
+five four three two one
+a b c
+one+two
+three+four
+five
+three
+10
+9
+7
+wot
+hreet
+== shar
+cp /mnt/d/one /mnt/d/words .
+shar one words >x.shar
+mkdir o; cd o
+sh ../x.shar >/dev/null 2>&1
+cmp one ../one && cmp words ../words && echo same
+--
+same
+== soelim
+(echo first; echo .so g; echo last) >f
+echo middle >g
+soelim f
+--
+first
+middle
+last
+== sort
+cd /mnt/d
+echo `sort words`
+echo `sort -u words`
+echo `sort -n nums`
+sort -rn nums | sed 1q
+echo `sort -t: +1n tab | sed 's/:.*//'`
+sort -t: +2 -3 +0 -1 tab | sed -n 1p
+sort -c words 2>&1; echo $?
+sort -o /tmp/w/s words; sort -c /tmp/w/s; echo $?
+sort -m /tmp/w/s /tmp/w/s | sed -n 5p
+--
+apple apple banana cherry fig fig pear
+apple banana cherry fig pear
+-3 2 9 10 100
+100
+root daemon bin guest
+bin:3:bin
+sort: disorder:apple
+1
+0
+banana
+== sort-big
+awk 'BEGIN { for (i = 0; i < 6000; i++) print (i * 37) % 6000, "padding to make lines long" }' </dev/null >f
+sort -n f | awk 'NR > 1 && $1 != p + 1 { bad++ } { p = $1 } END { print NR, bad + 0, p }'
+sort f | sort -c; echo $?
+--
+6000 0 5999
+0
+== spline
+(echo 0 0; echo 1 1; echo 2 4) | spline -n 4
+--
+2.000000 4.000000
+1.500000 2.312500
+1.000000 1.000000
+0.500000 0.312500
+0.000000 0.000000
+== split
+split -2 /mnt/d/words x
+ls
+cat xab
+--
+xaa
+xab
+xac
+xad
+fig
+apple
+== strings
+printf 'ab\1hello world\1\2xyz\n' >f
+strings f
+strings -2 f | sed -n '1p;$p'
+strings /usr/bin/cal | grep usage
+strings -a /usr/bin/cal | grep -c usage
+--
+hello world
+ab
+xyz
+usage: cal [month] year
+1
+== sum
+echo hello | sum
+sum /mnt/d/words | awk '{ print NF }'
+--
+36979     1
+2
+== tabs
+tabs hp | od -c | sed -e 's/ *$//' -e 1q
+--
+0000000  033   3  \r                                 033   1
+== tail
+cd /mnt/d
+tail -2 words
+tail +6 words
+tail -2r words
+awk 'BEGIN { for (i = 1; i <= 3000; i++) print "line", i }' </dev/null | tail -1
+--
+cherry
+fig
+cherry
+fig
+fig
+cherry
+line 3000
+== tar
+mkdir t t/sub
+cp /mnt/d/one t; cp /etc/services t/sub/s
+ln t/one t/link
+tar cf x.tar t
+tar tf x.tar
+mkdir o; cd o
+tar xf ../x.tar
+cmp t/sub/s /etc/services && cmp t/link ../t/one && echo same
+ls -l t/one | awk '{ print $2 }'
+cd ..; mkdir p
+tar cf - t | (cd p; tar xf -)
+cmp p/t/sub/s /etc/services && echo piped
+--
+t/
+t/sub/
+t/sub/s
+t/one
+t/link linked to t/one
+same
+2
+piped
+== touch
+touch -t 199912312359 f
+touch -t 200002291200 g
+touch -t 202603011200 h
+ls -l f g h | awk '{ print $5, $6, $7 }'
+touch new; test -f new && echo made
+touch -c absent; test -f absent || echo none
+--
+Dec 31 1999
+Feb 29 2000
+Mar 1 2026
+made
+none
+== tr
+echo hello | tr a-y b-z
+echo 'a  b   c' | tr -s ' ' ' '
+echo hello | tr -d l
+echo hello | tr a-z A-Z
+echo 'one two' | tr -cs a-z '\012'
+--
+ifmmp
+a b c
+heo
+HELLO
+one
+two
+== traverse
+mkdir a a/b; touch a/f a/b/g
+traverse a | tr '\011' T
+--
+a/
+Tb/
+TTg
+Tf
+== true
+true && echo t
+false || echo f
+--
+t
+f
+== tsort
+(echo a b; echo b c; echo a c) | tsort
+--
+a
+b
+c
+== ul
+printf 'a_\bb\n' | TERM=dumb ul -i
+--
+ab
+ _
+== uname
+uname -s
+uname -r
+uname -m
+--
+BSD
+2.11
+i286
+== unexpand
+echo '        x' | unexpand | tr '\011' T
+echo 'a       b' | unexpand -a | tr '\011' T
+--
+Tx
+aTb
+== unifdef
+(echo '#ifdef A'; echo a; echo '#else'; echo b; echo '#endif'; echo c) >f
+unifdef -DA f; echo $?
+unifdef -UA f
+unifdef -DB f | awk 'END { print NR }'
+--
+a
+c
+1
+b
+c
+6
+== uniq
+sort /mnt/d/words >s
+uniq -c s
+uniq -d s
+echo `uniq -u s`
+--
+   2 apple
+   1 banana
+   1 cherry
+   2 fig
+   1 pear
+apple
+fig
+banana cherry pear
+== units
+(echo inch; echo cm; echo '2 hour'; echo minute) | units | tr -s '\011' ' ' | sed 's/ *$//'
+--
+464 units; 3569 bytes
+
+you have: you want: * 2.540000e+00
+ / 3.937008e-01
+you have: you want: * 1.200000e+02
+ / 8.333333e-03
+you have:
+== users
+users
+u
+--
+root
+root
+== wc
+cd /mnt/d
+wc words
+wc -l <one
+wc -w tab nums | sed -n '$p'
+--
+       7       7      39 words
+       5
+       9 total
+== what
+(echo 'x @(#)version 1.2'; echo junk) >f
+what f
+--
+f
+	version 1.2
+== whereis
+whereis sort ls
+--
+/usr/bin/sort
+/bin/ls
+== which
+which sort ls nosuch
+--
+/usr/bin/sort
+/bin/ls
+no nosuch in /bin /sbin /etc /usr/sbin /usr/ucb /usr/bin /usr/new /usr/local
+== xargs
+echo a b c d e | xargs -n 2 echo
+(echo one; echo two) | xargs
+--
+a b
+c d
+e
+one two
+== xstr
+echo 'char *s = "hello world";' >f.c
+xstr -c f.c
+tr '\011' T <x.c
+od -c strings
+--
+extern charTxstr[];
+char *s = (&xstr[0]);
+0000000    h   e   l   l   o       w   o   r   l   d  \0
+0000014
+== yes
+yes | sed 2q
+yes no | sed 1q
+--
+y
+y
+
+no
+
+== su
+su daemon -c id
+su daemon -c 'su root -c id'
+--
+uid=1(daemon) gid=1(daemon) groups=1(daemon)
+You do not have permission to su root
+== chroot
+mkdir r r/bin
+cp /bin/echo r/bin
+chroot r /bin/echo inside
+--
+inside
+== ac
+ac | awk '{ print $1 }'
+ac -p | awk '{ print $1 }'
+--
+total
+root
+total

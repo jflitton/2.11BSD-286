@@ -100,11 +100,20 @@ char	*cp;
 char	*reend;
 char	*lbend;
 
+/*
+ * A command.  This was a union of two structures, A and B, with the same
+ * members but the third, re1 in one and lb1 in the other, and the
+ * members are used without either's name, which PCC allowed.  So it is
+ * one structure with no name, and those two a union with none.
+ */
 union	reptr {
-	struct reptr1 {
+	struct {
 		char	*ad1;
 		char	*ad2;
-		char	*re1;
+		union {
+			char	*re1;
+			union reptr	*lb1;
+		};
 		char	*rhs;
 		FILE	*fcode;
 		char	command;
@@ -112,19 +121,7 @@ union	reptr {
 		char	pfl;
 		char	inar;
 		char	negfl;
-	} A;
-	struct reptr2 {
-		char	*ad1;
-		char	*ad2;
-		union reptr	*lb1;
-		char	*rhs;
-		FILE	*fcode;
-		char	command;
-		char	gfl;
-		char	pfl;
-		char	inar;
-		char	negfl;
-	} B;
+	};
 } ptrspace[PTRSIZE], *rep;
 
 

@@ -180,7 +180,7 @@ pretty(pw)
 			else
 				(void)printf("rgid\t%u\n", rid);
 		(void)printf("groups\t");
-		group(NULL, 1);
+		group((struct passwd *)NULL, 1);
 	}
 }
 
@@ -306,7 +306,7 @@ who(u)
 	if (pw = getpwnam(u))
 		return(pw);
 	id = strtol(u, &ep, 10);
-	if (*u && !*ep && (pw = getpwuid(id)))
+	if (*u && !*ep && (pw = getpwuid((uid_t)id)))
 		return(pw);
 	errx(1, "%s: No such user", u);
 }

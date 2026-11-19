@@ -408,8 +408,7 @@ char c;
 	putchar(c&0177);
 }
 
-puts(str)
-char *str;
+puts(const char *str)
 {
 	if (str)
 		tputs(str, 1, outchar);

@@ -856,7 +856,7 @@ getit()
 	cp[0] = 0;
 	strcpy(nambuf, dbp);
 	cp[0] = c;
-	pfnote(nambuf, lineno);
+	pfnote(nambuf, lineno, TRUE);
 	pfcnt++;
 }
 

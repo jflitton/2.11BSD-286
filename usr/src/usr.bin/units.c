@@ -298,7 +298,7 @@ l0:
 			if(tp->name == 0)
 				continue;
 			printf("%s", tp->name);
-			units(tp);
+			units((struct unit *)tp);
 		}
 		fclose(inp);
 		inp = stdin;
@@ -334,7 +334,7 @@ l0:
 	lp = hash(np);
 	if(lp->name)
 		goto redef;
-	convr(lp);
+	convr((struct unit *)lp);
 	lp->name = np;
 	f = 0;
 	i++;

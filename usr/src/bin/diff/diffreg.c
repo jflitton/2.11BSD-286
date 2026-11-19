@@ -1003,15 +1003,15 @@ dump_context_vec()
 				ch = (a <= b) ? 'd' : 'a';
 
 			if (ch == 'a')
-				fetch(ixold,lowa,b,input[0],"  ");
+				fetch(ixold,lowa,b,input[0],"  ", 0);
 			else {
-				fetch(ixold,lowa,a-1,input[0],"  ");
-				fetch(ixold,a,b,input[0],ch == 'c' ? "! " : "- ");
+				fetch(ixold,lowa,a-1,input[0],"  ", 0);
+				fetch(ixold,a,b,input[0],ch == 'c' ? "! " : "- ", 0);
 			}
 			lowa = b + 1;
 			cvp++;
 		}
-		fetch(ixold, b+1, upb, input[0], "  ");
+		fetch(ixold, b+1, upb, input[0], "  ", 0);
 	}
 
 	/* output changes to the "new" file */
@@ -1037,15 +1037,15 @@ dump_context_vec()
 				ch = (a <= b) ? 'd' : 'a';
 
 			if (ch == 'd')
-				fetch(ixnew,lowc,d,input[1],"  ");
+				fetch(ixnew,lowc,d,input[1],"  ", 0);
 			else {
-				fetch(ixnew,lowc,c-1,input[1],"  ");
-				fetch(ixnew,c,d,input[1],ch == 'c' ? "! " : "+ ");
+				fetch(ixnew,lowc,c-1,input[1],"  ", 0);
+				fetch(ixnew,c,d,input[1],ch == 'c' ? "! " : "+ ", 0);
 			}
 			lowc = d + 1;
 			cvp++;
 		}
-		fetch(ixnew, d+1, upd, input[1], "  ");
+		fetch(ixnew, d+1, upd, input[1], "  ", 0);
 	}
 
 	context_vec_ptr = context_vec_start - 1;

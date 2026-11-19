@@ -359,9 +359,10 @@ will show.
 `tests/preflight` runs it on two files that have one of each thing it
 looks for across files, and calls that are right.
 
-Run over the 182 programs and directories of `bin`, `usr.bin`, `ucb`,
-`sbin`, `usr.sbin` and `libexec` that are not built yet, which takes ten
-seconds, it found that 118 compile as they are and 103 of those link;
+Run first over the 182 programs and directories of `bin`, `usr.bin`,
+`ucb`, `sbin`, `usr.sbin` and `libexec` that were not built then, which
+takes ten seconds, it found that 118 compile as they are and 103 of those
+link;
 33 more have five errors or fewer. It found 60 calls of the wrong size
 in 15 programs: `lseek` given an `unsigned` offset in `trpt` and `trsp`
 and its result taken as an `int` in `lpr` and `ftpd`, `inet_addr`
@@ -372,8 +373,8 @@ a length; and `shutdown` defining a `warn` of its own beside the
 library's. It does not look into subdirectories, so `sendmail`, `named`
 and the like are given by their own directories.
 
-Run over the 94 programs that are built, each with the sources and flags
-`usr/src/i286/Makefile` gives it, it agreed with the build, in that all
+Run over the 94 programs that were built then, each with the sources and
+flags `usr/src/i286/Makefile` gives it, it agreed with the build, in that all
 compile and link, and found what the build could not. `dd` called
 `gettimeofday` with one argument, so the kernel was given whatever lay
 above it on the stack as the place to put the time zone. `netstat`'s
@@ -667,6 +668,110 @@ a string, not a character. `make`'s `mkqlist` returned no value for an
 empty list, where it had just made its buffer the empty string; it
 returns the buffer.
 
+## Programs that work on text and files
+
+The next 76 were chosen with that script: those of `usr.bin` and `ucb`,
+and some of `bin`, `usr.sbin`, `sbin` and `libexec`, that need nothing
+but themselves, together with those that wanted a few lines changed. 58
+are compiled as upstream has them. All are small-model programs.
+
+| Where | Programs |
+|---|---|
+| `/bin` | `diff`, `sed`, `su`, `tar` |
+| `/usr/bin` | `basename`, `cal`, `cb`, `checkeq`, `col`, `comm`, `crypt`, `deroff`, `fgrep`, `file`, `id`, `install`, `join`, `look`, `m4`, `mesg`, `patch`, `printf`, `ptx`, `renice`, `rev`, `shar`, `sort`, `spline`, `split`, `sum`, `tabs`, `touch`, `tr`, `traverse`, `tsort`, `tty`, `uname`, `uniq`, `units`, `whereis`, `xargs` |
+| `/usr/ucb` | `apply`, `checknr`, `clear`, `colcrt`, `colrm`, `compress`, `ctags`, `expand`, `fold`, `head`, `last`, `leave`, `lock`, `mkstr`, `more`, `printenv`, `script`, `soelim`, `strings`, `tail`, `tset`, `ul`, `unexpand`, `unifdef`, `users`, `wc`, `what`, `xstr`, `yes` |
+| `/usr/libexec` | `diff3`, `diffh`, `makekey` |
+| `/usr/sbin`, `/sbin` | `ac`, `chroot`; `shutdown` |
+
+With them go what upstream installs beside them: the scripts `true`,
+`false`, `whoami`, `groups`, `nohup`, `which` and `diff3`, which runs
+the program of that name in `/usr/libexec`; the other names `e` for
+`ed`, `u` for `users`, `uncompress` and `zcat` for `compress`, `page`
+for `more` and `reset` for `tset`; and `units`, `eign` and `more.help`
+in `/usr/share/misc`. `install` is `xinstall` in the tree and in
+`obj/bin`.
+
+What the compiler needed:
+
+- `sed` keeps a command in a union of two structures that differ in one
+  member, and names the members without saying which structure, on 121
+  lines. The union is one structure with no name now, and that member a
+  union with none, which this compiler takes; no line that uses them is
+  changed.
+- `more`'s `execute` hands `execv` the address of its third argument,
+  for the ones after it. It is variadic, with a prototype before its
+  calls. `join`'s `error` is variadic too.
+- `ul` has a `puts` of its own and `apply` a `system`. Their definitions
+  take what the headers' prototypes say.
+- `shutdown` has a `warn`, and so has the library, in the file with
+  `err`, which `shutdown` calls. Its own is static.
+- Casts: of the comparison `mkstr` gives `qsort`; of a structure's
+  address in `units`; and of a bare 0 for a pointer in `id`, `more`,
+  `tset` and `diff`.
+
+What the machine needed, each in an `#ifdef i286`:
+
+- `file` knows the system's executables, as `medium model executable
+  not stripped` or `small model set-uid executable not stripped`. It
+  still knows the PDP-11's, three of whose magic numbers `a.out.h` no
+  longer has.
+- `strings` looks for strings in an executable's data segments, where
+  the PDP-11's looked in its data.
+- `sort` takes its 32K above the break. It measured from `end`, where
+  the stack is here, and so had 8K less than it meant.
+- `patch` keeps the PDP-11's limit of 48K on a file it holds in memory.
+  The size of a larger one does not fit the 16 bits `malloc` takes.
+- `diff` counts a directory's entries before it allocates for them, as
+  on the PDP-11, where the VAX grows the list an entry at a time.
+
+Bugs, which the PDP-11 has too:
+
+- `touch -t` set a time a day late for any date before March of 2000.
+  It asked `isleap` about the years since 1900, so 2000 was an ordinary
+  year, and counted the day of the month as a day gone by; from March of
+  2000 the two cancel.
+- `chroot` changed to the new root and then gave `chroot` the same
+  name, which a relative name no longer names from there. It gives ".".
+- `id`, given a number for a user, passed `getpwuid` a `long`.
+- `ctags` left out an argument of `pfnote` for a Fortran function, and
+  `diff -c` one of `fetch`.
+
+What upstream does that the test's author did not expect, and that is
+left as it is:
+
+- The Bourne shell does not redirect a built-in command, so `: >file`
+  makes nothing. It writes an empty line when a command in a pipeline is
+  killed for writing to a closed pipe, as `yes | sed 1q` is. At a
+  terminal it does not leave on `exit`, only at the end of the file.
+- `awk` reckons in `float`: 7919 times 6000 is not exact.
+- `tr -s` wants both strings, and `tr` drops every NUL it reads.
+  `printf` stops at a `\0` in its format.
+- `nohup` writes to `nohup.out` when its output is a file too: its
+  `test -t`, with no number, is true of one.
+- `script` sets the terminal's modes as it starts, which discards what
+  was typed before its shell's first prompt.
+- `spline` writes its points from the last to the first. `diff -h`, of
+  files of five and six lines that differ in the third, says that the
+  rest of each was changed.
+- `uname -s` is `BSD` and `uname -r` is `2.11`. Root's group is
+  `daemon`.
+
+Left out of this batch: `tc` and `tk`, which are for a Tektronix
+4014; `calendar`, `from`, `biff` and `msgs`, which
+wait for `mail`; `tcopy`, `mt` and `tp`, for tapes; the scripts
+`lorder`, `mkdep` and `lint`, which run `nm`, the compiler and the
+passes of `lint`; `spell`, which needs its word lists made; `indent`,
+where the script found 16 calls to read, each with another number of
+arguments than the function is defined with;
+the programs that read the kernel, `fstat`, `top` and `gcore`; those
+for object files, `nm`, `ar`, `ranlib`, `strip`, `size` and `ld`; and
+the network's, which come next. `look` has no `/usr/dict/words` to
+search by default, the tree having none.
+
+`tests/programs` has the system run a check or more of each: 74 short
+scripts, each with what it must write, to the byte. They are in
+`tests/programs/checks`, with the files they read.
+
 ## The root file system
 
 `usr/src/i286/root.proto` lists it: the kernel and `/boot`, `/etc/init`,
@@ -746,7 +851,12 @@ and `telnet` and `netstat` in `/usr/ucb`. `tools/mkfs.py` makes these
 other names as hard links, and also `[` and `halt`. It makes everything
 root's unless the list says otherwise, as it does for `at`, `atq`,
 `atrm` and their queue, which are `daemon`'s, and for the programs that
-run with the group `kmem`.
+run with the group `kmem`. The programs that work on text and files are
+listed [above](#programs-that-work-on-text-and-files).
+
+The file system is 8000 blocks of 1K, of which the system takes 3700.
+The 170 programs are 3 MB of that. They have their symbols, an eighth of
+their bytes, where upstream's `install -s` strips them.
 
 ## Following a program
 
@@ -877,6 +987,25 @@ the top line, go to the bottom one and delete a character. Last it runs
 the file systems the test mounted and wrote on, and must find the
 copied files.
 
+`tests/programs` boots the same system from a disk with the root, a
+swap area and a small file system of checks, logs in as root on the
+first serial port, mounts that file system and runs its `check.sh`. For
+each of the 74 checks in `tests/programs/checks` it runs the check's
+lines with the shell in an empty directory and compares what they wrote
+with what the check says they must, and says `ok` or shows what was
+written. A check is of one program, by its name, or of one use of it:
+`sort` has one for its options and one that sorts 6000 lines, more than
+it holds in memory, so that it merges files; `diff` has four, among
+them one of directories and one against an empty file. The test fails
+unless all 74 say `ok`. Then, at the terminal, it runs `tty` and `mesg`;
+pages through a file and through a pipe with `more`; records a shell
+with `script`, which it leaves with ^D, and finds the command it typed
+in the file; locks the terminal with `lock`, gives it a wrong key and
+then the right one; has `tset` name the terminal and `clear` write the
+sequence that clears a VT100; and stops the system with `shutdown -h
+now` and a message, which must be shown before the system halts.
+Afterwards `tools/fsck.py` must find nothing wrong with the root.
+
 Not done, or not tested:
 
 - The large model has no library, and the three helpers for `__huge`
@@ -890,14 +1019,18 @@ Not done, or not tested:
   its owner through `/bin/mail`, which is not built. That `mail` hands
   letters to `sendmail`, and it tells `comsat` of a new one over the
   network. So these wait for `mail` and `sendmail`.
-- Most programs are not built: of `/usr/bin` and `/usr/ucb` only
-  `sleep`, `iostat`, `find`, `crontab`, the `at` programs, `egrep`,
-  `bc`, `dc`, `yacc`, `lex`, `ex`, `vi`, `w`, `vmstat`, `netstat`,
-  `logger`, `lastcomm` and `telnet` (not `more` or `sort`), and no
-  `disklabel`. With
-  no `disklabel`, a partition can be made a file system only where
-  `tools/mkdisk.py` labelled it one: the kernel mounts nothing else. Of
-  the network's, `ftp` and the rest are not built.
+- Many programs are not built yet: `mail` and what waits for it; the
+  network's but `telnet`, so no `ftp`, `rlogin` or `rsh`; the compiler
+  and what works on object files; `nroff` and the rest for documents;
+  the line printer's; and `disklabel`. With no `disklabel`, a partition
+  can be made a file system only where `tools/mkdisk.py` labelled it
+  one: the kernel mounts nothing else.
+- Of the programs that work on text and files, `tests/programs` gives
+  each a check or a few, not every option. `su` is tried only from root,
+  which is asked for no password; `lock` only with a key typed for it,
+  not with the user's password; `shutdown` only at once and to halt.
+  `more` is not asked to search or to start `vi`, and `tar` reads and
+  writes files, not a tape or a diskette.
 - `yacc` and `lex` are on a system with no C compiler to give their
   output to, and `liby` and `libln` are not built. `lex -r`, for
   Ratfor, `awk`'s saving and restoring of itself (`-S` and `-R`), and

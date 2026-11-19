@@ -1,0 +1,135 @@
+#!/bin/sh
+# Test the programs that work on text and files: boot the system from a
+# hard disk to multi-user, log in on the first serial port as root, and
+# have it run each of the checks in tests/programs/checks, which are on a
+# file system of their own with the files they read.  A check is a few
+# lines for the shell and what they must write, to the byte.  Then use
+# what needs a terminal: tty and mesg, more, script, lock, tset and
+# clear; and stop the system with shutdown.  The kernel, /boot, the C
+# library, the programs and the root file system are built as they would
+# be for a real machine, as tests/system has them.
+#
+# Run from the top of the repository after `. tools/env.sh`.
+set -e
+if [ "$EMU" = qemu ]; then
+    echo "tests/programs needs 86Box: the kernel is for a 286" >&2
+    exit 2
+fi
+top=$(cd "$(dirname "$0")/../.." && pwd)
+out=$top/obj/tests/programs
+mkdir -p "$out"
+
+quiet() { grep -v '^cc \|^as \|^wlib \|Warning!\|Note!\|^unix:' || true; }
+make -s -C "$top/usr/src/sys/PC" | quiet
+make -s -C "$top/usr/src/sys/i286stand" | quiet
+make -s -C "$top/usr/src/lib/libc/i286" | quiet
+make -s -C "$top/usr/src/i286" all | quiet
+make -s -C "$top/usr/src/i286" root | quiet
+
+# The file system of checks: each one's lines in /t, what they must write
+# in /x, the files in /d, and check.sh, which runs them all and says of
+# each whether it wrote that, and what it wrote if not.
+cd "$out"
+cp "$top/obj/root/root.fs" root.fs
+rm -rf checks && mkdir checks checks/t checks/x checks/d
+python3 -I - "$top/tests/programs/checks" checks <<'EOF'
+import os, sys
+src, dst = sys.argv[1:]
+out = None
+names = []
+for line in open(src):
+    if line.startswith("=file "):
+        out = open(os.path.join(dst, "d", line.split()[1]), "w")
+    elif line.startswith("== "):
+        name = line.split()[1]
+        assert name not in names, name
+        names.append(name)
+        out = open(os.path.join(dst, "t", name), "w")
+    elif line == "--\n" and out.name.startswith(os.path.join(dst, "t")):
+        out = open(os.path.join(dst, "x", name), "w")
+    elif out:
+        out.write(line)
+open(os.path.join(dst, "names"), "w").write("".join(n + "\n" for n in names))
+EOF
+cat > checks/check.sh <<'EOF'
+PATH=/bin:/sbin:/usr/sbin:/usr/ucb:/usr/bin
+export PATH
+ok=0 bad=0
+for n in `cat /mnt/names`
+do
+	rm -rf /tmp/w; mkdir /tmp/w
+	(cd /tmp/w; sh /mnt/t/$n) >/tmp/out 2>&1 </dev/null
+	if cmp -s /tmp/out /mnt/x/$n
+	then
+		ok=`expr $ok + 1`; echo "ok $n"
+	else
+		bad=`expr $bad + 1`; echo "BAD $n"; cat /tmp/out; echo "END $n"
+	fi
+done
+echo "checks: $ok ok, $bad bad"
+EOF
+{
+    echo "d /t 755"; echo "d /x 755"; echo "d /d 755"
+    echo "f /check.sh 644 checks/check.sh"
+    echo "f /names 644 checks/names"
+    for f in checks/t/* checks/x/* checks/d/*; do
+        echo "f /${f#checks/} 644 $f"
+    done
+} > checks.proto
+python3 -I "$top/tools/mkfs.py" -s 400 checks.proto checks.fs >/dev/null
+
+stand=$top/obj/stand
+geometry=$(python3 -I "$top/tools/mkdisk.py" -p -b "$stand/hdboot.bin" \
+    -m "$stand/mbr.bin" programs.img a=root.fs b=swap:4000 d=checks.fs | tail -1)
+
+# What is typed waits for something only the system writes, as in
+# tests/system: a typed line is echoed, so what it waits for is split by
+# quotes where it is typed.  The shell that script starts is left with
+# the end of the file: one that is at a terminal does not obey exit.
+CTRLD=$(printf '\004')
+TIMEOUT=${TIMEOUT:-900} python3 -I "$top/tests/harness/runtest.py" \
+    --hd programs.img,$geometry,xtide --until halting \
+    --type "login: " "root" \
+    --type "# " 'mount /dev/wd0d /mnt; sh /mnt/check.sh; umount /mnt' \
+    --type "checks: " 'tty; mesg; mesg n; mesg; mesg y' \
+    --type "is n" 'more /etc/services' \
+    --type "--More--" ' ' \
+    --type "--More--" 'q' \
+    --type "# " 'ls -l /etc | more' \
+    --type "--More--" 'q' \
+    --type "# " 'script /tmp/ts' \
+    --type "# " 'echo "in-sc""ript"' \
+    --type "# " "${CTRLD}" \
+    --type "Script done" 'echo ts-`grep -c "^in-script" /tmp/ts`' \
+    --type "# " 'lock' \
+    --type "Key: " 'kk' \
+    --type "Again: " 'kk' \
+    --type "time now is" 'wrong' \
+    --type "Key: " 'kk' \
+    --type "# " 'echo "ts""et-"`tset - -Q`; clear | od -c | sed 1q' \
+    --type "# " 'echo "@ex""it 00"; shutdown -h now going down' \
+    --boot programs
+
+serial=$out/serial.txt
+if grep -q "^BAD " "$serial"; then
+    tr -d '\r' < "$serial" | sed -n '/^BAD /,/^END /p' >&2
+    echo "programs: those checks did not write what they must" >&2
+    exit 1
+fi
+n=$(wc -l < checks/names | tr -d ' ')
+if ! grep -q "^checks: $n ok, 0 bad" "$serial"; then
+    echo "programs: not all $n checks ran" >&2
+    exit 1
+fi
+for want in "^/dev/tty00" "^is y" "^is n" "--More--(.*%)" "^ts-1" \
+    "Script started, file is /tmp/ts" "Script done, file is /tmp/ts" \
+    "lock: /dev/tty00 on .* timeout in 15 minutes" "tset-vt100" \
+    "^0000000  *033  *\[" "System going down IMMEDIATELY" "going down" \
+    "System shutdown time has arrived" "halting"; do
+    if ! grep -q -- "$want" "$serial"; then
+        echo "programs: no \"$want\" in what the system wrote" >&2
+        exit 1
+    fi
+done
+python3 -I "$top/tools/fsck.py" programs.img
+echo "programs: $n checks of the programs that work on text and files, and tty, mesg, more, script, lock, tset, clear and shutdown at a terminal"

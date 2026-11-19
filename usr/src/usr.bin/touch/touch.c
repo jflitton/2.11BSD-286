@@ -347,17 +347,24 @@ usage(void)
  * of the bloated 4.4BSD mktime()
 */
 
+/*
+ * The days from the first of 1970 to the day given, which is not one of
+ * them.  isleap takes the year and not the years since 1900: given those
+ * it made 2000 an ordinary year, which the day too many that this
+ * counted made up for from March of 2000, and before then the time was a
+ * day late.
+ */
 static int ndays (struct tm *p) {
-    int n = p->tm_mday;
+    int n = p->tm_mday - 1;
     register m, y;
     static char md[] = "\37\34\37\36\37\36\37\37\36\37\36\37";
 
     for (y = 70; y < p->tm_year; ++y) {
 	n += 365;
-	if (isleap(y)) ++n;
+	if (isleap(y + TM_YEAR_BASE)) ++n;
     }
     for (m = 0; m < p->tm_mon; ++m)
-	n += md[m] + (m == 1 && isleap(y));
+	n += md[m] + (m == 1 && isleap(y + TM_YEAR_BASE));
     return (n);
 }
 

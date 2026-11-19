@@ -117,8 +117,7 @@ docmd(argc, argv)
 	}
 	return(max==0? (defargs==0? 1 : defargs) : max+1);
 }
-system(s)
-char *s;
+system(const char *s)
 {
 	int status, pid, w;
 	char *shell = getenv("SHELL");

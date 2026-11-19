@@ -163,7 +163,8 @@ main(argc, argv)
 /*
  * sort by length of strings.  look for matches on longer strings first
 */
-	qsort(dashe, nume, sizeof(struct estring), compar);
+	qsort(dashe, nume, sizeof(struct estring),
+	    (int (*)(const void *, const void *))compar);
 
 	if	(debug)
 		{

@@ -5,6 +5,7 @@ static char *sccsid = "@(#)join.c	4.3 (2.11BSD) 2026/5/8";
 /*	join F1 F2 on stuff */
 
 #include	<stdio.h>
+#include	<stdarg.h>
 
 #define F1 0
 #define F2 1
@@ -202,11 +203,14 @@ int on1, on2;
 	}
 }
 
-error(s1, s2, s3, s4, s5)
-char *s1;
+error(char *s1, ...)
 {
+	va_list ap;
+
 	fprintf(stderr, "join: ");
-	fprintf(stderr, s1, s2, s3, s4, s5);
+	va_start(ap, s1);
+	vfprintf(stderr, s1, ap);
+	va_end(ap);
 	fprintf(stderr, "\n");
 	exit(1);
 }

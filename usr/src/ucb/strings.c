@@ -80,8 +80,28 @@ main(argc, argv)
 			find((long) 100000000L);
 			continue;
 		}
+#ifdef i286
+		/*
+		 * The strings are in the data segments, of which a file has
+		 * as many as its model gives it, each after the segments
+		 * before it.
+		 */
+		{
+			register int s;
+			off_t at = N_TXTOFF(header.e);
+
+			for (s = 0; s < header.e.a_nseg && s < NXSEG; s++) {
+				if (header.x[s].xs_type == XS_DATA) {
+					fseek(stdin, at, L_SET);
+					find((long) header.x[s].xs_filesz);
+				}
+				at += (header.x[s].xs_filesz + 1) & ~1L;
+			}
+		}
+#else
 		fseek(stdin, (long) N_DATOFF(header), L_SET);
 		find((long) header.e.a_data);
+#endif
 	} while (argc > 0);
 }
 

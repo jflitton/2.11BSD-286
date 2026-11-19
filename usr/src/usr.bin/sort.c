@@ -243,7 +243,12 @@ char **argv;
 	}
 	safeoutfil();
 
+#ifdef i286
+	/* The stack is between end and the break; the memory is above it. */
+	ep = sbrk(0) + MEM;
+#else
 	ep = end + MEM;
+#endif
 	lspace = (int *)sbrk(0);
 	while((int)brk(ep) == -1)
 		ep -= 512;

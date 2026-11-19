@@ -197,6 +197,52 @@ make_SRCS=	$(addprefix bin/make/,ident.c main.c doname.c misc.c files.c \
 make_FLAGS=	-I$(SRC)/bin/make -I$(SRC)/bin/ar
 YACCPROGS=	expr yacc lex awk egrep bc dc make
 
+# Those that work on text and files and need nothing but themselves:
+# of one file in usr.bin or ucb, or in a directory of their own.  clear,
+# ul, more and tset read the termcap; crypt has makekey make its key;
+# install is xinstall here as it is in the tree, and takes ls's flags.
+USRBINSTD= basename cal cb checkeq col comm crypt deroff fgrep file join \
+	look mesg ptx rev sort spline split sum tabs tr tsort tty uniq units
+$(foreach p,$(USRBINSTD),$(eval $(p)_SRCS = usr.bin/$(p).c))
+UCBSTD=	apply checknr clear colcrt colrm ctags expand fold head last leave \
+	printenv script soelim strings tail ul unexpand unifdef users what \
+	wc xstr yes
+$(foreach p,$(UCBSTD),$(eval $(p)_SRCS = ucb/$(p).c))
+clear_LIBS=	-ltermcap
+ul_LIBS=	-ltermcap
+USRBINDIR= id printf renice touch uname whereis xargs
+$(foreach p,$(USRBINDIR),$(eval $(p)_SRCS = usr.bin/$(p)/$(p).c))
+diff3_SRCS=	usr.bin/diff3/diff3.c
+m4_SRCS=	$(addprefix usr.bin/m4/,eval.c expr.c look.c main.c misc.c)
+m4_FLAGS=	-DEXTENDED -I$(SRC)/usr.bin/m4
+patch_SRCS=	$(addprefix usr.bin/patch/,patch.c pch.c inp.c util.c \
+		version.c)
+shar_SRCS=	usr.bin/shar/shar.c usr.bin/shar/traverse.c
+traverse_SRCS=	usr.bin/shar/traverse.c
+traverse_FLAGS=	-DSTANDALONE
+xinstall_SRCS=	usr.bin/xinstall/xinstall.c bin/ls/stat_flags.c
+compress_SRCS=	ucb/compress/compress.c
+lock_SRCS=	ucb/lock/lock.c
+mkstr_SRCS=	ucb/mkstr/mkstr.c
+more_SRCS=	ucb/more/more.c
+more_LIBS=	-ltermcap
+tset_SRCS=	ucb/tset/tset.c
+tset_LIBS=	-ltermcap
+su_SRCS=	bin/su.c
+tar_SRCS=	bin/tar.c
+sed_SRCS=	bin/sed/sed0.c bin/sed/sed1.c
+diff_SRCS=	$(addprefix bin/diff/,diff.c diffdir.c diffreg.c)
+diff_FLAGS=	'-DDIFF="/bin/diff"' '-DDIFFH="/usr/libexec/diffh"' \
+		'-DPR="/bin/pr"'
+diffh_SRCS=	bin/diff/diffh.c
+makekey_SRCS=	libexec/makekey/makekey.c
+chroot_SRCS=	usr.sbin/chroot/chroot.c
+ac_SRCS=	usr.sbin/ac/ac.c
+shutdown_SRCS=	sbin/shutdown/shutdown.c
+TEXTPROGS=	$(USRBINSTD) $(UCBSTD) $(USRBINDIR) diff3 m4 patch shar \
+		traverse xinstall compress lock mkstr more tset su tar sed \
+		diff diffh makekey chroot ac shutdown
+
 # This port's own (docs/userland.md), each in a directory here.
 adduser_SRCS=	i286/adduser/adduser.c
 OWNPROGS=	adduser
@@ -204,7 +250,7 @@ OWNPROGS=	adduser
 PROGS=	init getty login sh csh ls mkdir stty test hostname mknod mount \
 	umount reboot sleep ex exrecover expreserve tcsh $(BINSTD) \
 	$(NETPROGS) $(SYSPROGS) $(KMEMPROGS) $(LOGPROGS) $(YACCPROGS) \
-	$(OWNPROGS)
+	$(TEXTPROGS) $(OWNPROGS)
 
 # The libraries the programs use besides the C library: NAME_LIB lists a
 # library's sources, and NAME_LIBFLAGS what it is compiled with.  Each is
@@ -379,7 +425,7 @@ $(foreach l,$(LIBRARIES),$(foreach m,s m,$(eval $(call library,$(l),$(m)))))
 # the AT disk controller, unless it is given, as sd0 is for the first
 # SCSI disk (make root ROOTDISK=sd0).
 R=	$(TOP)/obj/root
-ROOTSIZE= 4000
+ROOTSIZE= 8000
 ROOTDISK= wd0
 
 root:	$(R)/root.fs

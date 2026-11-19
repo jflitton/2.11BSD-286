@@ -194,6 +194,11 @@ tests/libc/run.sh       # the C library, with a test program as init: 73
                         # checks in the small model, 73 in the medium
 tests/preflight/run.sh  # tools/preflight.py, on two files with one of each
                         # thing it looks for (no emulator)
+tests/programs/run.sh   # the programs that work on text and files, on the
+                        # system booted to multi-user: 74 checks, each a
+                        # few lines for the shell and what they must write,
+                        # and more, script, lock, tset and shutdown at a
+                        # terminal
 tests/system/run.sh     # the system, booted from a hard disk to multi-user:
                         # checks its root with fsck and starts again,
                         # logs in on a serial port and on two of the
@@ -266,6 +271,13 @@ tests/vt/run.sh         # the console's terminal emulator, on the machine
   machine, after which `tools/fsck.py` checks the disk
   ([the C library and programs](docs/userland.md),
   [the console](docs/console.md), [the network](docs/network.md)).
+- `tests/programs` boots that system too, with a file system of checks
+  beside the root: 74 of them, each a few lines for the shell and what
+  they must write, to the byte, for `sort`, `sed`, `diff`, `tar`,
+  `patch`, `m4`, `compress` and the other programs that work on text and
+  files. Then it uses the ones that need a terminal, `more`, `script`,
+  `lock` and `tset`, and stops the system with `shutdown`
+  ([the C library and programs](docs/userland.md)).
 - `tests/vt` is the console's terminal emulator, which touches no
   hardware, built with the C compiler of the machine the system is built
   on and run there: what each sequence leaves on the screen, where it
@@ -341,7 +353,7 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   system's part of the disk: past its 1024 cylinders, or on a controller
   it does not know.
 - The C library is built for the small and medium models, and with them
-  94 of the system's programs: `init`, `getty`, `login`, the Bourne shell and the
+  170 of the system's programs: `init`, `getty`, `login`, the Bourne shell and the
   everyday commands in the small model, and in the medium the C shell,
   `tcsh`, and `ex`, which is `vi`, whose code the PDP-11 had to split
   into overlays ([the C library and programs](docs/userland.md)).
@@ -356,6 +368,10 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   `syslogd` keeps the log, of the kernel's messages too, `cron` runs
   each user's table and `at`'s queue, and `acctd` keeps the accounting
   of processes that `lastcomm` and `sa` read.
+  Of the programs that work on text and files there are 76, among them
+  `sort`, `sed`, `diff`, `patch`, `tar`, `compress`, `m4`, `more` and
+  `su`; `tools/preflight.py` said which would compile and link as they
+  are, and found the calls in the others that no compiler would.
   The system boots from its disk to multi-user, and one logs in on the
   console or a serial port, works in any of the three shells, and edits
   with `vi`.
@@ -376,9 +392,10 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   core dumps beyond being written, `fork` when memory is short,
   swapping of shared code, and Unix-domain stream sockets.
 - What user space does not have: a library for the large model, and
-  most of the programs, among them `more` and `mail`, without which
-  `cron` and `at` cannot send a job's owner what it printed, and of the
-  network's `ftp`.
+  many of the programs: `mail`, without which `cron` and `at` cannot
+  send a job's owner what it printed; of the network's, `ftp`, `rlogin`
+  and the rest but `telnet`; the compiler and what works on object
+  files; and `nroff`.
 - Upstream's programs are kept as 2.11BSD has them, changed only for
   bugs, the compiler and the settings each machine makes. Newer
   behaviour goes in programs of this port's own beside them: so far

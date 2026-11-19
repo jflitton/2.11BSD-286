@@ -90,8 +90,8 @@ diffdir(argv)
 		}
 	}
 	if (lflag) {
-		scanpr(dir1, ONLY, "Only in %.*s", file1, efile1, 0, 0);
-		scanpr(dir2, ONLY, "Only in %.*s", file2, efile2, 0, 0);
+		scanpr(dir1, ONLY, "Only in %.*s", file1, efile1, (char *)0, (char *)0);
+		scanpr(dir2, ONLY, "Only in %.*s", file2, efile2, (char *)0, (char *)0);
 		scanpr(dir1, SAME, "Common identical files in %.*s and %.*s",
 		    file1, efile1, file2, efile2);
 		scanpr(dir1, DIFFER, "Binary files which differ in %.*s and %.*s",
@@ -107,7 +107,7 @@ diffdir(argv)
 				continue;
 			strcpy(efile1, d1->d_entry);
 			strcpy(efile2, d1->d_entry);
-			calldiff(0);
+			calldiff((char *)0);
 		}
 	}
 }
@@ -183,7 +183,7 @@ setupdir(cp)
 		done();
 	}
 	nitems = 0;
-#ifdef	pdp11
+#if	defined(pdp11) || defined(i286)
 	while (readdir(dirp))
 		nitems++;
 	rewinddir(dirp);
@@ -210,7 +210,7 @@ setupdir(cp)
 			}
 			strcpy(ep->d_entry, rp->d_name);
 		}
-#ifndef	pdp11
+#if	!defined(pdp11) && !defined(i286)
 		dp = (struct dir *)realloc((char *)dp,
 			(nitems + 1) * sizeof (struct dir));
 		if (dp == 0) {
@@ -308,10 +308,10 @@ notsame:
 	else {
 		if (opt == D_EDIT) {
 			printf("ed - %s << '-*-END-*-'\n", dp->d_entry);
-			calldiff(0);
+			calldiff((char *)0);
 		} else {
 			printf("%s%s %s\n", title, file1, file2);
-			calldiff(0);
+			calldiff((char *)0);
 		}
 		if (opt == D_EDIT)
 			printf("w\nq\n-*-END-*-\n");

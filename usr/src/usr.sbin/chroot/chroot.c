@@ -39,7 +39,8 @@ main(argc, argv)
 		fprintf(stderr, "usage: chroot newroot [command]\n");
 		exit(1);
 	}
-	if (chdir(argv[1]) || chroot(argv[1]))
+	/* It is in the new root by now, which a relative name no longer names. */
+	if (chdir(argv[1]) || chroot("."))
 		fatal(argv[1]);
 	setuid(getuid());
 	if (argv[2]) {
