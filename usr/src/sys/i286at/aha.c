@@ -63,17 +63,27 @@ static int ahaintr(), ahawatch(), ahacmd();
 
 /*
  * How the adapter takes its turns on the AT bus, which is what a disk's
- * speed comes to when the SCSI bus is quicker than that: the
- * microseconds it holds the bus, and lets it go, and its speed there in
- * tenths of a megabyte a second, 0 for as its switches or its own
- * set-up program left it.  The first two are what other drivers for it
- * use, for the sake of a diskette drive's DMA, which waits while the
- * adapter has the bus; the adapter's own are 11 and 4.  sysctl changes
- * them (machdep.aha_buson, aha_busoff, aha_speed), and they are given
- * again when the adapter is reset.  A speed the machine's memory cannot
- * keep up with spoils what is read and written.
+ * speed comes to when the SCSI bus is as quick as that one: the
+ * microseconds it holds the bus, 2 to 15, and lets it go, 1 to 64 and
+ * taken in fours, and its speed there in tenths of a megabyte a second,
+ * 0 for as its switches or its own set-up program left it.
+ *
+ * The turns are the adapter's own, 11 and 4.  A real disk read 32K at a
+ * time gave 2.03 MB/s at 7 and 5, which other drivers for this adapter
+ * use so that a diskette drive's DMA is not kept waiting, and this
+ * kernel has no driver for one; 2.38 at 11 and 4; and 2.77 at 15 and 1.
+ * The processor is kept off the bus 200 ns for each byte moved at 5
+ * MB/s however the turns are cut, but with 15 and 1 it has the bus a
+ * sixteenth of the time while a transfer lasts, which for 64K is 14 ms:
+ * an interrupt's handler takes sixteen times as long then, a serial
+ * port with no FIFO can lose what comes in, and the memory's refresh,
+ * which is why 15 is the most, has no room.
+ *
+ * sysctl changes the three (machdep.aha_buson, aha_busoff, aha_speed),
+ * and they are given again when the adapter is reset.  A speed the
+ * machine's memory cannot keep up with spoils what is read and written.
  */
-static int ahatune[3] = { 7, 5, 0 };
+static int ahatune[3] = { 11, 4, 0 };
 static u_char ahaspeeds[] = { 50, 67, 80, 100, 57 };	/* AC_SPEED's codes */
 
 /* Give the adapter the value of one of them: 0 if it took it. */

@@ -122,18 +122,37 @@ adapter and `sd.c` the disks on it.
   partition table and whatever boots the machine count in those.
 - How fast a disk is comes to how the data is passed, on two buses,
   and the driver says both when it finds them, as the adapter reports
-  them: the AT bus's speed and how long the adapter holds it and lets
-  it go (7 and 5 microseconds, set by the driver so that a diskette
-  drive is not kept waiting; the adapter takes the 5 as 4, counting
-  the time it lets go in fours), and for each disk whether it and the
-  adapter agreed to pass data synchronously, how many nanoseconds a
-  byte, and how many bytes ahead of the acknowledgements. The three of
-  the AT bus can be read and set while the system runs, between
+  them: its speed on the AT bus and how long it holds that bus and lets
+  it go, and for each disk whether it and the adapter agreed to pass
+  data synchronously, how many nanoseconds a byte, and how many bytes
+  ahead of the acknowledgements.
+- The adapter holds the AT bus 11 microseconds at a time and lets it go
+  for 4, which is how it is made. Other drivers for it give it 7 and 5,
+  so that a diskette drive's DMA is not kept waiting, and this kernel
+  has no diskette driver. On a real machine, with a disk that had
+  agreed 5 MB/s and the AT bus at 5 MB/s, a read of the disk itself 32K
+  at a time:
+
+  | held, let go | MB/s |
+  |---|---|
+  | 7, 5 (taken as 4: the adapter counts the second in fours) | 2.03 |
+  | 11, 4 | 2.38 |
+  | 15, 1, the most and the least it can | 2.77 |
+
+  That is 4.7 ms for each command and the data at 5 MB/s for as much
+  of the time as the adapter has the bus, to within 2%. The processor
+  loses the bus 200 ns for each byte whichever it is, but at 15 and 1
+  it has the bus a sixteenth of the time while a transfer lasts, and
+  the longest, 64K, lasts 14 ms: interrupts are served that much more
+  slowly, a serial port with no FIFO can lose what comes in meanwhile,
+  and the refresh of the memory, which is why 15 is the most the
+  adapter may hold the bus, has no room. Files gain nothing by it: a
+  block is 1K, and its command's 4.7 ms is nearly all of what it
+  costs. All three can be read and set while the system runs, between
   commands: `sysctl machdep.aha_buson`, `aha_busoff` (microseconds) and
   `aha_speed` (50, 57, 67, 80 or 100, tenths of a megabyte a second).
-  The first two only share the bus out. A speed that the machine's
-  memory cannot keep up with spoils what is read and written, the file
-  system's own blocks with the rest.
+  A speed that the machine's memory cannot keep up with spoils what is
+  read and written, the file system's own blocks with the rest.
 - One command is out at a time, for the whole of a transfer.
 - A transfer that fails is tried four times, unless the target has
   understood it and refused, or is not there.
