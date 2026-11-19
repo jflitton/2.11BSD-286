@@ -253,7 +253,16 @@ rwip(ip, uio, ioflag)
 				bp = bread(dev, bn);
 			ip->i_lastr = lbn;
 		} else {
-			if (n == DEV_BSIZE) 
+			/*
+			 * What a pipe writes at the start of a block has
+			 * nothing before it in the block to keep: all of
+			 * a pipe is written at its end.  Reading the block
+			 * first, as for a file, read the disk for each
+			 * byte sent through a pipe that had been emptied,
+			 * whose buffer the reader had given up (B_AGE,
+			 * below).
+			 */
+			if (n == DEV_BSIZE || on == 0 && (ip->i_flag & IPIPE))
 				bp = getblk(dev, bn);
 			else
 				bp = bread(dev, bn);
