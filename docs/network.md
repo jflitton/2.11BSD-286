@@ -13,7 +13,8 @@ file each way.
 The code is upstream's, as the PDP-11 runs it, with changes where it
 assumed the PDP-11's address spaces; what it needed from the 286 is in
 `usr/src/sys/i286`: `net_mac.h`, `mch_net.s`, `net_sys.c`, `net_data.c`
-and `in_cksum.c`. The card's driver is `usr/src/sys/i286if/if_ne.c`.
+and the checksum, `mch_cksum.s`, with the C it was written from beside
+it (`in_cksum.c`). The card's driver is `usr/src/sys/i286if/if_ne.c`.
 
 ## Its data segment
 
@@ -307,8 +308,8 @@ controller is set; the driver has not run on one, nor on any real card.
 - `recvmsg` and `sendmsg` in the C library: the kernel's `struct
   msghdr` holds far pointers now, as `struct iovec` does.
 - The serial line interface, whose calls are left out of `net_mac.h`.
-- The Internet checksum, mbuf copies and the network card's transfers in
-  assembly ([memory model](memory-model.md)); the size of the mbuf pool,
+- Mbuf copies and the network card's transfers in assembly, as the
+  checksum is ([memory model](memory-model.md)); the size of the mbuf pool,
   which could grow to fill the segment.
 - Most of it has run in the emulator only. The system has also been
   logged in to over the network on a real machine.

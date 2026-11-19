@@ -49,8 +49,11 @@ KERN=	init_main.o init_sysent.o kern_acct.o kern_clock.o \
 # The network, which has a data segment of its own, NET_GROUP, and runs
 # on the kernel's stacks (docs/network.md): -nd names its data segment,
 # and -zu says that SS is not it.
+# The Internet checksum is assembly; in_cksum.o is the C it was written
+# from, to build with instead when one is in doubt.
+CKSUM=	mch_cksum.o
 NET=	af.o if.o if_loop.o raw_cb.o raw_usrreq.o route.o \
-	if_ether.o in.o in_cksum.o in_pcb.o in_proto.o ip_icmp.o \
+	if_ether.o in.o $(CKSUM) in_pcb.o in_proto.o ip_icmp.o \
 	ip_input.o ip_output.o raw_ip.o tcp_input.o tcp_output.o \
 	tcp_debug.o tcp_subr.o tcp_timer.o tcp_usrreq.o udp_usrreq.o \
 	net_data.o net_sys.o sys_socket.o uipc_domain.o uipc_mbuf.o uipc_proto.o \

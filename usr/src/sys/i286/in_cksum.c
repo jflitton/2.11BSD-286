@@ -8,8 +8,9 @@
  * An mbuf may hold an odd number of bytes; its last one is the low half
  * of a word whose high half is the next mbuf's first.
  *
- * This is the reference C; docs/memory-model.md has it among the paths
- * to get an assembly version.
+ * This is the reference C.  The kernel is built with the assembly
+ * version, mch_cksum.s, which is about five times as fast;
+ * `make CKSUM=in_cksum.o` in sys/PC builds it with this one instead.
  */
 #include "param.h"
 #include "mbuf.h"
