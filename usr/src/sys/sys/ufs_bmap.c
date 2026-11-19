@@ -134,7 +134,16 @@ bmap(ip, bn, rwflg, flags)
 			ra = bap[i+1];
 		mapout(bp);
 		if (nb == 0) {
-			if (rwflg == B_READ || (nbp = balloc(ip, flags | B_CLRBUF)) == NULL) {
+			/*
+			 * An indirect block is cleared, for what is not
+			 * yet in it is holes.  A block of the file's
+			 * data is cleared only if the caller asks, as a
+			 * direct one is above: one written whole has
+			 * nothing in it to keep, and clearing it first
+			 * was a tenth of the time of writing a file.
+			 */
+			if (rwflg == B_READ || (nbp = balloc(ip,
+			    j < 3 ? flags | B_CLRBUF : flags)) == NULL) {
 				brelse(bp);
 				return((daddr_t) -1);
 			}
