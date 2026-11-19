@@ -53,6 +53,10 @@ SP_NET          equ     2
 
 ENOENT          equ     2       ; h/errno.h
 EFAULT          equ     14
+EINVAL          equ     22
+ENAMETOOLONG    equ     63
+
+MAXNAMLEN       equ     63      ; h/dir.h
 
 ; struct bootinfo (boot.h)
 BI_NSEG         equ     2

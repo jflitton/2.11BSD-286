@@ -71,6 +71,12 @@ u_long	ntohl(), htonl();
 #define	UBYTES		(USIZE * NBPG)
 
 /*
+ * Routines the machine-independent code has in C that are assembly
+ * here (mch_xxx.s).
+ */
+#define	MCH_NAMECOMP		/* namecomp, for namei */
+
+/*
  * Interrupt priority levels.  The 286 has none of its own: the level is
  * a variable, an interrupt that arrives while it is too high is put off
  * until it drops (machdep.c), and the spl routines only change it.

@@ -228,6 +228,93 @@ ENTRY _remque
         pop     si
         retf
 
+; The two loops below pass over text a byte at a time, where the
+; compiler's code for the same loop takes three times as long: a
+; terminal's output, and the names of files.  Each has its C beside it.
+
+; scanc(size, cp, table, mask): how much is left of the size bytes at cp,
+; at the first byte whose entry in table has a bit of mask.
+;       u_int size; u_char *cp, table[]; int mask;
+; ttwrite finds with it how many characters can go to the output queue
+; as they are.  In C:
+;       end = &cp[size];
+;       while (cp < end && (table[*cp] & mask) == 0)
+;               cp++;
+;       return (end - cp);
+ENTRY scanc
+        push    bp
+        mov     bp, sp
+        push    si
+        mov     cx, [bp+6]
+        mov     si, [bp+8]
+        mov     bx, [bp+10]
+        mov     ah, [bp+12]
+        jcxz    .done
+        cld
+.next:  lodsb
+        xlatb
+        test    al, ah
+        loopz   .next
+        jz      .done           ; none had
+        inc     cx              ; the one that had is still to pass
+.done:  mov     ax, cx
+        pop     si
+        pop     bp
+        retf
+
+; namecomp(cp, name, strict, hp): copy the component of a pathname that
+; begins at cp and ends before a slash or the null, to name, with a null
+; after it.
+;       u_char *cp; char *name; int strict; unsigned *hp;
+; Returns its length, and through hp its hash; or, negative, the error
+; namei gives for it.  The C, and what the hash is, are in
+; sys/ufs_namei.c, where this is called from.
+ENTRY namecomp
+        push    bp
+        mov     bp, sp
+        push    si
+        push    di
+        mov     si, [bp+6]
+        mov     di, [bp+8]
+        push    ds
+        pop     es
+        xor     ax, ax
+        xor     bx, bx          ; the sum of the characters
+        xor     dx, dx          ; the sum of that after each
+        mov     cx, MAXNAMLEN + 1
+        cld
+.next:  lodsb
+        cmp     al, '/'
+        je      .end
+        test    al, al
+        jz      .end
+        js      .high
+.keep:  stosb
+        add     bx, ax
+        add     dx, bx
+        loop    .next
+        mov     ax, -ENAMETOOLONG       ; a character beyond MAXNAMLEN
+        jmp     short .out
+.high:  cmp     al, '/' | 0x80
+        je      .inval
+        cmp     word [bp+10], 0
+        je      .keep
+.inval: mov     ax, -EINVAL
+        jmp     short .out
+.end:   mov     byte [di], 0
+        sub     di, [bp+8]      ; the length, n
+        mov     cx, dx
+        lea     ax, [di+1]
+        mul     bx
+        sub     ax, cx          ; (n + 1) * sum - sum of sums
+        mov     bx, [bp+12]
+        mov     [bx], ax
+        mov     ax, di
+.out:   pop     di
+        pop     si
+        pop     bp
+        retf
+
 ; cpustop(): halt the processor, with interrupts off so that it stays so.
 ENTRY cpustop
         cli

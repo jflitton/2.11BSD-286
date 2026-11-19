@@ -42,6 +42,54 @@ struct	namecache *nchhead, **nchtail;	/* LRU chain pointers */
 struct	nchstats nchstats;		/* cache effectiveness statistics */
 
 /*
+ * Copy the component of a pathname that begins at cp and ends before
+ * a slash or the null, to name, with a null after it.  Returns its
+ * length, and through hp its hash, the sum of each character times its
+ * place counted from one; or the error, negative, that namei gives for
+ * a component over MAXNAMLEN characters, or for a character with its
+ * top bit set, which only a name being deleted may have, and never as
+ * a slash with one (strict is flag != DELETE).
+ *
+ * namei did this in line, a character at a time through variables in
+ * its frame, with a multiplication for each: a quarter of the time of
+ * a stat of a name three directories deep.  Here the multiplication is
+ * done once: with s the sum of the characters so far and t the sum of
+ * s after each character, the sum of c[k] * k for k from 1 to n is
+ * (n + 1) * s - t, in 16 bits as it was.
+ *
+ * A machine may have its own, and say so in machparam.h: this is the
+ * reference, and what the 286's (i286/mch_xxx.s) is written from.
+ */
+#ifndef MCH_NAMECOMP
+int
+namecomp(cp, name, strict, hp)
+	register u_char *cp;
+	register char *name;
+	int strict;
+	unsigned *hp;
+{
+	register unsigned c, s, t;
+	u_char *first = cp;
+
+	s = t = 0;
+	while ((c = *cp) != 0 && c != '/') {
+		if (cp - first >= MAXNAMLEN)
+			return (-ENAMETOOLONG);
+		if (c & 0200)
+			if (c == ('/'|0200) || strict)
+				return (-EINVAL);
+		*name++ = c;
+		cp++;
+		s += c;
+		t += s;
+	}
+	*name = '\0';
+	*hp = (cp - first + 1) * s - t;
+	return (cp - first);
+}
+#endif
+
+/*
  * Convert a pathname into a pointer to a locked inode.
  * This is a very central and rather complicated routine.
  * If the file system is not maintained in a strict tree hierarchy,
@@ -198,22 +246,13 @@ dirloop2:
 	/*
 	 * Copy next component of name to ndp->ni_dent.
 	 */
-	hash = 0;
-	for (i = 0; *cp != 0 && *cp != '/'; cp++) {
-		if (i >= MAXNAMLEN) {
-			u.u_error = ENAMETOOLONG;
-			goto bad;
-		}
-		if (*cp & 0200)
-			if ((*cp&0377) == ('/'|0200) || flag != DELETE) {
-				u.u_error = EINVAL;
-				goto bad;
-			}
-		ndp->ni_dent.d_name[i++] = *cp;
-		hash += (unsigned char)*cp * i;
+	i = namecomp((u_char *)cp, ndp->ni_dent.d_name, flag != DELETE, &hash);
+	if (i < 0) {
+		u.u_error = -i;
+		goto bad;
 	}
+	cp += i;
 	ndp->ni_dent.d_namlen = i;
-	ndp->ni_dent.d_name[i] = '\0';
 	isdotdot = (i == 2 &&
 		ndp->ni_dent.d_name[0] == '.' && ndp->ni_dent.d_name[1] == '.');
 	makeentry = 1;

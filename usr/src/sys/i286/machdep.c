@@ -1008,22 +1008,6 @@ ffs(mask)
 }
 
 /*
- * How much is left of the size bytes at cp, at the first byte whose
- * entry in table has a bit of mask.
- */
-scanc(size, cp, table, mask)
-	u_int size;
-	register u_char *cp, table[];
-	register int mask;
-{
-	register u_char *end = &cp[size];
-
-	while (cp < end && (table[*cp] & mask) == 0)
-		cp++;
-	return (end - cp);
-}
-
-/*
  * Set every attribute to "no value".
  */
 vattr_null(vp)
