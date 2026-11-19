@@ -1,9 +1,8 @@
 # Performance
 
-How the system's speed is measured, where its time is found to go, and
-what the first measurements were. Nothing here makes the system faster:
-this is the equipment for doing that, and the list of what it has shown
-so far.
+How the system's speed is measured, where its time is found to go, what
+the first measurements were, and what has been done about what they
+showed.
 
 ## What upstream has
 
@@ -244,3 +243,102 @@ yet.
   kernel's work for it together, and most of that is in `printf`
   (`svfprintf`) and `qsort`.
 - `long`: 61% in the library's signed division (`I4D`).
+
+## What was done about it
+
+Each of these is a commit of its own, with its numbers. `was` is the
+table above; the work of each test is unchanged.
+
+```
+test        each         was     change
+sieve      86650 us    86675
+long          83 us      150     +81%
+getpid       130 us      155     +19%
+write        283 us      308      +9%
+stat         975 us     1108     +14%
+pipe        2766 us     7500    +171%
+pipeio       792 K/s     727      +9%
+fork       11276 us    11390      +1%
+exec       26170 us    27160      +4%
+shell     245000 us   243400      -1%
+creat      21660 us    22500      +4%
+fswrite      341 K/s     321      +6%
+fsread       415 K/s     379      +9%
+pty           56 K/s       2     28 times
+tcp          301 K/s     120    +151%
+tcprr       5300 us     6566     +24%
+```
+
+- **`pty`.** A writer that finds no character blocks waits for its own
+  terminal's output to go, and is woken when it has, where it slept
+  until the next second (`ttyclwait`, `sys/tty.c`). And no terminal's
+  output may hold more than a quarter of the blocks (`cinit`): with
+  the mark a pseudo-terminal had, one program writing to one took them
+  all, a second program's output waited until the first had finished,
+  and there were none for what anyone typed. Two programs writing at
+  once now pass 29 and 27 K/s. The mark costs one writer a tenth of
+  what it would pass alone, 60 K/s, because it and its reader take
+  turns four times as often.
+- **`tcp`.** The checksum is assembly (`i286/mch_cksum.s`), with the C
+  beside it as the reference; the two were run together on every
+  packet of the network's tests.
+- **`pipe`.** A pipe written at the start of a block takes a buffer
+  without reading the block from the disk first (`rwip`).
+- **System calls.** Three of the far calls `syscall` made for every
+  call are gone (`i286/trap.c`): the copy of the argument registers,
+  `setpri`, and an `spl0` that most often had nothing to do.
+- **The spl routines** are in line (`machparam.h`), in the network's
+  code as in the kernel's. They were 12% of `tcprr` and 9% of `pipe`:
+  a far call and return for four instructions, 334 times in the
+  kernel's text.
+- **`stat`.** `namei`'s loop over the characters of a component, a
+  quarter of the test, and `scanc`, which `ttwrite` passes a
+  terminal's output through, are assembly (`mch_xxx.s`).
+- **`long`.** The compiler's routine for dividing longs does a divisor
+  over 16 bits with one hardware divide and a correction
+  (`libc/i286/crt/i4d.s`).
+
+What the measuring found that was not about speed: removing a file
+with a double indirect block left everything under that block
+allocated, when the scratch buffer the kernel took for it was the
+first in the buffers' segment (`indirtrunc`; a far pointer compared
+with the entry before the first). `tools/fsck.py`, run on the disk
+after every `bench`, reported it.
+
+What was tried and did nothing: compiling the kernel for speed in
+place of size (`-ot`) moved every test by less than 2%, most by
+nothing. The compiler's `-ox`, which `cc286 -Ot` gives, does not
+include `-ot`.
+
+A comparison is only good between runs of the same tests: `exec`,
+`shell`, `creat` and the file tests go by where the disk's blocks and
+the buffers were left, and `update`'s sync every 30 seconds falls in
+one test or another. In a run of four of the tests `exec` took 32 ms
+where the whole table has 27.
+
+## What is left
+
+In the order the profile gives them.
+
+- **Far calls.** A call and return between two of the kernel's
+  functions is about 50 clocks before anything is done, and a 1 ms
+  profile of `write` or of TCP shows no one place: the time is spread
+  over every function on the way. Short routines called from
+  everywhere are the ones to put in line, as the spl routines were.
+- **Shifts of longs.** The compiler shifts a long right by a constant
+  with a loop, a bit at a time: about 130 clocks for the 10 places of
+  `lblkno`, in `rwip`, `bmap`, `namei` and the disk drivers. A routine
+  in line that moves bytes first would be a fifth of that.
+- **The character blocks**, 68 of them in the kernel's data segment,
+  which has 1.8K to spare. In a segment of their own there could be
+  enough for every pseudo-terminal's high water mark, and the quarter
+  above would not bind.
+- **A pipe is a file.** A byte through one costs `rwip`, `bmap` and a
+  buffer each way, and that is most of `pipe`'s 2.8 ms now.
+- **`fork` and `exec`** are the copying and clearing of memory they
+  were: `copy` is half of `fork`, and `rep movsw` already.
+- **`ls`** is still most of `shell`: `printf` and `qsort` in the C
+  library, which nothing here has looked into.
+- **A switch between processes** goes by way of the swapper, as
+  upstream's does, and by the samples in `pipe` is some 250 us.
+

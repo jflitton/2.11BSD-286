@@ -356,8 +356,9 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
 - The system's speed can be measured, and where its time goes found:
   a benchmark of this port's own, `bench`, and a profile by sampling
   the emulated processor from outside it, of the kernel and of
-  programs. Nothing has been made faster yet; what the first
-  measurements show is listed ([performance](docs/performance.md)).
+  programs. What the first measurements showed, what has been made
+  faster for them and what is left are listed
+  ([performance](docs/performance.md)).
 - A C program can be compiled, linked, converted to the executable format
   and run in an emulated PS/2 Model 30 286.
 - The helper routines compiled code calls for 32-bit multiply and divide
