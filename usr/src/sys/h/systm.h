@@ -61,6 +61,8 @@ extern u_int	maxmem;			/* actual max memory per process */
 extern u_int	nswap;			/* size of swap space */
 extern int	updlock;		/* lock for sync */
 extern daddr_t	rablock;		/* block to be read ahead */
+extern int	rasize;			/* and how many from it on are the
+					   file's next and follow one another */
 extern dev_t	rootdev;		/* device of the root */
 extern dev_t	dumpdev;		/* device to take dumps on */
 extern long	dumplo;			/* offset into dumpdev */

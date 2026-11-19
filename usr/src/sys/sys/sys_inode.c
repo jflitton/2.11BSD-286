@@ -115,7 +115,7 @@ rwip(ip, uio, ioflag)
 	daddr_t lbn, bn;
 	int n, on, type, resid;
 	int error = 0;
-	int flags;
+	int flags, seq;
 
 	if	(uio->uio_offset < 0)
 		return (EINVAL);
@@ -229,7 +229,17 @@ rwip(ip, uio, ioflag)
 					return (0);
 				if (diff < n)
 					n = diff;
-			bn = bmap(ip, lbn, B_READ, flags);
+			/*
+			 * A file read in order is read ahead of: by one
+			 * block at each block, or on a disk whose driver
+			 * makes one command of several transfers (D_RUNS)
+			 * by several blocks at some of them, and there
+			 * bmap is asked how many it can be.
+			 */
+			seq = lbn == 0 || ip->i_lastr + 1 == lbn;
+			bn = bmap(ip, lbn, B_READ, seq && RATIME(lbn) &&
+			    (bdevsw[major(dev)].d_flags & D_RUNS) ?
+			    flags | B_RUN : flags);
 			}
 			else
 				bn = bmap(ip,lbn,B_WRITE,
@@ -242,13 +252,15 @@ rwip(ip, uio, ioflag)
 		} else {
 			bn = lbn;
 			rablock = bn + 1;
+			rasize = 1;
+			seq = uio->uio_rw == UIO_READ && ip->i_lastr + 1 == lbn;
 		}
 		if (uio->uio_rw == UIO_READ) {
 			if ((long)bn<0) {
 				bp = geteblk();
 				clrbuf(bp);
-			} else if (ip->i_lastr + 1 == lbn)
-				bp = breada(dev, bn, rablock);
+			} else if (seq)
+				bp = breada(dev, bn, rablock, rasize);
 			else
 				bp = bread(dev, bn);
 			ip->i_lastr = lbn;

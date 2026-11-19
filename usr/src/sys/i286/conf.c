@@ -42,7 +42,7 @@ struct bdevsw	bdevsw[] = {
 	0,
 /* sd = 2 */
 	sdopen,		sdclose,	sdstrategy,	nulldev,	sdsize,
-	0,
+	D_RUNS,
 };
 int	nblkdev = sizeof(bdevsw) / sizeof(bdevsw[0]);
 

@@ -10,8 +10,8 @@
  * handed to it through fartophys.
  *
  * One SCSI command is out at a time, in the one CCB: a driver fills it
- * with ahafill and the command's bytes, and gives it to ahago or
- * ahapoll.
+ * with ahafill, or with ahaseg and ahafillsegs when its data is in
+ * pieces, and the command's bytes, and gives it to ahago or ahapoll.
  */
 #include "param.h"
 #include "systm.h"
@@ -31,14 +31,17 @@ static int ahaports[] = { 0x330, 0x334, 0x230, 0x234, 0x130, 0x134 };
 int	ahatimeout = 30;
 
 /*
- * For testing what is otherwise seen only when hardware fails: with 1
- * the 20th interrupt is ignored as if it had not arrived, with 2 the
- * 30th command is never given to the adapter, with 3 both.  (patchable)
+ * For testing what is otherwise seen only when hardware fails, a sum
+ * of: 1, the 20th interrupt is ignored as if it had not arrived; 2, the
+ * 30th command is never given to the adapter; 4, the first command for
+ * several of a disk's transfers at once is taken to have failed each
+ * time it is tried (sdintr).  (patchable)
  */
 int	ahatest = 0;
 
 struct ccb ahaccb;
 static struct mbox ahamb[2 * AHA_NMBOX];	/* out, then in */
+static struct ahaseg ahasegs[AHA_NSEG];	/* the CCB's data, when in pieces */
 
 static struct {
 	int	a_base;
@@ -52,6 +55,7 @@ static struct {
 	int	a_ticks;	/* seconds the CCB has been out */
 	int	(*a_done)();
 	long	a_ccbpa;	/* the CCB's physical address */
+	long	a_segpa;	/* and that of the list of its pieces */
 	u_char	a_board[4];
 	u_char	a_xbios[2];
 } aha;
@@ -253,6 +257,7 @@ ahasetup(how)
 	bzero(ahamb, sizeof (ahamb));
 	aha.a_mbo = aha.a_mbi = 0;
 	aha.a_ccbpa = fartophys(&ahaccb);
+	aha.a_segpa = fartophys(ahasegs);
 	c[0] = AC_MBINIT;
 	c[1] = AHA_NMBOX;
 	put3(&c[2], fartophys(ahamb));
@@ -438,6 +443,28 @@ ahafill(target, dir, cdblen, addr, len)
 	cp->cc_senselen = AHA_NSENSE;
 	put3(cp->cc_datalen, (long)len);
 	put3(cp->cc_dataptr, addr);
+}
+
+/*
+ * The same for a command whose data is in n pieces, each somewhere of
+ * its own in memory, which the adapter fills or empties in turn:
+ * ahaseg says where each is, and then this fills the CCB.
+ */
+ahaseg(i, addr, len)
+	int i;
+	long addr;
+	u_int len;
+{
+	put3(ahasegs[i].sg_len, (long)len);
+	put3(ahasegs[i].sg_addr, addr);
+}
+
+ahafillsegs(target, dir, cdblen, n)
+	int target, dir, cdblen, n;
+{
+	ahafill(target, dir, cdblen, aha.a_segpa,
+	    n * sizeof (struct ahaseg));
+	ahaccb.cc_op = CCB_PIECES;
 }
 
 /* Put the CCB in a mailbox and tell the adapter. */

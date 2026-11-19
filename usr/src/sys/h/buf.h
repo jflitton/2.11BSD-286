@@ -77,9 +77,21 @@ struct buf
  */
 #define	NBUFMIN		64
 
+/*
+ * The most blocks read ahead of a file that is being read in order
+ * (breada), and at which of its blocks the reading ahead is done: the
+ * first, and every RAMAX/2 from the first that an indirect block
+ * reaches.
+ */
+#define	RAMAX		16
+#define	RATIME(lbn)	((lbn) == 0 || \
+			    ((int)(lbn) & (RAMAX / 2 - 1)) == NADDR - 3)
+
 /* Flags to low-level allocation routines. */
 #define B_CLRBUF	0x01	/* Request allocated buffer be cleared. */
 #define B_SYNC		0x02	/* Do all allocations synchronously. */
+#define B_RUN		0x04	/* bmap, reading: count the blocks that
+				   can be read ahead (rasize) */
 
 #define	bawrite(bp)	{(bp)->b_flags |= B_ASYNC; bwrite(bp);}
 #define	bfree(bp)	(bp)->b_bcount = 0
@@ -100,6 +112,7 @@ extern struct	buf buf[];		/* the buffer pool itself */
 extern int	nbuf;			/* number of buffer headers */
 extern int	nbufmax;		/* and of them declared */
 extern int	bufshare;		/* the part of memory they are given */
+extern int	bioplug;		/* transfers are being queued together */
 extern int	nage;			/* on the aged queue, not empty */
 extern int	agekeep;		/* of those, how many are kept */
 extern struct	bufhd bufhash[];	/* heads of hash lists */

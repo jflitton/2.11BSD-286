@@ -154,11 +154,14 @@ grep -q "^buffers   = 131072" "$top/obj/tests/kernel-sd/serial.txt"
 # from a diskette, which does not say where the root is: diskroot does,
 # the device number of sd0a.  Here an interrupt is ignored and a command
 # is never given to the adapter, and the driver must notice both and
-# carry on.
+# carry on; and the first command that is for several transfers at once
+# fails however often it is tried, and each of them must then be sent
+# by itself.
 diskboot sdlost sd scsi:334:10:6:5:0 diskette "-g 2600,64,32 -p -o 5000000" \
-    diskroot=512 ahatest=3 ahatimeout=5
+    diskroot=512 ahatest=7 ahatimeout=5
 grep -q "aha: an interrupt did not arrive" "$top/obj/tests/kernel-sdlost/serial.txt"
 grep -q "aha: no answer in 5 seconds" "$top/obj/tests/kernel-sdlost/serial.txt"
+grep -q "sd0: a command for [0-9]* transfers failed" "$top/obj/tests/kernel-sdlost/serial.txt"
 grep -q "^buffers   = 65536" "$top/obj/tests/kernel-sdlost/serial.txt"
 
 echo "kernel: all six boots passed"

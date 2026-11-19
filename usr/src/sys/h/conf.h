@@ -25,6 +25,17 @@ struct bdevsw
 	int	d_flags;
 };
 
+/*
+ * d_flags, besides the B_TAPE of buf.h: the driver sends the transfers
+ * it finds waiting together, that follow one another on the disk, as
+ * one command.  Reading several blocks ahead of a file is worth doing
+ * on such a disk, and on another only makes the queue longer (rwip).
+ * Such a driver also leaves an idle disk idle while bioplug is not
+ * zero, and starts it when its strategy routine is called with no
+ * buffer (breadrun).
+ */
+#define	D_RUNS		0x0001
+
 #if defined(KERNEL) && !defined(SUPERVISOR)
 extern struct	bdevsw bdevsw[];
 #endif

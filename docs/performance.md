@@ -468,6 +468,64 @@ right against each other, and as times on a real machine about 1.4
 times too small. The table to compare a change with now is the column
 with one wait state here.
 
+## Files and the disk
+
+A block of a file, 1K, cost about 2 ms of the processor to read or
+write whichever disk it was on, and on the SCSI disk a command of its
+own, which costs the processor and the disk as much for 1K as for 16K.
+The profile of it was flat: the buffers a third, the driver a quarter,
+the file system a sixth, the copy a tenth. Three changes, each a
+commit of its own. K/s is of a megabyte written to a file and read
+back; the SCSI figures are from the root of `tests/bench` put on an
+emulated disk on an Adaptec 1542CF, which no suite does:
+
+```
+                 SCSI               IDE
+            write    read      write    read
+before       406      487       298      351
+now          448      573       323      353
+```
+
+- **A block written whole was cleared first** when an indirect block
+  reached it, which is all of a file past its first 4K: `bmap` asked
+  for every such block cleared, where for a direct block it asks only
+  if the write is of part of one. It was 12% of writing a file, and
+  without it the SCSI disk's 406 was 462.
+- **The buffers were 64 whatever the machine had**, and a file's data
+  was not kept in them at all: a block read or written as far as its
+  end goes on the queue of aged buffers, which was always the first
+  to be taken, so a file read twice came from the disk twice and the
+  rest, directories, inodes and indirect blocks, had nearly every
+  buffer. Now a sixteenth of the memory is buffers, from 64 with 1 MB
+  to 256 with 4 MB or more, and of the aged ones as many are kept as
+  there are buffers past 64 (`agekeep`, `getnewbuf`), the oldest going
+  first. A machine with 1 MB is as it was. With 4 MB a file of 146K
+  read a second time came at 912 K/s where the first time, and both
+  times before, it came at 332; the four users of `telcmd` gained 5%.
+  256 is as many as there can be while a buffer's header, 28 bytes, is
+  in the kernel's data segment: with them and a table of 128 chains to
+  find them by, 1.7K of that segment is left. With 64 chains, four
+  buffers to a chain, a file was read 3% slower than with 64 buffers.
+- **The SCSI driver sends one command for several transfers** when
+  they are in its queue together and follow one another on the disk
+  (docs/disks.md), and a file read in order on such a disk is read
+  ahead of 16 blocks at a time, begun eight blocks early, with the
+  driver held back until all of them are queued. Without the holding
+  back nothing was gained in the emulator, whose disk answers before
+  the second transfer can be queued; a real one takes 2 ms. Writes
+  join only when the disk is slower than the program writing, which
+  the emulator's never is, so there the driver's looking for more to
+  join and the longer table of buffers are a cost and no gain: 448
+  where the first change alone gave 462. The IDE driver does not join
+  transfers, and reading 16 ahead there cost 6% and gained nothing, so
+  it reads one ahead as before; the processor moves every byte there
+  (`pinsw`, 30% of a read).
+
+What a file's block costs the processor now, read in order from the
+SCSI disk, is 1.75 ms, of which `bmap` is 14%, the copy to the program
+11% and the buffers three tenths. None of this has been timed on a
+real machine yet.
+
 ## What is left
 
 In the order the profile gives them. The times are from profiles taken

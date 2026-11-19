@@ -67,6 +67,7 @@ struct proc	*pidhash[PIDHSZ];
 dev_t	pipedev;
 struct proc	*qs;
 daddr_t	rablock;
+int	rasize;
 dev_t	rootdev;
 struct inode	*rootdir;
 char	runin;

@@ -146,16 +146,36 @@ adapter and `sd.c` the disks on it.
   the longest, 64K, lasts 14 ms: interrupts are served that much more
   slowly, a serial port with no FIFO can lose what comes in meanwhile,
   and the refresh of the memory, which is why 15 is the most the
-  adapter may hold the bus, has no room. Files gain nothing by it: a
-  block is 1K, and its command's 4.7 ms is nearly all of what it
-  costs. All three can be read and set while the system runs, between
+  adapter may hold the bus, has no room. Files gained nothing by it
+  when each of their blocks, 1K, was a command of its own, whose 4.7
+  ms was nearly all of what the block cost; see below for what they
+  are now. All three can be read and set while the system runs, between
   commands: `sysctl machdep.aha_buson`, `aha_busoff` (microseconds) and
   `aha_speed` (50, 57, 67, 80 or 100, tenths of a megabyte a second).
   A speed that the machine's memory cannot keep up with spoils what is
   read and written, the file system's own blocks with the rest.
-- One command is out at a time, for the whole of a transfer.
-- A transfer that fails is tried four times, unless the target has
-  understood it and refused, or is not there.
+- One command is out at a time. It is for the transfer at the head of
+  the queue and for as many of those after it, up to 16 transfers and
+  32K, as go the same way and each begin on the disk where the one
+  before ends: the adapter is given a list of where each one's data is
+  and fills or empties them in turn, so still nothing is copied. A
+  command costs the processor and the disk as much for 1K as for 16K,
+  and a file is a row of 1K transfers.
+- The transfers have to be in the queue together for that. Blocks
+  written to a file get there when the disk is slower than the program
+  writing. Blocks read from a file would come one at a time, each as
+  it was wanted, so a file read in order on this disk is read ahead of
+  by as many as 16 blocks that follow one another on the disk, started
+  together eight blocks before the reader reaches them, and the driver
+  is held back until all of them are in its queue (`breadrun` in
+  `sys/sys/ufs_bio.c`, `bioplug`). `ramax` is the 16, and patched to 1
+  leaves the one block read ahead that there always was. The IDE
+  driver does not join transfers, and there a file is read ahead of by
+  one block as before: more only made its queue longer.
+- A command that fails is tried four times, unless the target has
+  understood it and refused, or is not there. If it was for several
+  transfers and still fails, each of them is sent by itself, to succeed
+  or to have the error that is its own, and the driver says so.
 - Once a second the driver looks at a command that is still out. If the
   adapter says it has finished, the interrupt was lost, and the driver
   carries on and says so once. If it has been out 30 seconds
@@ -184,7 +204,7 @@ diskette.
 | IDE | 17 MB | all of it | sectors by number, one to an interrupt | the disk; `/boot` told a name that is no file, then `wd(0,0)sys/unix` |
 | IDE | 2.6 GB | from sector 5,000,000 | sectors by number, 16 to an interrupt | a diskette |
 | SCSI | 20 MB, id 0 | from the second track | adapter at 0x330, request 11, channel 5 | the disk, through the adapter's BIOS; `/boot` left to itself |
-| SCSI | 2.6 GB, id 5 | from sector 5,000,000 | adapter at 0x334, request 10, channel 6, its BIOS off; one interrupt ignored and one command never sent (`ahatest`), with the time limit at 5 seconds | a diskette, with `diskroot` changed |
+| SCSI | 2.6 GB, id 5 | from sector 5,000,000 | adapter at 0x334, request 10, channel 6, its BIOS off; one interrupt ignored, one command never sent and one for several transfers failed (`ahatest`), with the time limit at 5 seconds | a diskette, with `diskroot` changed |
 
 Each time the test program reads the label, writes and reads 20K
 straight to a partition from an odd address in its memory, reads the
@@ -194,9 +214,11 @@ that do not fit in memory are swapped to the disk. After the kernel has
 halted, `fsck.py` must find nothing wrong with the file system and must
 find the last file the test wrote. On the last boot the driver must also
 have said that an interrupt did not arrive and that a command got no
-answer. The disk boots have the 64 buffers of a machine with 1 MB, but
-for the first of the SCSI ones, which has 128, so that some keep files'
-data.
+answer, and, its first command for several transfers having been made
+to fail each time it was tried, that each of them was sent by itself.
+The disk boots have the 64 buffers of a machine with 1 MB, but for the
+first of the SCSI ones, which has 128, so that some keep files' data
+(docs/performance.md).
 
 The emulated machine's own BIOS, as the tests have it set up, does not
 boot from a drive on an IDE controller, so for the IDE boots the

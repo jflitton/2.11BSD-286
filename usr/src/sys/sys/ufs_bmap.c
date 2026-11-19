@@ -25,7 +25,11 @@
  * inode and the logical block number in a file.
  * When convenient, it also leaves the physical
  * block number of the next block of the file in rablock
- * for use in read-ahead.
+ * for use in read-ahead, and in rasize how many of the file's blocks
+ * from that one on follow one another on the disk: they can be read
+ * with one command (breada).  It counts them only when asked (B_RUN),
+ * as far as RAMAX and as the inode or the indirect block in hand says,
+ * and otherwise rasize is 1.
  */
 daddr_t
 bmap(ip, bn, rwflg, flags)
@@ -37,7 +41,8 @@ bmap(ip, bn, rwflg, flags)
 	register struct buf *bp;
 	struct buf *nbp;
 	int j, sh;
-	daddr_t nb, __far *bap, ra;
+	daddr_t nb, __far *bap, __far *rap, ra;
+	int n;
 	int async = ip->i_fs->fs_flags & MNT_ASYNC;
 
 	if (bn < 0) {
@@ -45,6 +50,7 @@ bmap(ip, bn, rwflg, flags)
 		return((daddr_t)0);
 	}
 	ra = rablock = 0;
+	n = rasize = 0;
 
 	/*
 	 * blocks 0..NADDR-4 are direct blocks
@@ -68,8 +74,15 @@ bmap(ip, bn, rwflg, flags)
 			ip->i_addr[i] = nb;
 			ip->i_flag |= IUPD|ICHG;
 		}
-		if (i < NADDR-4)
-			rablock = ip->i_addr[i+1];
+		if (i < NADDR-4 && (ra = ip->i_addr[i+1]) != 0) {
+			n = 1;
+			if (flags & B_RUN)
+				for (; i + 1 + n < NADDR-3 &&
+				    ip->i_addr[i + 1 + n] == ra + n; n++)
+					;
+			rablock = ra;
+			rasize = n;
+		}
 		return(nb);
 	}
 
@@ -130,8 +143,15 @@ bmap(ip, bn, rwflg, flags)
 		/*
 		 * calculate read-ahead
 		 */
-		if (i < NINDIR-1)
+		if (i < NINDIR-1) {
 			ra = bap[i+1];
+			n = ra != 0;
+			if (n && j == 3 && (flags & B_RUN))
+				for (rap = &bap[i+2]; n < RAMAX &&
+				    i + 1 + n < NINDIR && *rap == ra + n;
+				    n++, rap++)
+					;
+		}
 		mapout(bp);
 		if (nb == 0) {
 			/*
@@ -166,5 +186,6 @@ bmap(ip, bn, rwflg, flags)
 			brelse(bp);
 	}
 	rablock = ra;
+	rasize = n;
 	return(nb);
 }

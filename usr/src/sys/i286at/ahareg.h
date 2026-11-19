@@ -87,9 +87,19 @@ struct ccb {
 };
 
 #define	CCB_INITIATOR	0x00
+#define	CCB_PIECES	0x02	/* cc_op: the data is in pieces, and
+				   cc_dataptr and cc_datalen are of a
+				   list of them, struct ahaseg */
 #define	CCB_DATAIN	0x08	/* cc_idlun: target to memory */
 #define	CCB_DATAOUT	0x10
 #define	CCB_NODATA	0x18
+
+/* A piece of a command's data.  A 1542B takes 17 of them, a C 255. */
+struct ahaseg {
+	u_char	sg_len[3];
+	u_char	sg_addr[3];
+};
+#define	AHA_NSEG	16
 
 #define	HS_OK		0x00	/* cc_hastat */
 #define	HS_SELTIMEOUT	0x11	/* no such target */
@@ -111,4 +121,5 @@ struct ccb {
 
 #ifdef KERNEL
 extern struct ccb ahaccb;	/* the one CCB */
+extern int ahatest;		/* what is made to go wrong (aha.c) */
 #endif

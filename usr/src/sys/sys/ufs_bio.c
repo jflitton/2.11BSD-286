@@ -44,6 +44,19 @@ u_long tracebuf[TR_NUM_210];
 int	nage;
 int	agekeep;
 
+/* The most blocks breada reads ahead, RAMAX or fewer.  (patchable) */
+int	ramax = RAMAX;
+
+/*
+ * Not zero while transfers are being put in a driver's queue that are
+ * to go together (breadrun).  A driver that makes one command of
+ * several transfers (D_RUNS) does not start an idle disk then, and
+ * starts it when its strategy routine is called with no buffer.
+ */
+int	bioplug;
+
+static struct buf *breadrun();
+
 /*
  * Read in (if necessary) the block and return a buffer pointer.
  */
@@ -70,16 +83,20 @@ bread(dev, blkno)
 
 /*
  * Read in the block, like bread, but also start I/O on the
- * read-ahead block (which is not allocated to the caller)
+ * read-ahead block (which is not allocated to the caller).
+ * With more than one block to read ahead it is breadrun's.
  */
 struct buf *
-breada(dev, blkno, rablkno)
+breada(dev, blkno, rablkno, n)
 	register dev_t dev;
 	daddr_t blkno;
 	daddr_t rablkno;
+	int n;
 {
 	register struct buf *bp, *rabp;
 
+	if (n > 1 && ramax > 1 && (bdevsw[major(dev)].d_flags & D_RUNS))
+		return (breadrun(dev, blkno, rablkno, n));
 	bp = NULL;
 	/*
 	 * If the block isn't in core, then allocate
@@ -125,6 +142,88 @@ breada(dev, blkno, rablkno)
 	 * If block wasn't in core, then the read was started
 	 * above, and just wait for it.
 	 */
+	if (bp == NULL)
+		return (bread(dev, blkno));
+	biowait(bp);
+	return (bp);
+}
+
+/*
+ * breada with n blocks to read ahead, from rablkno on, which follow
+ * one another on a disk whose driver sends the transfers it finds
+ * waiting together as one command when they do (D_RUNS, sdstart).  A
+ * disk's command costs as much for one block as for sixteen, so the
+ * blocks are not read one as each is come to: the caller comes here
+ * only at some of a file's blocks (RATIME, rwip), RAMAX/2 apart, and
+ * after the first time that is half of RAMAX that are not here yet,
+ * while the reader still has the other half to go through, so the
+ * disk and the reader work at the same time.
+ *
+ * The block itself, if it has to be read, and those ahead are given to
+ * the driver together: it is held back (bioplug) until all are in its
+ * queue and then told to go, by a call with no transfer.  A buffer is
+ * taken for a block ahead only if there is one to be had without
+ * waiting, so that nothing is waited for here while buffers are held
+ * that no command is out for.
+ */
+static struct buf *
+breadrun(dev, blkno, rablkno, n)
+	register dev_t dev;
+	daddr_t blkno;
+	daddr_t rablkno;
+	int n;
+{
+	register struct buf *bp, *rabp;
+	register int k;
+	struct buf *dp, *rab[RAMAX];
+	int (*strategy)() = bdevsw[major(dev)].d_strategy;
+	int nra, start;
+
+	bp = NULL;
+	start = 0;
+	if (!incore(dev, blkno)) {
+		bp = getblk(dev, blkno);
+		if ((bp->b_flags&(B_DONE|B_DELWRI)) == 0) {
+			bp->b_flags |= B_READ;
+			bp->b_bcount = DEV_BSIZE;
+			start = 1;
+			trace(TR_BREADMISS);
+			u.u_ru.ru_inblock++;		/* pay for read */
+		}
+		else
+			trace(TR_BREADHIT);
+	}
+	if (n > ramax)
+		n = ramax;
+	if (n > RAMAX)
+		n = RAMAX;
+	for (nra = 0, k = 0; k < n; k++, rablkno++) {
+		if (incore(dev, rablkno)) {
+			trace(TR_BREADHITRA);
+			continue;
+		}
+		if ((rabp = getnewbuf(1)) == NULL)
+			break;
+		dp = BUFHASH(dev, rablkno);
+		bfree(rabp);
+		bremhash(rabp);
+		binshash(rabp, dp);
+		rabp->b_dev = dev;
+		rabp->b_blkno = fsbtodb(rablkno);
+		rabp->b_error = 0;
+		rabp->b_flags |= B_READ|B_ASYNC;
+		rabp->b_bcount = DEV_BSIZE;
+		rab[nra++] = rabp;
+		trace(TR_BREADMISSRA);
+		u.u_ru.ru_inblock++;		/* pay in advance */
+	}
+	bioplug++;
+	if (start)
+		(*strategy)(bp);
+	for (k = 0; k < nra; k++)
+		(*strategy)(rab[k]);
+	bioplug--;
+	(*strategy)((struct buf *)NULL);
 	if (bp == NULL)
 		return (bread(dev, blkno));
 	biowait(bp);
@@ -297,7 +396,7 @@ loop:
 		notavail(bp);
 		return (bp);
 	}
-	bp = getnewbuf();
+	bp = getnewbuf(0);
 	bfree(bp);
 	bremhash(bp);
 	binshash(bp, dp);
@@ -316,7 +415,7 @@ geteblk()
 {
 	register struct buf *bp, *flist;
 
-	bp = getnewbuf();
+	bp = getnewbuf(0);
 	bp->b_flags |= B_INVAL;
 	bfree(bp);
 	bremhash(bp);
@@ -332,10 +431,12 @@ geteblk()
  * Select something from a free list.
  * Preference is to the AGE list while it has a buffer with nothing in
  * it or more than agekeep that have, then to the LRU list, then to the
- * AGE list again.
+ * AGE list again.  If there is none to be had now, wait for one, or
+ * with nowait return none.
  */
 struct buf *
-getnewbuf()
+getnewbuf(nowait)
+	int nowait;
 {
 	register struct buf *bp, *dp;
 	int s;
@@ -348,6 +449,10 @@ loop:
 		if (bfreelist[BQ_LRU].av_forw != &bfreelist[BQ_LRU])
 			dp = &bfreelist[BQ_LRU];
 	if (dp->av_forw == dp) {
+		if (nowait) {
+			splx(s);
+			return (NULL);
+		}
 		dp = bfreelist;		/* no free blocks */
 		dp->b_flags |= B_WANTED;
 		sleep((caddr_t)dp, PRIBIO+1);

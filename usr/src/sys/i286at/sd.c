@@ -43,7 +43,23 @@ struct disklabel __far sdlabel[NSD];
  * keeps the cylinder there.
  */
 struct buf sdtab;
-static int sdtries;		/* of the transfer at its head */
+static int sdtries;		/* of the command that is out */
+
+/*
+ * Transfers that are waiting together and follow one another on a disk
+ * go in one command, each to or from its own place: a command costs
+ * the processor and the disk as much for 1K as for 16K, and a file
+ * read or written in order is a row of such transfers, a block each.
+ * Those of a file being read are put in the queue together, with the
+ * disk held back until they all are (breadrun, bioplug).  SDNSEG is
+ * the most that go together, and SDMAXLEN the most bytes.
+ */
+#define	SDNSEG		AHA_NSEG
+#define	SDMAXLEN	64		/* sectors */
+static int sdn;			/* transfers in the command that is out */
+static int sdalone;		/* this many more go one to a command: a
+				   command of several failed, and which
+				   of them it was is to be found */
 static u_char sdbuf[36];	/* what a target says of itself */
 
 int	sdstrategy();
@@ -230,37 +246,59 @@ sdioctl(dev, cmd, data, flag)
 }
 
 /*
- * Send the command for the transfer at the head of the queue: all of
- * it at once, straight to or from where its data is.  Called at
+ * Send the command for the transfer at the head of the queue, and for
+ * as many after it in the queue as go on from where it ends: all of
+ * each at once, straight to or from where its data is.  Called at
  * splbio.
  */
 static
 sdstart()
 {
-	register struct buf *bp;
+	register struct buf *bp, *np;
 	register struct ccb *cp = &ahaccb;
-	register struct sd *sp;
+	struct sd *sp;
 	daddr_t sect;
-	u_int n;
+	int dir, i;
+	u_int n;		/* sectors: nothing here is counted in a
+				   long, whose shifts are slow */
 
 	if ((bp = sdtab.b_actf) == NULL)
 		return;
 	sdtab.b_active = 1;
 	sp = &sd[dkunit(bp->b_dev)];
+	n = bp->b_bcount >> 9;
+	sdn = 1;
+	if (sdalone == 0)
+		for (np = bp->av_forw; np != NULL && sdn < SDNSEG;
+		    np = np->av_forw) {
+			if (np->b_dev != bp->b_dev ||
+			    ((np->b_flags ^ bp->b_flags) & B_READ) ||
+			    np->b_blkno != bp->b_blkno + n ||
+			    n >= SDMAXLEN ||
+			    (np->b_bcount >> 9) > SDMAXLEN - n)
+				break;
+			n += np->b_bcount >> 9;
+			sdn++;
+		}
 #ifdef UCB_METER
 	if (sd_dkn >= 0 && sdtries == 0) {
 		int dkn = sd_dkn + dkunit(bp->b_dev);
 
 		dk_busy |= 1 << dkn;
 		dk_xfer[dkn]++;
-		dk_wds[dkn] += bp->b_bcount >> 6;
+		dk_wds[dkn] += n << 3;
 	}
 #endif
 	sect = bp->b_blkno + sp->sd_start +
 	    sp->sd_dk.dk_parts[dkpart(bp->b_dev)].p_offset;
-	n = bp->b_bcount >> 9;
-	ahafill(sp->sd_target, bp->b_flags & B_READ ? CCB_DATAIN : CCB_DATAOUT,
-	    10, bfpaddr(bp), bp->b_bcount);
+	dir = bp->b_flags & B_READ ? CCB_DATAIN : CCB_DATAOUT;
+	if (sdn == 1)
+		ahafill(sp->sd_target, dir, 10, bfpaddr(bp), bp->b_bcount);
+	else {
+		for (np = bp, i = 0; i < sdn; i++, np = np->av_forw)
+			ahaseg(i, bfpaddr(np), np->b_bcount);
+		ahafillsegs(sp->sd_target, dir, 10, sdn);
+	}
 	cp->cc_cdb[0] = bp->b_flags & B_READ ? SC_READ10 : SC_WRITE10;
 	cp->cc_cdb[2] = sect >> 24;
 	cp->cc_cdb[3] = sect >> 16;
@@ -272,7 +310,7 @@ sdstart()
 }
 
 /*
- * The command for the transfer at the head of the queue is over: how
+ * The command for the transfers at the head of the queue is over: how
  * is what ahago says of it.
  */
 static
@@ -282,13 +320,17 @@ sdintr(how)
 	register struct buf *bp = sdtab.b_actf;
 	register struct ccb *cp = &ahaccb;
 	register int key;
+	static int failed;
+	int n;
 
 	if (bp == NULL || sdtab.b_active == 0)
 		return;
+	if ((ahatest & 4) && sdn > 1 && failed < SDTRIES) {
+		failed++;
+		how = MBI_ABORTED;
+	}
 	key = sdsense(how);
-	if (how == MBI_OK || key == SK_RECOVERED)
-		bp->b_resid = 0;
-	else {
+	if (how != MBI_OK && key != SK_RECOVERED) {
 		/*
 		 * Tried again, unless it could not go better: the adapter
 		 * is gone, or the target, or the target has understood
@@ -297,6 +339,18 @@ sdintr(how)
 		if (how != AHA_DEAD && key != SK_ILLEGAL && key != SK_PROTECT &&
 		    !(how == MBI_ERROR && cp->cc_hastat == HS_SELTIMEOUT) &&
 		    ++sdtries < SDTRIES) {
+			sdstart();
+			return;
+		}
+		/*
+		 * Of several, the error is one's: each of them is sent
+		 * again by itself, to succeed or to have the error.
+		 */
+		if (sdn > 1) {
+			printf("sd%d: a command for %d transfers failed: each is sent by itself\n",
+			    dkunit(bp->b_dev), sdn);
+			sdalone = sdn;
+			sdtries = 0;
 			sdstart();
 			return;
 		}
@@ -313,16 +367,25 @@ sdintr(how)
 			    cp->cc_hastat, cp->cc_tarstat);
 		bp->b_flags |= B_ERROR;
 		bp->b_error = EIO;
-		bp->b_resid = bp->b_bcount;
 	}
 	sdtries = 0;
-	sdtab.b_active = 0;
-	sdtab.b_actf = bp->av_forw;
 #ifdef UCB_METER
 	if (sd_dkn >= 0)
 		dk_busy &= ~(1 << (sd_dkn + dkunit(bp->b_dev)));
 #endif
-	iodone(bp);
+	/*
+	 * The queue is the command's until each of its transfers has
+	 * been taken off and given back.
+	 */
+	for (n = sdn; n > 0; n--) {
+		bp = sdtab.b_actf;
+		sdtab.b_actf = bp->av_forw;
+		bp->b_resid = bp->b_flags & B_ERROR ? bp->b_bcount : 0;
+		iodone(bp);
+	}
+	if (sdalone)
+		sdalone--;
+	sdtab.b_active = 0;
 	sdstart();
 }
 
@@ -332,6 +395,13 @@ sdstrategy(bp)
 	register struct sd *sp;
 	register int s;
 
+	if (bp == NULL) {		/* what was held back may go (bioplug) */
+		s = splbio();
+		if (sdtab.b_active == 0)
+			sdstart();
+		splx(s);
+		return;
+	}
 	if (dkunit(bp->b_dev) >= nsd ||
 	    ((sp = &sd[dkunit(bp->b_dev)])->sd_dk.dk_flags & DKF_ALIVE) == 0) {
 		bp->b_error = ENXIO;
@@ -354,7 +424,7 @@ sdstrategy(bp)
 	    sp->sd_dk.dk_parts[dkpart(bp->b_dev)].p_offset) / sp->sd_spc;
 	s = splbio();
 	disksort(&sdtab, bp);
-	if (sdtab.b_active == 0)
+	if (sdtab.b_active == 0 && bioplug == 0)
 		sdstart();
 	splx(s);
 	return;
