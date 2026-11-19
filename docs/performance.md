@@ -355,11 +355,13 @@ same moment, one of them often got no `login:` and waited for ever:
 `telnetd` set the pseudo-terminal's modes after it had started `login`,
 which on that side of a pseudo-terminal throws away what is waiting to
 be read, and on a busy machine that was the prompt. It sets them before
-now ([network](network.md)). And six users by the loopback run the
+now ([network](network.md)). And six users by the loopback ran the
 network out of memory: of its 170 mbufs none were left, 48 requests
 were refused, and connections ended. Each connection has both its ends
-on the machine there, so six are twelve; what six real users writing at
-once would need has not been measured.
+on the machine there, so six are twelve. The pool was the size the
+PDP-11 had room for, in a segment that here was 39K of 64K; it is 256
+mbufs and 20 clusters now, six users' commands refuse none, and the
+tests with four users and TCP's are as they were.
 
 ## What is left
 

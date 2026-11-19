@@ -19,8 +19,18 @@
  * this leaves approximately 8K bytes free, so the formula is roughly:
  *
  * (NMBUFS / 8) + NMBCLUSTERS < 40
+ *
+ * That is the PDP-11's, whose network shares its data space.  On the 286
+ * the network has a segment of 64K to itself (docs/network.md), which
+ * these and about 6K of its variables must fit:
+ *
+ * (NMBUFS / 8) + NMBCLUSTERS < 57
  */
+#ifdef i286
+#define	NMBUFS		256			/* number of mbufs */
+#else
 #define	NMBUFS		170			/* number of mbufs */
+#endif
 #define	MSIZE		128			/* size of an mbuf */
 
 #if CLBYTES > 1024
@@ -37,7 +47,11 @@
 #define	MTAIL		2
 #define	MMAXOFF		(MSIZE-MTAIL)		/* offset where data ends */
 #define	MLEN		(MSIZE-MMINOFF-MTAIL)	/* mbuf data length */
+#ifdef i286
+#define	NMBCLUSTERS	20
+#else
 #define	NMBCLUSTERS	12
+#endif
 #define	NMBPCL		(CLBYTES/MSIZE)		/* # mbufs per cluster */
 
 /*

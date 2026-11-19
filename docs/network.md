@@ -27,8 +27,10 @@ pointer is near, as within the PDP-11's supervisor space. Its files are
 compiled with `-nd=NET`, which names the segment, and the kernel's
 Makefile lists them as `NET`.
 
-As built the segment is 39K: 170 mbufs of 128 bytes, 12 clusters of 1K
-and about 4K of variables, ARP's table among them. The kernel's own data
+As built the segment is 57K: 256 mbufs of 128 bytes, 20 clusters of 1K
+and about 6K of variables, ARP's table among them. Upstream's 170 and 12
+are what the PDP-11 had room for; six users on telnet at once ran out
+of them ([performance](performance.md)). The kernel's own data
 segment gained 6 bytes by it. Where upstream chose a value for 16-bit machines, the 286 takes the
 PDP-11's: at most 15 packets in an interface's queue and 8K in a socket's
 buffer, whose counts are 16 bits.
@@ -315,7 +317,6 @@ controller is set; the driver has not run on one, nor on any real card.
   msghdr` holds far pointers now, as `struct iovec` does.
 - The serial line interface, whose calls are left out of `net_mac.h`.
 - Mbuf copies and the network card's transfers in assembly, as the
-  checksum is ([memory model](memory-model.md)); the size of the mbuf pool,
-  which could grow to fill the segment.
+  checksum is ([memory model](memory-model.md)).
 - Most of it has run in the emulator only. The system has also been
   logged in to over the network on a real machine.
