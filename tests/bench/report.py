@@ -21,7 +21,8 @@ import sys
 
 LINE = re.compile(r"^(\w+) +@@@@ *(\d+\.\d+) +(\d+\.\d+) +(\d+\.\d+) +(\d+) +(\d+) (us|K/s)\s*$")
 ALL = ["sieve", "long", "getpid", "write", "stat", "pipe", "pipeio", "fork",
-       "exec", "shell", "creat", "fswrite", "fsread", "pty", "tcp", "tcprr"]
+       "exec", "shell", "creat", "fswrite", "fsread", "pty", "tcp", "tcprr",
+       "telkey", "telcmd"]
 
 
 def base(path):

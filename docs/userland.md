@@ -35,10 +35,10 @@ account cannot be used until `passwd` has given it one. It is in C
 rather than the shell: the Bourne shell has no arithmetic, to find a
 free uid with, and would run `expr` for each sum.
 
-The second is `bench`, a benchmark, which 2.11BSD has none of: 16
+The second is `bench`, a benchmark, which 2.11BSD has none of: 18
 tests, each a fixed amount of one kind of work, of the processor, system
-calls, pipes, `fork` and `exec`, the file system, a pseudo-terminal and
-TCP, timed by the system's clock ([performance](performance.md)).
+calls, pipes, `fork` and `exec`, the file system, a pseudo-terminal,
+TCP and users logged in by telnet, timed by the system's clock ([performance](performance.md)).
 
 The next planned is an editor in the manner of `vim`, beside
 `vi`: one that fills a window of any size, where `vi` refuses a window
@@ -1234,7 +1234,7 @@ both.
 
 `tests/bench` boots it and runs `bench`, and is run for what it
 measures ([performance](performance.md)). It is a test of the tools
-for measuring: that each of `bench`'s 16 tests gives a result, and the
+for measuring: that each of `bench`'s 18 tests gives a result, and the
 same time by the emulator's clock as by the system's; that the profile
 taken meanwhile puts the sieve's time in `bench`'s `sieve` and the
 least system call's in the kernel's `syscall`; that `bench` takes

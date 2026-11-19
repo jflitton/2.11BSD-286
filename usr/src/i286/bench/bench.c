@@ -1,5 +1,6 @@
 /*
- * bench [-m] [-s scale] [test ...]: time the things a system does most.
+ * bench [-m] [-s scale] [-u users] [-l account] [test ...]: time the
+ * things a system does most.
  *
  * This port's own (docs/performance.md).  2.11BSD has no benchmark.
  * Each test does a fixed amount of one kind of work and says how long
@@ -10,6 +11,11 @@
  * differ only as the system or the machine does.  With no test named,
  * all are run, in the table's order; -s does scale times the work, for
  * a machine too quick for the clock, which ticks 60 times a second.
+ *
+ * The last two tests are users who came in by telnet, -u of them at
+ * once and 4 if it is not given, logged in to the account -l names,
+ * root if it is not given: an account with no password, whose shell is
+ * sh.
  *
  * With -m each test writes "@@" as it starts its work and as it ends
  * it, for a harness that times from outside the machine
@@ -27,6 +33,7 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/telnet.h>
 #include <errno.h>
 #include <signal.h>
 #include <stdio.h>
@@ -42,6 +49,8 @@ static char	*self;			/* this program, for exec */
 static char	*name;			/* the test that is running */
 static char	 buf[4096];
 static char	 file[40];		/* a file of the test's, in /tmp */
+static int	 users = 4;		/* -u */
+static char	*account = "root";	/* -l */
 
 static struct timeval	t0;
 static long		u0, s0;		/* processor time, ms, at the start */
@@ -58,6 +67,15 @@ void	 reap(int);
 int	 writeall(int, long);
 int	 listener(int *);
 int	 dial(int);
+int	 tnproto(int);
+int	 tnread(void);
+int	 tnwait(char **);
+int	 tnfail(char *);
+int	 tnlogin(void);
+int	 tnkeys(long);
+int	 tncmds(long);
+void	 tnlate(int);
+void	 sessions(long, long, int (*)(long));
 
 /*
  * The time the processor has spent in this process and the children it
@@ -633,6 +651,325 @@ tcprr(long n)
 }
 
 /*
+ * Users on the network.  One who comes in by telnet has the server,
+ * telnetd, between the connection and a pseudo-terminal, and a shell at
+ * the terminal, so a key goes through TCP, the server and the terminal's
+ * input, and its echo back through the terminal's output, the server
+ * and TCP; and there are several users, whose servers and shells take
+ * turns.  Here each user is a process that connects to this machine's
+ * own telnet server, logs in and types, as fast as the system answers.
+ * So the users cost the machine what their own machines would have
+ * done, and nothing goes through a network interface.
+ *
+ * What follows is one user's, in a process of its own.
+ */
+#define	MAXUSERS	8
+#define	NSEEN		16
+
+static int	 tn;			/* the connection */
+static int	 tnready;		/* where to tell bench how it went */
+static char	 in[512];		/* what the server sent last */
+static char	 seen[NSEEN];		/* the end of all it has sent */
+static int	 tnstate;		/* in its protocol: 0, IAC, WILL, SB, SE */
+
+static char	*atlogin[] = { "login: ", 0 };
+static char	*atshell[] = { "# ", "$ ", "Password:", "\nlogin: ", 0 };
+static char	*atprompt[] = { "\nbench:", 0 };
+
+/* A line a user types that the shell does nothing for: with its end, 32 keys. */
+static char	 typed[] = ": abcdefghijklmnopqrstuvwxyz012";
+
+/*
+ * Take telnet's protocol out of the n bytes in in, and say how many are
+ * left.  What it asks is answered: the server may echo and need send no
+ * go-aheads, and nothing else is agreed to, so the terminal has no type
+ * and no size.
+ */
+int
+tnproto(int n)
+{
+	static int cmd;
+	register int state = tnstate;
+	unsigned char say[3];
+	register char *p, *q;
+	int c;
+
+	for (p = q = in; n > 0; n--) {
+		c = *p++ & 0377;
+		switch (state) {
+		case 0:
+			if (c == IAC)
+				state = IAC;
+			else
+				*q++ = c;
+			break;
+		case IAC:
+			state = 0;
+			if (c == IAC)
+				*q++ = c;
+			else if (c == SB)
+				state = SB;
+			else if (c >= WILL)
+				cmd = c, state = WILL;
+			break;
+		case WILL:
+			state = 0;
+			if (cmd == WONT || cmd == DONT)
+				break;
+			say[0] = IAC;
+			if (cmd == DO)
+				say[1] = WONT;
+			else
+				say[1] = c == TELOPT_ECHO || c == TELOPT_SGA ?
+				    DO : DONT;
+			say[2] = c;
+			(void)write(tn, (char *)say, 3);
+			break;
+		case SB:
+			if (c == IAC)
+				state = SE;
+			break;
+		case SE:
+			state = c == SE ? 0 : SB;
+			break;
+		}
+	}
+	tnstate = state;
+	return (q - in);
+}
+
+/*
+ * Read what the server has sent, as much as there is: how many bytes a
+ * user would see of it, which are in in, or -1 if there will be no
+ * more.  It is looked at a piece at a time and not a byte, so that the
+ * user costs the machine little.
+ */
+int
+tnread(void)
+{
+	register int i;
+	int n;
+
+	if ((n = read(tn, in, sizeof (in))) <= 0)
+		return (-1);
+	if (tnstate || memchr(in, (char)IAC, n) != 0)
+		n = tnproto(n);
+	if (n >= NSEEN)
+		(void)memcpy(seen, in + n - NSEEN, NSEEN);
+	else if (n > 0) {
+		for (i = 0; i < NSEEN - n; i++)
+			seen[i] = seen[i + n];
+		(void)memcpy(seen + NSEEN - n, in, n);
+	}
+	return (n);
+}
+
+/*
+ * Read until all that has come ends with one of the texts, and say
+ * which, or -1 if the connection ends first.  The server stops sending
+ * where it waits for the user, so that is where a piece ends.
+ */
+int
+tnwait(char **texts)
+{
+	register char *s;
+	int i, n;
+
+	for (;;) {
+		if (tnread() < 0)
+			return (-1);
+		for (i = 0; (s = texts[i]) != 0; i++) {
+			n = strlen(s);
+			if (memcmp(seen + NSEEN - n, s, n) == 0)
+				return (i);
+		}
+	}
+}
+
+/* This user could not do its part, which bench is told. */
+int
+tnfail(char *what)
+{
+	fprintf(stderr, "bench: %s: %s\n", name, what);
+	(void)write(tnready, "x", 1);
+	_exit(1);
+	return (-1);
+}
+
+/* Nor if the server does not answer. */
+void
+tnlate(int sig)
+{
+	(void)tnfail("no answer from the telnet server");
+}
+
+/*
+ * Log in, and have the shell prompt with what no output ends with.
+ */
+int
+tnlogin(void)
+{
+	if ((tn = dial(htons(23))) < 0)
+		return (tnfail("no telnet server"));
+	if (tnwait(atlogin) < 0)
+		return (tnfail("no login:"));
+	(void)write(tn, account, strlen(account));
+	(void)write(tn, "\r\n", 2);
+	switch (tnwait(atshell)) {
+	case 0:
+	case 1:
+		break;
+	case 2:
+		return (tnfail("the account has a password: see -l"));
+	case 3:
+		return (tnfail("the account cannot log in: see -l"));
+	default:
+		return (tnfail("the connection ended at login"));
+	}
+	(void)write(tn, "PS1=bench:\r\n", 12);
+	if (tnwait(atprompt) < 0)
+		return (tnfail("no prompt from the shell"));
+	return (0);
+}
+
+/*
+ * Type n lines a key at a time, each key when the one before has been
+ * echoed, as the fastest of typists would.
+ */
+int
+tnkeys(long n)
+{
+	register char *p;
+	long i;
+
+	for (i = 0; i < n; i++) {
+		for (p = typed; *p; p++)
+			if (write(tn, p, 1) != 1 || tnread() != 1 || in[0] != *p)
+				return (tnfail("a key was not echoed"));
+		if (write(tn, "\r\n", 2) != 2 || tnwait(atprompt) < 0)
+			return (tnfail("no prompt after a line"));
+	}
+	return (0);
+}
+
+/* Run n commands, each cat of the test's file, and read what they write. */
+int
+tncmds(long n)
+{
+	char cmd[sizeof (file) + 8];
+	long i;
+	int len;
+
+	(void)sprintf(cmd, "cat %s\r\n", file);
+	len = strlen(cmd);
+	for (i = 0; i < n; i++)
+		if (write(tn, cmd, len) != len || tnwait(atprompt) < 0)
+			return (tnfail("no prompt after a command"));
+	return (0);
+}
+
+/*
+ * The users: each logs in, and when all have, each does the work and
+ * the time is theirs together.  They log out when it has been taken,
+ * and are waited for, so the next test starts with their servers gone.
+ * There were count pieces of work between them, each given per.
+ */
+void
+sessions(long count, long per, int (*work)(long))
+{
+	int ready[2], go[2], pid[MAXUSERS], i, ok = 1;
+	char c;
+
+	if (pipe(ready) < 0 || pipe(go) < 0) {
+		(void)failed("pipe");
+		return;
+	}
+	for (i = 0; i < users; i++) {
+		if ((pid[i] = fork()) < 0) {
+			(void)failed("fork");
+			break;
+		}
+		if (pid[i] == 0) {
+			(void)close(ready[0]);
+			(void)close(go[1]);
+			tnready = ready[1];
+			(void)signal(SIGALRM, tnlate);
+			(void)alarm(120);
+			(void)tnlogin();
+			(void)alarm(0);
+			(void)write(tnready, "r", 1);
+			(void)read(go[0], &c, 1);
+			(void)(*work)(per);
+			(void)write(tnready, "d", 1);
+			(void)alarm(60);
+			(void)write(tn, "\004", 1);
+			while (tnread() >= 0)
+				;
+			_exit(0);
+		}
+	}
+	(void)close(ready[1]);
+	(void)close(go[0]);
+	if (i < users)
+		ok = 0;
+	for (i = 0; i < users && ok; i++)
+		ok = read(ready[0], &c, 1) == 1 && c == 'r';
+	if (ok) {
+		begin();
+		(void)close(go[1]);
+		for (i = 0; i < users && ok; i++)
+			ok = read(ready[0], &c, 1) == 1 && c == 'd';
+		if (ok)
+			finish(count, 0);
+	}
+	if (!ok) {
+		/* The user that could not go on has said why. */
+		(void)fflush(stdout);
+		bad = 1;
+		for (i = 0; i < users; i++)
+			if (pid[i] > 0)
+				(void)kill(pid[i], SIGTERM);
+		(void)close(go[1]);
+	}
+	(void)close(ready[0]);
+	while (wait((int *)0) != -1)
+		;
+}
+
+/*
+ * Typing: n lines from each user, a key and its echo at a time.  The
+ * shell has a line to read at the end of each, and does nothing for it.
+ */
+void
+telkey(long n)
+{
+	sessions(n * users * sizeof (typed), n, tnkeys);
+}
+
+/*
+ * Commands: n from each user, each cat of a screenful, 24 lines of 80.
+ * So the shell makes a process that runs a program, and what the
+ * program writes goes out through the terminal, the server and TCP.
+ */
+void
+telcmd(long n)
+{
+	int fd, i;
+
+	(void)memset(buf, 'x', 24 * 79);
+	for (i = 78; i < 24 * 79; i += 79)
+		buf[i] = '\n';
+	if ((fd = creat(file, 0644)) < 0 || write(fd, buf, 24 * 79) != 24 * 79 ||
+	    close(fd) < 0) {
+		(void)failed(file);
+		(void)unlink(file);
+		return;
+	}
+	sessions(n * users, n, tncmds);
+	(void)unlink(file);
+}
+
+/*
  * The tests, and how much each does: enough to take a few seconds on a
  * 10 MHz 286.
  */
@@ -658,6 +995,8 @@ static struct test {
 	{ "pty",	pty,		16,	"kilobytes through a pseudo-terminal" },
 	{ "tcp",	tcp,		256,	"kilobytes over TCP to this machine" },
 	{ "tcprr",	tcprr,		500,	"a byte over TCP and one back" },
+	{ "telkey",	telkey,		5,	"lines typed by each user on telnet" },
+	{ "telcmd",	telcmd,		10,	"commands by each user on telnet" },
 	{ 0 }
 };
 
@@ -666,7 +1005,8 @@ usage(void)
 {
 	struct test *t;
 
-	fprintf(stderr, "usage: bench [-m] [-s scale] [test ...]\n");
+	fprintf(stderr,
+	    "usage: bench [-m] [-s scale] [-u users] [-l account] [test ...]\n");
 	for (t = tests; t->name; t++)
 		fprintf(stderr, "\t%-8s %s, %ld\n", t->name, t->what, t->n);
 	exit(2);
@@ -680,13 +1020,21 @@ main(int argc, char **argv)
 	long scale = 1;
 	int ch, i;
 
-	while ((ch = getopt(argc, argv, "ms:x")) != EOF)
+	while ((ch = getopt(argc, argv, "l:ms:u:x")) != EOF)
 		switch (ch) {
+		case 'l':
+			account = optarg;
+			break;
 		case 'm':
 			marks = 1;
 			break;
 		case 's':
 			if ((scale = atol(optarg)) < 1)
+				usage();
+			break;
+		case 'u':
+			users = atoi(optarg);
+			if (users < 1 || users > MAXUSERS)
 				usage();
 			break;
 		case 'x':		/* the exec test's program */

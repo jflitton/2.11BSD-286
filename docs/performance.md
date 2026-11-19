@@ -58,12 +58,22 @@ comes to.
 | `pty` | lines written to a pseudo-terminal and read from its other side, as the telnet server reads what a user's program writes | K/s |
 | `tcp` | data over TCP to a process on the same machine | K/s |
 | `tcprr` | a byte over TCP to a process on the same machine and one back: a key and its echo | µs a round |
+| `telkey` | 4 users logged in by telnet at once, each typing lines a key at a time and waiting for each echo: TCP, `telnetd`, the pseudo-terminal and back | µs a key |
+| `telcmd` | the same 4 users each running `cat` of a screenful, 24 lines of 80: the shell, a program, and its output through the terminal, `telnetd` and TCP | µs a command |
 
 `bench` with no arguments runs them all; `bench stat pipe` runs those;
 `-s N` does N times the work, for a machine too quick for a clock that
 ticks 60 times a second. The work is the same on every run, so two runs
 differ only as the system or the machine does. On a real machine it
 needs nothing but itself.
+
+The last two are users on the network. Each user is a process of
+`bench`'s that connects to the machine's own telnet server, logs in,
+and types as fast as the system answers; so `inetd` must be running,
+the users cost the machine what their own machines would have done, and
+nothing goes through a network interface. `-u N` makes it N users, 1 to
+8, where it is 4; `-l NAME` logs them in as NAME where it is root: an
+account with no password, whose shell is `sh`.
 
 `-m` is for a harness: the test writes `@@` as its work begins and
 again as it ends, after waiting until the terminal has sent everything
@@ -315,6 +325,38 @@ A comparison is only good between runs of the same tests: `exec`,
 the buffers were left, and `update`'s sync every 30 seconds falls in
 one test or another. In a run of four of the tests `exec` took 32 ms
 where the whole table has 27.
+
+## Users on telnet
+
+`telkey` and `telcmd` came after the rest, to see what several users
+at once cost. The first numbers:
+
+| | 1 user | 4 users |
+|---|---|---|
+| `telkey`, a key and its echo | 10.9 ms | 11.5 ms |
+| `telcmd`, `cat` of a screenful | 198 ms | 165 ms |
+
+A key costs the same however many are typing: the slots that processes
+share (`NSLOT`) do not show. Of a key's time `telnetd` has 65%, nearly
+all of it in the kernel for it, and `bench`'s user 24%, which a real
+user's own machine would have. `telnetd`'s loop looks for input from
+one side only when it has nothing waiting to go out the other, so by
+its code a key and its echo are four calls of `select` with something
+to do and one that waits, and `selscan` is the first function in the
+profile, 7%. A command is quicker with four users than with one because
+one user's waits are another's turn. Of its time `telnetd` has 37%,
+15% in its own loop over each byte, the shell 26% and `cat` 17%.
+
+Two things it found that are not speed. Four users logging in at the
+same moment, one of them often got no `login:` and waited for ever:
+`telnetd` set the pseudo-terminal's modes after it had started `login`,
+which on that side of a pseudo-terminal throws away what is waiting to
+be read, and on a busy machine that was the prompt. It sets them before
+now ([network](network.md)). And six users by the loopback run the
+network out of memory: of its 170 mbufs none were left, 48 requests
+were refused, and connections ended. Each connection has both its ends
+on the machine there, so six are twelve; what six real users writing at
+once would need has not been measured.
 
 ## What is left
 

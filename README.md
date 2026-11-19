@@ -197,7 +197,7 @@ tests/libc/run.sh       # the C library, with a test program as init: 73
 tests/preflight/run.sh  # tools/preflight.py, on two files with one of each
                         # thing it looks for (no emulator)
 tests/bench/run.sh      # how fast the system is: its benchmark, each
-                        # of 16 tests timed by the system's clock and by
+                        # of 18 tests timed by the system's clock and by
                         # the emulator's, and a profile of each; fails
                         # only if the measuring does
 tests/network/run.sh    # the network's programs, on the system booted to
