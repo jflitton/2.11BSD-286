@@ -3,12 +3,15 @@
 
 usage: tar2git.py --branch upstream --message-file MSG [--date ISO8601]
                   [--parent REF] [--symlink PATH=TARGET ...]
+                  [--exclude PATH ...]
                   PREFIX=ARCHIVE[:MEMBERPREFIX] ...  | git fast-import
 
 Each PREFIX=ARCHIVE puts the members of ARCHIVE under PREFIX in the commit.
 With :MEMBERPREFIX only members under that path are taken, and the member
-prefix is stripped.  File names go into git exactly as the archive has them,
-so names that differ only by case survive on a case-insensitive host.
+prefix is stripped; a MEMBERPREFIX that is a file puts that file at PREFIX.
+--exclude leaves out PATH, a path in the commit, and all under it.  File
+names go into git exactly as the archive has them, so names that differ
+only by case survive on a case-insensitive host.
 
 git keeps only the executable bit of the mode, and no empty directories;
 the empty directories are listed on stderr.
@@ -28,8 +31,10 @@ def main():
     ap.add_argument("--name", default="2.11BSD")
     ap.add_argument("--email", default="upstream@localhost")
     ap.add_argument("--symlink", action="append", default=[])
+    ap.add_argument("--exclude", action="append", default=[])
     ap.add_argument("maps", nargs="+")
     a = ap.parse_args()
+    excluded = [e.strip("/") for e in a.exclude]
 
     out = sys.stdout.buffer
     when = int(time.mktime(time.strptime(a.date, "%Y-%m-%dT%H:%M:%S"))) \
@@ -66,14 +71,18 @@ def main():
                     if name != want and not name.startswith(want + "/"):
                         continue
                     name = name[len(want):].strip("/")
-                    if not name:
+                    if not name and ti.isdir():
                         continue
-                path = (prefix + "/" + name) if prefix else name
+                path = "/".join(p for p in (prefix, name) if p)
+                if any(path == e or path.startswith(e + "/") for e in excluded):
+                    continue
                 if ti.isdir():
                     dirs.add(path)
                 elif ti.issym():
                     entries[path] = ("120000", blob(ti.linkname.encode()))
-                elif ti.isreg():
+                elif ti.isreg() or ti.islnk():
+                    # a hard link is a file with the data of the one it is
+                    # linked to
                     data = tf.extractfile(ti).read()
                     mode = "100755" if ti.mode & 0o111 else "100644"
                     entries[path] = (mode, blob(data))
