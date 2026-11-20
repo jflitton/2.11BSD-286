@@ -247,7 +247,8 @@ loop:
 		if (peekc=='"') {
 			sp = filename;
 			while ((c = mapch('"')) >= 0)
-				*sp++ = c;
+				if (sp < &filename[sizeof(filename)-1])
+					*sp++ = c;
 			*sp++ = 0;
 			peekc = getc00();
 		}
@@ -463,8 +464,8 @@ getnum()
 				typ = GT_ULNG;
 			else if ((lcval >> 1) > MAXINT)
 				typ = GT_LNG;
-			else if (lcval > MAXINT)
-				typ = GT_UNS;
+			else if (lcval > MAXINT && (typ & GT_LNG) == 0)
+				typ = GT_UNS;	/* but 0xFFFFL is long */
 		}
 	} else if ((typ == GT_UNS) && ((lcval >> 1) > MAXINT))
 		typ = GT_ULNG;
