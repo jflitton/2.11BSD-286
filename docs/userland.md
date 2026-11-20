@@ -805,8 +805,9 @@ where the script found 16 calls to read, each with another number of
 arguments than the function is defined with;
 the programs that read the kernel, `fstat`, `top` and `gcore`; those
 for object files, `nm`, `ar`, `ranlib`, `size` and `ld`; and
-the network's, which came next. `look` has no `/usr/dict/words` to
-search by default, the tree having none.
+the network's, which came next. `look` searches `/usr/dict/words` by
+default, which is not in upstream's source tree but on its `/usr` tape,
+and was imported from there with the games ([games](#games)).
 
 `tests/programs` has the system run a check or more of each: 75 short
 scripts, each with what it must write, to the byte. They are in
@@ -1367,16 +1368,25 @@ find nothing wrong with the file systems in `a` and `e`.
 
 ## Games
 
-Then the games of `usr/src/games`: 34 of upstream's 38, and 37 programs
-with those that go with them. `adventure`, `hangman`, `boggle` and
-`words` are not built yet ([what is not ported](unported.md#games)), and
-`games/pdp` is the PDP-11's assembly.
+Then the games of `usr/src/games`: 37 of upstream's 38, and 40 programs
+with those that go with them. `adventure` is not built yet ([what is not
+ported](unported.md#games)), and `games/pdp` is the PDP-11's assembly.
 
 | Where | |
 |---|---|
-| `/usr/games` | `arithmetic`, `atc`, `backgammon`, `banner`, `battlestar`, `bcd`, `btlgammon`, `canfield`, `cfscores`, `cribbage`, `factor`, `fish`, `fortune`, `hack`, `hunt`, `mille`, `monop`, `morse`, `number`, `phantasia`, `ppt`, `primes`, `quiz`, `rain`, `robots`, `rogue`, `sail`, `snake`, `snscore`, `teachgammon`, `trek`, `warp`, `worm`, `worms`, `wump`, and the script `wargames` |
-| `/usr/games/lib` | `hunt.driver`, which `hunt` starts; `busy`, which `snake` asks how busy the system is; and the games' data, scores and logs |
+| `/usr/games` | `arithmetic`, `atc`, `backgammon`, `banner`, `battlestar`, `bcd`, `boggle`, `btlgammon`, `canfield`, `cfscores`, `cribbage`, `factor`, `fish`, `fortune`, `hack`, `hangman`, `hunt`, `mille`, `monop`, `morse`, `number`, `phantasia`, `ppt`, `primes`, `quiz`, `rain`, `robots`, `rogue`, `sail`, `snake`, `snscore`, `teachgammon`, `trek`, `warp`, `worm`, `worms`, `wump`, and the scripts `wargames` and `words` |
+| `/usr/games/lib` | `hunt.driver`, which `hunt` starts; `busy`, which `snake` asks how busy the system is; `words1`, which writes the `sed` script `words` runs; and the games' data, scores and logs |
 | `/usr/man/cat6` | their pages: those of `usr/src/man/man6` and of `atc`, `battlestar`, `hack`, `phantasia` and `sail`, which keep theirs with them |
+| `/usr/dict` | `words`, which `hangman`, `words` and `boggle`'s dictionary are made of, and `look` searches; `connectives` and the `README` |
+
+`/usr/dict` is not in upstream's source tree but on its `/usr` tape,
+from which it was imported, unchanged, as `usr/dict` ([the upstream
+branch](upstream.md)). The root has `words`, `connectives` and the
+`README`, with their modes and owners on the tape. `web2` and `web2a`,
+Webster's Second and its phrases, 3.4 MB together, are not on it:
+nothing reads them unless it is asked to, and there is no room for them
+in the root of the tests' disks. `refer`'s papers wait for `refer`, and
+`spell`'s hashed lists, which `spellin` makes, for `spell`.
 
 Each is installed as its Makefile installs it. `fortune`, `hack`,
 `phantasia`, `robots` and `rogue` run as `daemon`, mode 4711, and `sail`
@@ -1436,6 +1446,10 @@ written by a tool of this port's own, laid out as the 286 has it:
   `cribbage`'s instructions by `nroff`, and `atc`'s grammar and scanner
   by `yacc` and `lex`; the maps and the instructions are the same as
   upstream's.
+- `boggle`'s dictionary, `bogdict`, is the words of `/usr/dict/words`
+  that it can use, `qu` written `q`, which its `sfile` has `sed` choose,
+  each written by its `comp` as how many letters it shares with the one
+  before and then the rest. It is the same, byte for byte, as upstream's.
 - `hack`'s Makefile has each file run through the preprocessor and then
   its `crypt`, which shortens words in its messages, "experienced" to
   "xprncd", to save the PDP-11's room. The build does the same, with
@@ -1482,6 +1496,10 @@ of its own:
 - `rain`, `worms`, `wump` and the `hunt` driver take the PDP-11's
   branch of their random numbers: the other divided `rand()` by 2^31, or
   shifted a 16-bit `int` right by 16, which is 0.
+- `hangman` chooses a word at a random place in `/usr/dict/words`, and
+  takes the PDP-11's branch, which makes the place a `long` of two
+  `rand()`s. The other is one, which here is at most 32767, a sixth of
+  the file: every word would have come before "ceramic".
 - `monop` saves a game by writing all of its data from address 0 to the
   break, and restores one by reading it back over it. On the 286 the
   stack lies between the BSS and the heap, and reading it back would
@@ -1552,24 +1570,27 @@ What upstream does that is left as it is:
   each time and waits for a space after the first, and goes on without
   the lock.
 
-`tests/programs` plays those that can be played from a file, 19
-checks: `banner`, `bcd`, `ppt` and `morse` must write a message as
-their pictures and sounds, `number` name a number, `factor` and
-`primes` give factors and primes, and `arithmetic` refuse a range too
-large; `fortune` must give the first two fortunes, which are the build's
-order's; `quiz` must list its subjects from its index, `wump` take a
-"y" for its instructions, and `wargames` answer; `cfscores`, `snscore`,
-`robots`, `hack` and `sail` must read their empty scores and logs, and
-`busy` find the system idle; `atc` must list its games and the scores
-it comes with; and `phantasia` must list its monsters from their file
-and its characters from the one `tools/setfiles.py` made. At the
-terminal, `battlestar` must describe where it starts, from
+`tests/programs` plays those that can be played from a file, 21 checks:
+`banner`, `bcd`, `ppt` and `morse` must write a message as their
+pictures and sounds, `number` name a number, `factor` and `primes` give
+factors and primes, and `arithmetic` refuse a range too large; `fortune`
+must give the first two fortunes, which are the build's order's; `quiz`
+must list its subjects from its index, `wump` take a "y" for its
+instructions, and `wargames` answer; `cfscores`, `snscore`, `robots`,
+`hack` and `sail` must read their empty scores and logs, and `busy` find
+the system idle; `atc` must list its games and the scores it comes with;
+`phantasia` must list its monsters from their file and its characters
+from the one `tools/setfiles.py` made; `words` must find the words that
+can be made of the letters of another; and `boggle` must find every word
+of its dictionary on a board it is given, all 113. `look` must find
+words in `/usr/dict/words`, which it searches when it is given no file.
+At the terminal, `battlestar` must describe where it starts, from
 `battle_strings`, and leave when told to quit; `hack` must ask whether
 the player is experienced, and leave at the end of its input; `rogue`
-must show its scores, after it has failed to lock them; and `robots`
-must draw its field with its help beside it, and leave when it is
-interrupted. `tests/network` has `hunt` look for a game on the
-Ethernet, and find none.
+must show its scores, after it has failed to lock them; `robots` must
+draw its field with its help beside it, and `hangman` its board, and
+each leave when it is interrupted. `tests/network` has `hunt` look for a
+game on the Ethernet, and find none.
 
 ## The root file system
 
@@ -1684,15 +1705,16 @@ kernel](#programs-that-read-the-kernel)). The system's own `strip` makes
 of a file what `tools/strip.py` does, which `tests/programs` checks on
 the kernel.
 
-The file system is 15000 blocks of 1K, of which the system takes 11154.
-The 265 programs are 5.2 MB of that, and 5.9 MB with their symbols; the
-manual's pages are 2.3 MB in about 2700 blocks; and the games and their
-files take about 3100 blocks, 1600 of them `fortune`'s. It was 8000
-blocks until the manual came, and 12000 until the games did. The
-tests' disks are of 20 MB, and the one of `tests/system`, which has
-2 MB of swap and three other file systems on it as well, has room for a
-root of 16400 blocks. A machine's own disk is made with as many as it has
-room for (`make root ROOTSIZE=...`, or `tools/mkfs.py -s`).
+The file system is 15000 blocks of 1K, of which the system takes 11506.
+The 268 programs are 5.2 MB of that, and 6.0 MB with their symbols; the
+manual's pages are 2.3 MB in about 2700 blocks; the games and their
+files take about 3200 blocks, 1600 of them `fortune`'s; and
+`/usr/dict/words` takes 206. It was 8000 blocks until the manual came,
+and 12000 until the games did. The tests' disks are of 20 MB, and the
+one of `tests/system`, which has 2 MB of swap and three other file
+systems on it as well, has room for a root of 16400 blocks. A machine's
+own disk is made with as many as it has room for (`make root
+ROOTSIZE=...`, or `tools/mkfs.py -s`).
 
 ## Following a program
 
@@ -1826,7 +1848,7 @@ copied files.
 `tests/programs` boots the same system from a disk with the root, a
 swap area and a small file system of checks, logs in as root on the
 first serial port, mounts that file system and runs its `check.sh`. For
-each of the 116 checks in `tests/programs/checks` it runs the check's
+each of the 119 checks in `tests/programs/checks` it runs the check's
 lines with the shell in an empty directory and compares what they wrote
 with what the check says they must, and says `ok` or shows what was
 written. A check is of one program, by its name, or of one use of it:
@@ -1838,13 +1860,13 @@ three of the manual's pages and must make of each what the build did
 the programs that read a file system directly work on a second disk
 ([disks and file systems](#disks-and-file-systems)); and the games that
 can be played from a file are played ([games](#games)). The test fails
-unless all 116 say `ok`. Then, at the terminal, it runs `tty` and `mesg`;
+unless all 119 say `ok`. Then, at the terminal, it runs `tty` and `mesg`;
 pages through a file and through a pipe with `more`, and through `ls`'s
 page with `man`; records a shell
 with `script`, which it leaves with ^D, and finds the command it typed
 in the file; locks the terminal with `lock`, gives it a wrong key and
 then the right one; has `tset` name the terminal and `clear` write the
-sequence that clears a VT100; starts four games and leaves each
+sequence that clears a VT100; starts five games and leaves each
 ([games](#games)); and stops the system with `shutdown -h now` and a
 message, which must be shown before the system halts. Afterwards
 `tools/fsck.py` must find nothing wrong with the root.
@@ -1931,7 +1953,7 @@ Not done, or not tested:
   description file, have not been tried. Of the tree's other grammars,
   `eqn`, `rdist`, `struct` and `named`'s tools wait for their programs.
 - Of the games, those played from a file are given a move or two, and
-  four are started at a terminal and left; none is played through.
+  five are started at a terminal and left; none is played through.
   `hunt` has not had a player, `sail` two ships, or `monop` a game
   saved and restored.
 - Nothing trims the logs or the accounting file. Upstream's `crontab`

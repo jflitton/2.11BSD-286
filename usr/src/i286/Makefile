@@ -469,11 +469,15 @@ battlestar_SRCS= $(addprefix $(GS)/battlestar/,battlestar.c com1.c com2.c \
 		nightfile.c globals.c)
 battlestar_FLAGS= -I$(SRC)/games/battlestar
 battlestar_LIBS= $(CURSES)
+boggle_SRCS=	$(GS)/boggle/boggle.c
 btlgammon_SRCS=	$(GS)/btlgammon/btlgammon.c
 cribbage_SRCS=	$(addprefix $(GS)/cribbage/,extern.c crib.c support.c cards.c \
 		score.c io.c)
 cribbage_LIBS=	$(CURSES)
 fortune_SRCS=	$(GS)/fortune/fortune.c
+hangman_SRCS=	$(addprefix $(GS)/hangman/,endgame.c extern.c getguess.c \
+		getword.c main.c playgame.c prdata.c prman.c prword.c setup.c)
+hangman_LIBS=	$(CURSES)
 HUNTDEFS=	-I$(SRC)/games/hunt -DBROADCAST -DRANDOM -DREFLECT -DMONITOR \
 		-DINTERNET -DOOZE -DFLY -DVOLCANO
 hunt_SRCS=	$(addprefix $(GS)/hunt/,hunt.c connect.c playit.c pathname.c)
@@ -556,9 +560,11 @@ warp_SRCS=	$(addprefix $(GS)/warp/,bang.c init.c intrp.c move.c object.c \
 		warp.c weapon.c)
 warp_LIBS=	-ltermcap -lm
 warp_MODEL=	m
-GAMEPROGS=	$(GAMESTD) atc backgammon teachgammon battlestar btlgammon \
-		cribbage fortune hunt hunt.driver mille monop quiz robots \
-		rogue sail snake snscore busy trek warp hack phantasia
+words1_SRCS=	$(GS)/words/words1.c
+GAMEPROGS=	$(GAMESTD) atc backgammon teachgammon battlestar boggle \
+		btlgammon cribbage fortune hangman hunt hunt.driver mille \
+		monop quiz robots rogue sail snake snscore busy trek warp \
+		words1 hack phantasia
 
 # This port's own (docs/userland.md), each in a directory here.
 adduser_SRCS=	i286/adduser/adduser.c
@@ -822,9 +828,22 @@ $(GO)/crib.instr: $(SRC)/games/cribbage/cribbage.n \
 	@mkdir -p $(GO)
 	cd $(SRC)/games/cribbage && $(H)/nroff cribbage.n > $@
 
+# boggle's dictionary, the words of /usr/dict/words it can use, each
+# written as how many letters it shares with the one before and then the
+# rest, by its comp, built for this machine: it writes text.  The
+# Makefile takes /usr/local/lib/w2a instead if there is one; here there
+# is none.
+BG6=		$(SRC)/games/boggle
+$(H)/bcomp: $(BG6)/comp.c | $(H)
+	@echo hostcc boggle/comp
+	@$(HOSTCC) $(HOSTCFLAGS) -o $@ $<
+$(GO)/bogdict: $(TOP)/usr/dict/words $(BG6)/sfile $(H)/bcomp
+	@mkdir -p $(GO)
+	LC_ALL=C sed -f $(BG6)/sfile $< | uniq | $(H)/bcomp > $@
+
 # What root.proto takes of the games' besides their programs.
 GAMEDATA=	$(GO)/battlestar/battle_strings $(GO)/fortunes.dat \
-		$(GO)/cards.pck $(GO)/crib.instr \
+		$(GO)/cards.pck $(GO)/crib.instr $(GO)/bogdict \
 		$(addprefix $(PH)/,characs phant.help) \
 		$(addprefix $(GO)/warp/smap.,0 1 2 3 4 5 6 7)
 

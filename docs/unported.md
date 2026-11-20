@@ -103,8 +103,6 @@ the rest of the writer's tools.
 | program | where | notes |
 |---|---|---|
 | `adventure` | `games/adventure` | its Makefile runs it once, to read its data and save its own memory as the program to install, with the messages after it; that must be done on the 286, and the root file system is made on another machine |
-| `hangman`, `words` | `games/hangman`, `games/words` | read `/usr/dict/words`, which is on upstream's `/usr` tape and not in its source tree |
-| `boggle` | `games/boggle` | its dictionary, `bogdict`, is made of `/usr/dict/words` |
 
 `games/pdp` is in PDP-11 assembly and is left out.
 

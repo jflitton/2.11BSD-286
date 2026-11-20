@@ -1,6 +1,6 @@
 # include	"hangman.h"
 
-# if pdp11
+# if defined(pdp11) || defined(i286)
 #	define	RN	(((off_t) rand() << 16) | (off_t) rand())
 # else
 #	define	RN	rand()

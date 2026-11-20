@@ -452,6 +452,10 @@ f /usr/man/man.template 444 ../man/man.template
 f /usr/man/makewhatis.sed 444 ../man/makewhatis.sed
 f /usr/man/manroff 755 ../man/manroff
 f /usr/sbin/makewhatis 755 ../usr.sbin/makewhatis/makewhatis.sh
+d /usr/dict 755
+f /usr/dict/README 444:10 ../../dict/README
+f /usr/dict/connectives 644:10 ../../dict/connectives
+f /usr/dict/words 444:3.10 ../../dict/words
 d /usr/games 755
 d /usr/games/lib 755:10
 f /usr/games/arithmetic 755 ../../../obj/root/bin/arithmetic
@@ -485,6 +489,8 @@ f /usr/games/teachgammon 755 ../../../obj/root/bin/teachgammon
 f /usr/games/battlestar 755 ../../../obj/root/bin/battlestar
 f /usr/games/lib/battle_strings 644:10 ../../../obj/games/battlestar/battle_strings
 f /usr/games/lib/battlestar.log 666:10 ../../../obj/root/empty
+f /usr/games/boggle 755 ../../../obj/root/bin/boggle
+f /usr/games/lib/bogdict 644:10 ../../../obj/games/bogdict
 f /usr/games/btlgammon 755 ../../../obj/root/bin/btlgammon
 f /usr/games/lib/backrules 755:10 ../games/btlgammon/backrules
 f /usr/games/cribbage 755 ../../../obj/root/bin/cribbage
@@ -500,6 +506,7 @@ f /usr/games/lib/hackdir/rumors 644:1.10 ../games/hack/rumors
 f /usr/games/lib/hackdir/perm 644:1.10 ../../../obj/root/empty
 f /usr/games/lib/hackdir/record 644:1.10 ../../../obj/root/empty
 d /usr/games/lib/hackdir/save 755:1.10
+f /usr/games/hangman 755 ../../../obj/root/bin/hangman
 f /usr/games/hunt 755 ../../../obj/root/bin/hunt
 f /usr/games/lib/hunt.driver 755:10 ../../../obj/root/bin/hunt.driver
 f /usr/games/mille 755:0.10 ../../../obj/root/bin/mille
@@ -573,6 +580,8 @@ f /usr/games/lib/warp/smap.6 644:3.10 ../../../obj/games/warp/smap.6
 f /usr/games/lib/warp/smap.7 644:3.10 ../../../obj/games/warp/smap.7
 f /usr/games/lib/warp/warp.doc 644:3.10 ../games/warp/warp.doc
 f /usr/games/lib/warp/warp.news 644:3.10 ../games/warp/warp.news
+f /usr/games/words 755 ../games/words/words.sh
+f /usr/games/lib/words1 755:10 ../../../obj/root/bin/words1
 i ../../../obj/man/man.proto
 c /dev/console 622 0 0
 c /dev/ttyv1 666 0 1

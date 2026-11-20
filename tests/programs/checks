@@ -366,6 +366,14 @@ look -f BAN a
 --
 cherry
 banana
+== look-dict
+look tenn
+--
+Tenneco
+Tennessee
+Tenney
+tennis
+Tennyson
 == m4
 cat >f <<'!'
 define(`hello', `Hello, $1!')dnl
@@ -1400,3 +1408,58 @@ Nobody has sailed yet.
  1  a Leech                 4       19      29      30      66      0       0       73
 Current characters on file are:
 
+== words
+/usr/games/words stone
+--
+e
+en
+et
+n
+ne
+neo
+nest
+net
+no
+nose
+not
+note
+o
+on
+one
+onset
+s
+sen
+sent
+set
+so
+son
+stone
+t
+ten
+to
+toe
+ton
+tone
+== boggle
+/usr/games/boggle tore inst pale mads | cat -v
+--
+				^H^Ht  o  r  e  
+				^H^Hi  n  s  t  
+				^H^Hp  a  l  e  
+				^H^Hm  a  d  s  
+
+ala	  alai	    alan      ale	also	  alter	    altern    amp
+ani	  ant	    anti      aster	dal	  dale	    dam	      damp
+desert	  deter	    elan      else	ester	  eternal   inlet     insert
+inset	  into	    ion	      lad	lain	  lam	    lama      lamp
+lap	  lase	    last      led	lest	  let	    mad	      made
+main	  male	    malt      man	manor	  manse	    map	      maser
+mason	  mast	    nap	      nip	nit	  nor	    nose      not
+oint	  onset	    ore	      pad	pain	  paint	    pal	      pale
+pan	  pant	    past      paste	pastel	  piano	    pin	      pint
+pinto	  pion	    pit	      rest	ret	  rose	    rot	      sad
+saint	  salad	    sale      salt	sap	  sedan	    set	      slain
+slam	  slant	    slap      sled	snap	  snip	    snore     snort
+son	  sore	    sort      stern	sternal	  tern	    terse     tin
+tinsel	  tip	    ton	      tonal	tor	  tore	    torn      tort
+trot	  
