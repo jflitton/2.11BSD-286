@@ -4,6 +4,7 @@
 #define	NI	4	/* number of blocks of inodes per read */
 
 #include <stdio.h>
+#include <stdarg.h>
 #include <ctype.h>
 #include <strings.h>
 #include <stdlib.h>
@@ -56,10 +57,12 @@ int	etapes;		/* estimated number of tapes */
 
 int	notify;		/* notify operator flag */
 long	blockswritten;	/* number of blocks written on current tape */
+long	volblks;	/* and since the current volume began */
 int	tapeno;		/* current tape number */
 time_t	tstart_writing;	/* when started writing the first tape block */
 
 char	*prdate();
+int	msg(char *, ...), msgtail(char *, ...);
 int	mark();
 int	add();
 int	dump();

@@ -445,6 +445,17 @@ itrunc(oip,length, ioflags)
 	long bytesreleased;
 #endif
 
+	/*
+	 * A device's inode holds its number where a file's holds the
+	 * addresses of its blocks, and has no size.  Lengthening one, as dd
+	 * does its output with ftruncate unless told notrunc, gave it a size,
+	 * and the next open with O_TRUNC freed the number as a block and left
+	 * the device 0, 0, the console.  As in 4.4BSD, truncating a device
+	 * does nothing.
+	 */
+	if ((oip->i_mode & IFMT) == IFCHR || (oip->i_mode & IFMT) == IFBLK)
+		return;
+
 	aflags = B_CLRBUF;
 	if (ioflags & IO_SYNC)
 		aflags |= B_SYNC;

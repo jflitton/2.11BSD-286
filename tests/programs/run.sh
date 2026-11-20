@@ -6,9 +6,9 @@
 # checks in tests/programs/checks, which are on a file system of their
 # own with the files they read.  A check is a few lines for the shell and
 # what they must write, to the byte.  Then use what needs a terminal: tty
-# and mesg, more, man, script, lock, tset and clear, and the games
-# battlestar, hack, rogue, robots and hangman; and stop the system with
-# shutdown.
+# and mesg, more, man, script, lock, tset and clear, the games
+# battlestar, hack, rogue, robots and hangman, and window; and stop the
+# system with shutdown.
 # The kernel, /boot, the C library, the programs and the root file system
 # are built as they would be for a real machine, as tests/system has
 # them.
@@ -75,8 +75,11 @@ spare=$(python3 -I "$top/tools/mkdisk.py" -p -g 100,4,17 spare.img a=fs:2000 \
 # tests/system: a typed line is echoed, so what it waits for is split by
 # quotes where it is typed.  The shell that script starts is left with
 # the end of the file: one that is at a terminal does not obey exit.
+# window draws the space after a prompt as a move of the cursor, so what
+# is typed in it waits for its own message instead.
 CTRLD=$(printf '\004')
 CTRLC=$(printf '\003')
+CTRLP=$(printf '\020')
 TIMEOUT=${TIMEOUT:-1500} python3 -I "$top/tests/harness/runtest.py" \
     --hd programs.img,$geometry,xtide --hd2 spare.img,$spare --until halting \
     --type "login: " "root" \
@@ -114,6 +117,11 @@ TIMEOUT=${TIMEOUT:-1500} python3 -I "$top/tests/harness/runtest.py" \
     --type "Directions:" "${CTRLC}" \
     --type "# " '/usr/games/hangman' \
     --type "Guess:" "${CTRLC}" \
+    --type "# " 'window' \
+    --type "Escape character is" 'echo "in-win""dow"; tty' \
+    --type "in-window" "${CTRLP}" \
+    --type "Command:" 'qy' \
+    --type "Yes" '' \
     --type "# " 'echo "@ex""it 00"; shutdown -h now going down' \
     --boot programs
 
@@ -134,7 +142,8 @@ for want in "^/dev/tty00" "^is y" "^is n" "--More--(.*%)" \
     "lock: /dev/tty00 on .* timeout in 15 minutes" "tset-vt100" \
     "^0000000  *033  *\[" "luxurious stateroom" "Your rating was" \
     "End f input" "cannot lock score file" "Rogueists" "Directions:" \
-    "Word #:" "System going down IMMEDIATELY" "going down" \
+    "Word #:" "in-window" "/dev/ttyp[0-9]" "Really quit \[yn\]?" \
+    "System going down IMMEDIATELY" "going down" \
     "System shutdown time has arrived" "halting"; do
     if ! grep -q -- "$want" "$serial"; then
         echo "programs: no \"$want\" in what the system wrote" >&2
@@ -144,4 +153,4 @@ done
 python3 -I "$top/tools/fsck.py" programs.img
 python3 -I "$top/tools/fsck.py" -p a spare.img
 python3 -I "$top/tools/fsck.py" -p e spare.img
-echo "programs: $n checks of the programs that work on text and files, of nroff and man, of tbl, eqn, refer, spell and the rest documents go through, of zic and /usr/adm's scripts, of disklabel, the file system checkers and fstat, and of the games, and tty, mesg, more, man, script, lock, tset, clear, five games and shutdown at a terminal"
+echo "programs: $n checks of the programs that work on text and files, of nroff and man, of tbl, eqn, refer, spell and the rest documents go through, of zic and /usr/adm's scripts, of disklabel, the file system checkers, dump, restor and the rest of the administrator's, and fstat, and of the games, and tty, mesg, more, man, script, lock, tset, clear, five games, window and shutdown at a terminal"

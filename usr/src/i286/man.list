@@ -57,7 +57,8 @@ cat1	usr.bin/id/id.1 usr.bin/id/whoami.1 usr.bin/patch/patch.man
 cat1	usr.bin/printf/printf.1 usr.bin/shar/shar.1 usr.bin/shar/traverse.1
 cat1	usr.bin/touch/touch.1 usr.bin/uname/uname.1 usr.bin/whereis/whereis.1
 cat1	usr.bin/xargs/xargs.1 usr.bin/xinstall/install.1 usr.sbin/cron/crontab.1
-cat1	usr.sbin/nc/nc.1 usr.sbin/tracebuf/tracebuf.1
+cat1	usr.sbin/nc/nc.1 usr.sbin/tracebuf/tracebuf.1 bin/chflags/chflags.1
+cat1	new/la/la.1 man/man1/gcore.1 man/man1/window.1
 
 cat2	man/man2/Makefile
 cat3	man/man3/Makefile libexec/tcpd/hosts_access.3
@@ -101,4 +102,6 @@ cat8	usr.sbin/ntp/man/ntpd.8 usr.sbin/ntp/man/ntpdc.8 usr.sbin/pstat/pstat.8
 cat8	usr.sbin/quot/quot.8 usr.sbin/rwhod/rwhod.8 usr.sbin/sa/sa.8
 cat8	usr.sbin/syslogd/syslogd.8 usr.sbin/traceroute/traceroute.8
 cat8	usr.sbin/update/update.8 usr.sbin/vipw/vipw.8
-cat8	share/zoneinfo/zic.8 share/zoneinfo/zdump.8
+cat8	share/zoneinfo/zic.8 share/zoneinfo/zdump.8 man/man8/dump.8
+cat8	man/man8/dumpdir.8 man/man8/rdump.8 sbin/restor/restor.8
+cat8	usr.sbin/rmt/rmt.8

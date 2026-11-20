@@ -17,12 +17,12 @@ Some programs wait on more than themselves:
 
 | what | for |
 |---|---|
-| A library for the large model, and the helpers for `__huge` pointers | programs with more than 64K of data |
+| A library for the large model, and the helpers for `__huge` pointers | programs with more than 64K of data, and `window` on a screen bigger than 80 by 24 |
 | Quotas (`sys/sys/quota_*.c` are in the tree, and not built) | `quota`, `quotacheck`, `quotaon`, `edquota`, `repquota` |
 | SLIP (`sys/net/if_sl.c`; `NSL` is 0) | `slattach` |
 | A driver for the parallel port | the line printer's programs, but for a printer on a serial port |
 | A diskette driver | `mtools`, and `tar` to a diskette |
-| A tape driver | `mt`, `tcopy`, `ansitape`, `dump` and `restor` to tape |
+| A tape driver | `mt`, `tcopy`, `ansitape`, and `dump` and `restor` to a tape |
 | Crash dumps written to the swap area | `savecore` |
 
 ## The compiler and object files
@@ -75,13 +75,9 @@ These are the rest of the writer's tools.
 
 | program | where | notes |
 |---|---|---|
-| `dump`, `restor` | `sbin` | to a file as well as a tape |
-| `chflags` | `bin/chflags` | the kernel has the calls |
-| `gcore`, `savecore` | `ucb`, `sbin` | `savecore` waits on crash dumps |
+| `savecore` | `sbin` | waits on crash dumps |
 | `quota`, `quotacheck`, `quotaon`, `edquota`, `repquota` | `ucb`, `sbin`, `usr.sbin` | wait on quotas |
-| `window` | `ucb/window` | |
 | `sendbug` | `ucb/sendbug` | |
-| `la` | `new/la` | the load averages |
 
 ## Printers and tapes
 
@@ -89,7 +85,7 @@ These are the rest of the writer's tools.
 |---|---|---|
 | `lpr`, `lpq`, `lprm`, `lpc`, `lpd`, `pac` | `usr.sbin/lpr` | |
 | the printers' filters | `usr.sbin/lpr/filters` | most are for Versatec and Varian plotters |
-| `mt`, `tcopy`, `rmt` | `bin`, `ucb`, `usr.sbin` | `rmt` serves another machine's `dump` |
+| `mt`, `tcopy` | `bin`, `ucb` | |
 | `ansitape` | `new/ansi` | |
 | `vmsbackup` | `new/vmsbackup` | reads VMS's backup tapes |
 

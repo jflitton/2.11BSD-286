@@ -1232,7 +1232,7 @@ formats, with the pages of those kinds that `cron` and `tcpd` keep
 with them; of 4, those not of the PDP-11's devices: `tty`, `pty`,
 `null`, and the network's; of 6, those of the games on it
 ([games](#games)). 3f, Fortran's library, has nothing on the system to
-go with it. That is 596 pages, with the 315 other names upstream's
+go with it. That is 605 pages, with the 315 other names upstream's
 Makefiles give them by `ln`, `egrep` for `grep` and `fprintf` for
 `printf`, and 2.4 MB. A page its Makefile installs under another name,
 as `phantasia`'s `phant.nr` is `phantasia.0`, has that name after its
@@ -1541,6 +1541,126 @@ free inodes and put right its count. `fstat` must list what a `sleep`
 has open, who has `/etc/motd` open, `syslogd`'s socket in the UNIX
 domain and `inetd`'s on the Internet. Afterwards `tools/fsck.py` must
 find nothing wrong with the file systems in `a` and `e`.
+
+## Backups, and the rest of the administrator's
+
+| Where | |
+|---|---|
+| `/sbin` | `dump`, `rdump`, `dumpdir`, `restor` |
+| `/usr/sbin` | `rmt` |
+| `/bin` | `chflags` |
+| `/usr/ucb` | `gcore`, `window` |
+| `/usr/new` | `la` |
+| `/etc` | `dumpdates`, the group `operator`'s to write, as upstream installs it |
+
+`dump` and `restor` are the Seventh Edition's, as 2.11BSD has them, with
+the format of `protocols/dumprestor.h`: 1K records in blocks of ten, a
+header before each file, and a map of the inodes in use and of those in
+the dump. `dump` reads a file system through its raw device, which only
+root and the group `operator` may, and copies all of it (level 0), or
+what has changed since the last dump of a lower level, which
+`/etc/dumpdates` keeps with `u`; `W` and `w` say from that file and
+`fstab` what is due. There is no tape drive yet, so a dump goes to a
+file, named with `f`, or with `f -` to the standard output, from which
+`restor rf -` can read it in a pipe, as `restor(8)` shows for copying a
+file system. `rdump`, which only root may run, since it takes a
+privileged port, writes it on another machine through `rsh` and `rmt`
+there; `rmt` opens a file without making it, as 4.3BSD's does, so the
+file must be there first. A file is taken for a tape of 2300 feet at
+1600 bpi, which holds about 38000 blocks: at that size `dump` asks at
+the terminal for the next tape and opens the same name again. `B` gives the number of
+records a volume holds instead, and a dump to the standard output has no
+limit. `dump` reads and writes with three helper processes, which take
+their turns writing with `flock` on files in `/tmp`, as upstream's do.
+
+`restor r` puts a dump back on a file system, inode by inode: a level 0
+on one `newfs` has just made, and each level after on top of it,
+removing the files that went in between. `x` takes the files it is
+given out of a dump, each into a file named by its inode number in the
+directory it is run in, and `t` says when the dump was made and from
+what date. `dumpdir` lists the files in a dump with their inode numbers,
+from which to name them for `x`.
+
+These had bugs, on the PDP-11 too:
+
+- `dump` read the superblock as the size of its structure, which a raw
+  device here refuses ([disks and file systems](#disks-and-file-systems)),
+  and went on with what was in memory: an inode count it made up, read
+  past the end of the partition, and asked at the terminal whether to go
+  on. It reads the block now, as `icheck` does. When it gave up after
+  that it named the disk with `%d`.
+- A file with a hole where a whole block of addresses would be, as `dd
+  seek=300` makes, lost its place. `dump` wrote nothing for the missing
+  indirect block, and `restor`, counting the file's blocks in order,
+  put what came after the hole that much nearer the start: a block
+  written at 300K came back at 44K. `dump` writes a record of no blocks
+  for each block of addresses a hole takes the place of now, while the
+  file goes on after it. A dump made by upstream's has the fault.
+- `B` never worked: given it, `dump` left the tape's length at zero, and
+  asked for a new tape after the first block. It counts the records of
+  each volume now.
+- `restor` wrote the superblock back as a whole block from the structure,
+  with whatever followed the structure in its memory; it keeps the whole
+  block now. `dump`'s messages, `msg`, took five `int`s whatever they
+  were given, and take a variable list now.
+
+`chflags` sets the flags the kernel keeps for a file, which `ls -lo`
+shows: `nodump`, which `dump` honours at level 1 and above unless `h`
+says otherwise; `uchg` and `uappnd`, which keep a file from being
+changed or let it only be added to, and which its owner may set; and
+`schg` and `sappnd`, the same, which only root may set, and nobody take
+off in multi-user, where the securelevel is 1. `la` prints the load
+averages, which it gets with `getloadavg`.
+
+`gcore` writes the core of a running process without stopping it, or
+stopped for the while with `-s`. Upstream's read the PDP-11's user
+structure, data and stack at the clicks in its `proc` entry. Here it
+writes what the kernel's own `core` does: the user structure and kernel
+stack, the process's table of segments, and each of the process's own
+segments, not the shared code. It finds the user structure as `ps`
+does, in the kernel's slot or at `p_addr`, and the table in `pseg`
+([programs that read the kernel](#programs-that-read-the-kernel)), and
+runs with the group `kmem`. As upstream's, it will not write a process
+that is swapped out. It looked one entry past the end of the table of processes
+before saying a process was not there.
+
+`window` divides a terminal into windows, each with a shell on a pty of
+its own, and is upstream's, which leaves each window only the lines it
+shows (`local.h`). Its screen and its windows are kept in its 64K of
+data, at about 15 bytes for each place on the screen, with the window
+it draws frames in and the one it draws boxes in each as big as the
+screen: 80 by 24 leaves room for the two windows it starts with and a
+few more, at 132 by 24 it starts with none, and at 100 by 30 or 80 by
+36 it says "Out of memory." and stops. A bigger screen waits on the
+large model ([what is not ported](unported.md)); `stty rows 24 columns
+80` makes a bigger terminal do. It took what `sprintf` returns for the
+name of `~/.windowrc`: the buffer in 4.3BSD's library, and a count of
+characters in 2.11BSD's, so it never read the file. `error` took eight
+`int`s, and its table of commands ended with an initializer the
+compiler refused.
+
+`tests/programs` first has a raw disk keep its device number after `dd`
+with `seek` and an open with `O_TRUNC` ([disks](disks.md#devices)).
+Then it makes a file system on the second disk's partition `a` with a
+file of 145K, which takes a block of addresses, a file with a
+hole before its one block, which takes two, a hard and a symbolic link,
+a device, and a file of another user's. `dump` must copy it to a file,
+with `u`, and `dump W` must then name it; `restor t` and `dumpdir` must
+list the dump; `restor r` must put it on a new file system in `e`, which
+`fsck` must find whole and which must list as the first does, inode for
+inode, with the same files; and so must `dump` and `restor` in a pipe.
+After a file is changed, one made and a link removed, a level 1 dump in
+volumes of 1000 records must hold those, and put on the copy it must
+make it the same again. A level 2 dump must leave out a file marked
+`nodump` with `chflags`, which a level 0 keeps unless `h 0` says
+otherwise. `restor x` must take two files out of the dump; `rdump` must
+write one through `rmt` on the same machine, which `restor r` puts back
+whole. `gcore` must write a core of a `sleep` that is the kernel's own
+after the user structure, which the kernel then writes when the `sleep`
+is killed with signal 6; `chflags uchg` must keep a file from being
+removed and written to until `nouchg`; and `la` must print three
+averages. At the terminal, it starts `window`, runs a command in a
+window on a pty, and leaves it with ^P `q`.
 
 ## Games
 
@@ -1913,7 +2033,9 @@ network's others [after them](#the-networks-programs), and mail's
 the manual's pages and their links, which `root.proto` takes in with a
 line `i ../../../obj/man/man.proto`; the Makefile lists the zone files
 of `/usr/share/zoneinfo` likewise ([time zones](#time-zones)). The programs for disks and file
-systems are [after the manual](#disks-and-file-systems), and the games
+systems are [after the manual](#disks-and-file-systems), those for
+backups and the rest of the administrator's [after
+those](#backups-and-the-rest-of-the-administrators), and the games
 [after those](#games).
 
 The programs are in it without their symbol tables, as upstream's
@@ -1932,8 +2054,8 @@ kernel](#programs-that-read-the-kernel)). The system's own `strip` makes
 of a file what `tools/strip.py` does, which `tests/programs` checks on
 the kernel.
 
-The file system is 15000 blocks of 1K, of which the system takes 12442.
-The 292 programs are 5.7 MB of that, and 6.5 MB with their symbols; the
+The file system is 15000 blocks of 1K, of which the system takes 12704.
+The 301 programs are 5.9 MB of that, and 6.7 MB with their symbols; the
 manual's pages are 2.4 MB in about 2700 blocks; the games and their
 files take about 3300 blocks, 1600 of them `fortune`'s; and
 `/usr/dict/words` takes 206. It was 8000 blocks until the manual came,
@@ -2075,7 +2197,7 @@ copied files.
 `tests/programs` boots the same system from a disk with the root, a
 swap area and a small file system of checks, logs in as root on the
 first serial port, mounts that file system and runs its `check.sh`. For
-each of the 145 checks in `tests/programs/checks` it runs the check's
+each of the 157 checks in `tests/programs/checks` it runs the check's
 lines with the shell in an empty directory and compares what they wrote
 with what the check says they must, and says `ok` or shows what was
 written. A check is of one program, by its name, or of one use of it:
@@ -2088,16 +2210,19 @@ zone files the build made ([time zones](#time-zones)); `daily`,
 `weekly` and `monthly` are run, and must move the logs along and make
 `whatis` and `find`'s list; `disklabel` and
 the programs that read a file system directly work on a second disk
-([disks and file systems](#disks-and-file-systems)); and the games that
-can be played from a file are played ([games](#games)). The test fails
-unless all 145 say `ok`. Then, at the terminal, it runs `tty` and `mesg`;
+([disks and file systems](#disks-and-file-systems)), and `dump` and
+`restor` copy a file system there to a file and back to another
+([backups](#backups-and-the-rest-of-the-administrators)); and the games
+that can be played from a file are played ([games](#games)). The test
+fails unless all 157 say `ok`. Then, at the terminal, it runs `tty` and `mesg`;
 pages through a file and through a pipe with `more`, and through `ls`'s
 page with `man`; records a shell
 with `script`, which it leaves with ^D, and finds the command it typed
 in the file; locks the terminal with `lock`, gives it a wrong key and
 then the right one; has `tset` name the terminal and `clear` write the
 sequence that clears a VT100; starts five games and leaves each
-([games](#games)); and stops the system with `shutdown -h now` and a
+([games](#games)); runs a command in a window of `window`'s and leaves
+it; and stops the system with `shutdown -h now` and a
 message, which must be shown before the system halts. Afterwards
 `tools/fsck.py` must find nothing wrong with the root.
 

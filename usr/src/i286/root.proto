@@ -202,6 +202,17 @@ f /usr/adm/monthly 755 etc/monthly
 f /usr/sbin/zic 755 ../../../obj/root/bin/zic
 f /usr/sbin/zdump 755 ../../../obj/root/bin/zdump
 i ../../../obj/zoneinfo/zone.proto
+f /sbin/dump 755 ../../../obj/root/bin/dump
+f /sbin/rdump 755 ../../../obj/root/bin/rdump
+f /sbin/dumpdir 755 ../../../obj/root/bin/dumpdir
+f /sbin/restor 755 ../../../obj/root/bin/restor
+f /usr/sbin/rmt 755 ../../../obj/root/bin/rmt
+f /etc/dumpdates 664:5 ../../../obj/root/empty
+f /bin/chflags 755 ../../../obj/root/bin/chflags
+d /usr/new 755
+f /usr/new/la 755 ../../../obj/root/bin/la
+f /usr/ucb/gcore 2755:2 ../../../obj/root/bin/gcore
+f /usr/ucb/window 755 ../../../obj/root/bin/window
 f /bin/expr 755 ../../../obj/root/bin/expr
 f /bin/awk 755 ../../../obj/root/bin/awk
 f /usr/bin/egrep 755 ../../../obj/root/bin/egrep

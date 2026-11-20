@@ -201,6 +201,43 @@ zic_SRCS=	$(addprefix share/zoneinfo/,zic.c scheck.c ialloc.c)
 zdump_SRCS=	$(addprefix share/zoneinfo/,zdump.c ialloc.c)
 ADMPROGS=	bigram code zic zdump
 
+# Backups: dump, which copies a file system, or what has changed in it
+# since a dump of a lower level, to a tape, and here to a file or a pipe;
+# rdump, the same to another machine's file or tape, through rmt there,
+# which serves it; dumpdir, which lists the files in a dump; and restor,
+# which puts a dump back on a file system, or takes files out of it.
+# And the rest of the administrator's: chflags, which sets the flags of
+# a file that the kernel keeps; la, which shows the load averages; gcore,
+# which writes a running process's core; and window, which shares a
+# terminal among windows, each with its own shell, on a pty.
+DUMP=		dumpitime.c dumpmain.c dumpoptr.c dumptape.c dumptraverse.c \
+		unctime.c
+dump_SRCS=	$(addprefix sbin/dump/,$(DUMP))
+rdump_SRCS=	$(addprefix sbin/dump/,$(DUMP) dumprmt.c)
+rdump_FLAGS=	-DRDUMP
+dumpdir_SRCS=	sbin/dump/dumpdir.c
+restor_SRCS=	sbin/restor/restor.c
+rmt_SRCS=	usr.sbin/rmt/rmt.c
+chflags_SRCS=	bin/chflags/chflags.c bin/ls/stat_flags.c
+la_SRCS=	new/la/la.c
+gcore_SRCS=	ucb/gcore.c
+WINDOW=		char.c cmd.c cmd1.c cmd2.c cmd3.c cmd4.c cmd5.c cmd6.c cmd7.c \
+		context.c error.c lcmd.c lcmd1.c lcmd2.c main.c mloop.c \
+		parser1.c parser2.c parser3.c parser4.c parser5.c scanner.c \
+		startup.c string.c ttf100.c ttgeneric.c tth19.c tth29.c \
+		ttinit.c ttoutput.c tttermcap.c tttvi925.c var.c win.c wwadd.c \
+		wwalloc.c wwbox.c wwchild.c wwclose.c wwclreol.c wwclreos.c \
+		wwcursor.c wwdata.c wwdelchar.c wwdelete.c wwdelline.c \
+		wwdump.c wwend.c wwenviron.c wwerror.c wwflush.c wwframe.c \
+		wwgets.c wwinit.c wwinschar.c wwinsline.c wwiomux.c wwlabel.c \
+		wwmisc.c wwmove.c wwopen.c wwprintf.c wwpty.c wwputc.c \
+		wwputs.c wwredraw.c wwredrawwin.c wwrint.c wwscroll.c \
+		wwsize.c wwspawn.c wwsuspend.c wwtty.c wwunframe.c wwupdate.c \
+		wwwrite.c
+window_SRCS=	$(addprefix ucb/window/,$(WINDOW))
+window_LIBS=	-ltermcap
+BACKPROGS=	dump rdump dumpdir restor rmt chflags la gcore window
+
 # Those with a grammar for yacc, and yacc and lex themselves.  The
 # grammars are made into C by the tree's own yacc and lex, built for the
 # machine the system is built on (below) in obj/host, and the C is in
@@ -650,8 +687,8 @@ OWNPROGS=	adduser bench
 PROGS=	init getty login sh csh ls mkdir stty test hostname mknod mount \
 	umount reboot sleep ex exrecover expreserve tcsh $(BINSTD) \
 	$(NETPROGS) $(SYSPROGS) $(DISKPROGS) $(KMEMPROGS) $(LOGPROGS) \
-	$(ADMPROGS) $(YACCPROGS) $(TEXTPROGS) $(NET2PROGS) $(MAILPROGS) \
-	$(DOCPROGS) $(WRITERPROGS) $(GAMEPROGS) $(OWNPROGS)
+	$(ADMPROGS) $(BACKPROGS) $(YACCPROGS) $(TEXTPROGS) $(NET2PROGS) \
+	$(MAILPROGS) $(DOCPROGS) $(WRITERPROGS) $(GAMEPROGS) $(OWNPROGS)
 
 # The libraries the programs use besides the C library: NAME_LIB lists a
 # library's sources, and NAME_LIBFLAGS what it is compiled with.  Each is

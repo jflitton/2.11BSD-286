@@ -12,23 +12,27 @@ static char sccsid[] = "@(#)error.c	3.13 (2.11BSD) 2026/5/9";
 #include "value.h"
 #include "context.h"
 #include "char.h"
+#include <stdarg.h>
 
 #define ERRLINES 10			/* number of lines for errwin */
 
-/*VARARGS1*/
-error(fmt, a, b, c, d, e, f, g, h)
-char *fmt;
+error(char *fmt, ...)
 {
 	register struct context *x;
 	register struct ww *w;
+	va_list ap;
+	char msg[512];
 
+	va_start(ap, fmt);
+	vsnprintf(msg, sizeof msg, fmt, ap);
+	va_end(ap);
 	for (x = &cx; x != 0 && x->x_type != X_FILE; x = x->x_link)
 		;
 	if (x == 0) {
 		if (terse)
 			wwbell();
 		else {
-			wwprintf(cmdwin, fmt, a, b, c, d, e, f, g, h);
+			wwputs(msg, cmdwin);
 			wwputs("  ", cmdwin);
 		}
 		return;
@@ -50,7 +54,7 @@ char *fmt;
 		return;
 	}
 	wwprintf(w, "line %d: ", x->x_lineno);
-	wwprintf(w, fmt, a, b, c, d, e, f, g, h);
+	wwputs(msg, w);
 	wwputc('\n', w);
 }
 

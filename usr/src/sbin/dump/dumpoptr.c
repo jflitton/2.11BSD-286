@@ -237,26 +237,28 @@ timeest()
 	}
 }
 
-/* VARARGS1 */
-/* ARGSUSED */
-msg(fmt, a1, a2, a3, a4, a5)
-	char	*fmt;
+msg(char *fmt, ...)
 {
+	va_list ap;
+
 	fprintf(stderr,"  DUMP: ");
 #ifdef TDEBUG
 	fprintf(stderr,"pid=%d ", getpid());
 #endif
-	fprintf(stderr, fmt, a1, a2, a3, a4, a5);
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
 	fflush(stdout);
 	fflush(stderr);
 }
 
-/* VARARGS1 */
-/* ARGSUSED */
-msgtail(fmt, a1, a2, a3, a4, a5)
-	char	*fmt;
+msgtail(char *fmt, ...)
 {
-	fprintf(stderr, fmt, a1, a2, a3, a4, a5);
+	va_list ap;
+
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
 }
 
 /*

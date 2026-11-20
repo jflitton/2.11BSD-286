@@ -20,6 +20,7 @@ int	rmtopen(), rmtwrite();
 void	rmtclose();
 #endif RDUMP
 extern int read(), write();
+extern long blocksperfile;
 
 /*
  * Concurrent dump mods (Caltech) - disk block reading and tape writing
@@ -133,7 +134,7 @@ flusht()
 {
 	int siz = (char *)tblock - (char *)req;
 
-	if (atomic(write, slavefd[rotor], req, siz) != siz) {
+	if (atomic(write, slavefd[rotor], (char *)req, siz) != siz) {
 		perror("  DUMP: error writing command pipe");
 		dumpabort();
 	}
@@ -142,7 +143,9 @@ flusht()
 	trecno = 0;
 	asize += tenths;
 	blockswritten += NTREC;
-	if (!pipeout && asize > tsize) {
+	volblks += NTREC;
+	if (!pipeout && (blocksperfile ? volblks >= blocksperfile :
+	    asize > tsize)) {
 		close_rewind();
 		otape();
 	}
@@ -289,6 +292,7 @@ otape()
 		enslave();  /* Share open tape file descriptor with slaves */
 
 		asize = 0;
+		volblks = 0;
 		tapeno++;		/* current tape sequence */
 		newtape++;		/* new tape signal */
 		spcl.c_volume++;
@@ -422,7 +426,7 @@ doslave(cmd, prev, next)
 	/*
 	 * Get list of blocks to dump, read the blocks into tape buffer
 	 */
-	while ((nread = atomic(read, cmd, req, reqsiz)) == reqsiz) {
+	while ((nread = atomic(read, cmd, (char *)req, reqsiz)) == reqsiz) {
 		register struct req *p = req;
 		for (trecno = 0; trecno < NTREC; trecno += p->count, p += p->count) {
 			if (p->dblk) {

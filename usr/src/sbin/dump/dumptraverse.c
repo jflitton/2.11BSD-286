@@ -4,7 +4,11 @@ static	char *sccsid = "@(#)dumptraverse.c	1.3 (2.11BSD) 2026/5/7";
 
 #include "dump.h"
 
-struct	fs	sblock;		/* disk block */
+union {
+	struct	fs fs;
+	char	pad[DEV_BSIZE];	/* a raw device moves whole sectors */
+} sbun;
+#define	sblock	sbun.fs
 struct	dinode itab[INOPB * NI];
 
 pass(fn, map)
@@ -17,7 +21,7 @@ short *map;
 	daddr_t d;
 
 	sync();
-	bread((daddr_t)1, (char *)&sblock, sizeof(sblock));
+	bread((daddr_t)1, (char *)&sbun, sizeof(sbun));
 	mino = (sblock.fs_isize-2) * INOPB;
 	ino = 0;
 	for(i=2;; i+=NI) {
@@ -45,19 +49,23 @@ short *map;
 	}
 }
 
+long	iblks;		/* blocks of the file icat has still to account for */
+
 icat(ip, fn1, fn2)
 register struct	dinode	*ip;
 int (*fn1)(), (*fn2)();
 {
 	register i;
 
+	iblks = (ip->di_size + DEV_BSIZE - 1) / DEV_BSIZE - (NADDR-3);
 	(*fn2)(ip->di_addr, NADDR-3);
 	for(i=0; i<NADDR; i++) {
 		if(ip->di_addr[i] != 0) {
 			if(i < NADDR-3)
 				(*fn1)(ip->di_addr[i]); else
 				indir(ip->di_addr[i], fn1, fn2, i-(NADDR-3));
-		}
+		} else if(i >= NADDR-3)
+			hole(fn2, i-(NADDR-3));
 	}
 }
 
@@ -72,6 +80,7 @@ int (*fn1)(), (*fn2)();
 	if(n <= 0) {
 		spcl.c_type = TS_ADDR;
 		(*fn2)(idblk, NINDIR);
+		iblks -= NINDIR;
 		for(i=0; i<NINDIR; i++) {
 			d = idblk[i];
 			if(d != 0)
@@ -83,8 +92,37 @@ int (*fn1)(), (*fn2)();
 			d = idblk[i];
 			if(d != 0)
 				indir(d, fn1, fn2, n);
+			else
+				hole(fn2, n);
 		}
 	}
+}
+
+/*
+ * Where an indirect block of level n is not, all it would have pointed
+ * to is a hole.  restor counts the file's blocks in order, as the
+ * records give them, so a record of no blocks goes on the tape for each
+ * block of addresses the hole takes the place of, while the file goes on
+ * after it; without them, what came after the hole was put back that
+ * much nearer the start of the file.
+ */
+hole(fn2, n)
+int (*fn2)();
+{
+	static daddr_t none[NINDIR];
+	register i;
+
+	if(iblks <= 0)
+		return;
+	if(n > 0) {
+		n--;
+		for(i=0; i<NINDIR && iblks > 0; i++)
+			hole(fn2, n);
+		return;
+	}
+	spcl.c_type = TS_ADDR;
+	(*fn2)(none, NINDIR);
+	iblks -= NINDIR;
 }
 
 #define	CHANGEDSINCE(dp,t)  ((dp)->di_mtime >= (t) || (dp)->di_ctime >= (t))
@@ -266,7 +304,7 @@ bread(da, ba, c)
 		msg("(This should not happen)bread from %s [block %ld]: c=0x%x, regc=0x%x, &c=0x%x, n=0x%x\n",
 			disk, da, c, regc, &c, n);
 		if (++breaderrors > BREADEMAX){
-			msg("More than %d block read errors from %d\n",
+			msg("More than %d block read errors from %s\n",
 				BREADEMAX, disk);
 			broadcast("DUMP IS AILING!\n");
 			msg("This is an unrecoverable error.\n");
