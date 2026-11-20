@@ -3,8 +3,6 @@
  * it runs each of the programs named below, which are prog.c compiled
  * for the two models, and says how many of them failed.  The line
  * "@exit NN" at the end is for tests/harness/runtest.py.
- *
- * Nothing is printed until the programs have been run.
  */
 #include <stdio.h>
 #include <sys/reboot.h>

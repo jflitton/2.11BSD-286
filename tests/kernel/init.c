@@ -34,6 +34,7 @@ main(argc, argv, envp)
 	char **argv, **envp;
 {
 	int fd, pid, status, n, i, pfd[2];
+	unsigned u;
 	char *p, *q;
 	long l;
 
@@ -66,6 +67,24 @@ main(argc, argv, envp)
 	check(read(fd, (char *)0xFF00, 0) == 0, "nothing read into nowhere");
 	check(read(fd, (char *)0xFFF0, 512) == -1 && errno == EFAULT,
 	    "a read that would run past the data segment");
+	close(fd);
+
+	/*
+	 * A file made with every byte saying where it is (pattern.py):
+	 * on the first boot it is in the part of the RAM disk that the
+	 * kernel, starting, tries address line 20 on.
+	 */
+	fd = open("/etc/pattern", O_RDONLY, 0);
+	u = 0;
+	while ((n = read(fd, buf, sizeof (buf))) > 0) {
+		for (i = 0; i < n && buf[i] == (char)(u * 7 + (u >> 8)); i++)
+			u++;
+		if (i < n)
+			break;
+	}
+	if (n != 0)
+		printf("init: /etc/pattern is wrong at byte %u\n", u);
+	check(n == 0 && u == 40960, "a file is what the file system was made with");
 	close(fd);
 
 	check(mkdir("/tmp", 0777) == 0, "make a directory");

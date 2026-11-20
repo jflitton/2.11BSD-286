@@ -167,7 +167,10 @@ Limits:
    which becomes the swapper's.
 5. Enable address line 20. A PS/2 does it with bit 1 of port 92h, an AT
    through the keyboard controller; each is tried in turn until memory at
-   1M stops being the same memory as at 0.
+   1M stops being the same memory as at 0. The test writes a word 7DFEh
+   past 1M, where the end of the boot sector is with the line off, and
+   puts back what was there: with the line on that word is the RAM
+   disk's.
 6. Write a descriptor for each kernel segment into the global descriptor
    table, from the table of where they were loaded: base, limit, and ring 0
    code or data.

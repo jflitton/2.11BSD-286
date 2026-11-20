@@ -2,6 +2,8 @@
 d /etc 755
 d /bin 755
 d /dev 755
+# (the first file, to be where run.sh says)
+f /etc/pattern 644 pattern
 f /etc/init 755 init
 f /etc/motd 644 motd
 f /bin/child 755 child

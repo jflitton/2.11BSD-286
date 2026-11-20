@@ -39,10 +39,17 @@ for p in init child; do
     python3 -I "$top/tools/ne2aout.py" --model s $p.ne $p
 done
 
-# The root file system, as the RAM disk of the first boot.
+# The root file system, as the RAM disk of the first boot.  The first
+# file in it is one for the test to read back, every byte of which says
+# where it is.  It lies across the word 7DFEh into the RAM disk, which
+# the kernel's test of address line 20 writes on when it starts, at 1M
+# and 7DFEh, after the RAM disk has been loaded there: that word must
+# be put back.
 cp "$here/proto" proto
 echo "The kernel's test file system." > motd
+python3 -I "$here/pattern.py" pattern 40960
 python3 -I "$top/tools/mkfs.py" -s 200 proto root.fs
+python3 -I "$here/pattern.py" pattern root.fs 0x7DFE
 
 # A swap area that takes most of the machine's 4M, so that the test's
 # processes do not all fit in what is left.

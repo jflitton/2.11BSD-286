@@ -323,7 +323,8 @@ rdload: cmp     word [_bootinfo + BI_RDSIZE], 0
 
 ; Is address line 20 working?  Returns "not equal" if it is.  With it held
 ; low, FFFF:7E0E is the same memory as 0000:7DFE, the end of the boot
-; sector.
+; sector.  With it working that word is the RAM disk's, which rdload has
+; filled by now, so what was there is put back whichever it is.
 a20:    push    ds
         push    es
         xor     ax, ax
@@ -332,9 +333,11 @@ a20:    push    ds
         mov     es, ax
         mov     ax, [0x7DFE]
         push    ax
+        push    word [es:0x7E0E]
         not     ax
         mov     [es:0x7E0E], ax
         cmp     ax, [0x7DFE]
+        pop     word [es:0x7E0E]        ; (the flags stay as they are)
         pop     ax
         mov     [0x7DFE], ax
         pop     es
