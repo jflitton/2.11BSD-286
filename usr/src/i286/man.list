@@ -63,7 +63,8 @@ cat4	man/man4/lo.4 man/man4/networking.4 man/man4/null.4 man/man4/pty.4
 cat4	man/man4/tcp.4 man/man4/tty.4 man/man4/udp.4
 cat5	man/man5/Makefile usr.sbin/cron/crontab.5 libexec/tcpd/hosts_access.5
 cat5	libexec/tcpd/hosts_options.5 bin/disklabel/disklabel.5.5
-cat6	man/man6/arithmetic.6 man/man6/backgammon.6 man/man6/banner.6
+cat6	man/man6/adventure.6 man/man6/arithmetic.6 man/man6/backgammon.6
+cat6	man/man6/banner.6
 cat6	man/man6/bcd.6 man/man6/boggle.6 man/man6/canfield.6
 cat6	man/man6/cribbage.6 man/man6/fish.6 man/man6/fortune.6
 cat6	man/man6/hangman.6 man/man6/hunt.6 man/man6/mille.6 man/man6/monop.6

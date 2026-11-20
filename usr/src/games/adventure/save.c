@@ -8,11 +8,143 @@
 
 static char sccsid[] = "	save.c	4.1	82/05/11	";
 
+#include <stdio.h>
 #include <a.out.h>
 int filesize;                    /* accessible to caller         */
 
 char *sbrk();
 
+#ifdef i286
+/*
+ * On the 286 a program is a header, a table of its segments and the
+ * contents of each (docs/executable-format.md).  The code is copied from
+ * the command; the data segment is written as it is in memory, from 0 to
+ * the end of the BSS, all of it initialized now.  The heap does not follow
+ * the BSS here, as it does on the PDP-11: the stack and the arguments lie
+ * between them, and a run with more arguments and environment has its
+ * heap start higher.  So the first run moves the break up by as much room
+ * as they can take before it reads its data (heapfrom), the heap is
+ * written after the segments, and heapback reads it into place when the
+ * program is run again.  filesize is where the messages begin, after it.
+ */
+#include <sys/param.h>
+
+unsigned heaplo;		/* where the heap begins */
+long heapat;			/* where it is in the file */
+extern char end, *_minbrk;
+extern int datfd;
+char *brk();
+
+heapfrom()
+{
+	/*
+	 * NCARGS bytes of strings, a pointer to each, at most one to every
+	 * byte, two null pointers and two words; and a click, to which the
+	 * kernel rounds the stack and they together.
+	 */
+	sbrk(3 * NCARGS + 8 + 512);
+	heaplo = (unsigned) sbrk(0);
+}
+
+heapback()
+{
+	unsigned n = (unsigned) filesize - (unsigned) heapat;
+
+	if (heaplo < (unsigned) _minbrk || brk((char *) heaplo + n) != 0)
+		return (-1);
+	lseek(datfd, heapat, 0);
+	return (read(datfd, (char *) heaplo, n) == n ? 0 : -1);
+}
+
+save(cmdfile,outfile)                   /* save core image              */
+char *cmdfile,*outfile;
+{       register int i,fd;
+	int fdaout;
+	struct xexec x;
+	long at[NXSEG], off;
+	unsigned heaphi, p, n;
+	char buff[512];
+
+	fflush(stdout);                 /* else it is saved, and written*/
+					/* again by each run of it      */
+	fdaout=getcmd(cmdfile);         /* open command wherever it is  */
+	if (fdaout<0) return(-1);       /* can do nothing without text  */
+	if ((fd=open(outfile,0))>0)     /* this restriction is so that  */
+	{       printf("Can't use an existing file\n"); /* we don't try */
+		close(fd);              /* to write over the commnd file*/
+		return(-1);
+	}
+	if (read(fdaout,&x.e,sizeof x.e)!=sizeof x.e || x.e.a_magic!=A_MAGIC ||
+	    x.e.a_nseg>NXSEG || read(fdaout,x.x,x.e.a_nseg*sizeof x.x[0]) !=
+	    x.e.a_nseg*sizeof x.x[0])
+	{       printf("%s is not a program\n",cmdfile);
+		return(-1);
+	}
+	if ((fd=creat(outfile,0755))== -1)
+	{       printf("Cannot create %s\n",outfile);
+		return(-1);
+	}
+	x.e.a_syms = x.e.a_strs = 0;    /* throw away symbol table      */
+	off = sizeof x.e + x.e.a_nseg*sizeof x.x[0];
+	for (i=0; i<x.e.a_nseg; i++)    /* where each is in the command */
+	{       at[i] = off;
+		off += (x.x[i].xs_filesz+1) & ~1L;
+	}
+	off = sizeof x.e + x.e.a_nseg*sizeof x.x[0];
+	for (i=0; i<x.e.a_nseg; i++)    /* the data is all initialized  */
+	{       if (x.x[i].xs_type==XS_DATA)
+			x.x[i].xs_filesz = x.x[i].xs_memsz = (unsigned)&end;
+		off += (x.x[i].xs_filesz+1) & ~1L;
+	}
+	heapat = off;
+	heaphi = (unsigned)sbrk(0);
+	off += heaphi-heaplo;
+	if (off>65535L)                 /* filesize is an unsigned      */
+	{       printf("%s would be too big\n",outfile);
+		close(fd);
+		unlink(outfile);
+		return(-1);
+	}
+	filesize = off;
+	n = x.e.a_nseg*sizeof x.x[0];   /* make the new header          */
+	if (write(fd,&x.e,sizeof x.e)!=sizeof x.e || write(fd,x.x,n)!=n)
+		goto bad;
+	for (i=0; i<x.e.a_nseg; i++)
+	{       if (x.x[i].xs_type==XS_DATA)
+		/*
+		 * Through buff: a system call takes a pointer of 0 for
+		 * none, and so cannot be given the data from address 0.
+		 */
+			for (p=0; p<(unsigned)&end; p+=n)
+			{       n = (unsigned)&end-p<sizeof buff?
+				    (unsigned)&end-p:sizeof buff;
+				bcopy((char *)p,buff,n);
+				if (write(fd,buff,n)!=n) goto bad;
+			}
+		else
+		{       lseek(fdaout,at[i],0);
+			for (off=x.x[i].xs_filesz; off>0; off-=n)
+			{       n = off<sizeof buff?(int)off:sizeof buff;
+				if (read(fdaout,buff,n)!=n ||
+				    write(fd,buff,n)!=n) goto bad;
+			}
+		}
+		if ((x.x[i].xs_filesz & 1) && write(fd,"",1)!=1)
+			goto bad;
+	}
+	n = heaphi-heaplo;
+	if (write(fd,(char *)heaplo,n)!=n)
+		goto bad;
+	close(fd);
+	close(fdaout);
+	return(0);
+bad:    printf("Cannot write %s\n",outfile);
+	close(fd);
+	close(fdaout);
+	unlink(outfile);
+	return(-1);
+}
+#else
 save(cmdfile,outfile)                   /* save core image              */
 char *cmdfile,*outfile;
 {       register char *c;
@@ -21,6 +153,8 @@ char *cmdfile,*outfile;
 	struct exec header;
 	int counter;
 	char buff[512],pwbuf[120];
+	fflush(stdout);                 /* else it is saved, and written*/
+					/* again by each run of it      */
 	fdaout=getcmd(cmdfile);         /* open command wherever it is  */
 	if (fdaout<0) return(-1);       /* can do nothing without text  */
 	if ((fd=open(outfile,0))>0)     /* this restriction is so that  */
@@ -91,6 +225,7 @@ char *cmdfile,*outfile;
 	write(fd,c,header.a_data);         /* write all data in 1 glob     */
 	close(fd);
 }
+#endif
 
 #define	NULL	0
 

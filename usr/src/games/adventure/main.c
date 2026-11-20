@@ -17,6 +17,12 @@ char **argv;
 		write(2, "No adventure just now\n", 22);
 		exit(1);
 	}
+#ifdef i286
+	if (setup != 0 && heapback() < 0) {	/* save.c */
+		write(2, "No adventure just now\n", 22);
+		exit(1);
+	}
+#endif
 	reenter++;
 	setuid(getuid());
 	switch (setup) {

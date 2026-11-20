@@ -100,11 +100,8 @@ the rest of the writer's tools.
 
 ## Games
 
-| program | where | notes |
-|---|---|---|
-| `adventure` | `games/adventure` | its Makefile runs it once, to read its data and save its own memory as the program to install, with the messages after it; that must be done on the 286, and the root file system is made on another machine |
-
-`games/pdp` is in PDP-11 assembly and is left out.
+All are ported but `games/pdp`, which is in PDP-11 assembly and is left
+out.
 
 ## `new` and `local`
 

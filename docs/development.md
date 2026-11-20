@@ -225,7 +225,7 @@ tests/network/run.sh    # the network's programs, on the system booted to
 tests/programs/run.sh   # the programs that work on text and files, on the
                         # system booted to multi-user, nroff and man,
                         # disklabel, fsck and the other checkers on a
-                        # second disk, and the games: 119 checks, each a
+                        # second disk, and the games: 122 checks, each a
                         # few lines for the shell and what they must
                         # write, and more, man, script, lock, tset, five
                         # games and shutdown at a terminal
@@ -302,7 +302,7 @@ tests/vt/run.sh         # the console's terminal emulator, on the machine
   ([the C library and programs](userland.md),
   [the console](console.md), [the network](network.md)).
 - `tests/programs` boots that system too, with a file system of checks
-  beside the root: 119 of them, each a few lines for the shell and what
+  beside the root: 122 of them, each a few lines for the shell and what
   they must write, to the byte, for `sort`, `sed`, `diff`, `tar`,
   `patch`, `m4`, `compress` and the other programs that work on text and
   files, for `nroff`, which must format three of the manual's pages

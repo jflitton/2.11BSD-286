@@ -458,6 +458,10 @@ f /usr/dict/connectives 644:10 ../../dict/connectives
 f /usr/dict/words 444:3.10 ../../dict/words
 d /usr/games 755
 d /usr/games/lib 755:10
+d /usr/games/lib/adventure 755
+f /usr/games/lib/adventure/Makefile 644 adventure/Makefile
+f /usr/games/lib/adventure/a.out 755 ../../../obj/root/bin/adventure
+f /usr/games/lib/adventure/glorkz 644 ../games/adventure/glorkz
 f /usr/games/arithmetic 755 ../../../obj/root/bin/arithmetic
 f /usr/games/banner 755 ../../../obj/root/bin/banner
 f /usr/games/bcd 755 ../../../obj/root/bin/bcd

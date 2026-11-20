@@ -1463,3 +1463,71 @@ slam	  slant	    slap      sled	snap	  snip	    snore     snort
 son	  sore	    sort      stern	sternal	  tern	    terse     tin
 tinsel	  tip	    ton	      tonal	tor	  tore	    torn      tort
 trot	  
+== adventure-make
+cd /usr/games/lib/adventure && make install
+ls -l /usr/games/adventure | awk '{ print $1, $3 }'
+--
+rm -f advent
+echo y | ./a.out
+Section 1
+Section 2
+Section 3
+Section 4
+Section 5
+Section 6
+Section 7
+Section 8
+Section 9
+Section 10
+Section 11
+Section 12
+Section 0
+got the data.  save as "advent"? Save succeeded.  Adding messages.
+Advent is ready.
+install -c -s -m 755 advent /usr/games/adventure
+-rwxr-xr-x root
+== adventure
+(echo no; echo east; echo get lamp; echo inventory; echo quit; echo yes) |
+/usr/games/adventure
+--
+
+Welcome to adventure!!  Would you like instructions?
+
+You are standing at the end of a road before a small brick building.
+Around you is a forest.  A small stream flows out of the building and
+down a gully.
+
+You are inside a building, a well house for a large spring.
+
+There are some keys on the ground here.
+
+There is a shiny brass lamp nearby.
+
+There is food here.
+
+There is a bottle of water here.
+
+OK
+
+You are currently holding the following:
+Brass lantern
+
+Do you really want to quit now?
+
+OK
+
+
+
+You scored 32 out of a possible 350 using 4 turns.
+
+You are obviously a rank amateur.  Better luck next time.
+To achieve the next higher rating, you need 4 more points.
+== adventure-suspend
+(echo no; echo get keys; echo suspend; echo yes; echo s) |
+/usr/games/adventure | tail -2
+./s | sed 's/a mere [0-9]* minutes/a mere N minutes/'
+--
+                    ^
+That should do it.  Gis revido.
+This adventure was suspended a mere N minutes ago.
+Even wizards have to wait longer than that!

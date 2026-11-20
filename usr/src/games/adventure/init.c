@@ -15,6 +15,9 @@ int setbit[16] = {1,2,4,010,020,040,0100,0200,0400,01000,02000,04000,
 init(command)                           /* everything for 1st time run  */
 char *command;                          /* command we were called with  */
 {       int stat,adfd;
+#ifdef i286
+	heapfrom();                     /* save.c                       */
+#endif
 	rdata();                        /* read data from orig. file    */
 	linkdata();
 	poof();
@@ -167,10 +170,10 @@ trapdel()                               /* come here if he hits a del   */
 
 
 startup()
-{       int tvec[2];
+{       long tvec;
 	demo=start(0);
-	time(tvec);
-	srand(tvec[1]|1);               /* random odd seed              */
+	time(&tvec);
+	srand((int)tvec|1);             /* random odd seed: its low word */
 /*      srand(371);             */      /* non-random seed                      */
 	hinted[3]=yes(65,1,0);
 	newloc=1;

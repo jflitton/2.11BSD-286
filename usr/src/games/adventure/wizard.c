@@ -91,8 +91,8 @@ char *cmdfile;
 ran(range)                              /* uses unix rng                */
 int range;                              /* can't div by 32768 because   */
 {
-	long rand(), i;
-	i = rand() % range;
+	long i;
+	i = rand() % range;		/* an int, not a long */
 	return(i);
 }
 

@@ -446,6 +446,10 @@ $(foreach p,canfield rain worm worms,$(eval $(p)_LIBS = -lcurses -ltermcap))
 CURSES=		-lcurses -ltermcap
 GS=		games
 GO=		$(TOP)/obj/games
+# adventure's first run, which makes the game on the system
+# (i286/adventure/Makefile).
+adventure_SRCS=	$(addprefix $(GS)/adventure/,done.c init.c io.c main.c \
+		save.c subr.c vocab.c wizard.c)
 atc_SRCS=	$(addprefix $(GS)/atc/,extern.c graphics.c input.c list.c \
 		log.c main.c tunable.c update.c) $(GO)/atc/grammar.c \
 		$(GO)/atc/lex.c
@@ -561,7 +565,7 @@ warp_SRCS=	$(addprefix $(GS)/warp/,bang.c init.c intrp.c move.c object.c \
 warp_LIBS=	-ltermcap -lm
 warp_MODEL=	m
 words1_SRCS=	$(GS)/words/words1.c
-GAMEPROGS=	$(GAMESTD) atc backgammon teachgammon battlestar boggle \
+GAMEPROGS=	$(GAMESTD) adventure atc backgammon teachgammon battlestar boggle \
 		btlgammon cribbage fortune hangman hunt hunt.driver mille \
 		monop quiz robots rogue sail snake snscore busy trek warp \
 		words1 hack phantasia
@@ -1014,7 +1018,7 @@ $(MANO)/man.proto: man.list $(MANSRCS) $(SRC)/man/makewhatis.sed $(HDRS) \
 		$(H)/nroff $(HTMAC) $(TOP)/tools/mkman.py
 	@python3 -I $(TOP)/tools/mkman.py $(H)/nroff $(SRC) man.list $(MANO)
 
-$(R)/root.fs: root.proto $(wildcard etc/* root/* skel/*) \
+$(R)/root.fs: root.proto $(wildcard etc/* root/* skel/*) adventure/Makefile \
 		$(addprefix $(R)/bin/,$(PROGS)) \
 		$(R)/passwd $(R)/passwd.dir $(R)/passwd.pag $(R)/fstab \
 		$(R)/syserrlst $(R)/aliases.dir $(R)/aliases.pag $(R)/empty \

@@ -1164,7 +1164,7 @@ formats, with the pages of those kinds that `cron` and `tcpd` keep
 with them; of 4, those not of the PDP-11's devices: `tty`, `pty`,
 `null`, and the network's; of 6, those of the games on it
 ([games](#games)). 3f, Fortran's library, has nothing on the system to
-go with it. That is 579 pages, with the 309 other names upstream's
+go with it. That is 583 pages, with the 309 other names upstream's
 Makefiles give them by `ln`, `egrep` for `grep` and `fprintf` for
 `printf`, and 2.3 MB. A page its Makefile installs under another name,
 as `phantasia`'s `phant.nr` is `phantasia.0`, has that name after its
@@ -1368,13 +1368,12 @@ find nothing wrong with the file systems in `a` and `e`.
 
 ## Games
 
-Then the games of `usr/src/games`: 37 of upstream's 38, and 40 programs
-with those that go with them. `adventure` is not built yet ([what is not
-ported](unported.md#games)), and `games/pdp` is the PDP-11's assembly.
+Then the games of `usr/src/games`: all 38 of upstream's, and 41 programs
+with those that go with them. `games/pdp` is the PDP-11's assembly.
 
 | Where | |
 |---|---|
-| `/usr/games` | `arithmetic`, `atc`, `backgammon`, `banner`, `battlestar`, `bcd`, `boggle`, `btlgammon`, `canfield`, `cfscores`, `cribbage`, `factor`, `fish`, `fortune`, `hack`, `hangman`, `hunt`, `mille`, `monop`, `morse`, `number`, `phantasia`, `ppt`, `primes`, `quiz`, `rain`, `robots`, `rogue`, `sail`, `snake`, `snscore`, `teachgammon`, `trek`, `warp`, `worm`, `worms`, `wump`, and the scripts `wargames` and `words` |
+| `/usr/games` | `adventure`, `arithmetic`, `atc`, `backgammon`, `banner`, `battlestar`, `bcd`, `boggle`, `btlgammon`, `canfield`, `cfscores`, `cribbage`, `factor`, `fish`, `fortune`, `hack`, `hangman`, `hunt`, `mille`, `monop`, `morse`, `number`, `phantasia`, `ppt`, `primes`, `quiz`, `rain`, `robots`, `rogue`, `sail`, `snake`, `snscore`, `teachgammon`, `trek`, `warp`, `worm`, `worms`, `wump`, and the scripts `wargames` and `words` |
 | `/usr/games/lib` | `hunt.driver`, which `hunt` starts; `busy`, which `snake` asks how busy the system is; `words1`, which writes the `sed` script `words` runs; and the games' data, scores and logs |
 | `/usr/man/cat6` | their pages: those of `usr/src/man/man6` and of `atc`, `battlestar`, `hack`, `phantasia` and `sail`, which keep theirs with them |
 | `/usr/dict` | `words`, which `hangman`, `words` and `boggle`'s dictionary are made of, and `look` searches; `connectives` and the `README` |
@@ -1464,6 +1463,37 @@ written by a tool of this port's own, laid out as the 286 has it:
   `ex` put the day it is built in `message.c`, which is compiled as the
   tree has it, with the day of upstream's own build.
 
+`adventure` is made on the system, by its users, as it was on the
+PDP-11. Its Makefile builds a program that, run once, reads the game's
+text, `glorkz`, into its tables, saves itself with them as a new
+program, `advent`, and puts the messages after it, where the game reads
+them from its own file as it plays; and installs that as
+`/usr/games/adventure`. The same `save` is how a player suspends a game,
+as a program that takes it up again. The build makes the first program,
+and the root has it as `/usr/games/lib/adventure/a.out`, with `glorkz`
+and a Makefile of this port's (`usr/src/i286/adventure`) that does the
+rest as upstream's does, `echo y | ./a.out` and `install -s`. So the
+game is there once root has said
+
+    cd /usr/games/lib/adventure; make install
+
+and answered nothing: the Makefile says "y" to "got the data.  save
+as "advent"?". `strip` leaves `advent` as it is, having no symbols,
+and so with its messages.
+
+`save` writes the PDP-11's, the VAX's or the Z8000's `a.out`, and
+`adventure` has an `#ifdef i286` of its own for the 286's: the header
+and the code from the program it was run as, and the data segment as it
+is in memory, initialized throughout. On the PDP-11 the heap follows the
+BSS, and was saved with it; here the stack and the arguments lie between
+them, and the heap begins higher the more room the arguments and the
+environment take. So the first run moves its break up by as much as
+they can take, 3 times `NCARGS` and a click, before it reads `glorkz`;
+`save` writes the heap after the segments; and when the saved program
+starts it reads its heap back to where it was, below which any run's
+break begins. `advent`, and a game suspended, is 99K with the messages,
+as upstream's is on the PDP-11.
+
 What the compiler needed:
 
 - `arithmetic`'s `delete` was declared `void` and defined as an `int`;
@@ -1514,7 +1544,15 @@ of its own:
   into the deck.
 - `quiz` takes the time as a `long` and its low word for the step
   between questions, where it read the second `int` of two, the PDP-11's
-  low word and the 286's high one.
+  low word and the 286's high one. `adventure` seeds `rand()` so too:
+  with the high word every game played in the same 18 hours went the
+  same way.
+- `adventure`'s `ran` declared `rand()` a `long`. The PDP-11 returns a
+  `long`'s high word where an `int` is returned, and so took the number
+  as that and something else as the low word, and the result was still
+  positive; here the number is the low word, the high word is what DX
+  held, and the result was negative half the time, which every chance
+  the game takes with `pct` would pass. `rand()` is an `int` now.
 - `robots` flushed what had been typed with `TIOCFLUSH` and a null
   pointer, through which the kernel reads which of the terminal's queues
   to flush. Here it reads 0, which is both, and the screen `robots` had
@@ -1554,6 +1592,12 @@ Bugs, which the PDP-11 has too:
   only for input that is unbuffered or buffered by the line: the prompt
   did not appear until a line had been typed. `battlestar` writes it out
   before it reads.
+- `adventure`'s first run reads its "y" from a pipe, and so the library
+  does not write out its question before it reads: the question was still
+  waiting when `save` saved the program, and every game began with "got
+  the data.  save as "advent"?". Upstream's own `advent`, on its tape,
+  has it so; and a game suspended with what it wrote going to a file or
+  a pipe saved that too. `save` writes out what waits before it saves.
 - `hack`'s Makefile made its directory and put nothing in it; without
   `perm`, its lock, `hack` will not start, and without `data`, `help`,
   `hh` and `rumors` it can tell nothing. They are installed, with an
@@ -1570,7 +1614,7 @@ What upstream does that is left as it is:
   each time and waits for a space after the first, and goes on without
   the lock.
 
-`tests/programs` plays those that can be played from a file, 21 checks:
+`tests/programs` plays those that can be played from a file, 24 checks:
 `banner`, `bcd`, `ppt` and `morse` must write a message as their
 pictures and sounds, `number` name a number, `factor` and `primes` give
 factors and primes, and `arithmetic` refuse a range too large; `fortune`
@@ -1582,9 +1626,12 @@ the system idle; `atc` must list its games and the scores it comes with;
 `phantasia` must list its monsters from their file and its characters
 from the one `tools/setfiles.py` made; `words` must find the words that
 can be made of the letters of another; and `boggle` must find every word
-of its dictionary on a board it is given, all 113. `look` must find
-words in `/usr/dict/words`, which it searches when it is given no file.
-At the terminal, `battlestar` must describe where it starts, from
+of its dictionary on a board it is given, all 113. `adventure` must be
+made and installed by `make install` in `/usr/games/lib/adventure`, take
+a few moves and say what it scores, and suspend a game, which must start
+again as a program and tell the player to wait. `look` must find words
+in `/usr/dict/words`, which it searches when it is given no file. At the
+terminal, `battlestar` must describe where it starts, from
 `battle_strings`, and leave when told to quit; `hack` must ask whether
 the player is experienced, and leave at the end of its input; `rogue`
 must show its scores, after it has failed to lock them; `robots` must
@@ -1705,10 +1752,10 @@ kernel](#programs-that-read-the-kernel)). The system's own `strip` makes
 of a file what `tools/strip.py` does, which `tests/programs` checks on
 the kernel.
 
-The file system is 15000 blocks of 1K, of which the system takes 11506.
-The 268 programs are 5.2 MB of that, and 6.0 MB with their symbols; the
+The file system is 15000 blocks of 1K, of which the system takes 11599.
+The 269 programs are 5.3 MB of that, and 6.0 MB with their symbols; the
 manual's pages are 2.3 MB in about 2700 blocks; the games and their
-files take about 3200 blocks, 1600 of them `fortune`'s; and
+files take about 3300 blocks, 1600 of them `fortune`'s; and
 `/usr/dict/words` takes 206. It was 8000 blocks until the manual came,
 and 12000 until the games did. The tests' disks are of 20 MB, and the
 one of `tests/system`, which has 2 MB of swap and three other file
@@ -1848,7 +1895,7 @@ copied files.
 `tests/programs` boots the same system from a disk with the root, a
 swap area and a small file system of checks, logs in as root on the
 first serial port, mounts that file system and runs its `check.sh`. For
-each of the 119 checks in `tests/programs/checks` it runs the check's
+each of the 122 checks in `tests/programs/checks` it runs the check's
 lines with the shell in an empty directory and compares what they wrote
 with what the check says they must, and says `ok` or shows what was
 written. A check is of one program, by its name, or of one use of it:
@@ -1860,7 +1907,7 @@ three of the manual's pages and must make of each what the build did
 the programs that read a file system directly work on a second disk
 ([disks and file systems](#disks-and-file-systems)); and the games that
 can be played from a file are played ([games](#games)). The test fails
-unless all 119 say `ok`. Then, at the terminal, it runs `tty` and `mesg`;
+unless all 122 say `ok`. Then, at the terminal, it runs `tty` and `mesg`;
 pages through a file and through a pipe with `more`, and through `ls`'s
 page with `man`; records a shell
 with `script`, which it leaves with ^D, and finds the command it typed
