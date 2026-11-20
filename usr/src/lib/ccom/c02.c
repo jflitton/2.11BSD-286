@@ -118,18 +118,29 @@ cfunc()
 	if (proflg)
 		outcode("BNS", PROFIL, isn++, funcsym->name);
 	funchead();
+#ifndef	i286
+	/*
+	 * The PDP-11's function goes to its end to make room on the
+	 * stack, and comes back.  The 286's second pass puts that at
+	 * the beginning when it is told how much (i286/c11.c).
+	 */
 	branch(sloc);
 	label(sloc+1);
+#endif
 	retlab = isn++;
 	blklev = 0;
 	if ((peeksym = symbol()) != LBRACE)
 		error("Compound statement required");
 	statement();
 	outcode("BNB", LABEL, retlab, RETRN);
+#ifdef	i286
+	outcode("BN", SETSTK, -maxauto+STAUTO);
+#else
 	label(sloc);
 /* add STAUTO; overlay bug fix, coupled with section in c11.c */
 	outcode("BN", SETSTK, -maxauto+STAUTO);
 	branch(sloc+1);
+#endif
 	locbase = cb;
 }
 

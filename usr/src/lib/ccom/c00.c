@@ -100,7 +100,16 @@ char	*argv[];
 	 * Overlays: allow an extra word on the stack for
 	 * each stack from to store the overlay number.
 	 */
+#ifdef	i286
+	/*
+	 * On the 286 the automatic variables are next to the frame
+	 * pointer, and what registers are saved are below them
+	 * (i286/c11.c).
+	 */
+	STAUTO = 0;
+#else
 	STAUTO = -8;
+#endif
 	while (argc>4) {
 		switch (argv[4][1]) {
 		case 'P':

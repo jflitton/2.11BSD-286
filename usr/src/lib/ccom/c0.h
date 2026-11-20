@@ -22,7 +22,9 @@ static	char	sccsid[] = "@(#)c0.h	2.1 (2.11BSD) 2026/1/26";
 
 #define	MAXCPS	32	/* # chars per symbol */
 
+#ifndef	LTYPE
 #define	LTYPE	long	/* change to int if no long consts */
+#endif
 #define	MAXINT	077777	/* Largest positive short integer */
 #define	MAXUINT	0177777	/* largest unsigned integer */
 #define	HSHSIZ	300	/* # entries in hash table for names */
@@ -117,7 +119,7 @@ struct lnode {
 	int	type;
 	int	*subsp;
 	union	str *strp;
-	long	lvalue;
+	LTYPE	lvalue;
 };
 
 /*
@@ -180,8 +182,18 @@ int	contlab;
 int	brklab;
 int	retlab;
 int	deflab;
+#ifdef	i286
+/*
+ * The automatic variables start at the frame pointer here (STAUTO is
+ * 0), and each is at a negative offset from it: these count down from
+ * zero, which nothing unsigned is below.
+ */
+int	autolen;
+int	maxauto;
+#else
 unsigned autolen;		/* make these int if necessary */
 unsigned maxauto;		/* ... will only cause trouble rarely */
+#endif
 int	peeksym;
 int	peekc;
 int	eof;

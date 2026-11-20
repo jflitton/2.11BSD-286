@@ -31,6 +31,18 @@ Upstream's `cc` is the PDP-11's compiler, so a compiler on the system is
 a new code generator for the 286 and its own linker and object format,
 not a port. Everything here waits on that.
 
+The code generator is begun. `usr/src/lib/ccom/i286` is a second pass
+for the 286: upstream's reader of the first pass's trees and its
+optimizer of expressions, and a generator of its own where upstream has
+its tables of PDP-11 code. The first pass is upstream's, with what
+differs for the 286 under `#ifdef i286`. So far it does the small
+model, and not floating point, functions that take or return
+structures, or profiling. It does not run on the system yet: it is
+built for the machine the system is built on (`tools/ncc`), writes
+assembly for NASM, and its objects are linked by the cross tools
+(`tests/ccom`). An assembler, a linker and a format for objects are
+still to come, and `/lib/cpp`, which needs `libvmf`.
+
 | program | where |
 |---|---|
 | `cc`, `/lib/cpp`, `c2`, `ccom` | `bin/cc`, `lib/cpp`, `lib/c2`, `lib/ccom` |

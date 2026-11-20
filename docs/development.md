@@ -211,6 +211,9 @@ tests/kernel/run.sh     # the kernel, with a test program as init, booted
                         # six times: 51 checks, then 67 on each of five disks
 tests/libc/run.sh       # the C library, with a test program as init: 74
                         # checks in the small model, 74 in the medium
+tests/ccom/run.sh       # the system's own C compiler, run here: 993
+                        # checks of the code it generates, and 40 by a
+                        # program it compiled, as init
 tests/preflight/run.sh  # tools/preflight.py, on two files with one of each
                         # thing it looks for (no emulator)
 tests/bench/run.sh      # how fast the system is: its benchmark, each
@@ -247,6 +250,16 @@ tests/vt/run.sh         # the console's terminal emulator, on the machine
 - `tests/crt` is a small-model program in real mode, built through the
   normal path (`cc286`, `wlink`, `ne2aout.py`) behind the start-up code in
   `tests/harness/start.s`.
+- `tests/ccom` is another, whose tests are compiled by the tree's own
+  compiler, `usr/src/lib/ccom`, with the second pass that is being
+  written for the 286, `usr/src/lib/ccom/i286`. Both passes are built
+  for the machine the system is built on and run there by `tools/ncc`,
+  NASM assembles what they write, and the cross tools link it. The
+  tests call the cross compiler's code to have each value checked, so
+  the two compilers' calling conventions are tested against each other.
+  `REF=1` compiles the tests with the cross compiler instead, to check
+  a test. It ends by booting the kernel with a program the compiler
+  compiled, and the C library, as `/etc/init`.
 - `tests/pm` is a medium-model program that takes the place of the
   kernel's `main` and `trap`, linked with the kernel's own start-up
   (`usr/src/sys/i286`). It checks the descriptor tables, far calls between

@@ -754,8 +754,18 @@ struct nmlist *hp;
 	int type;
 
 	type = hp->htype;
+#ifdef	i286
+	/*
+	 * The 286 has two registers for variables, SI and DI, which
+	 * are 4 and 3 here.
+	 */
+	if ((type!=INT && type!=UNSIGN && (type&XTYPE)==0)
+	 || (type&XTYPE)>PTR || regvar<4)
+		return(-1);
+#else
 	if ((type!=INT && type!=UNSIGN && (type&XTYPE)==0)
 	 || (type&XTYPE)>PTR || regvar<3)
 		return(-1);
+#endif
 	return(--regvar);
 }

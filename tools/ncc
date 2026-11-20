@@ -1,0 +1,127 @@
+#!/usr/bin/env python3
+"""Compile C with the system's own compiler, run here.
+
+usage: ncc [-S] [-o OUT] [-Dname[=val]] [-Uname] [-Idir] FILE.c
+
+The tree's C compiler (usr/src/lib/ccom) is two passes: c0 reads C and
+writes trees, and c1, which for the 286 is usr/src/lib/ccom/i286, turns
+them into assembly.  This runs the two as built for this machine
+(`make -C usr/src/lib/ccom/i286 host`) and has NASM assemble what comes
+out, so that the compiler can be worked on, and what it generates
+linked with the cross tools and run (tests/ccom), before the system has
+an assembler and a linker of its own.
+
+The object is OUT, or FILE.o in the current directory.  It is as
+tools/cc makes them, for the small model, and tools/cc links it.
+
+    -S          stop at the assembly: OUT, or FILE.s
+    -D -U -I    have the file preprocessed first, as tools/cc -E does
+                it; without any of them it is, too, if it has a line
+                that begins with #
+
+NASM must be one that makes a conditional jump to somewhere out of its
+reach into a jump round a jump, which 3.0 does: the compiler leaves
+that to the assembler, as the PDP-11's does.
+"""
+import os
+import re
+import subprocess
+import sys
+import tempfile
+
+TOOLS = os.path.dirname(os.path.abspath(__file__))
+TOP = os.path.dirname(TOOLS)
+HOST = os.path.join(TOP, "obj", "host", "ccom")
+
+
+def fail(msg):
+    sys.stderr.write("ncc: %s\n" % msg)
+    sys.exit(1)
+
+
+def main():
+    args = sys.argv[1:]
+    asm_only = False
+    out = None
+    cpp = []
+    src = None
+    i = 0
+    while i < len(args):
+        a = args[i]
+        i += 1
+        if a == "-S":
+            asm_only = True
+        elif a == "-o":
+            if i >= len(args):
+                fail("-o needs an argument")
+            out = args[i]
+            i += 1
+        elif a[:2] in ("-D", "-U", "-I"):
+            if len(a) == 2:
+                if i >= len(args):
+                    fail("%s needs an argument" % a)
+                a += args[i]
+                i += 1
+            cpp.append(a)
+        elif a.startswith("-"):
+            fail("unknown flag %s" % a)
+        elif src:
+            fail("one file at a time")
+        else:
+            src = a
+    if not src or not src.endswith(".c"):
+        sys.exit(__doc__)
+    for p in ("c0", "c1"):
+        if not os.path.exists(os.path.join(HOST, p)):
+            fail("no obj/host/ccom/%s: make -C usr/src/lib/ccom/i286 host" % p)
+    base = os.path.splitext(os.path.basename(src))[0]
+    out = out or base + (".s" if asm_only else ".o")
+
+    tmp = tempfile.mkdtemp(prefix="ncc.")
+    try:
+        text = open(src, "rb").read()
+        if cpp or re.search(rb"^[ \t]*#", text, re.M):
+            r = subprocess.run([os.path.join(TOOLS, "cc"), "-E"] + cpp + [src],
+                               capture_output=True)
+            sys.stderr.write(r.stderr.decode("latin-1"))
+            if r.returncode != 0:
+                sys.exit(1)
+            # c0 takes the preprocessor's lines as "# 12 "file"", and
+            # knows nothing of the cross compiler's pragmas, which are
+            # how that one is told the calling convention this one has.
+            text = re.sub(rb"^#pragma([^\n]*\\\n)*[^\n]*", b"", r.stdout,
+                          flags=re.M)
+            text = re.sub(rb"^#line ", b"# ", text, flags=re.M)
+            # And it has 64 characters for a file's name.
+            text = text.replace(b'"' + TOP.encode() + b"/", b'"')
+        pre = os.path.join(tmp, base + ".i")
+        with open(pre, "wb") as f:
+            f.write(text)
+        t1 = os.path.join(tmp, "t1")
+        t2 = os.path.join(tmp, "t2")
+        asm = out if asm_only else os.path.join(tmp, base + ".s")
+        for cmd in ([os.path.join(HOST, "c0"), pre, t1, t2],
+                    [os.path.join(HOST, "c1"), t1, t2, asm]):
+            r = subprocess.run(cmd, capture_output=True, text=True)
+            msg = r.stdout + r.stderr
+            # A message begins with the line it is about, and the file
+            # too if the preprocessor has said which it is.
+            for m in msg.splitlines():
+                sys.stderr.write("%s:%s\n" % (src, m) if m[:1].isdigit()
+                                 else m + "\n")
+            if r.returncode != 0:
+                if asm_only and os.path.exists(asm):
+                    os.unlink(asm)
+                sys.exit(1)
+        if not asm_only:
+            r = subprocess.run(["nasm", "-f", "obj", "-o", out, asm])
+            if r.returncode != 0:
+                sys.exit(1)
+    finally:
+        for f in os.listdir(tmp):
+            os.unlink(os.path.join(tmp, f))
+        os.rmdir(tmp)
+
+
+if __name__ == "__main__":
+    main()

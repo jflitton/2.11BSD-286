@@ -1,0 +1,1098 @@
+/*
+ *  C compiler, part 2, for the 80286
+ *
+ * What reads the first pass's intermediate code, and what makes
+ * branches, switches and the entry and exit of a function.  The reader
+ * and the logic of the branches are the PDP-11 compiler's (../c11.c);
+ * the instructions are the 286's, written for NASM.
+ */
+
+#include "c1.h"
+
+degree(t)
+register union tree *t;
+{
+	register union tree *t1;
+
+	if (t==NULL || t->t.op==0)
+		return(0);
+	if (t->t.op == CON)
+		return(-3);
+	if (t->t.op == AMPER)
+		return(-2);
+	if (t->t.op==ITOL) {
+		if ((t1 = isconstant(t)) && (t1->c.value>=0 || uns(t1)))
+			return(-2);
+		if (uns(t1 = t->t.tr1) && opdope[t1->t.op]&LEAF)
+			return(-1);
+	}
+	if ((opdope[t->t.op] & LEAF) != 0) {
+		if (t->t.type==CHAR || t->t.type==UNCHAR || t->t.type==FLOAT)
+			return(1);
+		return(0);
+	}
+	return(t->t.degree);
+}
+
+isfloat(t)
+register union tree *t;
+{
+
+	if ((opdope[t->t.op]&RELAT)!=0)
+		t = t->t.tr1;
+	if (t->t.type==FLOAT || t->t.type==DOUBLE)
+		return('f');
+	return(0);
+}
+
+/*
+ * The bytes an argument of the type takes on the stack.
+ */
+arlength(t)
+{
+	if (t>=PTR)
+		return(2);
+	switch(t) {
+
+	case INT:
+	case CHAR:
+	case UNSIGN:
+	case UNCHAR:
+		return(2);
+
+	case UNLONG:
+	case LONG:
+		return(4);
+
+	case FLOAT:
+	case DOUBLE:
+		return(8);
+	}
+	error("botch: peculiar type %d", t);
+	return(1024);
+}
+
+/*
+ * The names of the externals the file has referred to or defined.
+ * NASM wants to be told of each that is referred to and not defined,
+ * and takes it amiss to be told of one that is defined further on; so
+ * it is told at the end.  An assembler in the UNIX tradition takes any
+ * name it is not given for one.
+ *
+ * The same goes for common storage.  A file may say "int x;" and then
+ * "int x = 1;", or the first in a header; the first pass asks for
+ * common storage at the one and defines x at the other, which is what
+ * x then is.
+ */
+struct	xsym {
+	struct	xsym *xnext;
+	unsigned xsize;		/* of common storage asked for */
+	char	xdefd;
+	char	xname[1];
+};
+struct	xsym	*xsyms;
+
+struct xsym *
+xlook(s)
+register char *s;
+{
+	register struct xsym *xp;
+	char *malloc();
+
+	for (xp = xsyms; xp; xp = xp->xnext)
+		if (strcmp(xp->xname, s)==0)
+			return(xp);
+	xp = (struct xsym *)malloc(sizeof(*xp) + strlen(s));
+	if (xp==NULL) {
+		error("Out of space-- c1");
+		exit(1);
+	}
+	strcpy(xp->xname, s);
+	xp->xdefd = 0;
+	xp->xsize = 0;
+	xp->xnext = xsyms;
+	xsyms = xp;
+	return(xp);
+}
+
+xref(s)
+char *s;
+{
+	xlook(s);
+}
+
+xdef(s)
+char *s;
+{
+	xlook(s)->xdefd = 1;
+}
+
+xcomm(s, n)
+char *s;
+unsigned n;
+{
+	register struct xsym *xp;
+
+	xp = xlook(s);
+	if (n > xp->xsize)
+		xp->xsize = n;
+}
+
+xrefs()
+{
+	register struct xsym *xp;
+
+	for (xp = xsyms; xp; xp = xp->xnext) {
+		if (xp->xdefd)
+			continue;
+		if (xp->xsize)
+			printf("\tcommon\t%s %u:near\n", xp->xname, xp->xsize);
+		else
+			printf("\textern\t%s\n", xp->xname);
+	}
+}
+
+/*
+ * Begin, or go back to, a segment.
+ */
+sect(s)
+{
+	if (cursect==s)
+		return;
+	cursect = s;
+	printf("\tsegment\t%s\n", s==PROG? "_TEXT": s==DATA? "_DATA": "_BSS");
+}
+
+/*
+ * A switch.  The value is in AX.  The tables of labels are in the
+ * code, where every process running the program shares them.
+ */
+pswitch(afp, alp, deflab)
+struct swtab *afp, *alp;
+{
+	int ncase, i, j, tabs, worst, best, range;
+	register struct swtab *swp, *fp, *lp;
+	int *poctab;
+
+	fp = afp;
+	lp = alp;
+	if (fp==lp) {
+		printf("\tjmp\tL%d\n", deflab);
+		return;
+	}
+	isn++;
+	if (sort(fp, lp))
+		return;
+	ncase = lp-fp;
+	lp--;
+	range = W(lp->swval - fp->swval);
+	/* direct switch */
+	if (range>0 && range <= 3*ncase) {
+		if (fp->swval)
+			printf("\tsub\tax,%d\n", fp->swval);
+		printf("\tcmp\tax,%d\n\tja\tL%d\n", range, deflab);
+		printf("\tshl\tax,1\n\txchg\tax,bx\n\tjmp\t[cs:bx+L%d]\nL%d:\n",
+		    isn, isn);
+		isn++;
+		for (i=fp->swval; ; i++) {
+			if (i==fp->swval) {
+				printf("\tdw\tL%d\n", fp->swlab);
+				if (fp==lp)
+					break;
+				fp++;
+			} else
+				printf("\tdw\tL%d\n", deflab);
+		}
+		return;
+	}
+	/* simple switch */
+	if (ncase<10) {
+		for (fp = afp; fp<=lp; fp++)
+			breq(fp->swval, fp->swlab);
+		printf("\tjmp\tL%d\n", deflab);
+		return;
+	}
+	/* hash switch */
+	best = 077777;
+	poctab = (int *)getblk(((ncase+2)/2) * sizeof(*poctab));
+	for (i=ncase/4; i<=ncase/2; i++) {
+		for (j=0; j<i; j++)
+			poctab[j] = 0;
+		for (swp=fp; swp<=lp; swp++)
+			poctab[UNS(swp->swval)%i]++;
+		worst = 0;
+		for (j=0; j<i; j++)
+			if (poctab[j]>worst)
+				worst = poctab[j];
+		if (i*worst < best) {
+			tabs = i;
+			best = i*worst;
+		}
+	}
+	i = isn++;
+	printf("\txor\tdx,dx\n\tmov\tcx,%d\n\tdiv\tcx\n", tabs);
+	printf("\tmov\tbx,dx\n\tshl\tbx,1\n\tjmp\t[cs:bx+L%d]\nL%d:\n", i, i);
+	isn++;
+	for (i=0; i<tabs; i++)
+		printf("\tdw\tL%d\n", isn+i);
+	for (i=0; i<tabs; i++) {
+		printf("L%d:\n", isn++);
+		for (swp=fp; swp<=lp; swp++) {
+			if (UNS(swp->swval)%tabs == i)
+				breq(UNS(swp->swval)/tabs, swp->swlab);
+		}
+		printf("\tjmp\tL%d\n", deflab);
+	}
+}
+
+breq(v, l)
+{
+	if (v==0)
+		printf("\ttest\tax,ax\n");
+	else
+		printf("\tcmp\tax,%d\n", v);
+	printf("\tje\tL%d\n", l);
+}
+
+sort(afp, alp)
+struct swtab *afp, *alp;
+{
+	register struct swtab *cp, *fp, *lp;
+	int intch, t;
+
+	fp = afp;
+	lp = alp;
+	while (fp < --lp) {
+		intch = 0;
+		for (cp=fp; cp<lp; cp++) {
+			if (cp->swval == cp[1].swval) {
+				error("Duplicate case (%d)", cp->swval);
+				return(1);
+			}
+			if (cp->swval > cp[1].swval) {
+				intch++;
+				t = cp->swval;
+				cp->swval = cp[1].swval;
+				cp[1].swval = t;
+				t = cp->swlab;
+				cp->swlab = cp[1].swlab;
+				cp[1].swlab = t;
+			}
+		}
+		if (intch==0)
+			break;
+	}
+	return(0);
+}
+
+ispow2(tree)
+register union tree *tree;
+{
+	register int d;
+
+	if (!isfloat(tree) && tree->t.tr2->t.op==CON) {
+		d = tree->t.tr2->c.value;
+		if (d>1 && (d&(d-1))==0)
+			return(d);
+	}
+	return(0);
+}
+
+/*
+ * Multiplying by a power of two is a shift; and so, for what is
+ * unsigned, is dividing by one, and the remainder is a mask.
+ */
+union tree *
+pow2(tree)
+register union tree *tree;
+{
+	register int d, i;
+
+	if (d = ispow2(tree)) {
+		for (i=0; (d>>=1)!=0; i++);
+		tree->t.tr2->c.value = i;
+		switch (tree->t.op) {
+
+		case TIMES:
+			tree->t.op = LSHIFT;
+			break;
+
+		case ASTIMES:
+			tree->t.op = ASLSH;
+			break;
+
+		case DIVIDE:
+		case UDIV:
+			tree->t.op = ULSH;
+			break;
+
+		case ASDIV:
+		case ASUDIV:
+			tree->t.op = ASULSH;
+			break;
+
+		case MOD:
+		case UMOD:
+			tree->t.op = AND;
+			tree->t.tr2->c.value = W((1<<i)-1);
+			break;
+
+		case ASMOD:
+		case ASUMOD:
+			tree->t.op = ASAND;
+			tree->t.tr2->c.value = W((1<<i)-1);
+			break;
+
+		default:
+			error("pow2 botch");
+		}
+		tree = optim(tree);
+	}
+	return(tree);
+}
+
+/*
+ * Is the tree the constant zero?
+ */
+iszero(p)
+register union tree *p;
+{
+	if (p->t.op==ITOL)
+		p = p->t.tr1;
+	if (p->t.op==CON)
+		return(p->c.value==0);
+	if (p->t.op==LCON)
+		return(p->l.lvalue==0);
+	return(0);
+}
+
+/*
+ * Branch to the label if the tree is true, or if it is false, as cond
+ * is 1 or 0.
+ */
+cbranch(atree, lbl, cond)
+union tree *atree;
+register lbl;
+{
+	int l1, op;
+	register union tree *tree;
+
+again:
+	if ((tree=atree)==NULL)
+		return;
+	switch(tree->t.op) {
+
+	case LOGAND:
+		if (cond) {
+			cbranch(tree->t.tr1, l1=isn++, 0);
+			cbranch(tree->t.tr2, lbl, 1);
+			label(l1);
+		} else {
+			cbranch(tree->t.tr1, lbl, 0);
+			cbranch(tree->t.tr2, lbl, 0);
+		}
+		return;
+
+	case LOGOR:
+		if (cond) {
+			cbranch(tree->t.tr1, lbl, 1);
+			cbranch(tree->t.tr2, lbl, 1);
+		} else {
+			cbranch(tree->t.tr1, l1=isn++, 1);
+			cbranch(tree->t.tr2, lbl, 0);
+			label(l1);
+		}
+		return;
+
+	case EXCLA:
+		cbranch(tree->t.tr1, lbl, !cond);
+		return;
+
+	case SEQNC:
+		rcexpr(tree->t.tr1, FOREFF);
+		atree = tree->t.tr2;
+		goto again;
+
+	case ITOL:
+		tree = tree->t.tr1;
+		break;
+
+	case QUEST:
+		l1 = isn;
+		isn += 2;
+		cbranch(tree->t.tr1, l1, 0);
+		cbranch(tree->t.tr2->t.tr1, lbl, cond);
+		branch(l1+1, 0, 0);
+		label(l1);
+		cbranch(tree->t.tr2->t.tr2, lbl, cond);
+		label(l1+1);
+		return;
+
+	}
+	op = tree->t.op;
+	if (opdope[op]&RELAT
+	 && tree->t.tr1->t.op==ITOL && tree->t.tr2->t.op==ITOL
+	 && uns(tree->t.tr1->t.tr1) == uns(tree->t.tr2->t.tr1)) {
+		tree->t.tr1 = tree->t.tr1->t.tr1;
+		tree->t.tr2 = tree->t.tr2->t.tr1;
+		if (op>=LESSEQ && op<=GREAT
+		 && uns(tree->t.tr1))
+			tree->t.op = op = op+LESSEQP-LESSEQ;
+	}
+	if (tree->t.type==LONG || tree->t.type==UNLONG
+	  || opdope[op]&RELAT&&(tree->t.tr1->t.type==LONG || tree->t.tr1->t.type==UNLONG)) {
+		longrel(tree, lbl, cond);
+		return;
+	}
+	rcexpr(tree, FORCC);
+	op = tree->t.op;
+	if ((opdope[op]&RELAT)==0)
+		op = 200+NEQUAL;
+	else if (iszero(tree->t.tr2))
+		op += 200;
+	branch(lbl, op, !cond);
+}
+
+/*
+ * A jump to the label: on the condition op if c is 0, on its opposite
+ * if c is 1, and whatever happens if op is 0.
+ *
+ * Above 200 the flags are a value's and not a comparison's.  Then the
+ * sign flag says whether it is below zero; and if the overflow flag
+ * may be set (ccof), <= and > cannot be had from one jump.
+ */
+branch(lbl, op, c)
+{
+	register struct instab *ip;
+	register char *s;
+	int skip;
+
+	if (op==0) {
+		printf("\tjmp\tL%d\n", lbl);
+		return;
+	}
+	if (ccof && (op==200+LESSEQ || op==200+GREAT)) {
+		if ((op==200+LESSEQ) == (c==0))
+			printf("\tjs\tL%d\n\tje\tL%d\n", lbl, lbl);
+		else {
+			skip = isn++;
+			printf("\tjs\tL%d\n\tjne\tL%d\nL%d:\n", skip, lbl, skip);
+		}
+		return;
+	}
+	for (ip = branchtab; ip->iop; ip++)
+		if (ip->iop==op) {
+			s = c? ip->str2: ip->str1;
+			if (*s)
+				printf("\t%s\tL%d\n", s, lbl);
+			return;
+		}
+	error("No branch for op %d", op);
+}
+
+/*
+ * How to compare longs: the high words, then if they are equal the
+ * low ones, which are unsigned.  The first index is whether the
+ * comparison is with 0; the second, which test:
+ *	cmp	high words
+ *	jg	YES		(first)
+ *	jl	NO		(second)
+ *	cmp	low words
+ *	ja	YES		(third)
+ *  NO:
+ * The last is indexed by the comparison, from EQUAL.  A 0 is a test
+ * that is not needed.
+ */
+char	lrtab[2][3][10] = {
+	0, NEQUAL, LESS, LESS, GREAT, GREAT, LESSP, LESSP, GREATP, GREATP,
+	NEQUAL,	0, GREAT, GREAT, LESS, LESS, GREATP, GREATP, LESSP, LESSP,
+	EQUAL,NEQUAL,LESSEQP,LESSP, GREATQP,GREATP,LESSEQP,LESSP,GREATQP,GREATP,
+
+	0, NEQUAL, LESS, LESS,	GREATEQ,GREAT, LESSP, LESSP, GREATQP, GREATP,
+	NEQUAL,	0, GREAT, 0, 0,	LESS, GREATP, 0, 0, LESSP,
+	EQUAL,	NEQUAL,	EQUAL,	0, 0, NEQUAL, EQUAL, 0, 0, NEQUAL,
+};
+
+/*
+ * Branch on a long: a comparison of two, or one that is or is not
+ * zero.
+ */
+longrel(tree, lbl, cond)
+register union tree *tree;
+{
+	register union tree *l, *r;
+	register char *tp;
+	int op, zero, l2, mem;
+
+	l = tree;
+	r = NULL;
+	op = NEQUAL;
+	if (opdope[tree->t.op]&RELAT) {
+		op = tree->t.op;
+		l = tree->t.tr1;
+		r = tree->t.tr2;
+	}
+	if (!cond)
+		op = notrel[op-EQUAL];
+	zero = r==NULL || iszero(r);
+	tp = &lrtab[zero][0][op-EQUAL];
+	l2 = 0;
+	if (zero) {
+		/*
+		 * A variable is tested where it is.
+		 */
+		mem = l->t.op==NAME;
+		if (l->t.op==STAR && canbx(l)) {
+			gaddr(l);
+			mem++;
+		}
+		if (op==EQUAL || op==NEQUAL) {
+			if (mem) {
+				insrp("mov", AX, l, 0);
+				insrp("or", AX, l, HI);
+			} else {
+				rcexpr(l, FORREG);
+				printf("\tor\tax,dx\n");
+			}
+			branch(lbl, op, 0);
+			return;
+		}
+		if (mem)
+			inspn("cmp", l, HI, 0);
+		else {
+			rcexpr(l, FORREG);
+			printf("\ttest\tdx,dx\n");
+		}
+	} else {
+		r = loperands(tree);
+		if (r)
+			insrp("cmp", DX, r, HI);
+		else
+			printf("\tcmp\tdx,cx\n");
+	}
+	if (tp[0])
+		branch(lbl, tp[0], 0);
+	if (tp[10]) {
+		l2 = isn++;
+		branch(l2, tp[10], 0);
+	}
+	if (tp[20]) {
+		if (zero) {
+			if (mem)
+				inspn("cmp", l, 0, 0);
+			else
+				printf("\ttest\tax,ax\n");
+		} else if (r)
+			insrp("cmp", AX, r, 0);
+		else
+			printf("\tcmp\tax,bx\n");
+		branch(lbl, tp[20], 0);
+	}
+	if (l2)
+		label(l2);
+}
+
+label(l)
+{
+	printf("L%d:\n", l);
+}
+
+/*
+ * Take a bytes of arguments off the stack.  CX is free.
+ */
+popstk(a)
+{
+	if (a==2)
+		printf("\tpop\tcx\n");
+	else if (a)
+		printf("\tadd\tsp,%d\n", a);
+}
+
+werror(s)
+char *s;
+{
+
+	fprintf(stderr, "%d: %s\n",line,s);
+}
+
+/* VARARGS1 */
+error(s, p1, p2, p3, p4, p5, p6)
+char *s;
+{
+
+	nerror++;
+	fprintf(stderr, "%d: ", line);
+	fprintf(stderr, s, p1, p2, p3, p4, p5, p6);
+	putc('\n', stderr);
+}
+
+/*
+ * A function's entry and exit.
+ *
+ *		push	bp
+ *		mov	bp,sp
+ *		sub	sp,N		N bytes of automatic variables
+ *		push	si		if SI holds a register variable
+ *		push	di		if DI does
+ *		...
+ *		pop	di
+ *		pop	si
+ *		leave
+ *		ret
+ *
+ * So the first argument is at [bp+4] and the first automatic variable
+ * at [bp-2], as the first pass has them.  That pass finds how much the
+ * function needs only at its end, and says so then (SETSTK).  The
+ * PDP-11 compiler has the function begin with a jump to its end, where
+ * the stack is set and control comes back; here room is left in the
+ * output for the entry (SAVE), and filled in when what goes there is
+ * known.
+ */
+#define	PROLEN	56
+
+long	proloc;			/* where the entry goes */
+int	minreg;			/* the lowest register variable in use */
+
+entry()
+{
+	register i;
+
+	proloc = ftell(stdout);
+	for (i = 0; i<PROLEN; i++)
+		putchar(' ');
+	putchar('\n');
+	minreg = BP;
+}
+
+setstk(n)
+{
+	char buf[PROLEN+24];
+	register char *s;
+	register i;
+
+	s = buf;
+	strcpy(s, "\tpush\tbp\n\tmov\tbp,sp\n");
+	s += strlen(s);
+	if (n==2)
+		strcpy(s, "\tpush\tax\n");
+	else if (n)
+		sprintf(s, "\tsub\tsp,%u\n", UNS(n));
+	if (minreg<=SI)
+		strcat(s, "\tpush\tsi\n");
+	if (minreg<=DI)
+		strcat(s, "\tpush\tdi\n");
+	fflush(stdout);
+	fseek(stdout, proloc, 0);
+	i = strlen(buf);
+	fputs(buf, stdout);
+	while (i++ < PROLEN)
+		putchar(' ');
+	fflush(stdout);
+	fseek(stdout, 0L, 2);
+}
+
+retrn()
+{
+	if (minreg<=DI)
+		printf("\tpop\tdi\n");
+	if (minreg<=SI)
+		printf("\tpop\tsi\n");
+	printf("\tleave\n\tret\n");
+}
+
+/*
+ * Read in an intermediate file.
+ */
+#define	STKS	100
+getree()
+{
+	union tree *expstack[STKS], **sp;
+	register union tree *tp;
+	register int t, op;
+	char s[80];		/* big for asm() stuff & long variable names */
+	struct swtab *swp;
+	int lbl, cond, jump;
+	double atof();
+
+	curbase = funcbase;
+	sp = expstack;
+	jump = 0;
+	for (;;) {
+		if (sp >= &expstack[STKS])
+			error("Stack overflow botch");
+		op = geti();
+		if ((op&0177400) != 0177000) {
+			error("Intermediate file error");
+			exit(1);
+		}
+		lbl = 0;
+		op &= 0377;
+		/*
+		 * A jump is kept back until what follows it is seen:
+		 * the first pass often jumps to the next line, as from
+		 * a return at the end of a function.
+		 */
+		if (jump && op!=LABEL) {
+			branch(jump, 0, 0);
+			jump = 0;
+		}
+		switch(op) {
+
+	case SINIT:
+		printf("\tdw\t%d\n", geti());
+		break;
+
+	case EOFC:
+		return;
+
+	case BDATA:
+		if (geti() == 1) {
+			printf("\tdb\t");
+			for (;;)  {
+				printf("%d", geti()&0377);
+				if (geti() != 1)
+					break;
+				printf(",");
+			}
+			printf("\n");
+		}
+		break;
+
+	case PROG:
+		sect(PROG);
+		break;
+
+	case DATA:
+		sect(DATA);
+		break;
+
+	case BSS:
+		sect(BSS);
+		break;
+
+	case SYMDEF:
+		outname(s);
+		if (*s)
+			printf("\tglobal\t%s\n", s);
+		break;
+
+	case RETRN:
+		retrn();
+		break;
+
+	case CSPACE:
+		outname(s);
+		xcomm(s, UNS(geti()));
+		break;
+
+	case SSPACE:
+		t = geti();
+		if (cursect==BSS)
+			printf("\tresb\t%u\n", UNS(t));
+		else
+			printf("\ttimes %u db 0\n", UNS(t));
+		totspace += (unsigned)UNS(t);
+		break;
+
+	case EVEN:
+		if (cursect==BSS)
+			printf("\talignb\t2\n");
+		else if (cursect==DATA)
+			printf("\talign\t2,db 0\n");
+		else
+			printf("\talign\t2\n");
+		break;
+
+	case SAVE:
+		entry();
+		break;
+
+	case SETSTK:
+		setstk(geti());
+		break;
+
+	case PROFIL:
+		t = geti();
+		outname(s);
+		error("Profiling is not done yet");
+		break;
+
+	case ASSEM:
+		outname(s);
+		printf("%s\n", s);
+		break;
+
+	/*
+	 * What a debugger would be told of a local name.
+	 */
+	case SNAME:
+		outname(s);
+		printf("; %s = L%d\n", s+1, geti());
+		break;
+
+	case ANAME:
+		outname(s);
+		printf("; %s = [bp", s+1);
+		poff(geti());
+		printf("]\n");
+		break;
+
+	case RNAME:
+		outname(s);
+		printf("; %s = %s\n", s+1, rname[geti()]);
+		break;
+
+	case SWIT:
+		t = geti();
+		line = geti();
+		curbase = funcbase;
+		while(swp=(struct swtab *)getblk(sizeof(*swp)), swp->swlab = geti())
+			swp->swval = geti();
+		pswitch((struct swtab *)funcbase, swp, t);
+		break;
+
+	case C3BRANCH:		/* for fortran [sic] */
+		lbl = geti();
+		geti();
+		geti();
+		goto xpr;
+
+	case CBRANCH:
+		lbl = geti();
+		cond = geti();
+
+	case EXPR:
+	xpr:
+		line = geti();
+		if (sp != &expstack[1]) {
+			error("Expression input botch");
+			exit(1);
+		}
+		--sp;
+		*sp = tp = optim(*sp);
+		if (op==CBRANCH)
+			cbranch(tp, lbl, cond);
+		else if (op==EXPR)
+			rcexpr(tp, FOREFF);
+		else
+			error("The arithmetic IF is not done yet");
+		curbase = funcbase;
+		break;
+
+	case NAME:
+		t = geti();
+		if (t==EXTERN) {
+			tp = getblk(sizeof(struct xtname));
+			tp->t.type = geti();
+			outname(s);
+			tp->x.name = (char *)getblk(strlen(s) + 1);
+			strcpy(tp->x.name, s);
+			xref(s);
+		} else {
+			tp = getblk(sizeof(struct tname));
+			tp->t.type = geti();
+			tp->n.nloc = geti();
+		}
+		tp->t.op = NAME;
+		tp->n.class = t;
+		tp->n.regno = 0;
+		tp->n.offset = 0;
+		*sp++ = tp;
+		break;
+
+	case CON:
+		t = geti();
+		*sp++ = tconst(geti(), t);
+		break;
+
+	case LCON:
+		geti();	/* ignore type, assume long */
+		t = geti();
+		op = geti();
+		if (t==0 && op>=0 || t == -1 && op<0) {
+			*sp++ = tnode(ITOL, LONG, tconst(op, INT), TNULL);
+			break;
+		}
+		tp = getblk(sizeof(struct lconst));
+		tp->t.op = LCON;
+		tp->t.type = LONG;
+		tp->l.lvalue = ((LTYPE)t<<16) + UNS(op);
+		*sp++ = tp;
+		break;
+
+	case FCON:
+		t = geti();
+		outname(s);
+		tp = getblk(sizeof(struct ftconst));
+		tp->t.op = FCON;
+		tp->t.type = t;
+		tp->f.value = isn++;
+		tp->f.fvalue = atof(s);
+		*sp++ = tp;
+		break;
+
+	case FSEL:
+		tp = tnode(FSEL, geti(), *--sp, TNULL);
+		t = geti();
+		tp->t.tr2 = tnode(COMMA, INT, tconst(geti(), INT), tconst(t, INT));
+		if (tp->t.tr2->t.tr1->c.value==16)
+			tp = paint(tp->t.tr1, tp->t.type);
+		*sp++ = tp;
+		break;
+
+	case STRASG:
+		tp = getblk(sizeof(struct fasgn));
+		tp->t.op = STRASG;
+		tp->t.type = geti();
+		tp->F.mask = geti();
+		tp->t.tr1 = *--sp;
+		tp->t.tr2 = NULL;
+		*sp++ = tp;
+		break;
+
+	case NULLOP:
+		*sp++ = tnode(0, 0, TNULL, TNULL);
+		break;
+
+	case LABEL:
+		t = geti();
+		if (jump && jump!=t)
+			branch(jump, 0, 0);
+		jump = 0;
+		label(t);
+		break;
+
+	case NLABEL:
+		outname(s);
+		xdef(s);
+		printf("%s:\n", s);
+		break;
+
+	case RLABEL:
+		outname(s);
+		xdef(s);
+		printf("%s:\n", s);
+		break;
+
+	case BRANCH:
+		jump = geti();
+		break;
+
+	case SETREG:
+		t = geti();
+		if (t < minreg)
+			minreg = t;
+		break;
+
+	default:
+		if (opdope[op]&BINARY) {
+			if (sp < &expstack[1]) {
+				error("Binary expression botch");
+				exit(1);
+			}
+			tp = *--sp;
+			--sp;
+			*sp = tnode(op, geti(), *sp, tp);
+			sp++;
+		} else
+			sp[-1] = tnode(op, geti(), sp[-1], TNULL);
+		break;
+	}
+	}
+}
+
+geti()
+{
+	register short i;
+
+	i = getchar() & 0xff;
+	i |= (getchar() & 0xff) << 8;
+	return(i);
+}
+
+outname(s)
+register char *s;
+{
+	register int c;
+
+	while (c = getchar())
+		*s++ = c;
+	*s++ = '\0';
+}
+
+/*
+ * Assign a structure.  One of a word or of two is assigned as an int
+ * or a long; any other is copied with the string instructions, whose
+ * registers are saved, since they may hold register variables.
+ */
+strasg(atp)
+union tree *atp;
+{
+	register union tree *tp;
+	register nwords;
+
+	nwords = atp->F.mask/2;
+	tp = atp->t.tr1;
+	while (tp->t.op == SEQNC) {
+		rcexpr(tp->t.tr1, FOREFF);
+		tp = tp->t.tr2;
+	}
+	if (tp->t.op != ASSIGN) {
+		if (tp->t.op==RFORCE) {	/* function return */
+			error("Functions that return structures are not done yet");
+			return;
+		}
+		if (tp->t.op==CALL) {
+			rcexpr(tp, FOREFF);
+			return;
+		}
+		error("Illegal structure operation");
+		return;
+	}
+	if (tp->t.tr2->t.op==CALL) {
+		error("Functions that return structures are not done yet");
+		return;
+	}
+	if (nwords==1)
+		paint(tp, INT);
+	else if (nwords==2)
+		paint(tp, LONG);
+	else {
+		if (tp->t.tr1->t.op!=NAME && tp->t.tr1->t.op!=STAR
+		 || tp->t.tr2->t.op!=NAME && tp->t.tr2->t.op!=STAR) {
+			error("unimplemented structure assignment");
+			return;
+		}
+		rcexpr(optim(tnode(AMPER, STRUCT+PTR, tp->t.tr2, TNULL)), FORSP);
+		rcexpr(optim(tnode(AMPER, STRUCT+PTR, tp->t.tr1, TNULL)), FORREG);
+		printf("\tpop\tbx\n\tpush\tsi\n\tpush\tdi\n");
+		printf("\tmov\tdi,ax\n\tmov\tsi,bx\n\tpush\tds\n\tpop\tes\n");
+		printf("\tmov\tcx,%d\n\trep movsw\n", nwords);
+		printf("\tpop\tdi\n\tpop\tsi\n");
+		return;
+	}
+	rcexpr(tp, FOREFF);
+}
+
+/*
+ * Reduce the degree-of-reference by one.
+ * e.g. turn "ptr-to-int" into "int".
+ */
+decref(t)
+register t;
+{
+	if ((t & ~TYPE) == 0) {
+		error("Illegal indirection");
+		return(t);
+	}
+	return(((unsigned)t>>TYLEN) & ~TYPE | t&TYPE);
+}
+
+/*
+ * Increase the degree of reference by
+ * one; e.g. turn "int" to "ptr-to-int".
+ */
+incref(t)
+{
+	return(((t&~TYPE)<<TYLEN) | (t&TYPE) | PTR);
+}
