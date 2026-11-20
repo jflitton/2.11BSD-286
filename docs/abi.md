@@ -18,7 +18,8 @@ One convention for the kernel and for programs, set by a single pragma in
 | `char`, `int`, near pointer result | AX |
 | `long`, far pointer result | DX:AX |
 | `float`, `double` result | top of the 287 stack |
-| structure result | the caller passes the address of a buffer in SI |
+| structure argument | on the stack, whole, filled out to a word |
+| structure result | of 1, 2 or 4 bytes, in AL, AX or DX:AX; any other, the caller passes the address of a buffer in SI, which is not preserved by that call |
 | preserved by the callee | SI, DI, BP, DS |
 | free for the callee | AX, BX, CX, DX, ES |
 | calls | near in small model, far in medium and large |

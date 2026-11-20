@@ -30,8 +30,17 @@
  * pointer in BX; the tree for it is then rewritten in place as the
  * variable [bx+n] (bxform, gaddr).
  *
- * The output is for NASM.  The small model only, so far: functions and
- * data are near.  Floating point is not done yet.
+ * A far pointer is a long to everything here but the few operators
+ * that are its own (c1.h).  What is reached through one is made an
+ * operand by putting the pointer in ES:BX, and is then the variable
+ * [es:bx+n].  ES is no more lasting than BX: whatever leaves BX alone
+ * leaves it alone.
+ *
+ * Floating point is the 287's, and in c14.c.
+ *
+ * The output is for NASM.  Data is near.  Functions are near in the
+ * small model, and with -M, the medium model, far: each file's are
+ * then in a segment of its own, named by what follows the -M.
  */
 
 #include "c1.h"
@@ -63,6 +72,11 @@ char	*argv[];
 		error("Arg count");
 		exit(1);
 	}
+	textseg = "_TEXT";
+	if (argc>4 && argv[4][0]=='-' && argv[4][1]=='M') {
+		mflag++;
+		textseg = argv[4]+2;
+	}
 	if (freopen(argv[1], "r", stdin)==NULL) {
 		error("Missing temp file");
 		exit(1);
@@ -75,7 +89,7 @@ char	*argv[];
 	setbuf(stdout,buf2);	/* sbrk problems */
 	funcbase = curbase = coremax = sbrk(0);
 	printf("\tbits\t16\n\tcpu\t286\n");
-	printf("\tsegment\t_TEXT public align=2 class=CODE\n");
+	printf("\tsegment\t%s public align=2 class=CODE\n", textseg);
 	printf("\tsegment\t_DATA public align=2 class=DATA\n");
 	printf("\tsegment\t_BSS public align=2 class=BSS\n");
 	printf("\tgroup\tDGROUP _DATA _BSS\n");
@@ -221,10 +235,6 @@ register union tree *tree;
 
 	op = tree->t.op;
 	type = tree->t.type;
-	if (isfloat(tree)) {
-		error("Floating point is not done yet");
-		return(DONE);
-	}
 	/*
 	 * When the value of a relational or a logical expression is
 	 * desired, more work must be done.
@@ -238,6 +248,15 @@ register union tree *tree;
 		printf("\tmov\tax,1\n");
 		label(lbl2);
 		return(INREG);
+	}
+	/*
+	 * Floating point is the 287's (c14.c).  cbranch has taken the
+	 * comparisons.
+	 */
+	if (isfloat(tree)) {
+		if (opdope[op]&RELAT)
+			error("Compiler error: gexpr");
+		return(gfloat(tree, ctx));
 	}
 	if (opdope[op]&RELAT)
 		return(grel(tree));
@@ -269,10 +288,41 @@ register union tree *tree;
 		return(gleaf(tree, ctx));
 
 	case STAR:
+	case FSTAR:
 	case AUTOI:
 	case AUTOD:
 		gaddr(tree);
 		return(gleaf(tree, ctx));
+
+	/*
+	 * A far pointer and an int, which is added to its offset.
+	 */
+	case FPLUS:
+	case FMINUS:
+		if (ctx==FOREFF) {
+			rcexpr(l, FOREFF);
+			rcexpr(r, FOREFF);
+			return(DONE);
+		}
+		faradd(tree);
+		return(INREG);
+
+	case ASFPLUS:
+	case ASFMINUS:
+		return(gasgfar(tree, ctx));
+
+	/*
+	 * A near pointer made far: the segment is the data's, or the
+	 * code's if it points at a function.  That is so of a null
+	 * pointer too, as it is with the cross compiler: only the
+	 * constant 0 is nowhere as a far pointer, and the first pass
+	 * has seen to that.
+	 */
+	case NTOF:
+	case CTOF:
+		rcexpr(l, FORREG);
+		printf("\tmov\tdx,%s\n", op==NTOF? "ds": "cs");
+		return(INREG);
 
 	/*
 	 * Conversions
@@ -288,6 +338,11 @@ register union tree *tree;
 
 	case LTOI:
 		rcexpr(l, FORREG);
+		return(INREG);
+
+	case FTOI:
+	case FTOL:
+		ffix(tree);
 		return(INREG);
 
 	case ITOL:
@@ -335,7 +390,7 @@ register union tree *tree;
 	 * of AX as it happens to be.
 	 */
 	case CALL:
-		gcall(tree);
+		gcall(tree, TNULL, 0);
 		if (ctx!=FOREFF)
 			stored(type);
 		return(INREG);
@@ -430,7 +485,7 @@ register union tree *tree;
 		error("Illegal operation on structure");
 	else {
 		error("No code for op %d type %d", op, type);
-		if (op>0 && op<=UASLSHL && opntab[op])
+		if (op>0 && op<=MAXOP && opntab[op])
 			fprintf(stderr, "\t(%s)\n", opntab[op]);
 	}
 	return(DONE);
@@ -484,6 +539,16 @@ register union tree *tree;
 	l = tree->t.tr1;
 	r = tree->t.tr2;
 	if (iszero(r)) {
+		/*
+		 * If what is compared with zero is itself true or
+		 * false, it is its value that is compared, and the
+		 * flags it leaves are of something else.
+		 */
+		if (opdope[l->t.op]&RELAT || l->t.op==LOGAND
+		 || l->t.op==LOGOR || l->t.op==EXCLA) {
+			rcexpr(l, FORREG);
+			return(INREG);
+		}
 		rcexpr(l, FORCC);
 		return(DONE);
 	}
@@ -641,10 +706,15 @@ union tree *tree;
 gvalue(l, r)
 register union tree *l, *r;
 {
-	if (l->t.op==STAR && !canbx(l)) {
+	register far;
+
+	if ((l->t.op==STAR || l->t.op==FSTAR) && !canbx(l)) {
+		far = l->t.op==FSTAR;
 		rcexpr(bxform(l), FORSP);
 		rcexpr(r, FORREG);
 		printf("\tpop\tbx\n");
+		if (far)
+			printf("\tpop\tes\n");
 		return;
 	}
 	rcexpr(r, FORREG);
@@ -728,9 +798,33 @@ register union tree *p;
 canbx(p)
 register union tree *p;
 {
+	register union tree *q;
+
 	if (p->t.op==AUTOI || p->t.op==AUTOD)
 		return(1);
+	/*
+	 * Through a far pointer, if the pointer is where les can load
+	 * it from: BX and ES are disturbed.
+	 */
+	if (p->t.op==FSTAR) {
+		q = faradr(p);
+		return(q->t.op==NAME || IND(q) && canbx(q));
+	}
 	return(p->t.op==STAR && easy(adrof(p), BX));
+}
+
+/*
+ * The far pointer that the indirection p goes through, less any
+ * constant added, which goes into the operand.
+ */
+union tree *
+faradr(p)
+register union tree *p;
+{
+	p = p->t.tr1;
+	if (p->t.op==FPLUS && p->t.tr2->t.op==CON)
+		return(p->t.tr1);
+	return(p);
 }
 
 /*
@@ -757,6 +851,9 @@ register union tree *p;
 
 	case STAR:
 		return(easy(adrof(p), BX));
+
+	case FSTAR:
+		return(canbx(p));
 
 	case PLUS:
 	case MINUS:
@@ -786,6 +883,7 @@ register union tree *p;
 	switch (p->t.op) {
 
 	case STAR:
+	case FSTAR:
 	case AUTOI:
 	case AUTOD:
 		gaddr(p);
@@ -890,7 +988,8 @@ register union tree *p;
 
 /*
  * p is an indirection.  Make it the operand [bx+...], and return the
- * tree whose value BX is to have by the time it is used.
+ * tree whose value BX is to have by the time it is used; or, through
+ * a far pointer, the operand [es:bx+n] and the tree for ES:BX.
  */
 union tree *
 bxform(p)
@@ -900,6 +999,17 @@ register union tree *p;
 	int type, off;
 
 	type = p->t.type;
+	if (p->t.op==FSTAR) {
+		q = faradr(p);
+		off = q==p->t.tr1? 0: p->t.tr1->t.tr2->c.value;
+		p->n.op = NAME;
+		p->n.type = type;
+		p->n.class = FOFFS;
+		p->n.regno = BX;
+		p->n.offset = off;
+		p->n.nloc = 0;
+		return(q);
+	}
 	q = p->t.tr1;
 	off = 0;
 	s = NULL;
@@ -944,6 +1054,18 @@ register union tree *p;
 {
 	register union tree *q;
 
+	if (p->t.op==FSTAR) {
+		q = bxform(p);
+		if (q->t.op==NAME || IND(q) && canbx(q)) {
+			if (IND(q))
+				gaddr(q);
+			insrp("les", BX, q, FARP);
+		} else {
+			rcexpr(q, FORREG);
+			printf("\tmov\tbx,ax\n\tmov\tes,dx\n");
+		}
+		return;
+	}
 	if (p->t.op!=STAR) {
 		autoop(p);
 		return;
@@ -981,6 +1103,74 @@ register union tree *p;
 	p->n.op = NAME;
 	p->n.class = OFFS;
 	p->n.regno = r;
+}
+
+/*
+ * A far pointer and an int: the far pointer in DX:AX, and the int
+ * added to its offset, or taken from it.
+ */
+faradd(tree)
+register union tree *tree;
+{
+	register union tree *l, *r;
+	int op;
+
+	op = tree->t.op==FPLUS? PLUS: MINUS;
+	l = tree->t.tr1;
+	r = tree->t.tr2;
+	if (adrble(r) || canbx(r) && !CHR(r->t.type)) {
+		rcexpr(l, FORREG);
+		if (IND(r))
+			gaddr(r);
+		arith(op, AX, r);
+		return;
+	}
+	rcexpr(r, FORREG);
+	if (l->t.op==NAME) {
+		printf("\tmov\tcx,ax\n");
+		load(l, AX);
+	} else {
+		printf("\tpush\tax\n");
+		rcexpr(l, FORREG);
+		printf("\tpop\tcx\n");
+	}
+	printf("\t%s\tax,cx\n", opname(op));
+}
+
+/*
+ * l += r and l -= r, where l is a far pointer and r an int: the work
+ * is done on the pointer's offset, which is its first word, where it
+ * is kept.
+ */
+gasgfar(tree, ctx)
+register union tree *tree;
+{
+	register union tree *l, *r;
+	int op, type;
+
+	op = tree->t.op==ASFPLUS? ASPLUS: ASMINUS;
+	l = tree->t.tr1;
+	r = tree->t.tr2;
+	type = l->t.type;
+	if (isimm(r, INT)) {
+		if (IND(l))
+			gaddr(l);
+		else if (l->t.op!=NAME) {
+			error("Illegal lvalue");
+			return(DONE);
+		}
+		l->t.type = INT;
+		opimm(op, l, r);
+	} else {
+		gvalue(l, r);
+		l->t.type = INT;
+		inspr(opname(op), l, 0, AX);
+	}
+	l->t.type = type;
+	if (ctx==FOREFF)
+		return(DONE);
+	load(l, AX);
+	return(INREG);
 }
 
 /*
@@ -1295,10 +1485,20 @@ register union tree *r;
 	default:
 		s = "__U4D";
 	}
-	xref(s);
-	printf("\tcall\t%s\n", s);
+	callh(s);
 	if (op==LMOD || op==ULMOD)
 		printf("\tmov\tax,bx\n\tmov\tdx,cx\n");
+}
+
+/*
+ * Call one of the library's routines for what the 286 has no
+ * instruction for.  They are far in the medium model.
+ */
+callh(s)
+char *s;
+{
+	xref(s);
+	printf(mflag? "\tcall\tfar %s\n": "\tcall\t%s\n", s);
 }
 
 /*
@@ -1357,9 +1557,13 @@ union tree *lv;
 			if (adrble(r))
 				insrp("mov", CX, r, 0);
 			else {
+				if (lv->n.class==FOFFS)
+					printf("\tpush\tes\n");
 				printf("\tpush\tbx\n");
 				rcexpr(r, FORREG);
 				printf("\tmov\tcx,ax\n\tpop\tbx\n");
+				if (lv->n.class==FOFFS)
+					printf("\tpop\tes\n");
 			}
 			load(lv, AX);
 		} else if (adrble(r)) {
@@ -1536,7 +1740,7 @@ gasgop2(tree, ctx)
 register union tree *tree;
 {
 	register union tree *l, *r;
-	int op, type, lng;
+	int op, type, lng, far, radr;
 
 	op = tree->t.op;
 	l = tree->t.tr1;
@@ -1573,23 +1777,31 @@ register union tree *tree;
 		/*
 		 * A long through a pointer.  The routines want BX, so
 		 * the pointer waits on the stack: under the right
-		 * operand, if that is there too.
+		 * operand, if that is there too.  (Pushing the right
+		 * operand may leave it looking like one that need not
+		 * have been: it is asked first.)
 		 */
+		far = l->t.op==FSTAR;
+		radr = adrble(r);
 		rcexpr(bxform(l), FORSP);
-		if (adrble(r))
-			printf("\tmov\tbx,sp\n\tmov\tbx,[bx]\n");
+		if (radr)
+			printf("\tmov\tbx,sp\n\t%s\tbx,[bx]\n",
+			    far? "les": "mov");
 		else {
 			rcexpr(r, FORSP);
-			printf("\tmov\tbx,sp\n\tmov\tbx,[bx+4]\n");
+			printf("\tmov\tbx,sp\n\t%s\tbx,[bx+4]\n",
+			    far? "les": "mov");
 		}
 		load(l, AX);
-		if (adrble(r))
+		if (radr)
 			lmulop(op, r);
 		else {
 			printf("\tpop\tbx\n\tpop\tcx\n");
 			lmulop(op, (union tree *)NULL);
 		}
 		printf("\tpop\tbx\n");
+		if (far)
+			printf("\tpop\tes\n");
 	} else if (adrble(r)) {
 		gaddr(l);
 		load(l, AX);
@@ -1610,13 +1822,29 @@ register union tree *tree;
 /*
  * A call.  The arguments are pushed, the last first, and taken off
  * when the function returns, with its value in AX or DX:AX.
+ *
+ * A function that returns a structure of more than two words is given
+ * in SI the address of where to put it (strasg, in c11.c).  That is
+ * the value of dest; or, if there is no dest and tmp is set, it is
+ * where the stack pointer is now, the caller having made room there.
+ *
+ * In the medium model a function is called far.  One that this file
+ * has defined is in the segment the call is in, and is called near
+ * with CS pushed for it.  And in any model a function may be called
+ * through a far pointer.
  */
-gcall(tree)
+gcall(tree, dest, tmp)
 register union tree *tree;
+union tree *dest;
 {
 	register union tree *p;
 	register n;
+	int direct, far, lbl;
 
+	if (dest)
+		tmp = 1;
+	if (tmp)
+		printf("\tpush\tsi\n");
 	n = 0;
 	p = tree->t.tr2;
 	if (p->t.op) {
@@ -1629,11 +1857,61 @@ register union tree *tree;
 	p = tree->t.tr1;
 	if (p->t.op==AUTOI || p->t.op==AUTOD)
 		gaddr(p);
-	if (p->t.op==NAME && (p->n.class==EXTERN || p->n.class==STATIC)) {
-		printf("\tcall\t");
+	direct = p->t.op==NAME && (p->n.class==EXTERN || p->n.class==STATIC);
+	far = 0;
+	if (p->t.op==FSTAR) {
+		/*
+		 * Through a far pointer: where it is kept, if that is
+		 * to be had easily, and if not from DX:AX.
+		 */
+		p = p->t.tr1;
+		far = 2;
+		if (!tmp && (p->t.op==NAME || IND(p) && canbx(p)))
+			far = 1;
+		else
+			rcexpr(p, FORREG);
+	} else if (tmp && !direct) {
+		/*
+		 * Find the function before SI is changed: SI may be
+		 * what points at it.
+		 */
+		if (p->t.op==STAR)
+			p = p->t.tr1;
+		else
+			p = optim(tnode(AMPER, INT+PTR, p, TNULL));
+		rcexpr(p, FORREG);
+	}
+	if (dest) {
+		if (!easy(dest, SI))
+			error("Compiler error: gcall");
+		greg(dest, SI);
+	} else if (tmp)
+		printf("\tmov\tsi,sp\n\tadd\tsi,%d\n", n+2);
+	if (direct) {
+		if (!mflag)
+			printf("\tcall\t");
+		else if (p->n.class==STATIC || isdefd(p->x.name))
+			printf("\tpush\tcs\n\tcall\t");
+		else
+			printf("\tcall\tfar ");
 		pbase(p);
 		poff(p->n.offset);
 		putchar('\n');
+	} else if (far==1) {
+		if (IND(p))
+			gaddr(p);
+		ins1("call", p, FARP);
+	} else if (far) {
+		/*
+		 * To the function in DX:AX, by returning to it, with
+		 * where it is to return to pushed first.
+		 */
+		lbl = isn++;
+		printf("\tpush\tcs\n\tpush\tword L%d\n", lbl);
+		printf("\tpush\tdx\n\tpush\tax\n\tretf\n");
+		label(lbl);
+	} else if (tmp) {
+		printf("\tcall\tax\n");
 	} else if (p->t.op==NAME && p->n.class==OFFS && p->n.offset==0) {
 		/* the function a register variable points at */
 		printf("\tcall\t%s\n", rname[p->n.regno]);
@@ -1650,20 +1928,67 @@ register union tree *tree;
 		printf("\tcall\tax\n");
 	}
 	popstk(n);
+	if (tmp)
+		printf("\tpop\tsi\n");
 }
 
 /*
  * Compile a function argument.
  * Return the number of bytes pushed,
  * for future popping.
+ *
+ * A structure is pushed whole.  If it is what a function returns, room
+ * is made for it and the function puts it there.
  */
 comarg(tree)
 register union tree *tree;
 {
+	register size, i;
+
 	if (tree->t.op==STRASG) {
-		error("Structure arguments are not done yet");
-		return(0);
+		size = tree->F.mask;
+		tree = tree->t.tr1;
+		while (tree->t.op==SEQNC) {
+			rcexpr(tree->t.tr1, FOREFF);
+			tree = tree->t.tr2;
+		}
+		if (size<=4) {
+			tree = paint(tree, size<=2? INT: LONG);
+			goto normal;
+		}
+		if (tree->t.op==CALL) {
+			printf("\tsub\tsp,%d\n", size);
+			gcall(tree, TNULL, 1);
+			return(size);
+		}
+		if (tree->t.op!=NAME && tree->t.op!=STAR && tree->t.op!=FSTAR) {
+			error("Unimplemented structure assignment");
+			return(0);
+		}
+		if (size<=10) {
+			if (IND(tree))
+				gaddr(tree);
+			tree->n.offset += size;
+			for (i = 0; i<size; i += 2) {
+				tree->n.offset -= 2;
+				ins1("push", tree, 0);
+			}
+			return(size);
+		}
+		if (tree->t.op==FSTAR) {
+			rcexpr(tree->t.tr1, FORREG);
+			printf("\tsub\tsp,%d\n", size);
+			printf("\tmov\tbx,sp\n\tmov\tcx,ds\n");
+			fmovs(size/2);
+			return(size);
+		}
+		rcexpr(optim(tnode(AMPER, STRUCT+PTR, tree, TNULL)), FORREG);
+		printf("\tsub\tsp,%d\n", size);
+		printf("\tmov\tbx,ax\n\tmov\tax,sp\n");
+		movs(size/2);
+		return(size);
 	}
+normal:
 	rcexpr(tree, FORSP);
 	return(arlength(tree->t.type));
 }
@@ -1746,12 +2071,25 @@ register type;
 		return(tp);
 	if (tp->t.type==CHAR && type==INT)
 		return(tp);
+	/*
+	 * A float is computed with as a double, but is not one where
+	 * it is kept.
+	 */
+	if ((tp->t.type==FLOAT || tp->t.type==DOUBLE)
+	 && (type==FLOAT || type==DOUBLE))
+		return(tp);
 	if (tp->t.type==CHAR || tp->t.type==UNCHAR)
 		return(optim(tnode(LOAD, type, tp, TNULL)));
 	tp->t.type = type;
-	if (tp->t.op==AMPER && type&XTYPE)
+	if (tp->t.op==AMPER && type&XTYPE) {
+		/*
+		 * The address of a character is not that of a
+		 * character loaded.
+		 */
 		tp->t.tr1 = paint(tp->t.tr1, decref(type));
-	else if (tp->t.op==STAR)
+		if (tp->t.tr1->t.op==LOAD)
+			tp->t.tr1 = tp->t.tr1->t.tr1;
+	} else if (tp->t.op==STAR)
 		tp->t.tr1 = paint(tp->t.tr1, incref(type));
 	else if (tp->t.op==ASSIGN) {
 		paint(tp->t.tr1, type);
@@ -1832,11 +2170,26 @@ register union tree *tree;
 
 	case DOUBLE:
 	case FLOAT:
-		error("Floating point is not done yet");
+		if (tree->t.op!=FCON && tree->t.op!=SFCON)
+			goto illinit;
+		fdata(type, tree->f.fvalue);
 		return;
 
 	case UNLONG:
 	case LONG:
+		/*
+		 * A far pointer to a function: its address and its
+		 * segment, which is for whatever loads the program to
+		 * put there.
+		 */
+		if (tree->t.op==AMPER && adrble(tree)) {
+			printf("\tdw\t");
+			pname(tree, 0);
+			putchar(',');
+			pname(tree, HI);
+			putchar('\n');
+			return;
+		}
 		if (tree->t.op==FTOL) {
 			tree = tree->t.tr1;
 			if (tree->t.op==SFCON)
@@ -1865,7 +2218,9 @@ illinit:
 /*
  * Write an operand: a constant, the address of something, a register
  * variable, or a variable in memory, which may be reached through a
- * register.  HI asks for the high word of a long, and BYT for a byte.
+ * register.  HI asks for the high word of a long, BYT for a byte,
+ * FLT for the size of the variable's type, and FARP for the far
+ * pointer that is there.  The high word of an address is its segment.
  */
 pname(p, flag)
 register union tree *p;
@@ -1897,6 +2252,11 @@ loop:
 
 	case AMPER:
 		p = p->t.tr1;
+		if (flag&HI) {
+			printf("seg ");
+			pbase(p);
+			return;
+		}
 		pbase(p);
 		poff(p->n.offset);
 		return;
@@ -1906,7 +2266,13 @@ loop:
 			printf("%s", flag&BYT? bname[p->n.nloc]: rname[p->n.nloc]);
 			return;
 		}
-		printf("%s [", flag&BYT? "byte": "word");
+		if (flag&FLT)
+			printf("%s [", p->t.type==DOUBLE? "qword":
+			    p->t.type==FLOAT || LNG(p->t.type)? "dword": "word");
+		else if (flag&FARP)
+			printf("far [");
+		else
+			printf("%s [", flag&BYT? "byte": "word");
 		i = p->n.offset;
 		if (flag&HI)
 			i += 2;
@@ -1914,6 +2280,10 @@ loop:
 
 		case OFFS:
 			printf("%s", rname[p->n.regno]);
+			break;
+
+		case FOFFS:
+			printf("es:%s", rname[p->n.regno]);
 			break;
 
 		case SOFFS:

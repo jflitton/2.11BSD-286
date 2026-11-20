@@ -50,7 +50,7 @@ register union tree *t;
  */
 arlength(t)
 {
-	if (t>=PTR)
+	if ((unsigned)t>=PTR)
 		return(2);
 	switch(t) {
 
@@ -127,6 +127,15 @@ char *s;
 	xlook(s)->xdefd = 1;
 }
 
+/*
+ * Has the file defined the name by now?
+ */
+isdefd(s)
+char *s;
+{
+	return(xlook(s)->xdefd);
+}
+
 xcomm(s, n)
 char *s;
 unsigned n;
@@ -160,7 +169,7 @@ sect(s)
 	if (cursect==s)
 		return;
 	cursect = s;
-	printf("\tsegment\t%s\n", s==PROG? "_TEXT": s==DATA? "_DATA": "_BSS");
+	printf("\tsegment\t%s\n", s==PROG? textseg: s==DATA? "_DATA": "_BSS");
 }
 
 /*
@@ -430,6 +439,10 @@ again:
 
 	}
 	op = tree->t.op;
+	if (isfloat(tree)) {
+		fbranch(tree, lbl, cond);
+		return;
+	}
 	if (opdope[op]&RELAT
 	 && tree->t.tr1->t.op==ITOL && tree->t.tr2->t.op==ITOL
 	 && uns(tree->t.tr1->t.tr1) == uns(tree->t.tr2->t.tr1)) {
@@ -542,7 +555,7 @@ register union tree *tree;
 		 * A variable is tested where it is.
 		 */
 		mem = l->t.op==NAME;
-		if (l->t.op==STAR && canbx(l)) {
+		if ((l->t.op==STAR || l->t.op==FSTAR) && canbx(l)) {
 			gaddr(l);
 			mem++;
 		}
@@ -632,6 +645,8 @@ char *s;
  *		push	bp
  *		mov	bp,sp
  *		sub	sp,N		N bytes of automatic variables
+ *		mov	[bp-2],si	if it returns a structure where
+ *					it is told to (strasg)
  *		push	si		if SI holds a register variable
  *		push	di		if DI does
  *		...
@@ -648,10 +663,12 @@ char *s;
  * output for the entry (SAVE), and filled in when what goes there is
  * known.
  */
-#define	PROLEN	56
+#define	PROLEN	72
 
 long	proloc;			/* where the entry goes */
 int	minreg;			/* the lowest register variable in use */
+int	strret;			/* the function returns a structure where
+				   it is told to */
 
 entry()
 {
@@ -662,6 +679,7 @@ entry()
 		putchar(' ');
 	putchar('\n');
 	minreg = BP;
+	strret = 0;
 }
 
 setstk(n)
@@ -674,9 +692,12 @@ setstk(n)
 	strcpy(s, "\tpush\tbp\n\tmov\tbp,sp\n");
 	s += strlen(s);
 	if (n==2)
-		strcpy(s, "\tpush\tax\n");
-	else if (n)
+		strcpy(s, strret? "\tpush\tsi\n": "\tpush\tax\n");
+	else if (n) {
 		sprintf(s, "\tsub\tsp,%u\n", UNS(n));
+		if (strret)
+			strcat(s, "\tmov\t[bp-2],si\n");
+	}
 	if (minreg<=SI)
 		strcat(s, "\tpush\tsi\n");
 	if (minreg<=DI)
@@ -697,7 +718,7 @@ retrn()
 		printf("\tpop\tdi\n");
 	if (minreg<=SI)
 		printf("\tpop\tsi\n");
-	printf("\tleave\n\tret\n");
+	printf(mflag? "\tleave\n\tretf\n": "\tleave\n\tret\n");
 }
 
 /*
@@ -730,9 +751,10 @@ getree()
 		/*
 		 * A jump is kept back until what follows it is seen:
 		 * the first pass often jumps to the next line, as from
-		 * a return at the end of a function.
+		 * a return at the end of a function.  Its note of the
+		 * registers in use may come between.
 		 */
-		if (jump && op!=LABEL) {
+		if (jump && op!=LABEL && op!=SETREG) {
 			branch(jump, 0, 0);
 			jump = 0;
 		}
@@ -1021,15 +1043,26 @@ register char *s;
 }
 
 /*
- * Assign a structure.  One of a word or of two is assigned as an int
- * or a long; any other is copied with the string instructions, whose
- * registers are saved, since they may hold register variables.
+ * Structures.  One of a word or of two is assigned, passed and
+ * returned as an int or a long is.  Any other is copied with the
+ * string instructions, whose registers are saved, since they may hold
+ * register variables.
+ *
+ * A function that returns one of the others is told where to put it:
+ * its caller gives it the address in SI (docs/abi.md), and saves its
+ * own SI round the call.  The function keeps the address in the first
+ * word of its frame, where the first pass has left room for it.
+ *
+ * What a function is given to fill is nothing else that it can reach.
+ * So an automatic variable is filled directly, as is what the caller
+ * was itself given; anything else is filled from a copy on the stack.
  */
 strasg(atp)
 union tree *atp;
 {
-	register union tree *tp;
+	register union tree *tp, *l, *r;
 	register nwords;
+	int direct;
 
 	nwords = atp->F.mask/2;
 	tp = atp->t.tr1;
@@ -1037,41 +1070,155 @@ union tree *atp;
 		rcexpr(tp->t.tr1, FOREFF);
 		tp = tp->t.tr2;
 	}
-	if (tp->t.op != ASSIGN) {
-		if (tp->t.op==RFORCE) {	/* function return */
-			error("Functions that return structures are not done yet");
+	if (tp->t.op==RFORCE) {		/* function return */
+		tp = tp->t.tr1;
+		if (nwords<=2) {
+			rcexpr(paint(tp, nwords==1? INT: LONG), FORREG);
 			return;
 		}
+		strret = 1;
+		l = getblk(sizeof(struct tname));
+		l->t.op = NAME;
+		l->t.type = STRUCT+PTR;
+		l->n.class = OFFS;
+		l->n.regno = BP;
+		l->n.offset = -2;
 		if (tp->t.op==CALL) {
-			rcexpr(tp, FOREFF);
+			gcall(tp, l, 0);
 			return;
 		}
+		atp->t.tr1 = tnode(ASSIGN, STRUCT, tnode(STAR, STRUCT, l, TNULL), tp);
+		strasg(atp);
+		return;
+	}
+	if (tp->t.op==CALL) {		/* its value is not wanted */
+		if (nwords<=2) {
+			rcexpr(paint(tp, nwords==1? INT: LONG), FOREFF);
+			return;
+		}
+		printf("\tsub\tsp,%d\n", nwords*2);
+		gcall(tp, TNULL, 1);
+		printf("\tadd\tsp,%d\n", nwords*2);
+		return;
+	}
+	if (tp->t.op != ASSIGN) {
 		error("Illegal structure operation");
 		return;
 	}
-	if (tp->t.tr2->t.op==CALL) {
-		error("Functions that return structures are not done yet");
+	if (nwords<=2) {
+		rcexpr(paint(tp, nwords==1? INT: LONG), FOREFF);
 		return;
 	}
-	if (nwords==1)
-		paint(tp, INT);
-	else if (nwords==2)
-		paint(tp, LONG);
-	else {
-		if (tp->t.tr1->t.op!=NAME && tp->t.tr1->t.op!=STAR
-		 || tp->t.tr2->t.op!=NAME && tp->t.tr2->t.op!=STAR) {
-			error("unimplemented structure assignment");
+	l = tp->t.tr1;
+	r = tp->t.tr2;
+	if (l->t.op!=NAME && l->t.op!=STAR && l->t.op!=FSTAR
+	 || r->t.op!=NAME && r->t.op!=STAR && r->t.op!=FSTAR
+	 && r->t.op!=CALL) {
+		error("unimplemented structure assignment");
+		return;
+	}
+	/*
+	 * To or from what a far pointer points at: both addresses are
+	 * made far.
+	 */
+	if (l->t.op==FSTAR || r->t.op==FSTAR) {
+		if (r->t.op==CALL) {
+			printf("\tsub\tsp,%d\n", nwords*2);
+			gcall(r, TNULL, 1);
+			faraddr(l);
+			printf("\tmov\tbx,ax\n\tmov\tcx,dx\n");
+			printf("\tmov\tax,sp\n\tmov\tdx,ds\n");
+			fmovs(nwords);
+			printf("\tadd\tsp,%d\n", nwords*2);
 			return;
 		}
-		rcexpr(optim(tnode(AMPER, STRUCT+PTR, tp->t.tr2, TNULL)), FORSP);
-		rcexpr(optim(tnode(AMPER, STRUCT+PTR, tp->t.tr1, TNULL)), FORREG);
-		printf("\tpop\tbx\n\tpush\tsi\n\tpush\tdi\n");
-		printf("\tmov\tdi,ax\n\tmov\tsi,bx\n\tpush\tds\n\tpop\tes\n");
-		printf("\tmov\tcx,%d\n\trep movsw\n", nwords);
-		printf("\tpop\tdi\n\tpop\tsi\n");
+		faraddr(l);
+		printf("\tpush\tdx\n\tpush\tax\n");
+		faraddr(r);
+		printf("\tpop\tbx\n\tpop\tcx\n");
+		fmovs(nwords);
 		return;
 	}
-	rcexpr(tp, FOREFF);
+	direct = isauto(l);
+	l = optim(tnode(AMPER, STRUCT+PTR, l, TNULL));
+	if (r->t.op==CALL) {
+		if (direct) {
+			gcall(r, l, 0);
+			return;
+		}
+		printf("\tsub\tsp,%d\n", nwords*2);
+		gcall(r, TNULL, 1);
+		rcexpr(l, FORREG);
+		printf("\tmov\tbx,sp\n");
+		movs(nwords);
+		printf("\tadd\tsp,%d\n", nwords*2);
+		return;
+	}
+	r = optim(tnode(AMPER, STRUCT+PTR, r, TNULL));
+	if (easy(r, BX)) {
+		rcexpr(l, FORREG);
+		greg(r, BX);
+	} else {
+		rcexpr(r, FORSP);
+		rcexpr(l, FORREG);
+		printf("\tpop\tbx\n");
+	}
+	movs(nwords);
+}
+
+/*
+ * Is p a variable in the frame?
+ */
+isauto(p)
+register union tree *p;
+{
+	return(p->t.op==NAME && p->n.class==OFFS && p->n.regno==BP);
+}
+
+/*
+ * Copy n words from where BX points to where AX does.
+ */
+movs(n)
+register n;
+{
+	printf("\tpush\tsi\n\tpush\tdi\n");
+	printf("\tmov\tdi,ax\n\tmov\tsi,bx\n\tpush\tds\n\tpop\tes\n");
+	if (n<=4)
+		while (n--)
+			printf("\tmovsw\n");
+	else
+		printf("\tmov\tcx,%d\n\trep movsw\n", n);
+	printf("\tpop\tdi\n\tpop\tsi\n");
+}
+
+/*
+ * The address of the structure p, as a far pointer, in DX:AX.
+ */
+faraddr(p)
+register union tree *p;
+{
+	if (p->t.op==FSTAR) {
+		rcexpr(p->t.tr1, FORREG);
+		return;
+	}
+	rcexpr(optim(tnode(AMPER, STRUCT+PTR, p, TNULL)), FORREG);
+	printf("\tmov\tdx,ds\n");
+}
+
+/*
+ * Copy n words from where DX:AX points to where CX:BX does.
+ */
+fmovs(n)
+register n;
+{
+	printf("\tpush\tsi\n\tpush\tdi\n\tpush\tds\n");
+	printf("\tmov\tdi,bx\n\tmov\tes,cx\n\tmov\tsi,ax\n\tmov\tds,dx\n");
+	if (n<=4)
+		while (n--)
+			printf("\tmovsw\n");
+	else
+		printf("\tmov\tcx,%d\n\trep movsw\n", n);
+	printf("\tpop\tds\n\tpop\tdi\n\tpop\tsi\n");
 }
 
 /*

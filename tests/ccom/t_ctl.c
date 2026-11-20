@@ -642,8 +642,34 @@ switches()
 	CK(sw5(3, 1), 0);
 }
 
+/* what is true or false, compared with zero */
+static
+truth(a, b)
+{
+	register int n;
+
+	n = 0;
+	if ((a && b) == 0)
+		n += 1;
+	if ((a || b) != 0)
+		n += 2;
+	if (!a == 0)
+		n += 4;
+	if ((a < b) == 0)
+		n += 8;
+	if ((a && b) != 0)
+		n += 16;
+	if ((a == b || a > b) == 0)
+		n += 32;
+	n += ((a && !b) == 0) * 64;
+	return n;
+}
+
 t_ctl()
 {
+	CK(truth(0, 0), 73);
+	CK(truth(1, 2), 118);
+	CK(truth(2, 0), 15);
 	relations();
 	logical();
 	loops();

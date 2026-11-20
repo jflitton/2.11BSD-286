@@ -119,7 +119,12 @@ build(op)
 		break;
 
 	case CALL:
+#ifdef	i286
+		if (((t1&XTYPE) == PTR || ISFAR(t1))
+		 && (decref(t1)&XTYPE) == FUNC) {
+#else
 		if ((t1&XTYPE) == PTR && (decref(t1)&XTYPE) == FUNC) {
+#endif
 			/*
 			 * Modification to allow calling a function via a
 			 * pointer to a function ("f") without explicitly
@@ -154,7 +159,11 @@ build(op)
 
 	case AMPER:
 		if (p1->t.op==NAME || p1->t.op==STAR) {
+#ifdef	i286
+			*cp++ = block(op,adrtype(p1),p1->t.subsp,p1->t.strp,p1,TNULL);
+#else
 			*cp++ = block(op,incref(p1->t.type),p1->t.subsp,p1->t.strp,p1,TNULL);
+#endif
 			return;
 		}
 		error("Illegal lvalue");
@@ -164,10 +173,31 @@ build(op)
 	 * a.b goes to (&a)->b
 	 */
 	case DOT:
+#ifdef	i286
+		/*
+		 * The PDP-11's function gives back the address of the
+		 * structure, and the 286's the structure, in registers
+		 * or where its caller says (i286/c11.c).  So f().b goes
+		 * to (t = f(), &t)->b, t being a temporary.
+		 */
+		if (p1->t.op==CALL && t1==STRUCT) {
+			register struct nmlist *np;
+
+			np = strtemp(p1);
+			*cp++ = nblock(np);
+			*cp++ = p1;
+			build(ASSIGN);
+			*cp++ = nblock(np);
+			build(AMPER);
+			build(SEQNC);
+			p1 = *--cp;
+		} else {
+#else
 		if (p1->t.op==CALL && t1==STRUCT) {
 			t1 = incref(t1);
 			setype(p1, t1, p1);
 		} else {
+#endif
 			*cp++ = p1;
 			build(AMPER);
 			p1 = *--cp;
@@ -188,12 +218,28 @@ build(op)
 		t2 = p2->n.htype;
 		if (t2==INT && p2->t.tr1->n.hflag&FFIELD)
 			t2 = UNSIGN;
+#ifdef	i286
+		/*
+		 * A member reached through a far pointer is far.  And
+		 * the member's type is given as it is, not as what a
+		 * pointer to it points at: there may be no room in a
+		 * type for that pointer.
+		 */
+		t = ISFAR(p1->t.type)? fincref(t2): incref(t2);
+		chkw(p1, -1);
+		setype(p1, t, p2);
+		*cp++ = block(PLUS, t, p2->t.subsp, p2->t.strp,
+		   p1, cblock(p2->t.tr1->n.hoffset));
+		build(STAR);
+		cp[-1]->t.type = t2;
+#else
 		t = incref(t2);
 		chkw(p1, -1);
 		setype(p1, t, p2);
 		*cp++ = block(PLUS, t, p2->t.subsp, p2->t.strp,
 		   p1, cblock(p2->t.tr1->n.hoffset));
 		build(STAR);
+#endif
 		if (p2->t.tr1->n.hflag&FFIELD)
 			*cp++ = block(FSEL, UNSIGN, (int *)NULL, (union str *)NULL, 
 			    *--cp, p2->t.tr1->n.hstrp);
@@ -218,6 +264,12 @@ build(op)
 			*cp++ = block(op, t1, p1->t.subsp, p1->t.strp, p1,TNULL);
 		return;
 	}
+#ifdef	i286
+	if (ISFAR(p1->t.type) || ISFAR(p2->t.type)) {
+		fbuild(op, p1, p2);
+		return;
+	}
+#endif
 	cvn = 0;
 	if (t1==STRUCT || t2==STRUCT) {
 		if (t1!=t2 || p1->t.strp != p2->t.strp)
@@ -291,7 +343,7 @@ build(op)
 			cvn = leftc;
 		leftc = 0;
 	} else if (op==COLON) {
-		if (t1>=PTR && t1==t2)
+		if ((unsigned)t1>=PTR && t1==t2)
 			cvn = 0;
 		/*
 		 * Allow "e ? i : p" and "e ? p : i" with warning.
@@ -313,7 +365,7 @@ build(op)
 			}
 		}
 	} else if (dope&RELAT) {
-		if (op>=LESSEQ && (t1>=PTR||t2>=PTR||(t1==UNSIGN||t1==UNLONG||t2==UNSIGN||t2==UNLONG)
+		if (op>=LESSEQ && ((unsigned)t1>=PTR||(unsigned)t2>=PTR||(t1==UNSIGN||t1==UNLONG||t2==UNSIGN||t2==UNLONG)
 		 && (t==INT||t==CHAR||t==UNSIGN||t==UNLONG)))
 			op += LESSEQP-LESSEQ;
 		if (cvn==ITP || cvn==PTI)
@@ -378,6 +430,179 @@ build(op)
 	}
 }
 
+#ifdef	i286
+/*
+ * Build an operator one of whose operands is a far pointer.  A far
+ * pointer is not of the kinds the conversion table knows.  One is had
+ * from a near pointer with NTOF, or CTOF if it is to a function, and
+ * from an int as a long is; it is a long as it stands, and its offset
+ * is the low word of that.  Two are equal if all of them is, but which
+ * is the lower is asked of their offsets, and it is their offsets that
+ * are subtracted: they are taken to be in one segment, as by the cross
+ * compiler.  An int is added to the offset.
+ */
+fbuild(op, p1, p2)
+register union tree *p1, *p2;
+{
+	register int t1, t2;
+	union tree *p;
+
+	t1 = p1->t.type;
+	t2 = p2->t.type;
+	if (opdope[op]&RELAT && op>=LESSEQ) {
+		if (ISFAR(t1))
+			p1 = tonear(p1, t1-(FPTR-PTR), p1);
+		if (ISFAR(t2))
+			p2 = tonear(p2, t2-(FPTR-PTR), p2);
+		*cp++ = p1;
+		*cp++ = p2;
+		build(op);
+		return;
+	}
+	if (opdope[op]&RELAT || op==COLON) {
+		if (!ISFAR(t1))
+			p1 = tofar(p1, t2, p2);
+		else if (!ISFAR(t2))
+			p2 = tofar(p2, t1, p1);
+		if (op==COLON) {
+			*cp++ = block(op, p1->t.type, p1->t.subsp, p1->t.strp,
+			    p1, p2);
+			return;
+		}
+		*cp++ = block(op, INT, (int *)NULL, (union str *)NULL, p1, p2);
+		return;
+	}
+	switch (op) {
+
+	case ASSIGN:
+	case CAST:
+		if (ISFAR(t1)) {
+			if (op==ASSIGN && (unsigned)t2<PTR && p2->t.op!=CON
+			 && p2->t.op!=LCON)
+				werror("illegal combination of pointer and integer, op =");
+			p2 = tofar(p2, t1, p1);
+			if (op==CAST) {
+				p2->t.type = t1;
+				p2->t.subsp = p1->t.subsp;
+				p2->t.strp = p1->t.strp;
+				*cp++ = p2;
+			} else
+				*cp++ = block(op, t1, p1->t.subsp, p1->t.strp,
+				    p1, p2);
+			return;
+		}
+		/*
+		 * A far pointer to something else: a long of it, or its
+		 * offset, and then as that would be.
+		 */
+		if (t1==LONG || t1==UNLONG)
+			p2->t.type = UNLONG;
+		else if (t1==FLOAT || t1==DOUBLE || t1==STRUCT)
+			goto bad;
+		else if ((unsigned)t1>=PTR) {
+			if (op==ASSIGN)
+				werror("far pointer made near");
+			p2 = tonear(p2, t1, p1);
+		} else
+			p2 = tonear(p2, INT, p2);
+		*cp++ = p1;
+		*cp++ = p2;
+		build(op);
+		return;
+
+	case MINUS:
+		if ((unsigned)t2>=PTR) {
+			if (ISFAR(t1))
+				p1 = tonear(p1, t1-(FPTR-PTR), p1);
+			if (ISFAR(t2))
+				p2 = tonear(p2, t2-(FPTR-PTR), p2);
+			*cp++ = p1;
+			*cp++ = p2;
+			build(op);
+			return;
+		}
+		break;
+
+	case PLUS:
+		if (!ISFAR(t1)) {
+			p = p1;
+			p1 = p2;
+			p2 = p;
+			t1 = p1->t.type;
+			t2 = p2->t.type;
+		}
+		break;
+
+	case ASPLUS:
+	case ASMINUS:
+	case INCBEF:
+	case DECBEF:
+	case INCAFT:
+	case DECAFT:
+		break;
+
+	default:
+		goto bad;
+	}
+	if (!ISFAR(t1))
+		goto bad;
+	if (t2==LONG || t2==UNLONG)
+		p2 = block(LTOI, INT, (int *)NULL, (union str *)NULL, p2, TNULL);
+	else if (t2!=INT && t2!=CHAR && t2!=UNSIGN && t2!=UNCHAR)
+		goto bad;
+	p2 = convert(p2, INT, ITP, plength(p1));
+	*cp++ = block(op, t1, p1->t.subsp, p1->t.strp, p1, p2);
+	return;
+bad:
+	error("Illegal operation on a far pointer");
+	*cp++ = p1;
+}
+
+/*
+ * Make p a far pointer of the type t, which is q's.
+ */
+union tree *
+tofar(p, t, q)
+register union tree *p, *q;
+{
+	register int pt;
+	register union tree *lp;
+
+	pt = p->t.type;
+	if (ISFAR(pt))
+		return(p);
+	if (p->t.op==CON && (p->c.value==0 || (unsigned)pt<PTR)) {
+		lp = (union tree *)Tblock(sizeof(struct lnode));
+		lp->l.op = LCON;
+		lp->l.lvalue = (unsigned short)p->c.value;
+		p = lp;
+	} else if ((unsigned)pt>=PTR)
+		return(block((decref(pt)&XTYPE)==FUNC? CTOF: NTOF, t,
+		    q->t.subsp, q->t.strp, p, TNULL));
+	else if (pt==INT || pt==CHAR || pt==UNSIGN || pt==UNCHAR)
+		return(block(ITOL, t, q->t.subsp, q->t.strp, p, TNULL));
+	else if (pt!=LONG && pt!=UNLONG) {
+		error("Illegal conversion");
+		return(p);
+	}
+	p->t.type = t;
+	p->t.subsp = q->t.subsp;
+	p->t.strp = q->t.strp;
+	return(p);
+}
+
+/*
+ * The offset of the far pointer p, as something of the type t, which
+ * is q's.
+ */
+union tree *
+tonear(p, t, q)
+union tree *p, *q;
+{
+	return(block(LTOI, t, q->t.subsp, q->t.strp, p, TNULL));
+}
+#endif
+
 union tree *
 structident(p1, p2)
 register union tree *p1, *p2;
@@ -387,7 +612,12 @@ register union tree *p1, *p2;
 
 	np = (struct nmlist *)p2->t.tr1;
 	for (;;) {
+#ifdef	i286
+		if (namesame && (p1->t.type==STRUCT+PTR || p1->t.type==STRUCT+FPTR)
+		 && p1->t.strp == np->sparent) {
+#else
 		if (namesame && p1->t.type==STRUCT+PTR && p1->t.strp == np->sparent) {
+#endif
 			p2->t.type = np->htype;
 			p2->t.strp = np->hstrp;
 			p2->t.subsp = np->hsubsp;
@@ -452,7 +682,12 @@ register t;
 		if (p->t.op==AMPER)
 			t = decref(t);
 		else if (p->t.op==STAR)
+#ifdef	i286
+			/* what is under it is yet to be given its type */
+			t = ISFAR(p->t.tr1->t.type)? fincref(t): incref(t);
+#else
 			t = incref(t);
+#endif
 		else if (p->t.op!=PLUS)
 			break;
 	}
@@ -469,7 +704,11 @@ register union tree *p;
 	register int t;
 
 	if (((t = p->t.type)&XTYPE)==FUNC && p->t.op!=ETYPE)
+#ifdef	i286
+		return(block(AMPER,adrtype(p),p->t.subsp,p->t.strp,p,TNULL));
+#else
 		return(block(AMPER,incref(t),p->t.subsp,p->t.strp,p,TNULL));
+#endif
 	return(p);
 }
 
@@ -510,7 +749,7 @@ union tree *p;
 
 	if (t == UNLONG)
 		t = LONG;
-	if (t!=INT && t<PTR && t!=CHAR && t!=UNCHAR && t!=UNSIGN && t!=okt)
+	if (t!=INT && (unsigned)t<PTR && t!=CHAR && t!=UNCHAR && t!=UNSIGN && t!=okt)
 		error("Illegal type of operand");
 	return;
 }
@@ -895,14 +1134,122 @@ union tree *p2;
 conexp()
 {
 	register union tree *t;
+#ifdef	i286
+	LTYPE v;
+#endif
 
 	initflg++;
 	if (t = tree(1))
-		if (t->t.op != CON)
+		if (t->t.op != CON) {
+#ifdef	i286
+			/*
+			 * The 286's headers count bytes in longs: the
+			 * size of the user structure is ctob(USIZE).
+			 */
+			if (lconval(t, &v)) {
+				initflg--;
+				return((int)v);
+			}
+#endif
 			error("Constant required");
+		}
 	initflg--;
 	return(t->c.value);
 }
+
+#ifdef	i286
+/*
+ * The value of a tree that is a constant but a long one, which is not
+ * made one constant until the second pass.  Returns 0 if it is not.
+ */
+lconval(t, vp)
+register union tree *t;
+LTYPE *vp;
+{
+	LTYPE a, b;
+
+	if (t==NULL)
+		return(0);
+	switch (t->t.op) {
+
+	case CON:
+		if (t->c.type==UNSIGN)
+			*vp = (unsigned short)t->c.value;
+		else
+			*vp = (short)t->c.value;
+		return(1);
+
+	case LCON:
+		*vp = t->l.lvalue;
+		return(1);
+
+	case ITOL:
+		return(lconval(t->t.tr1, vp));
+
+	case LTOI:
+		if (!lconval(t->t.tr1, &a))
+			return(0);
+		*vp = (short)a;
+		return(1);
+
+	case NEG:
+		if (!lconval(t->t.tr1, &a))
+			return(0);
+		*vp = -a;
+		return(1);
+
+	case PLUS:
+	case MINUS:
+	case TIMES:
+	case DIVIDE:
+	case LSHIFT:
+	case RSHIFT:
+	case AND:
+	case OR:
+		if (!lconval(t->t.tr1, &a) || !lconval(t->t.tr2, &b))
+			return(0);
+		switch (t->t.op) {
+
+		case PLUS:
+			a += b;
+			break;
+
+		case MINUS:
+			a -= b;
+			break;
+
+		case TIMES:
+			a *= b;
+			break;
+
+		case DIVIDE:
+			if (b==0)
+				return(0);
+			a /= b;
+			break;
+
+		case LSHIFT:
+			a <<= b;
+			break;
+
+		case RSHIFT:
+			a >>= b;
+			break;
+
+		case AND:
+			a &= b;
+			break;
+
+		case OR:
+			a |= b;
+			break;
+		}
+		*vp = a;
+		return(1);
+	}
+	return(0);
+}
+#endif
 
 /*
  * Handle peculiar assignment ops that need a temporary.
@@ -921,7 +1268,11 @@ register union tree *p1, *p2;
 		build(ASSIGN);
 		return;
 	}
+#ifdef	i286
+	np = gentemp(adrtype(p1));
+#else
 	np = gentemp(incref(p1->t.type));
+#endif
 	*cp++ = nblock(np);
 	*cp++ = p1;
 	build(AMPER);
@@ -958,3 +1309,29 @@ gentemp(type)
 		maxauto = autolen;
 	return(tp);
 }
+
+#ifdef	i286
+/*
+ * Generate an automatic temporary for the structure
+ * that a function returns
+ */
+struct nmlist *
+strtemp(p)
+register union tree *p;
+{
+	register struct nmlist *tp;
+
+	tp = (struct nmlist *)Tblock(sizeof(struct nmlist));
+	tp->hclass = AUTO;
+	tp->htype = p->t.type;
+	tp->hflag = 0;
+	tp->hsubsp = p->t.subsp;
+	tp->hstrp = p->t.strp;
+	tp->hblklev = blklev;
+	autolen -= rlength((union tree *)tp);
+	tp->hoffset = autolen;
+	if (autolen < maxauto)
+		maxauto = autolen;
+	return(tp);
+}
+#endif

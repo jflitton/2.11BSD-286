@@ -18,7 +18,7 @@ register int t;
 		error("Illegal indirection");
 		return(t);
 	}
-	return((t>>TYLEN) & ~TYPE | t&TYPE);
+	return(((unsigned)t>>TYLEN) & ~TYPE | t&TYPE);
 }
 
 /*
@@ -28,8 +28,68 @@ register int t;
 incref(t)
 register int t;
 {
+#ifdef	i286
+	/*
+	 * What does not fit is lost, as it is where an int is 16 bits.
+	 */
+	return((((t&~TYPE)<<TYLEN) | (t&TYPE) | PTR) & 0177777);
+#else
 	return(((t&~TYPE)<<TYLEN) | (t&TYPE) | PTR);
+#endif
 }
+
+#ifdef	i286
+/*
+ * The same, where the pointer is a far one.
+ */
+fincref(t)
+{
+	return(incref(t) + (FPTR-PTR));
+}
+
+/*
+ * The modifier m is to go on a type whose modifiers so far are in
+ * type: in the medium model a pointer to a function is a far one.
+ */
+ptrto(type, m)
+{
+	if (m==PTR && mflag && (type&XTYPE)==FUNC)
+		return(FPTR);
+	return(m);
+}
+
+/*
+ * The type of the address of p.  It is far if p is reached through a
+ * far pointer, or is a function in the medium model.
+ */
+adrtype(p)
+register union tree *p;
+{
+	if (p->t.op==STAR && ISFAR(p->t.tr1->t.type)
+	 || mflag && (p->t.type&XTYPE)==FUNC)
+		return(fincref(p->t.type));
+	return(incref(p->t.type));
+}
+
+/*
+ * A type as the second pass is given it: a far pointer is an unsigned
+ * long there, and so is what a pointer to one points at, and so on.
+ */
+ptype(t)
+register int t;
+{
+	register unsigned m;
+	register int n;
+
+	n = 4;
+	for (m = t; m&XTYPE; m >>= TYLEN) {
+		if ((m&XTYPE)==FPTR)
+			return(t & ((1<<n)-1) & ~TYPE | UNLONG);
+		n += TYLEN;
+	}
+	return(t);
+}
+#endif
 
 /*
  * Make a tree that causes a branch to lbl
@@ -64,6 +124,12 @@ register union tree *tp;
 	outcode("BN", EXPR, line);
 }
 
+#ifdef	i286
+#define	PTYPE(t)	ptype(t)
+#else
+#define	PTYPE(t)	(t)
+#endif
+
 treeout(tp, isstruct)
 register union tree *tp;
 {
@@ -81,7 +147,8 @@ register union tree *tp;
 		hp = &tp->t.tr1->n;
 		if (hp->hclass==TYPEDEF)
 			error("Illegal use of type name");
-		outcode("BNN", NAME, hp->hclass==0?STATIC:hp->hclass, tp->t.type);
+		outcode("BNN", NAME, hp->hclass==0?STATIC:hp->hclass,
+		    PTYPE(tp->t.type));
 		if (hp->hclass==EXTERN)
 			outcode("S", hp->name);
 		else
@@ -89,7 +156,8 @@ register union tree *tp;
 		break;
 
 	case LCON:
-		outcode("BNNN", tp->l.op, tp->l.type, (unsigned short)(tp->l.lvalue>>16),
+		outcode("BNNN", tp->l.op, PTYPE(tp->l.type),
+		   (unsigned short)(tp->l.lvalue>>16),
 		   (unsigned short)tp->l.lvalue);
 		break;
 
@@ -117,26 +185,85 @@ register union tree *tp;
 
 	case AMPER:
 		treeout(tp->t.tr1, 1);
-		outcode("BN", tp->t.op, tp->t.type);
+		outcode("BN", tp->t.op, PTYPE(tp->t.type));
 		break;
 
 
 	case CALL:
 		treeout(tp->t.tr1, 1);
 		treeout(tp->t.tr2, 0);
-		outcode("BN", CALL, tp->t.type);
+		outcode("BN", CALL, PTYPE(tp->t.type));
 		break;
 
 	default:
+#ifdef	i286
+		if (farout(tp, nextisstruct))
+			break;
+#endif
 		treeout(tp->t.tr1, nextisstruct);
 		if (opdope[tp->t.op]&BINARY)
 			treeout(tp->t.tr2, nextisstruct);
-		outcode("BN", tp->t.op, tp->t.type);
+		outcode("BN", tp->t.op, PTYPE(tp->t.type));
 		break;
 	}
 	if (nextisstruct && isstruct==0)
 		outcode("BNN", STRASG, STRUCT, tp->t.strp->S.ssize);
 }
+
+#ifdef	i286
+/*
+ * Write the tree if it is something done with a far pointer that the
+ * second pass has an operator of its own for: what one points at, and
+ * arithmetic, which is on its offset alone.  The value of p++ is that
+ * of (p += n) - n.
+ */
+farout(tp, nextisstruct)
+register union tree *tp;
+{
+	register int op, t;
+
+	if (tp->t.tr1==NULL || !ISFAR(tp->t.tr1->t.type))
+		return(0);
+	t = PTYPE(tp->t.type);
+	switch (op = tp->t.op) {
+
+	case STAR:
+		treeout(tp->t.tr1, nextisstruct);
+		outcode("BN", FSTAR, t);
+		return(1);
+
+	case PLUS:
+	case MINUS:
+		if (ISFAR(tp->t.tr2->t.type))
+			return(0);
+		op += FPLUS-PLUS;
+		break;
+
+	case ASPLUS:
+	case INCBEF:
+	case INCAFT:
+		op = ASFPLUS;
+		break;
+
+	case ASMINUS:
+	case DECBEF:
+	case DECAFT:
+		op = ASFMINUS;
+		break;
+
+	default:
+		return(0);
+	}
+	treeout(tp->t.tr1, 0);
+	treeout(tp->t.tr2, 0);
+	outcode("BN", op, t);
+	if (tp->t.op==INCAFT || tp->t.op==DECAFT) {
+		treeout(tp->t.tr2, 0);
+		outcode("BN", tp->t.op==INCAFT? FMINUS: FPLUS, t);
+	}
+	return(1);
+}
+#endif
 
 /*
  * Generate a branch
@@ -194,7 +321,12 @@ union tree *cs;
 	}
 	if ((t&~TYPE)==FUNC)
 		return(0);
-	if (t>=PTR)
+#ifdef	i286
+	if ((t&XTYPE)==FPTR)
+		elsz = SZFPTR;
+	else
+#endif
+	if ((unsigned)t>=PTR)
 		elsz = SZPTR;
 	else switch(t&TYPE) {
 

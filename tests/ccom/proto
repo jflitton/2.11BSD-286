@@ -1,9 +1,14 @@
 # The root file system the compiler's test boots: tools/mkfs.py makes it.
-# /etc/init is tests/ccom/init.c, compiled by the system's own compiler.
+# /etc/init is tests/ccom/init.c, and /bin/small and /bin/medium, which
+# it runs, are tests/ccom/prog.c in the two models: all compiled by the
+# system's own compiler.
 d /etc 755
 d /dev 755
 d /tmp 777
+d /bin 755
 f /etc/init 755 init
+f /bin/small 755 small
+f /bin/medium 755 medium
 # The console is the first serial port (major 10), where the harness
 # reads what the system writes, and not the screen (major 0).
 c /dev/console 622 10 0

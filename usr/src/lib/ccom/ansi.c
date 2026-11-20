@@ -10,7 +10,11 @@ static	char	sccsid[] = "@(#)ansi.c	1.1 (2.11BSD) 2025/12/25";
 #define	ELLIPSIS	(PTR|AUTO)	/* impossible type */
 #define	PNULL		(PTR|REG)	/* impossible type */
 
+#ifdef	i286
+#define ISPTR(t)	(((t) & XTYPE) == PTR || ((t) & XTYPE) == FPTR)
+#else
 #define ISPTR(t)	(((t) & XTYPE) == PTR)
+#endif
 #define ISFTN(t)	(((t) & XTYPE) == FUNC)
 #define ISARY(t)	(((t) & XTYPE) == ARRAY)
 
@@ -67,8 +71,12 @@ ansidecl()
 		s = getype(&dim, &nm2);
 		t = nm.htype & ~TYPE; /* s = t1, t = type */
 		while (s & XTYPE) {
+#ifdef	i286
+			t = t << TYLEN | ptrto(t, s & XTYPE);
+#else
 			t = t << TYLEN | (s & XTYPE);
-			s >>= TYLEN;
+#endif
+			s = (unsigned)s >> TYLEN;
 		}
 		t |= (nm.htype & TYPE);
 		if (ISARY(t))
@@ -170,6 +178,10 @@ cktypep(p)
 		if ((t == (PTR|VOID) && ISPTR(u)) ||
 		    (ISPTR(t) && u == (PTR|VOID)))
 			;
+#ifdef	i286
+		else if (ISFAR(t) && t-(FPTR-PTR) == u)
+			;	/* a near pointer made far, as it is for */
+#endif
 		else if (ISPTR(t) && ISPTR(u))
 			werror("mixed pointer assignment");
 		else if (ISPTR(t) && u == INT &&

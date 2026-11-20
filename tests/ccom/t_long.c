@@ -180,7 +180,7 @@ muldiv()
 {
 	long a, b, c;
 	unsigned long ua, ub;
-	long *p;
+	long *p, *q;
 	int i;
 
 	a = 123456L;
@@ -247,6 +247,13 @@ muldiv()
 	LK(a, 3456L);
 	*p *= b;
 	LK(a, -2726784L);
+	q = &c;				/* both through pointers */
+	*p /= *q;
+	LK(a, 13109L);
+	*p *= *q;
+	LK(a, -2726672L);
+	*q *= *q;
+	LK(c, 43264L);
 	gn = 7;
 	gn *= gl;
 	LK(gn, 700000L);

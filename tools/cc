@@ -2,7 +2,8 @@
 """Compile and link C programs for 2.11BSD on the 286, as cc(1) would.
 
 usage: cc [-c|-E] [-o OUT] [-O] [-s] [-ms|-mm] [-Dname[=val]] [-Uname]
-          [-Idir] [-Ldir] [-lname] [-stack N] [-packcode N] FILE ...
+          [-Idir] [-Ldir] [-lname] [-stack N] [-packcode N] [-ccom]
+          FILE ...
 
 FILE is a C source (.c), assembly for NASM (.s, which may include the
 library's DEFS.inc), an object (.o) or a library (.lib).  Each .c and .s is compiled; with -c that is all, each
@@ -34,6 +35,9 @@ variable defined twice with a value is an error.
     -packcode N in the medium model, put the code of several files in
                 one segment up to N bytes (the linker's default is
                 nearly 64K)
+    -ccom       compile each .c with the system's own compiler, as
+                tools/ncc runs it, in place of the cross compiler; the
+                rest is as without
 
 Each file is compiled for the model, and linked with its library and
 start-up code, obj/lib/s or obj/lib/m.
@@ -172,9 +176,19 @@ def compile_c(src, obj, model, cflags):
     commonize.commonize(obj)
 
 
+def compile_ccom(src, obj, model, cflags):
+    """The same with the tree's compiler, which tools/ncc runs."""
+    r = subprocess.run([os.path.join(TOOLS, "ncc"), "-m" + model, "-o", obj] +
+                       [f for f in cflags if f[:2] in ("-D", "-U", "-I")] +
+                       [src])
+    if r.returncode != 0:
+        sys.exit(1)
+
+
 def main():
     args = sys.argv[1:]
     compile_only = False
+    ccom = False
     preprocess_only = False
     out = None
     strip = False
@@ -224,6 +238,8 @@ def main():
             i += 1
         elif a in ("-ms", "-mm"):
             model = a[2]
+        elif a == "-ccom":
+            ccom = True
         elif a == "-ml":
             fail("-ml: the large model has no library yet")
         elif a[:2] in ("-D", "-U", "-I"):
@@ -249,6 +265,7 @@ def main():
     if packcode is not None and model == "s":
         fail("-packcode: the small model has one code segment")
     lib = os.path.join(LIBS, model)
+    own = cflags
     cflags = compiler_flags(cflags)
     if preprocess_only:
         for f in files:
@@ -271,7 +288,9 @@ def main():
                 obj = out or base
             else:
                 obj = os.path.join(tmp, "%d-%s" % (len(objs), base))
-            if f.endswith(".c"):
+            if f.endswith(".c") and ccom:
+                compile_ccom(f, obj, model, own)
+            elif f.endswith(".c"):
                 compile_c(f, obj, model, cflags)
             else:
                 # The library's conventions (crt/DEFS.inc), far with -DFAR.

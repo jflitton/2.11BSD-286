@@ -13,6 +13,10 @@
 # are built as they would be for a real machine, as tests/system has
 # them.
 #
+# With ROOTFS set, that root file system is booted in place of the one
+# made here: tests/ccom/programs.sh makes one of programs that the
+# system's own compiler compiled.
+#
 # Run from the top of the repository after `. tools/env.sh`.
 set -e
 if [ "$EMU" = qemu ]; then
@@ -27,14 +31,17 @@ quiet() { grep -v '^cc \|^as \|^wlib \|Warning!\|Note!\|^unix:' || true; }
 make -s -C "$top/usr/src/sys/PC" | quiet
 make -s -C "$top/usr/src/sys/i286stand" | quiet
 make -s -C "$top/usr/src/lib/libc/i286" | quiet
-make -s -C "$top/usr/src/i286" all | quiet
-make -s -C "$top/usr/src/i286" root | quiet
+if [ -z "$ROOTFS" ]; then
+    make -s -C "$top/usr/src/i286" all | quiet
+    make -s -C "$top/usr/src/i286" root | quiet
+    ROOTFS=$top/obj/root/root.fs
+fi
 
 # The file system of checks: each one's lines in /t, what they must write
 # in /x, the files in /d, and check.sh, which runs them all and says of
 # each whether it wrote that, and what it wrote if not.
 cd "$out"
-cp "$top/obj/root/root.fs" root.fs
+cp "$ROOTFS" root.fs
 rm -rf checks
 python3 -I "$top/tests/harness/checks.py" "$top/tests/programs/checks" checks
 # The kernel as tools/strip.py leaves it: the system's strip must make

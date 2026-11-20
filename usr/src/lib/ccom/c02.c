@@ -110,7 +110,17 @@ cfunc()
 	outcode("BBS", PROG, RLABEL, funcsym->name);
 	regvar = 5;
 	autolen = STAUTO;
-	maxauto = STAUTO;
+#ifdef	i286
+	/*
+	 * A function that returns a structure of other than one word
+	 * or two is told where to put it, and keeps that in the first
+	 * word of its frame (i286/c11.c).
+	 */
+	if (funcblk.type==STRUCT && rlength((union tree *)&funcblk)!=SZINT
+	 && rlength((union tree *)&funcblk)!=SZLONG)
+		autolen -= SZPTR;
+#endif
+	maxauto = autolen;
 	blklev = 1;
 	cb = locbase;
 	declist(ARG);

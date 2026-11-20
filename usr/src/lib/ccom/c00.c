@@ -58,6 +58,10 @@ struct kwtab {
 	"volatile",	VOLATIL,
 	"signed",	SIGNED,
 	"restrict",	RESTR,
+#ifdef	i286
+	"__far",	FAR,
+	"__near",	NEAR,
+#endif
 	0,		0,
 };
 
@@ -117,6 +121,11 @@ char	*argv[];
 			break;
 		case 'V':		/* overlays; default, now */
 			break;
+#ifdef	i286
+		case 'M':		/* the medium model */
+			mflag++;
+			break;
+#endif
 		case 'w':
 		case 'W':		/* don't print warning messages */
 			Wflag++;
@@ -691,6 +700,10 @@ advanc:
 				error("%s undefined; func. %s", cs->name,
 					funcsym ? funcsym->name : "(none)");
 			}
+#ifdef	i286
+		if (cs->hflag&FFAR)
+			error("%s is far, which is not done yet", cs->name);
+#endif
 		*cp++ = nblock(cs);
 		goto tand;
 

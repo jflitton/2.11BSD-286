@@ -35,7 +35,7 @@ HOSTCFLAGS= -std=gnu89 -w -fno-strict-aliasing -fcommon -fsigned-char \
 	-Di286 -DLTYPE=int
 
 C0=	c00.c c02.c c03.c c05.c ansi.c
-C1=	c10.c c11.c c12.c c13.c
+C1=	c10.c c11.c c12.c c13.c c14.c
 
 host:	$(H)/c0 $(H)/c1
 

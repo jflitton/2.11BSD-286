@@ -8,11 +8,13 @@
 # each, with what it ought to be, to check or lcheck in support.c, which
 # the cross compiler compiles, as it does the printing.  A check is
 # known by the line it is on.  They run in real mode, with nothing
-# under them.
+# under them, and as one program: a name that is not static is one
+# test's alone.
 #
-# Then init.c, a program that uses the C library and the system, is
-# compiled with it, linked with the library, and run by the kernel as
-# /etc/init on a RAM disk, as tests/libc runs its own.
+# Then prog.c, a program that uses the C library and the system, is
+# compiled with it for the small model and for the medium, and linked
+# with the library; and the kernel is booted from a RAM disk on which
+# /etc/init is init.c, which runs the two.
 #
 # usage: run.sh [NAME ...]	those tests alone; without, all of them
 #				and then init.c
@@ -43,6 +45,7 @@ srcs=
 } > "$out/src/tests.c"
 for t; do
     if [ -n "$REF" ]; then
+        cp "$here"/*.h "$out/src"
         cp "$here/t_$t.c" "$out/src/t_$t.c"
         srcs="$srcs $out/src/t_$t.c"
     else
@@ -52,7 +55,7 @@ for t; do
 done
 python3 -I "$top/tests/harness/runtest.py" ccom \
     "$top/tests/harness/printf.c" "$here/support.c" "$out/src/tests.c" \
-    $srcs "$crt/i4m.s" "$crt/i4d.s"
+    $srcs "$crt/i4m.s" "$crt/i4d.s" "$crt/chp.s"
 
 if [ -z "$all" ] || [ -n "$REF" ]; then
     exit 0
@@ -63,9 +66,14 @@ if [ "$EMU" = qemu ]; then
 fi
 make -s -C "$top/usr/src/sys/PC" | grep -v '^cc \|^as ' || true
 make -s -C "$top/usr/src/lib/libc/i286" MODEL=s | grep -v '^cc \|^as \|^wlib ' || true
+make -s -C "$top/usr/src/lib/libc/i286" MODEL=m | grep -v '^cc \|^as \|^wlib ' || true
 cd "$out/boot"
 "$top/tools/ncc" -o init.o "$here/init.c"
 "$top/tools/cc" -o init init.o
+"$top/tools/ncc" -DMEDIUM=0 -o small.o "$here/prog.c"
+"$top/tools/cc" -o small small.o
+"$top/tools/ncc" -mm -DMEDIUM=1 -o medium.o "$here/prog.c"
+"$top/tools/cc" -mm -o medium medium.o
 cp "$here/proto" proto
 python3 -I "$top/tools/mkfs.py" -s 400 proto root.fs
 python3 -I "$top/tests/harness/runtest.py" --until halting \

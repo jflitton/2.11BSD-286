@@ -143,7 +143,20 @@ int opdope[] = {
 	000000, /* 126 */
 	000000, /* 127 */
 	026061,	/* 128 - << unsigned long */
-	012253	/* 129 - <<= unsigned long */
+	012253,	/* 129 - <<= unsigned long */
+#ifdef	i286
+	/*
+	 * The table is one longer than its numbers from 110 on say:
+	 * the last entry above is 130, FSTAR, which is in no tree of
+	 * this pass.
+	 */
+	000001,	/* 131 - far + */
+	000001,	/* 132 - far - */
+	000001,	/* 133 - far += */
+	000001,	/* 134 - far -= */
+	000000,	/* 135 - near->far */
+	000000,	/* 136 - near->far, of code */
+#endif
 };
 
 /*

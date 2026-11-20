@@ -36,12 +36,50 @@ for the 286: upstream's reader of the first pass's trees and its
 optimizer of expressions, and a generator of its own where upstream has
 its tables of PDP-11 code. The first pass is upstream's, with what
 differs for the 286 under `#ifdef i286`. So far it does the small
-model, and not floating point, functions that take or return
-structures, or profiling. It does not run on the system yet: it is
+model and the medium, with floating point on the 287 and far pointers,
+and not profiling. It does not run on the system yet: it is
 built for the machine the system is built on (`tools/ncc`), writes
 assembly for NASM, and its objects are linked by the cross tools
 (`tests/ccom`). An assembler, a linker and a format for objects are
 still to come, and `/lib/cpp`, which needs `libvmf`.
+
+A far pointer is declared as the cross compiler has it, with `__far`
+before the `*`, and is the same four bytes: `char __far *p`, `int
+(__far *f)()`. In the medium model a pointer to a function is far
+without being said to be. The two compilers agree on what is done with
+one: it is added to in its offset alone; two are equal if both words
+are, and are ordered and subtracted by their offsets; a near pointer
+made far takes the data segment, or the code segment if it points at a
+function, and only the constant 0 is nowhere. What the tree's compiler
+does not have of the cross compiler's:
+
+- `__far` on anything but a pointer: a variable outside the data
+  segment, as the kernel's `pseg` and `xmount` are, or a far function
+  in the small model. It reads the declaration, and says so if the
+  name is then used.
+- `__huge` and based pointers, `__interrupt`, and `#pragma aux`, which
+  `tools/ncc` takes out: `ntohs` and the like are then functions.
+- More than four of `*`, `[]` and `()` in one type, where the PDP-11's
+  compiler had five: the far pointer took the room. Nothing in the
+  tree has five.
+
+The two compilers do not lay every structure out alike, and what one
+compiles cannot yet share these with what the other does:
+
+- A structure of characters alone is filled out to a word by the
+  tree's compiler, as on the PDP-11, and not by the cross compiler:
+  `struct { char c[3]; }` is 4 bytes to one and 3 to the other.
+- An `enum` is an `int` to the tree's compiler, and to the cross
+  compiler the smallest type that holds its values.
+- A member that is a structure or union with no name is the cross
+  compiler's; the tree's compiler has instead the old use of a
+  member's name with any structure. `sed.h` has its union both ways,
+  chosen by `__WATCOMC__`, which `tools/ncc` does not define.
+
+Of 124 structures in the headers of `usr/include` that both compilers
+were given, one differs in size: `struct uio`, which only the kernel
+uses, by its two `enum`s. About a quarter of the headers were not
+compared.
 
 | program | where |
 |---|---|

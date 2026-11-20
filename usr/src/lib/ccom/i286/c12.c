@@ -80,6 +80,44 @@ register union tree *tree;
 			t->c.value = W(-t->c.value);
 		}
 		break;
+
+	/*
+	 * A far pointer and an int.  Constants are gathered into one
+	 * addition, which may then be part of an operand (faradr, in
+	 * c10.c), and adding nothing is nothing.
+	 */
+	case FPLUS:
+	case FMINUS:
+		tree->t.tr1 = optim(tree->t.tr1);
+		tree->t.tr2 = optim(tree->t.tr2);
+		t = tree->t.tr2;
+		if (t->t.op==CON) {
+			if (op==FMINUS) {
+				tree->t.op = FPLUS;
+				t->c.value = W(-t->c.value);
+			}
+			if (tree->t.tr1->t.op==FPLUS
+			 && tree->t.tr1->t.tr2->t.op==CON) {
+				t->c.value = W(t->c.value
+				    + tree->t.tr1->t.tr2->c.value);
+				tree->t.tr1 = tree->t.tr1->t.tr1;
+			}
+			if (t->c.value==0)
+				return(tree->t.tr1);
+		}
+		tree->t.degree = MAX(MAX(degree(tree->t.tr1), 1),
+		    degree(tree->t.tr2)) + 1;
+		return(tree);
+
+	case ASFPLUS:
+	case ASFMINUS:
+		tree->t.tr1 = optim(tree->t.tr1);
+		tree->t.tr2 = optim(tree->t.tr2);
+		if (tree->t.tr2->t.op==CON && tree->t.tr2->c.value==0)
+			return(tree->t.tr1);
+		tree->t.degree = MAX(MAX(degree(tree->t.tr1), 1),
+		    degree(tree->t.tr2)) + 1;
+		return(tree);
 	}
 	op = tree->t.op;
 	dope = opdope[op];
@@ -291,6 +329,11 @@ register union tree *tree;
 		subtre->t.type = tree->t.type;
 		return(optim(subtre));
 	}
+	/*
+	 * The address of what a far pointer points at is the pointer.
+	 */
+	if (tree->t.op==AMPER && tree->t.tr1->t.op==FSTAR)
+		return(optim(tree->t.tr1->t.tr1));
 	subtre = tree->t.tr1 = optim(tree->t.tr1);
 	switch (tree->t.op) {
 
@@ -390,6 +433,21 @@ register union tree *tree;
 
 		case ITOL:
 			return(paint(subtre->t.tr1, tree->t.type));
+
+		/*
+		 * The offset of a far pointer that was a near one is
+		 * that one, and of one that was added to is a sum.
+		 */
+		case NTOF:
+		case CTOF:
+			return(paint(subtre->t.tr1, tree->t.type));
+
+		case FPLUS:
+		case FMINUS:
+			subtre->t.op += PLUS-FPLUS;
+			subtre->t.tr1 = tnode(LTOI, tree->t.type, subtre->t.tr1, TNULL);
+			subtre->t.type = tree->t.type;
+			return(optim(subtre));
 
 		case PLUS:
 		case MINUS:

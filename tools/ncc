@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compile C with the system's own compiler, run here.
 
-usage: ncc [-S] [-o OUT] [-Dname[=val]] [-Uname] [-Idir] FILE.c
+usage: ncc [-S] [-ms|-mm] [-o OUT] [-Dname[=val]] [-Uname] [-Idir] FILE.c
 
 The tree's C compiler (usr/src/lib/ccom) is two passes: c0 reads C and
 writes trees, and c1, which for the 286 is usr/src/lib/ccom/i286, turns
@@ -12,9 +12,12 @@ linked with the cross tools and run (tests/ccom), before the system has
 an assembler and a linker of its own.
 
 The object is OUT, or FILE.o in the current directory.  It is as
-tools/cc makes them, for the small model, and tools/cc links it.
+tools/cc makes them, and tools/cc links it.
 
     -S          stop at the assembly: OUT, or FILE.s
+    -ms -mm     the small model, the default, or the medium, whose
+                functions are far: the file's are then in a segment of
+                its own, FILE_TEXT
     -D -U -I    have the file preprocessed first, as tools/cc -E does
                 it; without any of them it is, too, if it has a line
                 that begins with #
@@ -42,6 +45,7 @@ def fail(msg):
 def main():
     args = sys.argv[1:]
     asm_only = False
+    model = "s"
     out = None
     cpp = []
     src = None
@@ -51,6 +55,8 @@ def main():
         i += 1
         if a == "-S":
             asm_only = True
+        elif a in ("-ms", "-mm"):
+            model = a[2]
         elif a == "-o":
             if i >= len(args):
                 fail("-o needs an argument")
@@ -81,7 +87,10 @@ def main():
     try:
         text = open(src, "rb").read()
         if cpp or re.search(rb"^[ \t]*#", text, re.M):
-            r = subprocess.run([os.path.join(TOOLS, "cc"), "-E"] + cpp + [src],
+            # The preprocessor is the cross compiler's, but what it
+            # says of whose it is is not for this compiler's files.
+            r = subprocess.run([os.path.join(TOOLS, "cc"), "-E", "-m" + model,
+                                "-U__WATCOMC__"] + cpp + [src],
                                capture_output=True)
             sys.stderr.write(r.stderr.decode("latin-1"))
             if r.returncode != 0:
@@ -100,8 +109,16 @@ def main():
         t1 = os.path.join(tmp, "t1")
         t2 = os.path.join(tmp, "t2")
         asm = out if asm_only else os.path.join(tmp, base + ".s")
-        for cmd in ([os.path.join(HOST, "c0"), pre, t1, t2],
-                    [os.path.join(HOST, "c1"), t1, t2, asm]):
+        # The medium model's code is in a segment for each file, which
+        # is named for the file, as the cross compiler's is.
+        seg = re.sub(r"[^A-Za-z0-9_]", "_", base) + "_TEXT"
+        if seg[0].isdigit():
+            seg = "_" + seg
+        medium = model == "m"
+        for cmd in ([os.path.join(HOST, "c0"), pre, t1, t2] +
+                    (["-M"] if medium else []),
+                    [os.path.join(HOST, "c1"), t1, t2, asm] +
+                    (["-M" + seg] if medium else [])):
             r = subprocess.run(cmd, capture_output=True, text=True)
             msg = r.stdout + r.stderr
             # A message begins with the line it is about, and the file

@@ -38,7 +38,11 @@ struct nmlist *tptr;
 {
 	register skw, tkw, longf;
 	int o, isadecl, ismos, unsignf;
+#ifdef	i286
+	int kw;
 
+	kw = -1;
+#endif
 	isadecl = 0;
 	longf = 0;
 	unsignf = 0;
@@ -85,6 +89,9 @@ struct nmlist *tptr;
 			if (longf || unsignf)
 				error("Perverse modifier on 'enum'");
 			strdec(ismos, cval);
+#ifdef	i286
+			kw = peeksym==KEYW? cval: -1;
+#endif
 			cval = INT;
 			goto types;
 
@@ -97,6 +104,14 @@ struct nmlist *tptr;
 		case UNION:
 		case STRUCT:
 			tptr->hstrp = strdec(ismos, cval);
+#ifdef	i286
+			/*
+			 * If what follows the structure is a keyword,
+			 * as __far may be, it has been read and put
+			 * back, and which keyword it is is in cval.
+			 */
+			kw = peeksym==KEYW? cval: -1;
+#endif
 			cval = STRUCT;
 		case INT:
 		case CHAR:
@@ -109,6 +124,12 @@ struct nmlist *tptr;
 			tkw = cval;
 			if (unscflg && cval==CHAR)
 				unsignf++;
+#ifdef	i286
+			if (kw>=0) {
+				cval = kw;
+				kw = -1;
+			}
+#endif
 			break;
 
 		default:
@@ -340,6 +361,9 @@ struct nmlist *atptr, *absname;
 		bitoffs += t1;
 		return(elsize);
 	}
+#ifdef	i286
+	farsym = 0;
+#endif
 	t1 = getype(&dim, absname);
 	if (t1 == -1)
 		return(0);
@@ -350,7 +374,7 @@ struct nmlist *atptr, *absname;
 		for (a=0; type&XTYPE;) {
 			if ((type&XTYPE)==ARRAY || ((type&XTYPE)==FUNC))
 				dim.dimens[dim.rank++] = tptr->hsubsp[a++];
-			type >>= TYLEN;
+			type = (unsigned)type >> TYLEN;
 		}
 	}
 	type = tptr->htype & ~TYPE;
@@ -359,8 +383,12 @@ struct nmlist *atptr, *absname;
 			typov();
 			type = t1 = 0;
 		}
+#ifdef	i286
+		type = type<<TYLEN | ptrto(type, t1 & XTYPE);
+#else
 		type = type<<TYLEN | (t1 & XTYPE);
-		t1 >>= TYLEN;
+#endif
+		t1 = (unsigned)t1 >> TYLEN;
 	}
 	type |= tptr->htype&TYPE;
 	if ((type&XTYPE) == FUNC) {
@@ -405,9 +433,13 @@ struct nmlist *atptr, *absname;
 		 * and .c file both declare a variable.
 		 */
 		if (dsym->hsubsp) {
-			for (a=0, t1 = dsym->htype; t1&XTYPE; t1 >>= TYLEN) {
+			for (a=0, t1 = dsym->htype; t1&XTYPE; t1 = (unsigned)t1 >> TYLEN) {
 				if ((t1 & XTYPE) == PTR)
 					continue;
+#ifdef	i286
+				if ((t1 & XTYPE) == FPTR)
+					continue;
+#endif
 				if ((t1 & XTYPE) == FUNC) {
 					/* protocheck() */ ;
 				} else { /* (t1 & XTYPE) == ARRAY */
@@ -442,6 +474,10 @@ struct nmlist *atptr, *absname;
 	dsym->htype = type;
 	if (tptr->hstrp)
 		dsym->hstrp = tptr->hstrp;
+#ifdef	i286
+	if (farsym)
+		dsym->hflag |= FFAR;
+#endif
 	if (skw==TYPEDEF) {
 		dsym->hclass = TYPEDEF;
 		return(0);
@@ -582,7 +618,11 @@ struct nmlist *absname;
 	int type;
 	register int o;
 	register struct nmlist *ds;
+#ifdef	i286
+	int far;
 
+	far = 0;
+#endif
 	defsym = 0;
 	type = 0;
 more:	switch(o=symbol()) {
@@ -592,6 +632,20 @@ more:	switch(o=symbol()) {
 			mossym = 0;
 			goto more;
 		}
+#ifdef	i286
+		/*
+		 * __far before a * makes the pointer a far one; before
+		 * a name, it says that what is named is not in the data
+		 * segment, or is a function called far.  __near is what
+		 * everything is without it.
+		 */
+		if (cval == FAR || cval == NEAR) {
+			far = cval==FAR;
+			mosflg = mossym;
+			mossym = 0;
+			goto more;
+		}
+#endif
 		break;
 
 	case TIMES:
@@ -602,6 +656,10 @@ more:	switch(o=symbol()) {
 			typov();
 			type = 0;
 		}
+#ifdef	i286
+		if (far)
+			return(type<<TYLEN | FPTR);
+#endif
 		return(type<<TYLEN | PTR);
 
 	case LPARN:
@@ -622,6 +680,10 @@ more:	switch(o=symbol()) {
 
 	case NAME:
 		defsym = ds = csym;
+#ifdef	i286
+		if (far)
+			farsym++;
+#endif
 	getf:
 		switch(o=symbol()) {
 

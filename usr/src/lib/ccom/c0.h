@@ -40,7 +40,16 @@ static	char	sccsid[] = "@(#)c0.h	2.1 (2.11BSD) 2026/1/26";
 /* dlf change
 #define	STAUTO	(-6)	 offset of first auto variable */
 int	STAUTO;
+#ifdef	i286
+/*
+ * In the medium model a function is called far, and its arguments are
+ * under a return address of two words.
+ */
+int	mflag;			/* the medium model */
+#define	STARG	(mflag? 6: 4)	/* offset of first argument */
+#else
 #define	STARG	4	/* offset of first argument */
+#endif
 #define	DCLSLOP	512	/* Amount trees lie above declaration stuff */
 
 
@@ -50,6 +59,7 @@ int	STAUTO;
 #define	SZCHAR	1
 #define	SZINT	2
 #define	SZPTR	2
+#define	SZFPTR	4	/* a far pointer: an offset, and a segment above it */
 #define	SZFLOAT	4
 #define	SZLONG	4
 #define	SZDOUB	8
@@ -334,6 +344,21 @@ int	mossym;
 #define	RLABEL	114
 #define	STRASG	115
 #define	ITOC	109
+#ifdef	i286
+/*
+ * What is done with a far pointer that is not done with a long, which
+ * is what the second pass takes one for.  Only NTOF and CTOF are in
+ * this pass's trees; treeout writes the others for STAR, PLUS and the
+ * rest where the pointer is far.
+ */
+#define	FSTAR	130	/* what a far pointer points at */
+#define	FPLUS	131	/* a far pointer and an int: the offset's sum */
+#define	FMINUS	132
+#define	ASFPLUS	133
+#define	ASFMINUS 134
+#define	NTOF	135	/* a near pointer made far: the data segment's */
+#define	CTOF	136	/* a near pointer to a function made far */
+#endif
 #define	SEOF	200	/* stack EOF marker in expr compilation */
 
 /*
@@ -353,12 +378,34 @@ int	mossym;
 
 #define	ALIGN	01
 #define	TYPE	017
+#ifdef	i286
+/*
+ * The 286 has two kinds of pointer, and so a fourth thing a type may
+ * be made with, the far pointer, and three bits for each where the
+ * PDP-11 has two.  In a word of 16 bits that leaves room for four of
+ * them, not five: all of the word is used, and a type is not to be
+ * compared or shifted as a number with a sign.
+ *
+ * The second pass is never given a far pointer: to it one is an
+ * unsigned long, and what is done with one that is not done with a
+ * long is an operator of its own (FSTAR and the rest, below; treeout).
+ */
+#define	BIGTYPE	0160000
+#define	TYLEN	3
+#define	XTYPE	(07<<4)
+#define	PTR	020
+#define	FUNC	040
+#define	ARRAY	060
+#define	FPTR	0100
+#define	ISFAR(t)	(((t)&XTYPE)==FPTR)
+#else
 #define	BIGTYPE	060000
 #define	TYLEN	2
 #define	XTYPE	(03<<4)
 #define	PTR	020
 #define	FUNC	040
 #define	ARRAY	060
+#endif
 
 /*
   storage classes
@@ -401,6 +448,10 @@ int	mossym;
 #define	FOR	31
 #define	ENUM	32
 #define	ASM	33
+#ifdef	i286
+#define	FAR	34
+#define	NEAR	35
+#endif
 
 /*
   characters
@@ -484,6 +535,9 @@ int	mossym;
 #define	FFIELD	020
 #define	FINIT	040
 #define	FLABL	0100
+#ifdef	i286
+#define	FFAR	010	/* declared far: not in the data segment */
+#endif
 
 /*
  * functions
@@ -507,4 +561,10 @@ struct	nmlist *pushdecl();
 unsigned hash();
 union	tree *structident();
 struct	nmlist *gentemp();
+#ifdef	i286
+struct	nmlist *strtemp();
+union	tree *tofar();
+union	tree *tonear();
+int	farsym;			/* the name declared was said to be far */
+#endif
 union	tree *nblock();

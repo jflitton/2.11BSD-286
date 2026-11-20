@@ -1,225 +1,52 @@
 /*
- * A program the system's own compiler compiled, run by the kernel as
- * /etc/init from a RAM disk (tests/ccom/run.sh): it is linked with the
- * C library, which the cross compiler compiled, and calls into it with
- * arguments of every kind, is called back from it, and makes system
- * calls.  The line "@exit NN" at the end is for
- * tests/harness/runtest.py.
+ * /etc/init for the compiler's test on the system (tests/ccom/run.sh):
+ * it runs each of the programs named below, which are prog.c compiled
+ * for the two models, and says how many of them failed.  The line
+ * "@exit NN" at the end is for tests/harness/runtest.py.
+ *
+ * Nothing is printed until the programs have been run.
  */
 #include <stdio.h>
-#include <string.h>
 #include <sys/reboot.h>
 
-struct item {
-	char	*name;
-	int	n;
-	long	l;
-};
+char	*progs[] = { "/bin/small", "/bin/medium", 0 };
 
-struct item items[] = {
-	{ "pear", 3, 300000L },
-	{ "apple", 1, 100000L },
-	{ "quince", 4, 400000L },
-	{ "banana", 2, 200000L },
-	{ "zucchini", 5, 500000L },
-};
-#define	NITEMS	(sizeof(items) / sizeof(items[0]))
-
-int	checks, failed;
-char	line[128];
-extern int errno;
-extern char *malloc();
-extern long atol(), lseek();
-
-ok(what, cond)
-char *what;
-{
-	checks++;
-	if (!cond) {
-		failed++;
-		printf("FAILED: %s\n", what);
-	}
-}
-
-same(what, got, want)
-char *what, *got, *want;
-{
-	checks++;
-	if (strcmp(got, want) != 0) {
-		failed++;
-		printf("FAILED: %s: got \"%s\", want \"%s\"\n", what, got, want);
-	}
-}
-
-static
-byname(a, b)
-struct item *a, *b;
-{
-	return strcmp(a->name, b->name);
-}
-
-static
-byl(a, b)
-struct item *a, *b;
-{
-	if (a->l > b->l)
-		return -1;
-	return a->l < b->l;
-}
-
-static
-strings()
-{
-	char buf[40];
-	register char *p;
-	register int i;
-
-	strcpy(buf, "hello");
-	strcat(buf, ", ");
-	strcat(buf, "world");
-	same("strcat", buf, "hello, world");
-	ok("strlen", strlen(buf) == 12);
-	ok("strcmp", strcmp("abc", "abd") < 0 && strcmp("b", "a") > 0);
-	ok("strncmp", strncmp("abcd", "abce", 3) == 0);
-	p = index(buf, 'w');
-	ok("index", p == buf + 7);
-	ok("rindex", rindex(buf, 'o') == buf + 8);
-	for (i = 0, p = buf; *p; p++)
-		if (*p == 'l')
-			i++;
-	ok("count", i == 3);
-	bcopy(buf + 7, buf, 6);
-	same("bcopy", buf, "world");
-	ok("atoi", atoi("-1234") == -1234);
-	ok("atol", atol("1234567") == 1234567L);
-}
-
-static
-format()
-{
-	long l;
-	unsigned u;
-	char c;
-
-	l = -123456789L;
-	u = 54321;
-	c = 'x';
-	sprintf(line, "%d %u %ld %lx", -42, u, l, 0x12345678L);
-	same("%d %u %ld %lx", line, "-42 54321 -123456789 12345678");
-	sprintf(line, "%s|%5d|%-5d|%05d|%c|%o|%x", "str", 42, 42, 42, c, 8, 255);
-	same("widths", line, "str|   42|42   |00042|x|10|ff");
-	sprintf(line, "%ld %d %ld %d", 1L, 2, 3L, 4);
-	same("mixed", line, "1 2 3 4");
-	sprintf(line, "%c%c%c", 'a', c, "z"[0]);
-	same("%c", line, "axz");
-	ok("sscanf", sscanf("17 -900000 word", "%d %ld %s", &u, &l, line) == 3
-	    && u == 17 && l == -900000L && strcmp(line, "word") == 0);
-}
-
-static
-library()
-{
-	register int i;
-	char *p, *q;
-	long sum;
-
-	qsort((char *)items, NITEMS, sizeof(items[0]), byname);
-	same("qsort by name", items[0].name, "apple");
-	same("qsort by name", items[4].name, "zucchini");
-	for (i = 1; i < NITEMS; i++)
-		ok("order", strcmp(items[i - 1].name, items[i].name) < 0);
-	qsort((char *)items, NITEMS, sizeof(items[0]), byl);
-	ok("qsort by long", items[0].n == 5 && items[4].n == 1);
-	sum = 0;
-	for (i = 0; i < NITEMS; i++)
-		sum += items[i].l * items[i].n;
-	ok("sum", sum == 5500000L);
-	p = malloc(1000);
-	q = malloc(2000);
-	ok("malloc", p != 0 && q != 0 && p != q);
-	for (i = 0; i < 1000; i++)
-		p[i] = i;
-	for (i = 0; i < 2000; i++)
-		q[i] = ~i;
-	for (i = 0; i < 1000; i++)
-		if (p[i] != (char)i || q[i] != (char)~i)
-			break;
-	ok("malloc memory", i == 1000);
-	free(p);
-	free(q);
-}
-
-static
-files()
-{
-	register FILE *fp;
-	register int i, c;
-	int fd, n;
-	long total;
-
-	fp = fopen("/tmp/ccom", "w");
-	ok("fopen w", fp != NULL);
-	if (fp == NULL)
-		return;
-	for (i = 0; i < 200; i++)
-		fprintf(fp, "line %d of %ld\n", i, 200L);
-	ok("fclose", fclose(fp) == 0);
-	fp = fopen("/tmp/ccom", "r");
-	ok("fopen r", fp != NULL);
-	if (fp == NULL)
-		return;
-	n = 0;
-	total = 0;
-	while ((c = getc(fp)) != EOF) {
-		total += c;
-		if (c == '\n')
-			n++;
-	}
-	fclose(fp);
-	ok("lines", n == 200);
-	ok("bytes", total == 203220L);
-	fd = open("/tmp/ccom", 0);
-	ok("open", fd >= 0);
-	ok("lseek", lseek(fd, 0L, 2) == 3090L);
-	ok("lseek back", lseek(fd, -16L, 1) == 3074L);
-	n = read(fd, line, 100);
-	line[n > 0 ? n : 0] = 0;
-	same("read", line, "line 199 of 200\n");
-	close(fd);
-	ok("unlink", unlink("/tmp/ccom") == 0);
-	ok("gone", open("/tmp/ccom", 0) < 0 && errno != 0);
-}
-
-static
-processes()
+run(name)
+char *name;
 {
 	int pid, status;
 
-	ok("getpid", getpid() == 1);
 	pid = fork();
-	if (pid == 0)
-		_exit(37);
-	ok("fork", pid > 0);
-	status = 0;
-	ok("wait", wait(&status) == pid);
-	ok("status", (status >> 8) == 37 && (status & 0377) == 0);
+	if (pid == 0) {
+		execl(name, name + 5, (char *)0);
+		_exit(126);
+	}
+	if (pid < 0)
+		return(-1);
+	status = -1;
+	while (wait(&status) != pid)
+		;
+	return(status);
 }
 
-main(argc, argv)
-char **argv;
+main()
 {
+	register char **p;
+	int status[4], failed, n;
+
 	/* As init nothing is open yet: the console becomes 0, 1 and 2. */
 	open("/dev/console", 2);
 	dup(0);
 	dup(0);
-	printf("ccom: started as %s, pid %d\n", argv[0], getpid());
-	strings();
-	format();
-	library();
-	files();
-	processes();
-	printf("ccom: %d checks, %d failed\n", checks, failed);
-	printf("@exit %02x\n", failed > 255 ? 255 : failed);
+	failed = 0;
+	for (p = progs, n = 0; *p; p++, n++)
+		if (status[n] = run(*p))
+			failed++;
+	for (p = progs, n = 0; *p; p++, n++)
+		if (status[n])
+			printf("ccom: %s: status %04x\n", *p, status[n]);
+	printf("ccom: %d programs, %d failed\n", n, failed);
+	printf("@exit %02x\n", failed);
 	fflush(stdout);
 	close(0);			/* the last close of the console */
 	close(1);			/*   waits for what was written */

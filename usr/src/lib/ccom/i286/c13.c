@@ -144,6 +144,13 @@ int opdope[] = {
 	01000,  /* unsigned long -> float(double) */
 	026061, /* unsigned long >> */
 	012253, /* unsigned long >>= (129) */
+	000000,	/* far * (130) */
+	000001,	/* far + */
+	000001,	/* far - */
+	000013,	/* far += */
+	000013,	/* far -= */
+	000000,	/* near->far */
+	000000,	/* near->far, of code (136) */
 };
 
 char	*opntab[] = {
@@ -277,6 +284,13 @@ char	*opntab[] = {
 	"u_long->double", 	/* unsigned long */
 	">>",			/* unsigned long */
 	">>=",			/* 129 unsigned long */
+	"far *",		/* 130 */
+	"far +",
+	"far -",
+	"far +=",
+	"far -=",
+	"near->far",
+	"near->far (code)",	/* 136 */
 };
 
 /*

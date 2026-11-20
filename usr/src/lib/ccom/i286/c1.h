@@ -153,10 +153,13 @@ struct	swtab {
  */
 #define	HI	01	/* the high word of a long */
 #define	BYT	02	/* as a byte */
+#define	FLT	04	/* as the 287 takes it: of the size its type has */
+#define	FARP	010	/* as the far pointer it holds, for a call */
 
 #define	LNG(t)	((t)==LONG || (t)==UNLONG)
 /* is the tree reached through a pointer? */
-#define	IND(p)	((p)->t.op==STAR || (p)->t.op==AUTOI || (p)->t.op==AUTOD)
+#define	IND(p)	((p)->t.op==STAR || (p)->t.op==FSTAR \
+		|| (p)->t.op==AUTOI || (p)->t.op==AUTOD)
 #define	CHR(t)	((t)==CHAR || (t)==UNCHAR)
 
 char	maprel[];
@@ -170,6 +173,8 @@ char	*opntab[];
 char	*rname[];
 char	*bname[];
 int	ccof;			/* the overflow flag may be set */
+int	mflag;			/* the medium model: functions are far */
+char	*textseg;		/* the name of the segment the code is in */
 int	cursect;		/* PROG, DATA or BSS: the segment being filled */
 char	*funcbase;
 char	*curbase;
@@ -196,7 +201,10 @@ union	tree *paint();
 union	tree *operands();
 union	tree *loperands();
 union	tree *bxform();
+union	tree *faradr();
 union	tree *adrof();
+union	tree *fmem();
+char	*fname();
 char	*opname();
 char	*opname2();
 
@@ -342,6 +350,20 @@ char	*opname2();
 #define	ULLSHIFT 128	/* << for unsigned long */
 #define	UASLSHL	129	/* <<= for unsigned long */
 
+/*
+ * Far pointers.  One is an unsigned long in every tree: its offset the
+ * low word, and its segment the high.  These are what is done with one
+ * that is not done with a long.
+ */
+#define	FSTAR	130	/* what a far pointer points at */
+#define	FPLUS	131	/* a far pointer and an int: the offset's sum */
+#define	FMINUS	132
+#define	ASFPLUS	133
+#define	ASFMINUS 134
+#define	NTOF	135	/* a near pointer made far: the data segment's */
+#define	CTOF	136	/* a near pointer to a function made far */
+#define	MAXOP	136
+
 #define	BDATA	200
 #define	PROG	202
 #define	DATA	203
@@ -379,9 +401,14 @@ char	*opname2();
 #define	UNLONG	9
 #define	VOID	10
 
-#define	TYLEN	2
+/*
+ * Three bits for each of what a type is made with, as the first pass
+ * has them here (../c0.h).  Its fourth, the far pointer, it does not
+ * pass on.
+ */
+#define	TYLEN	3
 #define	TYPE	017
-#define	XTYPE	(03<<4)
+#define	XTYPE	(07<<4)
 #define	PTR	020
 #define	FUNC	040
 #define	ARRAY	060
@@ -400,6 +427,7 @@ char	*opname2();
 #define	OFFS	20
 #define	XOFFS	21
 #define	SOFFS	22
+#define	FOFFS	23	/* through a far pointer: [es:bx+n] */
 
 /*
 	Flag	bits

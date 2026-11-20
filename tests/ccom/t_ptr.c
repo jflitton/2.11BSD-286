@@ -54,6 +54,33 @@ ident(x)
 	return x;
 }
 
+/* the address of characters, as that of something else */
+unsigned char pack[12] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 };
+
+struct pt *
+aspt(i)
+{
+	return (struct pt *)&pack[i];
+}
+
+static
+casts()
+{
+	struct pt *pp;
+	long *lp;
+
+	pp = (struct pt *)pack;
+	CK(pp->x, 0x0201);
+	CK(pp->y, 0x0403);
+	pp = (struct pt *)&pack[4];
+	CK(pp->x, 0x0605);
+	CK(aspt(8)->y, 0x0c0b);
+	CK(((struct pt *)r1.name)->x, 'o' + ('n' << 8));
+	lp = (long *)&pack[2];
+	LK(*lp, 0x06050403L);
+	CK(*(int *)&pack[10], 0x0c0b);
+}
+
 static
 arrays()
 {
@@ -608,6 +635,7 @@ calls()
 
 t_ptr()
 {
+	casts();
 	arrays();
 	strings();
 	structs();

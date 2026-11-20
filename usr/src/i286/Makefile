@@ -916,12 +916,14 @@ root:	$(R)/strip $(R)/root.fs
 $(R) $(R)/bin:
 	mkdir -p $@
 
-# Whether they are stripped.  When STRIP is other than it was, the copies
-# and the file system are removed, before make has looked at either, and
-# so made again whatever their times: a file made in the same second as
-# one it depends on passes for up to date.
+# Whether they are stripped, and where they are from.  When STRIP is
+# other than it was, or O is, as when tests/ccom/programs.sh has the
+# programs that the system's own compiler made put in, the copies and
+# the file system are removed, before make has looked at either, and so
+# made again whatever their times: a file made in the same second as one
+# it depends on passes for up to date.
 $(R)/strip: FORCE | $(R)
-	@echo $(STRIP) > $@.new
+	@echo $(STRIP) $(O) > $@.new
 	@cmp -s $@.new $@ && rm $@.new || \
 	    { rm -rf $(R)/bin $(R)/root.fs && mv $@.new $@; }
 $(R)/bin/%: $(O)/% $(TOP)/tools/strip.py | $(R)/bin
