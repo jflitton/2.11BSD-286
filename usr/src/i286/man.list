@@ -44,6 +44,9 @@ cat1	man/man1/vacation.1 man/man1/vi.1 man/man1/vmstat.1 man/man1/w.1
 cat1	man/man1/wall.1 man/man1/wc.1 man/man1/what.1 man/man1/whatis.1
 cat1	man/man1/which.1 man/man1/who.1 man/man1/whois.1 man/man1/write.1
 cat1	man/man1/xstr.1 man/man1/yacc.1 man/man1/yes.1
+cat1	man/man1/addbib.1 man/man1/diction.1 man/man1/eqn.1 man/man1/indent.1
+cat1	man/man1/lookbib.1 man/man1/refer.1 man/man1/roffbib.1
+cat1	man/man1/sortbib.1 man/man1/spell.1 man/man1/style.1 man/man1/tbl.1
 
 # With the programs' sources.
 cat1	bin/chpass/chpass.1 bin/hostname/hostname.1 bin/mkdir/mkdir.1

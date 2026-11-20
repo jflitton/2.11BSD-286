@@ -113,6 +113,7 @@ char *ln;
 }
 
 chkey (c, name)
+char *name;
 {
 	extern int labels, wholefile;
 	if (isalpha(c) || isdigit(c))

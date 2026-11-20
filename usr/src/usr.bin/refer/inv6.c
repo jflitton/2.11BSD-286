@@ -73,12 +73,16 @@ putl(ll, f)
 long ll;
 FILE *f;
 {
-	putw(ll, f);
+	fwrite((char *)&ll, sizeof(ll), 1, f);
 }
 
 long
 getl(f)
 FILE *f;
 {
-	return(getw(f));
+	long ll;
+
+	if (fread((char *)&ll, sizeof(ll), 1, f) != 1)
+		return(-1L);
+	return(ll);
 }

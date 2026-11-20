@@ -6,9 +6,9 @@
 #
 if test $1
 	then /usr/libexec/refer/mkey $* | /usr/libexec/refer/inv $1_
-	mv $1.ia_ $1.ia
-	mv $1.ib_ $1.ib
-	mv $1.ic_ $1.ic
+	mv $1_.ia $1.ia
+	mv $1_.ib $1.ib
+	mv $1_.ic $1.ic
 else
 	echo 'Usage:  indxbib database [ ... ]
 	first argument is the basename for indexes

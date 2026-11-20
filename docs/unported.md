@@ -43,17 +43,13 @@ not a port. Everything here waits on that.
 
 ## Typesetting and text
 
-`nroff` is ported; these are what it is given documents through, and
-the rest of the writer's tools.
+`nroff` is ported, with `tbl`, `eqn`, `neqn`, `refer`, `spell`, `style`,
+`diction` and `indent` ([the C library and programs](userland.md)).
+These are the rest of the writer's tools.
 
 | program | where | notes |
 |---|---|---|
-| `tbl`, `eqn`, `neqn` | `usr.bin` | `eqn` has a grammar for the tree's `yacc` |
-| `refer`, `addbib`, `lookbib`, `sortbib`, `indxbib` | `usr.bin/refer` | |
-| `spell`, `spellin`, `spellout` and the word lists | `usr.bin/spell` | |
-| `diction`, `explain` | `usr.bin/diction` | |
 | `vgrind`, `vfontedpr` | `ucb/vgrind` | its output is for `troff` |
-| `indent` | `ucb/indent` | |
 | `learn` and its lessons | `usr.bin/learn`, `share/learn` | most lessons want `cc` |
 | `troff`, and `tc`, which shows its output on a Tektronix 4015 | `usr.bin/roff/troff`, `usr.bin` | `troff` drives a C/A/T phototypesetter |
 | `tk` | `usr.bin` | pages `nroff`'s output on a Tektronix 4014 |

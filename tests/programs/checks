@@ -907,6 +907,323 @@ makewhatis /tmp/w/m
 grep ' ([47]) - ' /usr/man/whatis | cmp - m/whatis && wc -l < m/whatis
 --
       24
+=file tab.t
+.TS
+center box;
+c s
+l | n.
+Fruit
+_
+apple	12
+fig	3.5
+.TE
+=file eq.t
+.EQ
+x sup 2 + y sub i over 2
+.EN
+=file sp.t
+The quick brwon fox jumpd over the lazy dog.
+Colour and color, and the centre.
+=file st.t
+.PP
+It is a fact that the results were in close proximity to the expected values.
+We utilize a method which is very unique.
+The data was analyzed by the program.
+=file in.c
+main(){int i;for(i=0;i<3;i++)printf("%d\n",i);}
+=file cite.ms
+.ND
+.LP
+eqn is described in
+.[
+kernighan cherry typesetting
+.]
+and qed in
+.[
+deutsch lampson online editor
+.]
+\&.
+== tbl
+tbl /mnt/d/tab.t | nroff -T37 | col | sed '/^$/d'
+--
+                         ______________
+                        |____F_r_u_i_t______|
+                        | apple|  12  |
+                        | fig  |   3.5|
+                        |_______|_______|
+== neqn
+neqn /mnt/d/eq.t | nroff | col | sed '/^$/d'
+neqn /mnt/d/eq.t | nroff -T37 | sed '/^$/d' | od -c
+neqn /usr/pub/eqnchar /mnt/d/eq.t | nroff | col | sed '/^$/d'
+--
+x2+2
+   y_i_
+0000000  033   9   x 033   8   2 033   9   + 033   9   2 033   7 033   8
+0000020   \b   y 033   9   i  \b  \b   _   _  \n
+0000032
+x2+2
+   y_i_
+== eqn
+eqn /mnt/d/eq.t
+--
+.EQ
+.nr 99 \n(.s
+.nr 98 \n(.f
+.ps 10
+.ft 2
+.ds 11 "x
+.ds 12 "\f12\fP
+.as 11 \v'-24u'\s-3\|\*(12\s+3\v'24u'
+.ds 12 "\(pl
+.as 11 "\*(12
+.ds 12 "y
+.ds 13 "i
+.as 12 \v'12u'\s-3\*(13\s+3\|\v'-12u'
+.ds 13 "\f12\fP
+.nr 12 \w'\s10\*(12'
+.nr 13 \w'\s10\*(13'
+.nr 14 \n(12
+.if \n(13>\n(14 .nr 14 \n(13
+.nr 14 \n(14+\s10.5m\s0
+.ds 12 \v'42u'\h'\n(14u-\n(13u/2u'\*(13\
+\h'-\n(13u-\n(12u/2u'\v'-90u'\*(12\
+\h'-\n(14u-\n(12u/2u+.1m'\v'30u'\l'\n(14u-.2m'\h'.1m'\v'18u'
+.as 11 "\*(12
+.ds 11 \x'0'\x'0-36u'\f2\s10\*(11\s\n(99\f\n(98\x'30u'
+.nr 11 \w'\*(11'
+.nr MK 0
+.if 150>\n(.v .ne 150u
+.rn 11 10
+\*(10
+.ps \n(99
+.ft \n(98
+.EN
+== refer-runinv
+cd /usr/dict/papers && sh runinv; ls Ind.*
+--
+841 key occurrences,  213 hashes, 65 docs
+Ind.ia
+Ind.ib
+Ind.ic
+== refer
+refer /mnt/d/cite.ms | nroff -ms | sed '/^$/d'
+refer -e /mnt/d/cite.ms | sed -n '1,5p;/^\.]/p'
+--
+eqn is described in[1] and qed in[2] .
+_________________________
+  [1] B. W. Kernighan and L. L. Cherry, "A  System  for
+Typesetting  Mathematics,"  _C_o_m_m.  _A_s_s_o_c.  _C_o_m_p. _M_a_c_h.,
+vol. 18, pp. 151-157, Bell Laboratories,  Murray  Hill,
+New Jersey, March 1975.
+  [2] L. P. Deutsch and B. W. Lampson, "An online  edi-
+tor,"  _C_o_m_m.  _A_s_s_o_c.  _C_o_m_p. _M_a_c_h., vol. 10, no. 12, pp.
+793-799, 803, December 1967.
+.ND
+.LP
+eqn is described in\*([.1\*(.]
+and qed in\*([.2\*(.]
+\&.
+.]<
+.]-
+.][ 1 journal-article
+.]-
+.][ 1 journal-article
+.]>
+== lookbib
+echo kernighan cherry | lookbib /usr/dict/papers/Ind
+--
+> .[
+%r 17
+%K cstr
+%R Comp. Sci. Tech. Rep. No. 17
+%I Bell Laboratories
+%C Murray Hill, New Jersey
+%A B. W. Kernighan
+%A L. L. Cherry
+%T A System for Typesetting Mathematics
+%d May 1974, revised April 1977
+%J Comm. Assoc. Comp. Mach.
+%K acm cacm
+%V 18
+%P 151-157
+%D March 1975
+.]
+
+> EOT
+== indxbib
+cp /usr/dict/papers/Rv7man db
+indxbib db; ls
+echo deutsch online | /usr/libexec/refer/hunt db
+echo deutsch | lookbib db
+--
+db
+db.ia
+db.ib
+db.ic
+%A L. P. Deutsch
+%A B. W. Lampson
+%T An online editor
+%J Comm. Assoc. Comp. Mach.
+%V 10
+%N 12
+%D December 1967
+%P 793-799, 803
+%K qed
+
+> %A L. P. Deutsch
+%A B. W. Lampson
+%T An online editor
+%J Comm. Assoc. Comp. Mach.
+%V 10
+%N 12
+%D December 1967
+%P 793-799, 803
+%K qed
+
+%A L. P. Deutsch
+%A B. W. Lampson
+%T \*sSDS\*n 930 time-sharing system preliminary reference manual
+%R Doc. 30.10.10, Project \*sGENIE\*n
+%C Univ. Cal. at Berkeley
+%D April 1965
+
+> EOT
+== refer-long
+awk 'BEGIN { for (i = 0; i < 4000; i++) printf "%%A a%d\n%%T t%d\n\n", i, i }' > b
+indxbib b
+wc -c b b.ic
+od -d b.ia | sed 1q
+echo a3999 t3999 | /usr/libexec/refer/hunt b
+echo a12 t12 | /usr/libexec/refer/hunt b
+printf '.LP\nCited\n.[\na3998\n.]\n' > d
+refer -p b d
+--
+   73780 b
+   43240 b.ic
+  117020 total
+0000000  00256 00001 00000 00000 00004 00000 00068 00000
+
+%A a3999
+%T t3999
+
+%A a12
+%T t12
+
+.LP
+Cited\*([.1\*(.]
+.ds [F 1
+.]-
+.ds [A a3998
+.ds [T t3998
+.nr [T 0
+.nr [A 0
+.nr [O 0
+.][ 0 other
+== sortbib
+sed 40q /usr/dict/papers/Rv7man > db; sortbib db | grep '^%[AT]'
+sortbib -sT db | grep '^%T'
+--
+%A L. P. Deutsch
+%A B. W. Lampson
+%T An online editor
+%A T. A. Dolotta
+%A J. R. Mashey
+%A B. W. Kernighan
+%A L. L. Cherry
+%T A System for Typesetting Mathematics
+%T U\s-2NIX\s0 Time-Sharing System: Document Preparation
+%A B. W. Kernighan
+%A M. E. Lesk
+%A J. F. Ossanna
+%T An online editor
+%T A System for Typesetting Mathematics
+%T U\s-2NIX\s0 Time-Sharing System: Document Preparation
+== roffbib
+sed 20q /usr/dict/papers/Rv7man > db; roffbib db | sed '/^$/d' | sed 12q
+--
+                          _B_I_B_L_I_O_G_R_A_P_H_Y
+Deutsch, L. P. and B. W. Lampson, "An online editor," _C_o_m_m. _A_s_-
+     _s_o_c. _C_o_m_p. _M_a_c_h., vol. 10, no. 12, pp. 793-799, 803, De-
+     cember 1967.
+Kernighan, B. W. and L. L. Cherry, "A System for Typesetting
+     Mathematics," Comp. Sci. Tech. Rep. No. 17, Bell Labora-
+     tories, Murray Hill, New Jersey.
+== spell
+spell /mnt/d/sp.t
+spell -b /mnt/d/sp.t
+--
+brwon
+centre
+Colour
+jumpd
+brwon
+color
+jumpd
+== spellout
+printf 'fox\nbrwon\ncolour\n' | spellout /usr/dict/hlista
+printf 'fox\nbrwon\n' | spellout -d /usr/dict/hlista
+--
+brwon
+colour
+fox
+== spellin
+spellin < /mnt/d/stop | cmp - /usr/dict/hstop && echo same
+--
+same
+== diction
+diction /mnt/d/st.t
+--
+/mnt/d/st.t
+It is a fact that the results were *[ in close proximity ]* to
+the expected values.
+
+We *[ utilize]* a method *[ which ]* is *[ very ]* unique.
+
+number of sentences 3 number of phrases found 4
+== style
+style /mnt/d/st.t
+--
+  /mnt/d/st.t
+readability grades:
+	(Kincaid)  5.1  (auto)  3.2  (Coleman-Liau)  5.7  (Flesch)  7.3 (76.5)
+sentence info:
+	no. sent 3 no. wds 30
+	av sent leng 10.0 av word leng 4.17
+	no. questions 0 no. imperatives 0
+	no. nonfunc wds 13  43.3%   av leng 6.23
+	short sent (<5)  0% (0) long sent (>20)   0% (0)
+	longest sent 15 wds at sent 1; shortest sent 7 wds at sent 3
+sentence types:
+	simple  33% (1) complex  67% (2)
+	compound   0% (0) compound-complex   0% (0)
+word usage:
+	verb types as % of total verbs
+	tobe  80% (4) aux   0% (0) inf   0% (0)
+	passives as % of non-inf verbs  20% (1)
+	types as % of total
+	prep 10.0% (3) conj 0.0% (0) adv 3.3% (1)
+	noun 23.3% (7) adj 10.0% (3) pron 10.0% (3)
+	nominalizations   0 % (0)
+sentence beginnings:
+	subject opener: noun (0) pron (1) pos (0) adj (0) art (1) tot  67%
+	prep   0% (0) adv   0% (0) 
+	verb   0% (0)  sub_conj   0% (0) conj   0% (0)
+	expletives  33% (1)
+== explain
+echo utilize | explain
+--
+phrase?
+use "use" for "utilize"
+phrase?
+== indent
+indent /mnt/d/in.c o.c; cat o.c
+--
+main()
+{
+	int             i;
+	for (i = 0; i < 3; i++)
+		printf("%d\n", i);
+}
 == disklabel
 disklabel wd0 > l; echo $?
 expand l

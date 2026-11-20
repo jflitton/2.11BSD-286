@@ -165,7 +165,7 @@ istate:
 			}
 			else goto nstate;
 		}
-		if (c->out && new (c)) {
+		if (c->out && new ((int)c)) {
 # if D2
 fprintf(stderr, " found: nfound %d need %d\n",nfound,need);
 # endif

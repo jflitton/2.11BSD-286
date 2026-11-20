@@ -224,8 +224,9 @@ tests/network/run.sh    # the network's programs, on the system booted to
                         # talk at terminals
 tests/programs/run.sh   # the programs that work on text and files, on the
                         # system booted to multi-user, nroff and man,
+                        # tbl, eqn, refer, spell and their kind,
                         # disklabel, fsck and the other checkers on a
-                        # second disk, and the games: 122 checks, each a
+                        # second disk, and the games: 139 checks, each a
                         # few lines for the shell and what they must
                         # write, and more, man, script, lock, tset, five
                         # games and shutdown at a terminal
@@ -302,11 +303,12 @@ tests/vt/run.sh         # the console's terminal emulator, on the machine
   ([the C library and programs](userland.md),
   [the console](console.md), [the network](network.md)).
 - `tests/programs` boots that system too, with a file system of checks
-  beside the root: 122 of them, each a few lines for the shell and what
+  beside the root: 139 of them, each a few lines for the shell and what
   they must write, to the byte, for `sort`, `sed`, `diff`, `tar`,
   `patch`, `m4`, `compress` and the other programs that work on text and
   files, for `nroff`, which must format three of the manual's pages
-  as the build did, and `man`, for `disklabel`, `fsck` and its
+  as the build did, and `man`, for `tbl`, `eqn`, `refer`, `spell` and
+  the rest that documents go through, for `disklabel`, `fsck` and its
   elders and `fstat`, with a second disk to write labels and file systems
   on, and for the games that can be played from a file. Then it uses the
   ones that need a terminal, `more`, `man`, `script`, `lock` and `tset`,

@@ -270,6 +270,7 @@ char *s;
 	exit(1);
 }
 
+void
 onintr()		/* remove tempfile in case of interrupt */
 {
 	fprintf(stderr, "\nInterrupt\n");

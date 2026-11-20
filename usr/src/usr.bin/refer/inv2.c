@@ -82,7 +82,7 @@ int *iflong;
 		lp += (strlen(line)+lt+1);
 		ndoc++;
 	}
-	*iflong = (lp>=65536L);
+	*iflong = (lp>=32768L);
 	if (sizeof(int)>2) *iflong=1; /* force long on VAX */
 	fclose(recf);
 	return(ndoc);

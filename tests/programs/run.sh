@@ -44,6 +44,9 @@ python3 -I "$top/tools/strip.py" "$top/obj/PC/unix" checks/d/unix.stripped
 # must make what the build's made (tools/mkman.py).
 cp "$top/usr/src/man/man1/ls.1" "$top/usr/src/bin/mkdir/mkdir.1" \
     "$top/usr/src/man/man1/csh.1" checks/d
+# spell's words to stop at, of which the system's spellin must make the
+# list the build made.
+cp "$top/usr/src/usr.bin/spell/stop" checks/d
 {
     echo "d /t 755"; echo "d /x 755"; echo "d /d 755"
     echo "f /check.sh 644 checks/check.sh"
@@ -137,4 +140,4 @@ done
 python3 -I "$top/tools/fsck.py" programs.img
 python3 -I "$top/tools/fsck.py" -p a spare.img
 python3 -I "$top/tools/fsck.py" -p e spare.img
-echo "programs: $n checks of the programs that work on text and files, of nroff and man, of disklabel, the file system checkers and fstat, and of the games, and tty, mesg, more, man, script, lock, tset, clear, five games and shutdown at a terminal"
+echo "programs: $n checks of the programs that work on text and files, of nroff and man, of tbl, eqn, refer, spell and the rest documents go through, of disklabel, the file system checkers and fstat, and of the games, and tty, mesg, more, man, script, lock, tset, clear, five games and shutdown at a terminal"

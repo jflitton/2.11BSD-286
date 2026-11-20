@@ -6,7 +6,7 @@ static char *sccsid = "@(#)glue3.c	4.1.2 (2.11BSD) 2022/9/17";
 #define move(x, y) close(y); dup(x); close(x);
 
 corout(in, out, rprog, arg, outlen)
-char *in, *out, *rprog;
+char *in, *out, *rprog, *arg;
 {
 	int pipev[2], fr1, fr2, fw1, fw2, n;
 
