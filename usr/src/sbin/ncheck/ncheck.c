@@ -25,7 +25,11 @@ static char sccsid[] = "@(#)ncheck.c	5.4 (Berkeley) 1/9/86";
 #include <sys/dir.h>
 #include <stdio.h>
 
-struct	fs	sblock;
+union {
+	struct	fs fs;
+	char	pad[SBSIZE];	/* a raw device moves whole sectors */
+} sbun;
+#define	sblock	sbun.fs
 struct	dinode	itab[NI * INOPB];
 struct 	dinode	*gip;
 struct ilist {
@@ -121,7 +125,7 @@ check(file)
 	nhent = 0;
 	printf("%s:\n", file);
 	sync();
-	bread(SBLOCK, (char *)&sblock, SBSIZE);
+	bread(SBLOCK, (char *)&sbun, SBSIZE);
 	ino = 0;
 	mino = (sblock.fs_isize-2) * INOPB;
 	for (i = 2; ; i+=NI) {
@@ -354,7 +358,7 @@ bread(bno, buf, cnt)
 
 	lseek(fi, bno * DEV_BSIZE, 0);
 	if (read(fi, buf, cnt) != cnt) {
-		fprintf(stderr, "ncheck: read error %d\n", bno);
+		fprintf(stderr, "ncheck: read error %ld\n", bno);
 		bzero(buf, cnt);
 	}
 }

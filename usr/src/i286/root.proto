@@ -40,6 +40,9 @@ d /home 755
 d /usr/skel 755
 f /unix 644 ../../../obj/PC/unix
 f /boot 644 ../../../obj/stand/boot
+d /mdec 755
+f /mdec/wduboot 444 ../../../obj/stand/hdboot.bin
+h /mdec/sduboot /mdec/wduboot
 f /etc/init 700 ../../../obj/root/bin/init
 f /etc/rc 644 etc/rc
 f /etc/rc.conf 644 etc/rc.conf
@@ -159,6 +162,13 @@ f /sbin/mknod 755 ../../../obj/root/bin/mknod
 f /sbin/fsck 755 ../../../obj/root/bin/fsck
 f /sbin/mkfs 755 ../../../obj/root/bin/mkfs
 f /sbin/newfs 755 ../../../obj/root/bin/newfs
+f /bin/disklabel 2755:5 ../../../obj/root/bin/disklabel
+f /sbin/dcheck 755 ../../../obj/root/bin/dcheck
+f /sbin/icheck 755 ../../../obj/root/bin/icheck
+f /sbin/ncheck 755 ../../../obj/root/bin/ncheck
+f /sbin/clri 755 ../../../obj/root/bin/clri
+f /sbin/badsect 755 ../../../obj/root/bin/badsect
+f /usr/sbin/quot 2755:5 ../../../obj/root/bin/quot
 f /sbin/mkpasswd 755 ../../../obj/root/bin/mkpasswd
 f /usr/sbin/update 755 ../../../obj/root/bin/update
 f /usr/sbin/vipw 755 ../../../obj/root/bin/vipw
@@ -193,6 +203,7 @@ f /usr/bin/lex 755 ../../../obj/root/bin/lex
 f /usr/libdata/lex/ncform 444 ../usr.bin/lex/ncform
 f /usr/libdata/lex/nrform 444 ../usr.bin/lex/nrform
 f /usr/sbin/pstat 2755:2 ../../../obj/root/bin/pstat
+f /usr/bin/fstat 2755:2 ../../../obj/root/bin/fstat
 f /usr/sbin/tracebuf 2755:2 ../../../obj/root/bin/tracebuf
 f /sbin/ifconfig 755 ../../../obj/root/bin/ifconfig
 f /sbin/ping 4755 ../../../obj/root/bin/ping
@@ -440,6 +451,7 @@ d /usr/man 755
 f /usr/man/man.template 444 ../man/man.template
 f /usr/man/makewhatis.sed 444 ../man/makewhatis.sed
 f /usr/man/manroff 755 ../man/manroff
+f /usr/sbin/makewhatis 755 ../usr.sbin/makewhatis/makewhatis.sh
 i ../../../obj/man/man.proto
 c /dev/console 622 0 0
 c /dev/ttyv1 666 0 1
@@ -472,67 +484,67 @@ c /dev/errlog 600 3 1
 c /dev/acctlog 600 3 2
 b /dev/rd0 600 0 0
 b /dev/rd1 600 0 1
-b /dev/wd0a 640 1 0
-c /dev/rwd0a 640 8 0
+b /dev/wd0a 640:5 1 0
+c /dev/rwd0a 640:5 8 0
 b /dev/wd0b 640:2 1 1
-c /dev/rwd0b 640 8 1
-b /dev/wd0c 640 1 2
-c /dev/rwd0c 640 8 2
-b /dev/wd0d 640 1 3
-c /dev/rwd0d 640 8 3
-b /dev/wd0e 640 1 4
-c /dev/rwd0e 640 8 4
-b /dev/wd0f 640 1 5
-c /dev/rwd0f 640 8 5
-b /dev/wd0g 640 1 6
-c /dev/rwd0g 640 8 6
-b /dev/wd0h 640 1 7
-c /dev/rwd0h 640 8 7
-b /dev/wd1a 640 1 8
-c /dev/rwd1a 640 8 8
+c /dev/rwd0b 640:5 8 1
+b /dev/wd0c 640:5 1 2
+c /dev/rwd0c 640:5 8 2
+b /dev/wd0d 640:5 1 3
+c /dev/rwd0d 640:5 8 3
+b /dev/wd0e 640:5 1 4
+c /dev/rwd0e 640:5 8 4
+b /dev/wd0f 640:5 1 5
+c /dev/rwd0f 640:5 8 5
+b /dev/wd0g 640:5 1 6
+c /dev/rwd0g 640:5 8 6
+b /dev/wd0h 640:5 1 7
+c /dev/rwd0h 640:5 8 7
+b /dev/wd1a 640:5 1 8
+c /dev/rwd1a 640:5 8 8
 b /dev/wd1b 640:2 1 9
-c /dev/rwd1b 640 8 9
-b /dev/wd1c 640 1 10
-c /dev/rwd1c 640 8 10
-b /dev/wd1d 640 1 11
-c /dev/rwd1d 640 8 11
-b /dev/wd1e 640 1 12
-c /dev/rwd1e 640 8 12
-b /dev/wd1f 640 1 13
-c /dev/rwd1f 640 8 13
-b /dev/wd1g 640 1 14
-c /dev/rwd1g 640 8 14
-b /dev/wd1h 640 1 15
-c /dev/rwd1h 640 8 15
-b /dev/sd0a 640 2 0
-c /dev/rsd0a 640 9 0
+c /dev/rwd1b 640:5 8 9
+b /dev/wd1c 640:5 1 10
+c /dev/rwd1c 640:5 8 10
+b /dev/wd1d 640:5 1 11
+c /dev/rwd1d 640:5 8 11
+b /dev/wd1e 640:5 1 12
+c /dev/rwd1e 640:5 8 12
+b /dev/wd1f 640:5 1 13
+c /dev/rwd1f 640:5 8 13
+b /dev/wd1g 640:5 1 14
+c /dev/rwd1g 640:5 8 14
+b /dev/wd1h 640:5 1 15
+c /dev/rwd1h 640:5 8 15
+b /dev/sd0a 640:5 2 0
+c /dev/rsd0a 640:5 9 0
 b /dev/sd0b 640:2 2 1
-c /dev/rsd0b 640 9 1
-b /dev/sd0c 640 2 2
-c /dev/rsd0c 640 9 2
-b /dev/sd0d 640 2 3
-c /dev/rsd0d 640 9 3
-b /dev/sd0e 640 2 4
-c /dev/rsd0e 640 9 4
-b /dev/sd0f 640 2 5
-c /dev/rsd0f 640 9 5
-b /dev/sd0g 640 2 6
-c /dev/rsd0g 640 9 6
-b /dev/sd0h 640 2 7
-c /dev/rsd0h 640 9 7
-b /dev/sd1a 640 2 8
-c /dev/rsd1a 640 9 8
+c /dev/rsd0b 640:5 9 1
+b /dev/sd0c 640:5 2 2
+c /dev/rsd0c 640:5 9 2
+b /dev/sd0d 640:5 2 3
+c /dev/rsd0d 640:5 9 3
+b /dev/sd0e 640:5 2 4
+c /dev/rsd0e 640:5 9 4
+b /dev/sd0f 640:5 2 5
+c /dev/rsd0f 640:5 9 5
+b /dev/sd0g 640:5 2 6
+c /dev/rsd0g 640:5 9 6
+b /dev/sd0h 640:5 2 7
+c /dev/rsd0h 640:5 9 7
+b /dev/sd1a 640:5 2 8
+c /dev/rsd1a 640:5 9 8
 b /dev/sd1b 640:2 2 9
-c /dev/rsd1b 640 9 9
-b /dev/sd1c 640 2 10
-c /dev/rsd1c 640 9 10
-b /dev/sd1d 640 2 11
-c /dev/rsd1d 640 9 11
-b /dev/sd1e 640 2 12
-c /dev/rsd1e 640 9 12
-b /dev/sd1f 640 2 13
-c /dev/rsd1f 640 9 13
-b /dev/sd1g 640 2 14
-c /dev/rsd1g 640 9 14
-b /dev/sd1h 640 2 15
-c /dev/rsd1h 640 9 15
+c /dev/rsd1b 640:5 9 9
+b /dev/sd1c 640:5 2 10
+c /dev/rsd1c 640:5 9 10
+b /dev/sd1d 640:5 2 11
+c /dev/rsd1d 640:5 9 11
+b /dev/sd1e 640:5 2 12
+c /dev/rsd1e 640:5 9 12
+b /dev/sd1f 640:5 2 13
+c /dev/rsd1f 640:5 9 13
+b /dev/sd1g 640:5 2 14
+c /dev/rsd1g 640:5 9 14
+b /dev/sd1h 640:5 2 15
+c /dev/rsd1h 640:5 9 15

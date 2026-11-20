@@ -30,6 +30,8 @@ main(argc, argv)
 		if (sector <= 0 || sector > 131071L) {
 			fprintf(stderr, "Sector %s <= 0 or > 131071\n",
 				*argv);
+			errs++;
+			argc--, argv++;
 			continue;
 		}
 		if (mknod(*argv, IFMT, (u_short)(sector / CLSIZE)))

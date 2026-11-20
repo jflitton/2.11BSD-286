@@ -2,7 +2,8 @@
 """Run a test program in an emulator.
 
 usage: runtest.py NAME SOURCE...
-       runtest.py [--hd IMAGE,CYLINDERS,HEADS,SECTORS[,BUS]] [--until TEXT]
+       runtest.py [--hd IMAGE,CYLINDERS,HEADS,SECTORS[,BUS]]
+                  [--hd2 IMAGE,CYLINDERS,HEADS,SECTORS] [--until TEXT]
                   [--resets N] [--net CARD[:PORT:IRQ]] [--term TYPE:COLSxROWS]
                   [--mark TEXT] [--profile KERNEL[:MS]]
                   [--type AFTER TEXT | --key AFTER TEXT | --telnet AFTER TEXT]...
@@ -25,7 +26,8 @@ I/O address (hexadecimal), interrupt request and DMA channel, the disk at
 that SCSI id, and the adapter's BIOS at that address (hexadecimal, such as
 DC000) or, with 0, off.  86Box only.  With --hd and no EXECUTABLE there
 is no diskette, and the machine boots from the hard disk as it would by
-itself.
+itself.  --hd2 gives the AT disk controller a second drive, the slave,
+whose contents are IMAGE likewise; the first must be on that controller.
 
 With --until the run does not end at the "@exit" line but when the program
 has written TEXT after it: a system has its disks to bring up to date
@@ -494,6 +496,7 @@ def has_automation(box):
 
 
 HD = None               # --hd: (image, cylinders, heads, sectors, bus)
+HD2 = None              # --hd2: (image, cylinders, heads, sectors)
 
 
 def start_86box(box, img, out, com1, args=(), env=None):
@@ -528,6 +531,10 @@ def start_86box(box, img, out, com1, args=(), env=None):
                            int(scsi[2]), int(scsi[4], 16)))
             else:
                 f.write("hdd_01_ide_channel = 0:0\n")
+            if HD2:
+                f.write("hdd_02_parameters = %d, %d, %d, 0, ide\n"
+                        "hdd_02_fn = %s\nhdd_02_ide_channel = 0:1\n"
+                        % (HD2[3], HD2[2], HD2[1], os.path.abspath(HD2[0])))
         if NET:
             card, port, irq, hostport = NET
             f.write("\n[Network]\nnet_01_card = %s\nnet_01_net_type = slirp\n\n"
@@ -838,7 +845,7 @@ def run_86box(img, out):
 
 
 def main():
-    global HD, UNTIL, RESETS, NET, TERM, MARK, PROFILE
+    global HD, HD2, UNTIL, RESETS, NET, TERM, MARK, PROFILE
     emu = os.environ.get("EMU", "86box")
     if emu not in ("86box", "qemu"):
         sys.exit("EMU must be 86box or qemu")
@@ -853,6 +860,17 @@ def main():
             sys.exit(__doc__)
         if emu != "86box" or os.path.getsize(image) != HD[1] * HD[2] * HD[3] * 512:
             sys.exit("--hd: needs 86Box, and an image of the size its geometry gives")
+        del sys.argv[1:3]
+    if len(sys.argv) > 2 and sys.argv[1] == "--hd2":
+        try:
+            image, c, h, s = sys.argv[2].split(",")
+            HD2 = (image, int(c), int(h), int(s))
+        except ValueError:
+            sys.exit(__doc__)
+        if not HD or HD[4] not in ("ide", "xtide") or \
+                os.path.getsize(image) != HD2[1] * HD2[2] * HD2[3] * 512:
+            sys.exit("--hd2: needs --hd on the AT disk controller, and an "
+                     "image of the size its geometry gives")
         del sys.argv[1:3]
     if len(sys.argv) > 2 and sys.argv[1] == "--until":
         UNTIL = sys.argv[2]

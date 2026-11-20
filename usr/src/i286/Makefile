@@ -124,8 +124,24 @@ chpass_SRCS=	$(addprefix bin/chpass/,chpass.c field.c util.c)
 chpass_FLAGS=	-I$(SRC)/bin/chpass
 SYSPROGS=	update fsck mkfs newfs passwd mkpasswd vipw chown chpass
 
+# Those that read a disk or a file system directly: disklabel, which
+# reads and writes a disk's label; dcheck, icheck and ncheck, which check
+# a file system's directories and blocks and name its files; clri, which
+# clears an inode; badsect, which makes a file of a bad sector; and quot,
+# which adds up what each user has on a file system.
+disklabel_SRCS=	bin/disklabel/disklabel.c
+disklabel_LIBS=	-lutil
+dcheck_SRCS=	sbin/dcheck/dcheck.c
+icheck_SRCS=	sbin/icheck/icheck.c
+ncheck_SRCS=	sbin/ncheck/ncheck.c
+clri_SRCS=	sbin/clri/clri.c
+badsect_SRCS=	sbin/badsect/badsect.c
+quot_SRCS=	usr.sbin/quot/quot.c
+DISKPROGS=	disklabel dcheck icheck ncheck clri badsect quot
+
 # Those that read the kernel's tables, and dev_mkdb, whose database
-# devname(3) looks devices up in for them.
+# devname(3) looks devices up in for them.  fstat lists the files each
+# process has open.
 ps_SRCS=	bin/ps/ps.c
 ps_FLAGS=	-I$(SRC)/bin/ps
 dev_mkdb_SRCS=	usr.sbin/dev_mkdb/dev_mkdb.c
@@ -142,7 +158,9 @@ top_SRCS=	ucb/top/top.c
 top_LIBS=	-lcurses -ltermcap
 tracebuf_SRCS=	usr.sbin/tracebuf/tracebuf.c
 sysctl_SRCS=	bin/sysctl/sysctl.c
-KMEMPROGS=	ps w vmstat iostat netstat pstat dev_mkdb top tracebuf sysctl
+fstat_SRCS=	usr.bin/fstat/fstat.c
+KMEMPROGS=	ps w vmstat iostat netstat pstat dev_mkdb top tracebuf sysctl \
+		fstat
 
 # The system log and what the clock runs: syslogd, logger which writes
 # to it and dmesg which shows what the kernel has printed; cron and
@@ -424,8 +442,9 @@ OWNPROGS=	adduser bench
 
 PROGS=	init getty login sh csh ls mkdir stty test hostname mknod mount \
 	umount reboot sleep ex exrecover expreserve tcsh $(BINSTD) \
-	$(NETPROGS) $(SYSPROGS) $(KMEMPROGS) $(LOGPROGS) $(YACCPROGS) \
-	$(TEXTPROGS) $(NET2PROGS) $(MAILPROGS) $(DOCPROGS) $(OWNPROGS)
+	$(NETPROGS) $(SYSPROGS) $(DISKPROGS) $(KMEMPROGS) $(LOGPROGS) \
+	$(YACCPROGS) $(TEXTPROGS) $(NET2PROGS) $(MAILPROGS) $(DOCPROGS) \
+	$(OWNPROGS)
 
 # The libraries the programs use besides the C library: NAME_LIB lists a
 # library's sources, and NAME_LIBFLAGS what it is compiled with.  Each is
@@ -755,7 +774,7 @@ $(R)/root.fs: root.proto $(wildcard etc/* root/* skel/*) \
 		$(R)/zero $(R)/termcap $(addprefix $(R)/tmac/tmac.,$(MDOC)) \
 		$(addprefix $(R)/me/,$(MEFILES)) \
 		$(patsubst %,$(R)/term/tab%.tab,$(TERMS)) $(MANO)/man.proto \
-		$(TOP)/obj/PC/unix $(TOP)/obj/stand/boot
+		$(TOP)/obj/PC/unix $(TOP)/obj/stand/boot $(TOP)/obj/stand/hdboot.bin
 	python3 -I $(TOP)/tools/mkfs.py -s $(ROOTSIZE) root.proto $@
 
 clean:

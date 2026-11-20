@@ -53,7 +53,7 @@ char	**argv;
 		}
 		off = itod(n) * DEV_BSIZE;
 		lseek(f, off, L_SET);
-		if (read(f,(char *)buf,DEV_BSIZE != DEV_BSIZE)) {
+		if (read(f,(char *)buf,DEV_BSIZE) != DEV_BSIZE) {
 			perror(argv[i]);
 			++errors;
 		}

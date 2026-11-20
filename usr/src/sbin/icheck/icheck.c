@@ -20,7 +20,11 @@ char	*sccsid = "@(#)icheck.c	2.5";
 #include <sys/inode.h>
 #include <sys/fs.h>
 
-struct	fs	sblock;
+union {
+	struct	fs fs;
+	char	pad[DEV_BSIZE];	/* a raw device moves whole sectors */
+} sbun;
+#define	sblock	sbun.fs
 struct	dinode	itab[INOPB*NI];
 daddr_t	blist[NB];
 char	*bmap;
@@ -143,7 +147,7 @@ char *file;
 #ifndef STANDALONE
 	sync();
 #endif
-	bread((daddr_t)SBLOCK, (char *)&sblock, sizeof(sblock));
+	bread((daddr_t)SBLOCK, (char *)&sbun, sizeof(sbun));
 	mino = (sblock.fs_isize-2) * INOPB;
 	ino = 0;
 	n = (sblock.fs_fsize - sblock.fs_isize + BITS-1) / BITS;
@@ -181,7 +185,7 @@ char *file;
 #ifndef STANDALONE
 	sync();
 #endif
-	bread((daddr_t)SBLOCK, (char *)&sblock, sizeof(sblock));
+	bread((daddr_t)SBLOCK, (char *)&sbun, sizeof(sbun));
 	if (sflg) {
 		makefree();
 		close(fi);
@@ -207,7 +211,7 @@ char *file;
 	i += nlfile;
 	printf("files %u (r=%u,d=%u,b=%u,c=%u,l=%u,s=%u)\n",
 		i, nrfile, ndfile, nbfile, ncfile, nlfile,nsfile);
-	n = ndirect + nindir + niindir + niindir;
+	n = ndirect + nindir + niindir + niiindir;
 	printf("used %D (i=%D,ii=%D,iii=%D,d=%D)\n",
 		n, nindir, niindir, niiindir, ndirect);
 	printf("free %D\n", nfree);

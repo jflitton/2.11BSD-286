@@ -54,6 +54,7 @@ ino_t	nfiles;
 
 int	nerror;
 daddr_t	bmap();
+u_short	dolncnt();
 extern long	atol(), lseek();
 extern char	*malloc();
 extern	int	errno;
@@ -143,7 +144,7 @@ char *file;
 			if (ino >= nfiles)
 				break;
 			ino++;
-			pass1(&itab[j]);
+			pass2(&itab[j]);
 		}
 	}
 }
@@ -211,7 +212,8 @@ readdir(dirp)
 	for(;;) {
 		if (dirp->loc >= dirp->ip->di_size)
 			return NULL;
-		if ((lbn = lblkno(dirp->loc)) == 0) {
+		if (blkoff(dirp->loc) == 0) {
+			lbn = lblkno(dirp->loc);
 			d = bmap(lbn);
 			if(d == 0)
 				return NULL;

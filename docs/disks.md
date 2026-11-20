@@ -15,6 +15,11 @@ from the disk itself ([booting](boot.md)).
 
 A hard disk's minor number is the drive in bits 3 and up and the
 partition, `a` to `h`, in the low three: `wd0a` is 0, `wd1c` is 10.
+Through the character device a disk moves whole sectors only: a count
+that is not a multiple of 512 is refused (`EINVAL`). Upstream's programs
+that read a file system directly read its superblock as the size of its
+structure, as the PDP-11's controllers let them; here they read the 1K
+block it is in.
 What the two drivers do alike, which is everything in this section and
 the next, is in `sys/i286at/pcdisk.c`.
 
@@ -39,7 +44,12 @@ it to every sector number.
 
 A label with a partition that runs past the end of the system's part is
 refused, as a damaged one is: a partition over another system's sectors
-would let a file system be written on them.
+would let a file system be written on them. So is such a label given to
+the kernel to use or to write (`DIOCSDINFO`, `DIOCWDINFO`), by
+`disklabel`: the drivers' `ioctl` is `pcdkioctl`, which refuses it with
+`ENOSPC` before the code all 2.11BSD's drivers share (`ioctldisklabel`)
+sees it. The size of the system's part, which that needs, is kept from
+the drive's first open (`pg_part`).
 
 A drive with no label, or one refused, is given a single partition `a`
 that covers the system's part. That is enough to read it, not to boot
@@ -265,18 +275,24 @@ Not done, or not tested:
 - The IDE driver has no time limits: a drive that stops answering is
   waited for with the processor, for some seconds, and an interrupt
   that never comes is waited for for ever.
-- A second drive has only been found absent, on either.
+- A second IDE drive, the slave, is the one `tests/programs` writes
+  labels and file systems on. A second SCSI disk has only been found
+  absent.
 - A SCSI disk that is not spinning is not started, and one that takes
   its time after a reset is not waited for beyond the four tries.
 - SCSI devices that are not disks are named when the bus is looked over
   and otherwise ignored.
-- Nothing is done about bad sectors.
+- The drivers do nothing about bad sectors. `badsect` keeps one out of
+  a file system's use.
 - No crash dump is written to a disk.
-- Nothing inside the system installs the boot block or `/boot`; only
-  `tools/mkdisk.py` does, on an image.
-- Nothing inside the system changes a label either: there is no
-  `disklabel`. The kernel mounts only a partition that the label says
-  is a 2.11BSD file system, so what `newfs` makes can be mounted only
-  where `tools/mkdisk.py` left room for one with `fs:`.
+- `disklabel -B` installs the boot block, and `/boot` is a file, but
+  only `tools/mkdisk.py` writes the first sector of a shared disk, with
+  its table and `mbr.s`. A disk booted from after `disklabel -B` has
+  not been tried; `tests/programs` reads the sector back.
+- The kernel mounts only a partition that the label says is a 2.11BSD
+  file system; `disklabel` changes the label ([the C library and
+  programs](userland.md#disks-and-file-systems)), and `tests/programs`
+  has it make a partition one and be refused one that runs past the
+  system's part. That has been tried on an IDE disk only.
 - Most of it has run in the emulator only. The system has also booted
   on a real machine from a SCSI disk.

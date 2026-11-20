@@ -27,7 +27,8 @@ struct pcpart {
 
 /*
  * What a driver knows of a drive before anything has been read from
- * it, for pcdkopen.
+ * it, for pcdkopen, and the size of this system's part of it, which
+ * pcdkopen finds on the drive's first open.
  */
 struct pcgeom {
 	daddr_t	pg_size;	/* sectors on the whole drive */
@@ -35,4 +36,5 @@ struct pcgeom {
 	u_int	pg_heads;
 	u_int	pg_sects;	/* per track */
 	int	pg_type;	/* DTYPE_... */
+	daddr_t	pg_part;	/* sectors in this system's part */
 };

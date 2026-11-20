@@ -17,15 +17,18 @@ static char *sccsid = "@(#)quot.c 1.1 (2.11BSD) 2026/5/26";
 #include <unistd.h>
 
 char	*dargv[] = {
-	"/dev/rxp0a",
-	"/dev/rxp0h",
+	"/dev/rwd0a",
 	0
 };
 
 #define	ITABSZ	256
 #define	ISIZ	(DEV_BSIZE/sizeof(struct dinode))
 #define	NUID	300
-struct	fs	sblock;
+union {
+	struct	fs fs;
+	char	pad[DEV_BSIZE];	/* a raw device moves whole sectors */
+} sbun;
+#define	sblock	sbun.fs
 struct	dinode	itab[ITABSZ];
 struct du
 {
@@ -73,7 +76,7 @@ init_du()
 	while	(lp=getpwent())
 		{
 		n = lp->pw_uid;
-		if	(n > NUID)
+		if	(n >= NUID)
 			continue;
 		du[n].name = strdup(lp->pw_name);
 		}
@@ -139,7 +142,7 @@ char *file;
 	}
 	printf("%s:\n", file);
 	sync();
-	bread(1, (char *)&sblock, sizeof sblock);
+	bread(1, (char *)&sbun, sizeof sbun);
 	nfiles = (sblock.fs_isize-2)*(DEV_BSIZE/sizeof(struct dinode));
 	ino = 0;
 	if (nflg) {
@@ -181,6 +184,7 @@ register struct dinode *ip;
 	}
 	if (ip->di_uid >= NUID)
 		return;
+	du[ip->di_uid].uid = ip->di_uid;
 	du[ip->di_uid].blocks += (ip->di_size+DEV_BSIZE-1)/DEV_BSIZE;
 	du[ip->di_uid].nfiles++;
 	if (nflg) {
@@ -230,7 +234,7 @@ register struct du *p1, *p2;
 		return(-1);
 	if (p1->blocks < p2->blocks)
 		return(1);
-	return(strcmp(p1->name, p2->name));
+	return(strcmp(p1->name ? p1->name : "", p2->name ? p2->name : ""));
 }
 
 report()
@@ -249,7 +253,7 @@ report()
 		printf("%d\t%d\t%ld\n", TSIZE-1, sizes[TSIZE-1], overflow+t);
 		return;
 	}
-	qsort(du, NUID, sizeof(du[0]), qcmp);
+	qsort(du, NUID, sizeof(du[0]), (int (*)(const void *, const void *))qcmp);
 	for (i=0; i<NUID; i++) {
 		if (du[i].blocks==0)
 			return;

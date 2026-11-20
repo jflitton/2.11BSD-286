@@ -58,7 +58,6 @@ the rest of the writer's tools.
 | `troff`, and `tc`, which shows its output on a Tektronix 4015 | `usr.bin/roff/troff`, `usr.bin` | `troff` drives a C/A/T phototypesetter |
 | `tk` | `usr.bin` | pages `nroff`'s output on a Tektronix 4014 |
 | `graph`, `plot` and its filters, `libplot` | `usr.bin`, `usr.lib/libplot` | for plotters and graphics terminals |
-| `makewhatis` | `usr.sbin/makewhatis` | a script; `makewhatis.sed` is installed |
 
 ## The network
 
@@ -80,11 +79,6 @@ the rest of the writer's tools.
 
 | program | where | notes |
 |---|---|---|
-| `disklabel` | `bin/disklabel` | the kernel mounts only what a label calls a file system |
-| `dcheck`, `icheck`, `ncheck`, `clri` | `sbin` | read a file system directly |
-| `badsect` | `sbin/badsect` | |
-| `quot` | `usr.sbin/quot` | |
-| `fstat` | `usr.bin/fstat` | reads the kernel's tables |
 | `dump`, `restor` | `sbin` | to a file as well as a tape |
 | `chflags` | `bin/chflags` | the kernel has the calls |
 | `zic`, `zdump` and the zone files | `share/zoneinfo` | with none, the time is UTC |

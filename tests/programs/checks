@@ -893,10 +893,239 @@ vgrindefs (5) - vgrind's language definition data base
 fclose (3) - close a stream
 lseek (2) - reposition read/write offset
 == makewhatis
-for f in /usr/man/cat4/*.0 /usr/man/cat7/*.0
-do
-	sed -n -f /usr/man/makewhatis.sed $f
-done | sort -u > w
-grep ' ([47]) - ' /usr/man/whatis | cmp - w && wc -l < w
+mkdir m
+cp -r /usr/man/cat4 /usr/man/cat7 m
+makewhatis /tmp/w/m
+grep ' ([47]) - ' /usr/man/whatis | cmp - m/whatis && wc -l < m/whatis
 --
       24
+== disklabel
+disklabel wd0 > l; echo $?
+expand l
+--
+0
+# /dev/rwd0a:
+type: ESDI
+disk: image
+label: 
+flags:
+bytes/sector: 512
+sectors/track: 17
+tracks/cylinder: 4
+sectors/cylinder: 68
+cylinders: 615
+rpm: 3600
+interleave: 1
+trackskew: 0
+cylinderskew: 0
+headswitch: 0           # milliseconds
+track-to-track seek: 0  # milliseconds
+drivedata: 0 
+
+4 partitions:
+#        size   offset    fstype   [fsize bsize]
+  a:    24000        0   2.11BSD     1024  1024         # (Cyl.    0 - 352*)
+  b:     4000    24000      swap                        # (Cyl.  352*- 411*)
+  c:    41803        0    unused        0     0         # (Cyl.    0 - 614*)
+  d:     1600    28000   2.11BSD     1024  1024         # (Cyl.  411*- 435*)
+== disklabel-r
+disklabel -r wd0 | sed 1d > r
+disklabel wd0 | sed 1d | cmp - r && echo same
+--
+same
+== disklabel-busy
+disklabel wd0 > l
+disklabel -R wd0 l; echo $?
+--
+disklabel: /dev/rwd0a: Device busy
+4
+== disklabel-R
+mkdir m
+mount /dev/wd1e /tmp/w/m
+disklabel wd1 | sed '/^  e:/s/unused  *0  *0/2.11BSD 1024 1024/' > l
+disklabel -R wd1 l && disklabel wd1 | sed 1d | expand
+newfs /dev/rwd1e > /dev/null
+mount /dev/wd1e /tmp/w/m && ls -a m && umount /dev/wd1e
+--
+/dev/wd1e on /tmp/w/m: Incorrect super block.
+type: ESDI
+disk: image
+label: 
+flags:
+bytes/sector: 512
+sectors/track: 17
+tracks/cylinder: 4
+sectors/cylinder: 68
+cylinders: 100
+rpm: 3600
+interleave: 1
+trackskew: 0
+cylinderskew: 0
+headswitch: 0           # milliseconds
+track-to-track seek: 0  # milliseconds
+drivedata: 0 
+
+5 partitions:
+#        size   offset    fstype   [fsize bsize]
+  a:     2000        0   2.11BSD     1024  1024         # (Cyl.    0 - 29*)
+  c:     6783        0    unused        0     0         # (Cyl.    0 - 99*)
+  e:     2000     2000   2.11BSD     1024  1024         # (Cyl.   29*- 58*)
+.
+..
+lost+found
+== disklabel-fit
+disklabel wd1 | sed '/^  e:/s/ 2000 / 4790 /' > l
+disklabel -R wd1 l; echo $?
+disklabel wd1 | grep '^  e:' | expand
+--
+disklabel: ioctl DIOCWDINFO: No space left on device
+1
+  e:     2000     2000   2.11BSD     1024  1024         # (Cyl.   29*- 58*)
+== disklabel-e
+echo 'sed "s/^label:.*/label: spare/" $1 > /tmp/w/x && cp /tmp/w/x $1' > e
+chmod 755 e
+echo n | EDITOR=/tmp/w/e disklabel -e wd1; echo $?
+disklabel wd1 | grep '^label:'
+--
+0
+label: spare
+== disklabel-B
+dd if=/unix of=/dev/rwd1a count=1 2>/dev/null
+dd if=/dev/rwd1a count=1 2>/dev/null | cmp -s - /mdec/wduboot || echo not the boot block
+disklabel -B wd1 && dd if=/dev/rwd1a count=1 2>/dev/null | cmp - /mdec/wduboot && echo the boot block
+--
+not the boot block
+the boot block
+== badsect
+mkdir m
+mount /dev/wd1e /tmp/w/m
+mkdir m/BAD
+(cd m/BAD && badsect 1500 && ls)
+umount /dev/wd1e
+fsck -y /dev/rwd1e
+mount /dev/wd1e /tmp/w/m && ls -l m/BAD | awk '{ print $1, $4, $NF }'
+umount /dev/wd1e
+--
+1500
+** /dev/rwd1e
+File System: /tmp/w/m
+
+** Last Mounted on /tmp/w/m
+** Phase 1 - Check Blocks and Sizes
+
+HOLD BAD BLOCK?  yes
+
+** Phase 2 - Check Pathnames
+** Phase 3 - Check Connectivity
+** Phase 4 - Check Reference Counts
+** Phase 5 - Check Free List
+1 DUP BLKS IN FREE LIST
+BAD FREE LIST
+SALVAGE?  yes
+
+** Phase 6 - Salvage Free List
+4 files, 4 used, 979 free
+Marking file system clean
+
+***** FILE SYSTEM WAS MODIFIED *****
+total  1
+-rw------- 1000 1500
+== icheck
+icheck -b 750 /dev/rwd1e
+--
+/dev/rwd1e:
+750 arg; inode=102, class=data (small)
+files 5 (r=2,d=3,b=0,c=0,l=0,s=0)
+used 4 (i=0,ii=0,iii=0,d=4)
+free 979
+missing 0
+== ncheck
+ncheck /dev/rwd1e | expand
+--
+/dev/rwd1e:
+3       /lost+found/.
+103     /BAD/.
+102     /BAD/1500
+== dcheck
+dcheck /dev/rwd1e | expand
+--
+/dev/rwd1e:
+     entries  link cnt
+1       0       0
+== quot
+mkdir m
+mount /dev/wd1e /tmp/w/m
+dd if=/etc/termcap of=m/t bs=1k count=30 2>/dev/null
+chown daemon m/t
+cp /etc/motd m/u
+umount /dev/wd1e
+quot -f /dev/rwd1e | expand
+ncheck /dev/rwd1e | sort +0n | quot -n /dev/rwd1e | expand
+--
+/dev/rwd1e:
+30      1       daemon
+5       6       root
+/dev/rwd1e:
+root    /lost+found/.
+root    /BAD/1500
+root    /BAD/.
+root    /u
+daemon  /t
+== clri
+newfs /dev/rwd1a > /dev/null
+mkdir m
+mount /dev/wd1a /tmp/w/m && echo x > m/f && umount /dev/wd1a
+i=`ncheck /dev/rwd1a | awk '$2 == "/f" { print $1 }'`
+clri /dev/rwd1a $i
+dcheck /dev/rwd1a | expand
+fsck -f -y /dev/rwd1a
+mount /dev/wd1a /tmp/w/m && ls m && umount /dev/wd1a
+--
+clearing 103
+/dev/rwd1a:
+     entries  link cnt
+1       0       0
+103     1       0
+** /dev/rwd1a
+File System: /tmp/w/m
+
+** Last Mounted on /tmp/w/m
+** Phase 1 - Check Blocks and Sizes
+** Phase 2 - Check Pathnames
+UNALLOCATED  I=103  OWNER=root MODE=0
+SIZE=0 MTIME=Jan  1 00:00 1970 
+NAME=/f
+
+REMOVE?  yes
+
+** Phase 3 - Check Connectivity
+** Phase 4 - Check Reference Counts
+** Phase 5 - Check Free List
+BLK(S) MISSING
+SALVAGE?  yes
+
+** Phase 6 - Salvage Free List
+2 files, 2 used, 981 free
+Marking file system clean
+
+***** FILE SYSTEM WAS MODIFIED *****
+lost+found
+== fstat
+sleep 30 < /etc/motd &
+sleep 1
+fstat -p $! | awk '{ print $1, $2, $4, $NF }'
+fstat /etc/motd | awk 'NR > 1 { print $2, $4, $NF }'
+fstat | awk '$2 == "syslogd" && /\(/ { print $2, $4, $5, $6 }'
+fstat | awk '$2 == "inetd" && /inet stream/ { print $2, $5, $6, $8 }' | sed 1q
+kill $!
+--
+USER CMD FD TYPE
+root sleep text reg
+root sleep wd dir
+root sleep 0 reg
+root sleep 1 reg
+root sleep 2 reg
+sleep 0 /etc/motd
+syslogd 3* (unix dgram
+syslogd 4* (inet dgram
+inetd (inet stream tcp

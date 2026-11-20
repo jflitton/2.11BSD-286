@@ -218,6 +218,17 @@ mknod()
 	switch (ip->i_mode & IFMT) {
 
 	case IFMT:	/* used by badsect to flag bad sectors */
+		/*
+		 * The bad sector's block is the inode's first address, which
+		 * fsck takes when it makes the inode a file.  i_rdev below is
+		 * that address's low word on the PDP-11, whose longs have
+		 * their high word first, and its high word here.
+		 */
+		if (uap->dev) {
+			ip->i_addr[0] = (u_short)uap->dev;
+			ip->i_flag |= IACC|IUPD|ICHG;
+		}
+		break;
 	case IFCHR:
 	case IFBLK:
 		if (uap->dev) {

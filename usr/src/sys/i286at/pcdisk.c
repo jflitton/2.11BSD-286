@@ -14,6 +14,7 @@
 #include "user.h"
 #include "buf.h"
 #include "stat.h"
+#include "ioctl.h"
 #include "syslog.h"
 #include "disklabel.h"
 #include "disk.h"
@@ -95,6 +96,27 @@ dfltlabel(dk, lp, gp, size)
 }
 
 /*
+ * Whether each of a label's partitions is within this system's part of
+ * the drive, size sectors: one that ran past its end would be over
+ * another system's.
+ */
+static
+pcfits(lp, size)
+	register struct disklabel *lp;
+	daddr_t size;
+{
+	register struct partition *pi;
+	int i;
+
+	if (lp->d_npartitions > MAXPARTITIONS)
+		return (0);
+	for (pi = lp->d_partitions, i = 0; i < lp->d_npartitions; i++, pi++)
+		if (pi->p_offset > size || pi->p_size > size - pi->p_offset)
+			return (0);
+	return (1);
+}
+
+/*
  * On the first open of a drive: find this system's part of it and read
  * the label there.  Dev is any partition of the drive, strat and name
  * the driver's, and dk->dk_label somewhere to keep the label.  *startp
@@ -113,10 +135,8 @@ pcdklabel(dk, dev, strat, name, gp, startp)
 {
 	struct disklabel locallabel;
 	register struct disklabel *lp = &locallabel;
-	register struct partition *pi;
 	daddr_t start, size, psize;
 	char *msg;
-	int i;
 
 	dev &= ~7;			/* partition a */
 	*startp = 0;
@@ -128,17 +148,10 @@ pcdklabel(dk, dev, strat, name, gp, startp)
 		size = psize;
 		dfltlabel(dk, lp, gp, size);
 	}
+	gp->pg_part = size;
 	msg = readdisklabel(dev, strat, lp);
-	/*
-	 * A partition that ran past the end of this system's part of the
-	 * drive would be over another system's.
-	 */
-	if (msg == 0)
-		for (pi = lp->d_partitions, i = 0; i < lp->d_npartitions;
-		    i++, pi++)
-			if (pi->p_offset > size ||
-			    pi->p_size > size - pi->p_offset)
-				msg = "label does not fit";
+	if (msg == 0 && !pcfits(lp, size))
+		msg = "label does not fit";
 	if (msg != 0) {
 		log(LOG_NOTICE, "%s%da is entire disk: %s\n", name,
 		    dkunit(dev), msg);
@@ -201,4 +214,24 @@ pcdkclose(dk, dev, mode)
 		return (EINVAL);
 	dk->dk_openmask = dk->dk_bopenmask | dk->dk_copenmask;
 	return (0);
+}
+
+/*
+ * A driver's ioctl routine, for the label.  A label given to the drive
+ * is held to what one read from it is: a partition beyond this system's
+ * part of the drive is refused, before the label is set or written.
+ */
+pcdkioctl(dk, dev, cmd, data, flag, strat, gp)
+	struct dkdevice *dk;
+	dev_t dev;
+	int cmd;
+	caddr_t data;
+	int flag;
+	int (*strat)();
+	struct pcgeom *gp;
+{
+	if ((cmd == DIOCSDINFO || cmd == DIOCWDINFO) &&
+	    !pcfits((struct disklabel *)data, gp->pg_part))
+		return (ENOSPC);
+	return (ioctldisklabel(dev, cmd, data, flag, dk, strat));
 }

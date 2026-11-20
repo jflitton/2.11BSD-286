@@ -64,10 +64,39 @@ static struct nlist nl[] = {
 #define	X_NPROC		1
 	{ "_netdata" },
 #define	X_NETDATA	2
+#ifdef i286
+	{ "_slotproc" },
+#define	X_SLOTPROC	3
+	{ "_uslot" },
+#define	X_USLOT		4
+	{ "_mbstat" },
+#define	X_MBSTAT	5
+#endif
 	{ "" },
 };
 
+/*
+ * The network's structures are reached through NETFD at NETOFF of their
+ * address.  On the PDP-11 they are in memory at netdata, the click the
+ * kernel gives.  On the 286 the network has a data segment of its own,
+ * which /dev/kmem reaches by the segment's number in the high 16 bits of
+ * the offset, and its pointers are offsets in that segment; the number
+ * is that of the segment the symbols put the network's variables in
+ * (docs/userland.md, "Programs that read the kernel").
+ */
+#ifdef i286
+#define	NETFD		kmem
+#define	NETOFF(a)	(((off_t)netseg << 16) + (u_short)(a))
+static u_short	netseg;
+#else
+#define	NETFD		mem
+#define	NETOFF(a)	((off_t)(a) + netdata)
+#endif
+
 struct proc	*mproc;
+#ifdef i286
+struct proc	*procs;		/* the table as read, for mproc's place in it */
+#endif
 
 union {
 	struct	user user;
@@ -138,6 +167,9 @@ main(argc, argv)
 		netdata = lgetw((off_t)nl[X_NETDATA].n_value);
 		netdata = ctob(netdata);
 	}
+#ifdef i286
+	netseg = nl[X_MBSTAT].n_ovly;
+#endif
 
 	nproc = (int)lgetw((off_t)nl[X_NPROC].n_value);
 
@@ -149,6 +181,9 @@ main(argc, argv)
 	}
 	if (read(kmem, (char *)mproc, size) != size)
 		rerr1("proc table", N_KMEM);
+#ifdef i286
+	procs = mproc;
+#endif
 
 	printf("USER\t CMD\t      PID    FD\tDEVICE\tINODE\t  SIZE TYPE%s\n",
 	    fflg ? " NAME" : "");
@@ -164,7 +199,7 @@ main(argc, argv)
 		else
 			uname = (passwd = getpwuid(mproc->p_uid)) ?
 			    passwd->pw_name : "unknown";
-		if (mproc->p_stat != SZOMB && getu() == 0)
+		if (mproc->p_stat == SZOMB || getu() == 0)
 			continue;
 		dotext();
 		readf();
@@ -175,7 +210,38 @@ main(argc, argv)
 static
 getu()
 {
+#ifdef i286
+	struct proc *inslot;
+	off_t addr;
+	int fd;
 
+	/*
+	 * The user structure is in one of the kernel's slots while the
+	 * process is the one there, and at p_addr in memory otherwise, also
+	 * when the process is swapped out, as ps finds it.
+	 */
+	(void)lseek(kmem, (off_t)nl[X_SLOTPROC].n_value +
+	    mproc->p_slot * sizeof (inslot), L_SET);
+	if (read(kmem, (char *)&inslot, sizeof (inslot)) != sizeof (inslot)) {
+		rerr1("slot", N_KMEM);
+		return(0);
+	}
+	if (inslot == (struct proc *)nl[X_PROC].n_value + (mproc - procs)) {
+		fd = kmem;
+		addr = (off_t)nl[X_USLOT].n_value + mproc->p_slot * UBYTES;
+	} else {
+		fd = mem;
+		addr = ctob((off_t)mproc->p_addr);
+	}
+	(void)lseek(fd, addr, L_SET);
+	if (read(fd, (char *)&user.user, sizeof (user.user)) !=
+	    sizeof (user.user)) {
+		fprintf(stderr, "fstat: can't read u for pid %d\n",
+		    mproc->p_pid);
+		return(0);
+	}
+	return(1);
+#else
 	if ((mproc->p_flag & SLOAD) == 0) {
 		if (swap < 0)
 			return(0);
@@ -193,6 +259,7 @@ getu()
 		return(0);
 	}
 	return(1);
+#endif
 }
 
 static
@@ -318,24 +385,24 @@ socktrans(sock)
 	char dname[32];
 
 	/* fill in socket */
-	(void)lseek(mem, (off_t)sock + netdata, L_SET);
-	if (read(mem, (char *)&so, sizeof(struct socket))
+	(void)lseek(NETFD, NETOFF(sock), L_SET);
+	if (read(NETFD, (char *)&so, sizeof(struct socket))
 	    != sizeof(struct socket)) {
 		rerr2(errno, (int)sock, "socket");
 		return;
 	}
 
 	/* fill in protosw entry */
-	(void)lseek(mem, (off_t)so.so_proto + netdata, L_SET);
-	if (read(mem, (char *)&proto, sizeof(struct protosw))
+	(void)lseek(NETFD, NETOFF(so.so_proto), L_SET);
+	if (read(NETFD, (char *)&proto, sizeof(struct protosw))
 	    != sizeof(struct protosw)) {
 		rerr2(errno, (int)so.so_proto, "protosw");
 		return;
 	}
 
 	/* fill in domain */
-	(void)lseek(mem, (off_t)proto.pr_domain + netdata, L_SET);
-	if (read(mem, (char *)&dom, sizeof(struct domain))
+	(void)lseek(NETFD, NETOFF(proto.pr_domain), L_SET);
+	if (read(NETFD, (char *)&dom, sizeof(struct domain))
 	    != sizeof(struct domain)) {
 		rerr2(errno, (int)proto.pr_domain, "domain");
 		return;
@@ -348,8 +415,8 @@ socktrans(sock)
 	if (dom.dom_family == AF_INET)
 		(void)strcpy(dname, "inet");
 	else {
-		(void)lseek(mem, (off_t)dom.dom_name + netdata, L_SET);
-		if ((len = read(mem, dname, sizeof(dname) - 1)) < 0) {
+		(void)lseek(NETFD, NETOFF(dom.dom_name), L_SET);
+		if ((len = read(NETFD, dname, sizeof(dname) - 1)) < 0) {
 			rerr2(errno, (int)dom.dom_name, "char");
 			dname[0] = '\0';
 		}
@@ -379,8 +446,8 @@ socktrans(sock)
 		getinetproto(proto.pr_protocol);
 		if (proto.pr_protocol == IPPROTO_TCP ) {
 			if (so.so_pcb) {
-				(void)lseek(mem,(off_t)so.so_pcb+netdata,L_SET);
-				if (read(mem, &inpcb, sizeof(struct inpcb))
+				(void)lseek(NETFD, NETOFF(so.so_pcb), L_SET);
+				if (read(NETFD, &inpcb, sizeof(struct inpcb))
 				    != sizeof(struct inpcb)){
 					rerr2(errno, (int)so.so_pcb, "inpcb");
 					return;
@@ -395,8 +462,8 @@ socktrans(sock)
 		/* print address of pcb and connected pcb */
 		if (so.so_pcb) {
 			printf(" %x", (int)so.so_pcb);
-			(void)lseek(mem, (off_t)so.so_pcb + netdata, L_SET);
-			if (read(mem, (char *)&unpcb, sizeof(struct unpcb))
+			(void)lseek(NETFD, NETOFF(so.so_pcb), L_SET);
+			if (read(NETFD, (char *)&unpcb, sizeof(struct unpcb))
 			    != sizeof(struct unpcb)){
 				rerr2(errno, (int)so.so_pcb, "unpcb");
 				return;

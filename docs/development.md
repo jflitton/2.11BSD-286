@@ -192,7 +192,8 @@ Tests run real 286 code in an emulator. `tests/harness/runtest.py` puts a
 program on a diskette image behind the boot sector
 (`usr/src/sys/i286stand/fdboot.s`), boots it, prints what it wrote to the
 serial port and takes the `@exit` line it ends with as the result. It can
-also give the machine a hard disk, boot from that with no diskette, type
+also give the machine a hard disk, and a second one on the same
+controller, boot from the first with no diskette, type
 at the serial port, type on the keyboard once the screen shows a
 prompt, let the system start the machine again, and give the machine an
 NE1000 or NE2000 on a network of the emulator's own, with the host able
@@ -219,10 +220,12 @@ tests/network/run.sh    # the network's programs, on the system booted to
                         # daemons and mail, and rlogin, biff and talk at
                         # terminals
 tests/programs/run.sh   # the programs that work on text and files, on the
-                        # system booted to multi-user, and nroff and man:
-                        # 82 checks, each a few lines for the shell and
-                        # what they must write, and more, man, script,
-                        # lock, tset and shutdown at a terminal
+                        # system booted to multi-user, nroff and man, and
+                        # disklabel and the file system checkers on a
+                        # second disk: 96 checks, each a few lines for
+                        # the shell and what they must write, and more,
+                        # man, script, lock, tset and shutdown at a
+                        # terminal
 tests/system/run.sh     # the system, booted from a hard disk to multi-user:
                         # checks its root with fsck and starts again,
                         # logs in on a serial port and on two of the
@@ -296,11 +299,13 @@ tests/vt/run.sh         # the console's terminal emulator, on the machine
   ([the C library and programs](userland.md),
   [the console](console.md), [the network](network.md)).
 - `tests/programs` boots that system too, with a file system of checks
-  beside the root: 82 of them, each a few lines for the shell and what
+  beside the root: 96 of them, each a few lines for the shell and what
   they must write, to the byte, for `sort`, `sed`, `diff`, `tar`,
   `patch`, `m4`, `compress` and the other programs that work on text and
-  files, and for `nroff`, which must format three of the manual's pages
-  as the build did, and `man`. Then it uses the ones that need a
+  files, for `nroff`, which must format three of the manual's pages
+  as the build did, and `man`, and for `disklabel`, `fsck`'s elders and
+  `fstat`, with a second disk to write labels and file systems on. Then
+  it uses the ones that need a
   terminal, `more`, `man`, `script`, `lock` and `tset`, and stops the
   system with `shutdown`
   ([the C library and programs](userland.md)).

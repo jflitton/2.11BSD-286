@@ -1161,21 +1161,27 @@ libraries, the files and the rest, what upstream's Makefile of each
 formats, with the pages of those kinds that `cron` and `tcpd` keep
 with them; of 4, those not of the PDP-11's devices: `tty`, `pty`,
 `null`, and the network's. Section 6 is the games, and 3f Fortran's
-library, which have nothing on the system to go with them. That is 542
+library, which have nothing on the system to go with them. That is 552
 pages, with the 307 other names upstream's Makefiles give them by `ln`,
 `egrep` for `grep` and `fprintf` for `printf`, and 2.1 MB. `whatis` is
 made as `usr/src/man`'s Makefile makes it: its `makewhatis.sed` takes
 the name and the line under NAME of each page, and `sort -u` sorts
-them. The system's own `sed` and `sort` make the same, which
-`tests/programs` checks of sections 4 and 7.
+them. The system's `makewhatis`, upstream's script, which does that with
+the system's own `sed` and `sort`, makes the same, which `tests/programs`
+checks of sections 4 and 7.
 
 `makewhatis.sed` took a page's section only from a heading that says
 "UNIX Programmer's Manual", and took off only the underlining of a
 name. The pages of mdoc, 45 of them, say "BSD Programmer's Manual" or
 "BSD Reference Manual", and make the name bold, so `whatis lseek` said
 "l^Hls^Hse^Hee^Hek^Hk (l)". It takes the section from any heading that
-ends in "Manual" now, and takes off what is printed over, either way. A
-bug on the PDP-11 too. `shar`'s page's heading names an institute,
+ends in "Manual" now, and takes off what is printed over, either way. It
+also made one blank of each run of them only after a letter, a digit or
+a comma, and `nroff -h` writes a tab for spaces where it can: `ncheck`'s
+line has two spaces after its dash, and was "8 ncheck -", a tab, and the
+rest, with no section. A run after a dash is one blank now too, which
+mends eight lines of the library's, "(3) -" with spaces after it. Bugs
+on the PDP-11 too. `shar`'s page's heading names an institute,
 and has no section in `whatis`.
 
 What upstream does that is left as it is:
@@ -1199,8 +1205,130 @@ has a page yet.
 `-ms`, with `-me`, and with superscripts and fonts for its own table,
 `-T37` and `-Tlpr`; show pages with `man`, by section, by another name,
 and to say where one is; look pages up with `whatis` and `apropos`; and
-make the lines of `whatis` for two sections again. At the terminal it
+make `whatis` of copies of two sections with `makewhatis`. At the terminal it
 shows `ls`'s page with `man`, which `more` pages through.
+
+## Disks and file systems
+
+Then the programs that read a disk or a file system directly, and
+`fstat`.
+
+| Where | |
+|---|---|
+| `/bin` | `disklabel` |
+| `/sbin` | `dcheck`, `icheck`, `ncheck`, `clri`, `badsect` |
+| `/usr/sbin` | `quot`, `makewhatis` |
+| `/usr/bin` | `fstat` |
+| `/mdec` | `wduboot` and `sduboot`, the boot block, for `disklabel -B` |
+
+`disklabel` prints a disk's label, as the kernel has it or, with `-r`,
+as the disk does, and writes one: from a description in the form it
+prints (`-R`), from that description after an editor has changed it
+(`-e`), or with the boot block (`-B`). It is how a partition is made a
+file system on the system itself, since the kernel mounts only what the
+label calls one ([disks](disks.md)). It writes through the raw device of
+the disk's partition `a`, as upstream's does, and in multi-user the
+kernel opens no disk's raw device for writing while the block device is
+mounted (securelevel 1, `sys_inode.c`): the label of the disk the root
+is on, which is its partition `a`, can be written only from single user,
+where `init` puts the securelevel back to 0. Another disk's can be
+written at any time, its partitions that are open kept where they are. Its `-w`, which makes the label of
+a kind of disk that `/etc/disktab` describes, has no use here: upstream's
+`disktab` describes DEC's disks, and is not installed. A description
+has no line for the number of sectors on the disk, so a label made from
+one counts them from its cylinders, which are the whole drive's, where
+`tools/mkdisk.py` gives the size of the system's part: on a disk shared
+with another system, `disklabel` would let a partition reach into the
+other's part. The kernel refuses that label now as it refuses to read
+one ([disks](disks.md#whose-disk-it-is)), and `disklabel` says "No
+space left on device". `-B` puts `/mdec/wduboot`, for an IDE disk, or
+`sduboot`, for a SCSI one, both `hdboot.s`, in the first sector of
+partition `a`, which is the first of the system's part, so a disk can be
+made one that boots from the system itself, `/boot` being a file to copy
+to it. `disklabel` called its `Warning` with one to three arguments of
+different sizes, and the function took six `int`s; it takes a variable
+list now, as `fsck`'s do.
+
+`icheck` reads every inode of a file system, from its raw device or
+from a file, and says whether each block is in one file or on the free
+list, and with `-s` makes the free list again; `dcheck` whether each
+file's link count is the number of entries for it in directories;
+`ncheck` names the files with given inode numbers, or every file. `clri`
+clears an inode, and `badsect` makes a file whose block is a bad
+sector's, so that nothing else is given it, which `fsck` then keeps as
+an ordinary file. `badsect` gives the block to `mknod` as the device
+number of a file of type `IFMT`, and the kernel kept it where a device's
+number goes, in the inode's first address, which `fsck` takes for the
+block. That is the address's low word on the PDP-11, whose longs have
+their high word first, and its high word on the 286, so `fsck` found
+block 750 as 49152000 and threw the file away. The kernel's `mknod`
+sets the whole address for that type now. `dcheck` lists inode 1, as
+the Seventh Edition's did: `mkfs` makes it, "a historical hack", an
+allocated file with no links, which is what `dcheck` lists. `quot` adds up the blocks and files of each user.
+These are the Seventh Edition's, and had bugs on the PDP-11 too:
+
+- `dcheck` read the inodes twice, and took them for directories both
+  times: the second pass, which compares each link count with the
+  entries the first counted, never ran, and it found nothing wrong but
+  entries for inodes out of range. It also read only a directory's
+  first block, and took that for every block after it.
+- `icheck` counted the double indirect blocks twice in the total it
+  says are used, and the triple ones not at all.
+- `ncheck` read the superblock's 1K block into a structure under half
+  that size, over what follows it, and printed the number of a block
+  it could not read as an `int`.
+- `clri` read nothing to check that an inode could be read:
+  `read(f, buf, DEV_BSIZE != DEV_BSIZE)`.
+- `badsect`, given a sector out of range, said so for ever.
+- `icheck`, `ncheck` and `quot` read the superblock as the size of its
+  structure, which a raw device here refuses, moving whole sectors
+  only ([disks](disks.md#devices)); they read the block it is in, as
+  `dcheck` does. That also keeps `icheck -s` from writing what follows
+  the structure in its memory over the rest of the block.
+- `quot` never noted each user's number, so one with no name was `#0`;
+  sorted users by name, which one with no name does not have; and put
+  the name of user 300 one past the end of its table of 300. Its file
+  system, when it is given none, is `/dev/rwd0a` here, where it was the
+  PDP-11's `rxp0a` and `rxp0h`.
+
+The disks' devices are the group `operator`'s, as upstream's `MAKEDEV`
+makes them, and `disklabel` and `quot` run with that group, as upstream
+installs them, so that an operator may run them; the swap areas' block
+devices are `kmem`'s, for `ps`.
+
+`fstat` lists the files each process has open, its working directory and
+its program's text, as upstream's does. It finds a process's user
+structure as `ps` does, in the kernel's slot or at `p_addr`, where the
+PDP-11's read it from the swap device for a process swapped out; and
+the network's sockets in the network's segment, as `netstat` does,
+where the PDP-11's read them at the click `_netdata` gives
+([programs that read the kernel](#programs-that-read-the-kernel)). It
+went on with a zombie, which has no user structure: it listed the files
+of the process before it, and took the zombie's exit status, which
+shares a union with `p_textp`, for its text. It leaves zombies out now.
+
+`makewhatis` is upstream's script, which makes `whatis` with
+`makewhatis.sed` of the pages in a directory of them, `/usr/man` unless
+it is given another ([nroff and the manual](#nroff-and-the-manual)).
+
+`tests/programs` has a second disk of 3.4 MB, the AT disk controller's
+second drive, with room for a file system in partition `a` and partition
+`e` unused. `disklabel` must print the first disk's label, the same from
+the kernel as from the disk, and be refused writing it. On the second
+disk it must make `e` a file system with `-R`, after which `newfs` makes
+one there and `mount` mounts it, where `mount` refused it before; refuse
+a label in which `e` runs 7 sectors past the system's part, which
+`disklabel` lets through itself; give the label a name with `-e` and an
+editor that is a script; and write the boot block again after a sector
+of the kernel has been written over it. `badsect` makes a file of a
+sector in `e`, which `fsck -y` keeps; `icheck` must find that sector's
+block in it, `ncheck` must name every file, `dcheck` must find nothing
+wrong, and `quot` must add up two users' files, and name each file's
+owner from `ncheck`'s list. In a file system of its own in `a`, `clri`
+clears the inode of a file, which `dcheck` must notice and `fsck` mend. `fstat` must list what a `sleep`
+has open, who has `/etc/motd` open, `syslogd`'s socket in the UNIX
+domain and `inetd`'s on the Internet. Afterwards `tools/fsck.py` must
+find nothing wrong with the file system in `e`.
 
 ## The root file system
 
@@ -1295,7 +1423,8 @@ network's others [after them](#the-networks-programs), and mail's
 `/usr/msgs`. `nroff`'s macros, its printers' tables and the manual are
 [after those](#nroff-and-the-manual): `tools/mkman.py` writes a list of
 the manual's pages and their links, which `root.proto` takes in with a
-line `i ../../../obj/man/man.proto`.
+line `i ../../../obj/man/man.proto`. The programs for disks and file
+systems are [after the manual](#disks-and-file-systems).
 
 The programs are in it without their symbol tables, as upstream's
 `install -s` leaves them. `obj/bin` has each as it was linked, with its
@@ -1313,9 +1442,9 @@ kernel](#programs-that-read-the-kernel)). The system's own `strip` makes
 of a file what `tools/strip.py` does, which `tests/programs` checks on
 the kernel.
 
-The file system is 12000 blocks of 1K, of which the system takes 7650.
-The 220 programs are 3.7 MB of that, and 4.3 MB with their symbols, and
-the manual's pages are 2.1 MB in 2500 blocks. It was 8000 blocks until
+The file system is 12000 blocks of 1K, of which the system takes 7820.
+The 228 programs are 3.8 MB of that, and 4.4 MB with their symbols, and
+the manual's pages are 2.1 MB in about 2500 blocks. It was 8000 blocks until
 the manual came. A machine's own disk is made with as many as it has
 room for (`make root ROOTSIZE=...`, or `tools/mkfs.py -s`).
 
@@ -1451,7 +1580,7 @@ copied files.
 `tests/programs` boots the same system from a disk with the root, a
 swap area and a small file system of checks, logs in as root on the
 first serial port, mounts that file system and runs its `check.sh`. For
-each of the 82 checks in `tests/programs/checks` it runs the check's
+each of the 96 checks in `tests/programs/checks` it runs the check's
 lines with the shell in an empty directory and compares what they wrote
 with what the check says they must, and says `ok` or shows what was
 written. A check is of one program, by its name, or of one use of it:
@@ -1459,8 +1588,10 @@ written. A check is of one program, by its name, or of one use of it:
 it holds in memory, so that it merges files; `diff` has four, among
 them one of directories and one against an empty file; `nroff` formats
 three of the manual's pages and must make of each what the build did
-([nroff and the manual](#nroff-and-the-manual)). The test fails
-unless all 82 say `ok`. Then, at the terminal, it runs `tty` and `mesg`;
+([nroff and the manual](#nroff-and-the-manual)); and `disklabel` and
+the programs that read a file system directly work on a second disk
+([disks and file systems](#disks-and-file-systems)). The test fails
+unless all 96 say `ok`. Then, at the terminal, it runs `tty` and `mesg`;
 pages through a file and through a pipe with `more`, and through `ls`'s
 page with `man`; records a shell
 with `script`, which it leaves with ^D, and finds the command it typed
@@ -1522,9 +1653,7 @@ Not done, or not tested:
   not been tried, only its `preserve` command, which runs the same
   `expreserve`.
 - Many programs are not built yet. [What is not ported](unported.md)
-  lists them, with what each waits on. With no `disklabel`, a partition
-  can be made a file system only where `tools/mkdisk.py` labelled it
-  one: the kernel mounts nothing else.
+  lists them, with what each waits on.
 - Of the network's programs, `tests/network` has only the machine
   itself to talk to, and the emulator's gateway for one hop of
   `traceroute`: nothing has been tried against another system's `ftpd`,
@@ -1559,6 +1688,13 @@ Not done, or not tested:
   itself, so its driver counts no seeks, as upstream's MSCP driver
   counts none; upstream's drivers count them where they give the drive
   a seek to do.
+- `fsck` does not put right the superblock's count of free inodes,
+  which it compares only with `-d`, and then wrongly by one; `clri`
+  leaves that count short by one for each inode it clears. And its
+  first pass stops before the last inode (`inumber < imax`, where the
+  inodes are numbered from 1 to `imax`), so pass 2 would take a file in
+  that inode for one not allocated and offer to remove its entry. Both
+  are upstream's, the second found by reading and not tried.
 - `fsck` keeps its tables in what is left of 56K of data, as on the
   PDP-11: room for a file system of about 40 MB with an inode for each
   4K, `newfs`'s default. A bigger one needs a scratch file, `fsck -t`,

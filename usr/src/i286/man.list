@@ -61,26 +61,29 @@ cat4	man/man4/arp.4 man/man4/icmp.4 man/man4/inet.4 man/man4/ip.4
 cat4	man/man4/lo.4 man/man4/networking.4 man/man4/null.4 man/man4/pty.4
 cat4	man/man4/tcp.4 man/man4/tty.4 man/man4/udp.4
 cat5	man/man5/Makefile usr.sbin/cron/crontab.5 libexec/tcpd/hosts_access.5
-cat5	libexec/tcpd/hosts_options.5
+cat5	libexec/tcpd/hosts_options.5 bin/disklabel/disklabel.5.5
 cat7	man/man7/Makefile
 
 cat8	man/man8/intro.8 man/man8/fsck.8 man/man8/getty.8 man/man8/makekey.8
 cat8	man/man8/rc.8 man/man8/routed.8 man/man8/sendmail.8 man/man8/sync.8
 cat8	man/man8/timed.8 man/man8/timedc.8
-cat8	bin/ping/ping.8 bin/sysctl/sysctl.8 libexec/acctd/acctd.8
-cat8	libexec/comsat/comsat.8 libexec/fingerd/fingerd.8 libexec/ftpd/ftpd.8
-cat8	libexec/popper/popper.8 libexec/rexecd/rexecd.8
+cat8	bin/disklabel/disklabel.8 bin/ping/ping.8 bin/sysctl/sysctl.8
+cat8	libexec/acctd/acctd.8 libexec/comsat/comsat.8 libexec/fingerd/fingerd.8
+cat8	libexec/ftpd/ftpd.8 libexec/popper/popper.8 libexec/rexecd/rexecd.8
 cat8	libexec/rlogind/rlogind.8 libexec/rshd/rshd.8 libexec/talkd/talkd.8
 cat8	libexec/tcpd/tcpd.8 libexec/tcpd/tcpdchk.8 libexec/tcpd/tcpdmatch.8
-cat8	libexec/telnetd/telnetd.8 libexec/tftpd/tftpd.8 sbin/dmesg/dmesg.8
-cat8	sbin/ifconfig/ifconfig.8 sbin/init/init.8 sbin/mkfs/mkfs.8
-cat8	sbin/mknod/mknod.8 sbin/mkpasswd/mkpasswd.8 sbin/mount/mount.8
-cat8	sbin/newfs/newfs.8 sbin/reboot/reboot.8 sbin/route/route.8
-cat8	sbin/shutdown/shutdown.8 sbin/umount/umount.8 usr.bin/renice/renice.8
+cat8	libexec/telnetd/telnetd.8 libexec/tftpd/tftpd.8 sbin/badsect/badsect.8
+cat8	sbin/clri/clri.8 sbin/dcheck/dcheck.8 sbin/dmesg/dmesg.8
+cat8	sbin/icheck/icheck.8 sbin/ifconfig/ifconfig.8 sbin/init/init.8
+cat8	sbin/mkfs/mkfs.8 sbin/mknod/mknod.8 sbin/mkpasswd/mkpasswd.8
+cat8	sbin/mount/mount.8 sbin/ncheck/ncheck.8 sbin/newfs/newfs.8
+cat8	sbin/reboot/reboot.8 sbin/route/route.8 sbin/shutdown/shutdown.8
+cat8	sbin/umount/umount.8 usr.bin/fstat/fstat.8 usr.bin/renice/renice.8
 cat8	usr.sbin/ac/ac.8 usr.sbin/accton/accton.8 usr.sbin/arp/arp.8
 cat8	usr.sbin/chown/chown.8 usr.sbin/chroot/chroot.8 usr.sbin/cron/cron.8
 cat8	usr.sbin/dev_mkdb/dev_mkdb.8 usr.sbin/inetd/inetd.8
-cat8	usr.sbin/ntp/man/ntp.8 usr.sbin/ntp/man/ntpd.8 usr.sbin/ntp/man/ntpdc.8
-cat8	usr.sbin/pstat/pstat.8 usr.sbin/rwhod/rwhod.8 usr.sbin/sa/sa.8
+cat8	usr.sbin/makewhatis/makewhatis.8 usr.sbin/ntp/man/ntp.8
+cat8	usr.sbin/ntp/man/ntpd.8 usr.sbin/ntp/man/ntpdc.8 usr.sbin/pstat/pstat.8
+cat8	usr.sbin/quot/quot.8 usr.sbin/rwhod/rwhod.8 usr.sbin/sa/sa.8
 cat8	usr.sbin/syslogd/syslogd.8 usr.sbin/traceroute/traceroute.8
 cat8	usr.sbin/update/update.8 usr.sbin/vipw/vipw.8

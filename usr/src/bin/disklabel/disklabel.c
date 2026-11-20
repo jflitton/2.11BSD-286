@@ -55,6 +55,7 @@ static char sccsid[] = "@(#)disklabel.c	8.1.5 (2.11BSD) 2026/9/21";
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <stdarg.h>
 #include <strings.h>
 #include <paths.h>
 
@@ -115,6 +116,7 @@ int	debug;
 #endif
 
 int parse_sec_cyl(struct disklabel *, char *, long *);
+int Warning(char *, ...);
 
 main(argc, argv)
 	int argc;
@@ -226,7 +228,7 @@ main(argc, argv)
 
 	case RESTORE:
 		if (installboot && argc == 3) {
-			makelabel(argv[2], 0, &lab);
+			makelabel(argv[2], (char *)0, &lab);
 			argc--;
 		}
 		if (argc != 2)
@@ -265,7 +267,7 @@ main(argc, argv)
 		lp = readlabel(f);
 		tlab = *lp;
 		if (argc == 2)
-			makelabel(argv[1], 0, &lab);
+			makelabel(argv[1], (char *)0, &lab);
 		lp = makebootarea(bootarea, &lab, f);
 		*lp = tlab;
 		if (checklabel(lp) == 0)
@@ -777,7 +779,7 @@ getasciilabel(f, lp)
 				}
 			v = atoi(tp);
 			if ((unsigned)v >= DKMAXTYPES)
-				fprintf(stderr, "line %d:%s %d\n", lineno,
+				fprintf(stderr, "line %d:%s %ld\n", lineno,
 				    "Warning, unknown disk type", v);
 			lp->d_type = v;
 			continue;
@@ -1115,13 +1117,14 @@ checklabel(lp)
 	return (errors);
 }
 
-/*VARARGS1*/
-Warning(fmt, a1, a2, a3, a4, a5)
-	char *fmt;
+Warning(char *fmt, ...)
 {
+	va_list ap;
 
 	fprintf(stderr, "Warning, ");
-	fprintf(stderr, fmt, a1, a2, a3, a4, a5);
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
 	fprintf(stderr, "\n");
 }
 

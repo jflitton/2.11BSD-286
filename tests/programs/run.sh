@@ -1,9 +1,11 @@
 #!/bin/sh
-# Test the programs that work on text and files: boot the system from a
-# hard disk to multi-user, log in on the first serial port as root, and
-# have it run each of the checks in tests/programs/checks, which are on a
-# file system of their own with the files they read.  A check is a few
-# lines for the shell and what they must write, to the byte.  Then use
+# Test the programs that work on text and files, and those for disks and
+# file systems: boot the system from a hard disk to multi-user, with a
+# second disk for disklabel and the rest to write on, log in on the first
+# serial port as root, and have it run each of the checks in
+# tests/programs/checks, which are on a file system of their own with the
+# files they read.  A check is a few lines for the shell and what they
+# must write, to the byte.  Then use
 # what needs a terminal: tty and mesg, more, man, script, lock, tset and
 # clear; and stop the system with shutdown.  The kernel, /boot, the C
 # library, the programs and the root file system are built as they would
@@ -53,6 +55,12 @@ python3 -I "$top/tools/mkfs.py" -s 800 checks.proto checks.fs >/dev/null
 stand=$top/obj/stand
 geometry=$(python3 -I "$top/tools/mkdisk.py" -p -b "$stand/hdboot.bin" \
     -m "$stand/mbr.bin" programs.img a=root.fs b=swap:4000 d=checks.fs | tail -1)
+# A second disk, of 3.4 MB, the AT disk controller's second drive, for
+# disklabel to write the label of: in multi-user the kernel will not let
+# it write the first disk's, whose partition a is the root.  Its label
+# has room for a file system in a, and partition e unused.
+spare=$(python3 -I "$top/tools/mkdisk.py" -p -g 100,4,17 spare.img a=fs:2000 \
+    e=2000 | tail -1)
 
 # What is typed waits for something only the system writes, as in
 # tests/system: a typed line is echoed, so what it waits for is split by
@@ -60,7 +68,7 @@ geometry=$(python3 -I "$top/tools/mkdisk.py" -p -b "$stand/hdboot.bin" \
 # the end of the file: one that is at a terminal does not obey exit.
 CTRLD=$(printf '\004')
 TIMEOUT=${TIMEOUT:-900} python3 -I "$top/tests/harness/runtest.py" \
-    --hd programs.img,$geometry,xtide --until halting \
+    --hd programs.img,$geometry,xtide --hd2 spare.img,$spare --until halting \
     --type "login: " "root" \
     --type "# " 'mount /dev/wd0d /mnt; sh /mnt/check.sh; umount /mnt' \
     --type "checks: " 'tty; mesg; mesg n; mesg; mesg y' \
@@ -107,4 +115,5 @@ for want in "^/dev/tty00" "^is y" "^is n" "--More--(.*%)" \
     fi
 done
 python3 -I "$top/tools/fsck.py" programs.img
-echo "programs: $n checks of the programs that work on text and files and of nroff and man, and tty, mesg, more, man, script, lock, tset, clear and shutdown at a terminal"
+python3 -I "$top/tools/fsck.py" -p e spare.img
+echo "programs: $n checks of the programs that work on text and files, of nroff and man, and of disklabel, the file system checkers and fstat, and tty, mesg, more, man, script, lock, tset, clear and shutdown at a terminal"

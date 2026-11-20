@@ -286,8 +286,8 @@ wdioctl(dev, cmd, data, flag)
 	caddr_t data;
 	int flag;
 {
-	return (ioctldisklabel(dev, cmd, data, flag, &wd[dkunit(dev)].wd_dk,
-	    wdstrategy));
+	return (pcdkioctl(&wd[dkunit(dev)].wd_dk, dev, cmd, data, flag,
+	    wdstrategy, &wd[dkunit(dev)].wd_geom));
 }
 
 /*

@@ -254,8 +254,8 @@ sdioctl(dev, cmd, data, flag)
 	caddr_t data;
 	int flag;
 {
-	return (ioctldisklabel(dev, cmd, data, flag, &sd[dkunit(dev)].sd_dk,
-	    sdstrategy));
+	return (pcdkioctl(&sd[dkunit(dev)].sd_dk, dev, cmd, data, flag,
+	    sdstrategy, &sd[dkunit(dev)].sd_geom));
 }
 
 /*
