@@ -1521,11 +1521,8 @@ Not done, or not tested:
 - `ex`'s saving of what it was editing when its terminal hangs up has
   not been tried, only its `preserve` command, which runs the same
   `expreserve`.
-- Many programs are not built yet: of the network's, `named` and
-  `identd`; the compiler and what works on object files, among them
-  `/lib/cpp`, which `calendar` waits for; `troff`, and `tbl`, `eqn` and
-  the rest that `nroff` is given documents through;
-  the line printer's; and `disklabel`. With no `disklabel`, a partition
+- Many programs are not built yet. [What is not ported](unported.md)
+  lists them, with what each waits on. With no `disklabel`, a partition
   can be made a file system only where `tools/mkdisk.py` labelled it
   one: the kernel mounts nothing else.
 - Of the network's programs, `tests/network` has only the machine

@@ -49,7 +49,7 @@ The PDP-11 and the 286 are close enough that the tree carries over:
 - Not there yet: a compiler on the system itself, and the programs that
   work on object files; `named` and `identd`; `troff`, `tbl` and `eqn`;
   the line printer's programs and UUCP; `disklabel`; quotas in the
-  kernel.
+  kernel. [What is not ported](docs/unported.md) has the whole list.
 - Upstream's programs are kept as 2.11BSD has them, changed only for
   bugs, the compiler and each machine's settings. Newer behaviour goes
   in programs of the port's own: so far `adduser` and `bench`.
@@ -89,6 +89,8 @@ the tests, which boot the system in 86Box and check what it does.
 - The system: [the console](docs/console.md), [the
   network](docs/network.md), [the C library and programs](docs/userland.md),
   [performance](docs/performance.md).
+- [What is not ported](docs/unported.md), and what each program waits
+  on.
 
 ## License
 
