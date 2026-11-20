@@ -17,8 +17,8 @@
 #
 #	@(#)makewhatis.sed	5.4 (2.11BSD) 12/10/2020
 #
-/(\([a-zA-Z0-9]*\).*UNIX Programmer's Manual/ {
-	s;.*(\([a-zA-Z0-9]*\).*UNIX.*;\1;
+/(\([a-zA-Z0-9]*\).* Manual/ {
+	s;.*(\([a-zA-Z0-9]*\).* Manual.*;\1;
 	h
 	d
 }
@@ -30,8 +30,9 @@ s/^NNAAMMEE$/NAME/
 	s;.*;;
 	N
 	s;\n;;
-	# some twits underline the command name
-	s;_;;g
+	# some twits underline the command name, and mdoc's pages make it
+	# bold: either is a character and a backspace before what shows
+	s;.;;g
 	/^[^	 ]/b print
 	H
 	b name

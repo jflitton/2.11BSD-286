@@ -20,12 +20,14 @@ with # are ignored.  Modes are octal.
     b PATH MODE MAJOR MINOR         a block device
     l PATH TARGET                   a symbolic link
     h PATH OTHER                    another name for OTHER, a file
+    i PROTO                         the lines of another PROTO, here
 
-FILE is relative to the directory PROTO is in.  The root directory exists
-already.  Everything is owned by root, and is in group 0, unless MODE is
-followed by a colon and the number of another group, or the numbers of
-an owner and a group with a dot between them, as chown has them: 2755:2
-is a program that runs with group kmem, 4755:1.1 one that runs as daemon.
+FILE is relative to the directory of the PROTO that names it.  The root
+directory exists already.  Everything is owned by root, and is in group
+0, unless MODE is followed by a colon and the number of another group,
+or the numbers of an owner and a group with a dot between them, as chown
+has them: 2755:2 is a program that runs with group kmem, 4755:1.1 one
+that runs as daemon.
 """
 import os
 import struct
@@ -97,7 +99,6 @@ def main():
     if len(args) != 2:
         sys.exit(__doc__)
     proto, image = args
-    here = os.path.dirname(os.path.abspath(proto))
 
     inodes = {ROOTINO: Inode(IFDIR | 0o755)}
     inodes[ROOTINO].entries = [(".", ROOTINO), ("..", ROOTINO)]
@@ -131,8 +132,18 @@ def main():
         ip.gid = int(gid or 0)
         return ip
 
-    for n, line in enumerate(open(proto), 1):
-        w = line.split()
+    def lines(proto):
+        """PROTO's lines, and those of the files it includes in their
+        places, each with its file, the file's directory and its number."""
+        here = os.path.dirname(os.path.abspath(proto))
+        for n, line in enumerate(open(proto), 1):
+            w = line.split()
+            if len(w) == 2 and w[0] == "i":
+                yield from lines(os.path.join(here, w[1]))
+            else:
+                yield proto, here, n, w
+
+    for proto, here, n, w in lines(proto):
         if not w or w[0].startswith("#"):
             continue
         try:

@@ -296,7 +296,7 @@ lt:
 }
 
 void
-catch(){
+catch(int sig){
 /*
 	warnx("Interrupt");
 */
@@ -304,13 +304,13 @@ catch(){
 }
 
 void
-fpecatch()
+fpecatch(int sig)
 {
 	errx(1, "Floating Exception.");
 }
 
 void
-kcatch(){
+kcatch(int sig){
 	signal(SIGTERM,SIG_IGN);
 	done3(01);
 }

@@ -194,6 +194,7 @@ DOS and OS/2 user's guide with nothing on ports or interrupts; not kept.)
 | `tools/commonize.py` | gives an object's uninitialized variables common storage, as the tree's C expects |
 | `tools/mkerrlst.py` | makes `/etc/syserrlst`, the system's error messages |
 | `tools/mkpasswd.py` | makes `/etc/passwd` and the password database from `master.passwd`, as `mkpasswd -p` does |
+| `tools/mkman.py` | formats the manual's pages for `/usr/man` with the host's build of `nroff`, with upstream's links among them and the `whatis` database |
 | `tools/ne2aout.py` | turns the linker's output into the system's executable format; `--dump` prints one |
 | `tools/mkfd.py` | makes a bootable diskette image from an executable, with a file system image for the kernel's RAM disk if wanted |
 | `tools/mkfs.py` | makes a file system image from a list of files, with their modes, owners and groups |
@@ -238,14 +239,15 @@ tests/bench/run.sh      # how fast the system is: its benchmark, each
                         # the emulator's, and a profile of each; fails
                         # only if the measuring does
 tests/network/run.sh    # the network's programs, on the system booted to
-                        # multi-user with an emulated NE2000: 21 checks,
-                        # of ftp, rsh, rcp, tftp, finger, tcpd, nc and
-                        # the daemons, and rlogin and talk at terminals
+                        # multi-user with an emulated NE2000: 33 checks,
+                        # of ftp, rsh, rcp, tftp, finger, tcpd, nc, the
+                        # daemons and mail, and rlogin, biff and talk at
+                        # terminals
 tests/programs/run.sh   # the programs that work on text and files, on the
-                        # system booted to multi-user: 75 checks, each a
-                        # few lines for the shell and what they must write,
-                        # and more, script, lock, tset and shutdown at a
-                        # terminal
+                        # system booted to multi-user, and nroff and man:
+                        # 82 checks, each a few lines for the shell and
+                        # what they must write, and more, man, script,
+                        # lock, tset and shutdown at a terminal
 tests/system/run.sh     # the system, booted from a hard disk to multi-user:
                         # checks its root with fsck and starts again,
                         # logs in on a serial port and on two of the
@@ -319,20 +321,23 @@ tests/vt/run.sh         # the console's terminal emulator, on the machine
   ([the C library and programs](docs/userland.md),
   [the console](docs/console.md), [the network](docs/network.md)).
 - `tests/programs` boots that system too, with a file system of checks
-  beside the root: 75 of them, each a few lines for the shell and what
+  beside the root: 82 of them, each a few lines for the shell and what
   they must write, to the byte, for `sort`, `sed`, `diff`, `tar`,
   `patch`, `m4`, `compress` and the other programs that work on text and
-  files. Then it uses the ones that need a terminal, `more`, `script`,
-  `lock` and `tset`, and stops the system with `shutdown`
+  files, and for `nroff`, which must format three of the manual's pages
+  as the build did, and `man`. Then it uses the ones that need a
+  terminal, `more`, `man`, `script`, `lock` and `tset`, and stops the
+  system with `shutdown`
   ([the C library and programs](docs/userland.md)).
-- `tests/network` boots it with the Ethernet card and has it run 21
+- `tests/network` boots it with the Ethernet card and has it run 33
   checks of the same kind: `finger`, `rsh`, `rcp`, `tftp` and `ftp`, as
   a user and as the anonymous one, against their daemons on the loopback
   interface; `tcpd`'s rules and a connection it refuses; `nc`, `whois`
   and `traceroute`; and `rwhod`, `timed`, `ntpd` and `routed` on the
-  Ethernet card, with the programs that ask them. Then root uses
-  `rlogin`, with a password and without, and talks with `talk` to a user
-  whom the host has logged in with `telnet`
+  Ethernet card, with the programs that ask them; and mail, sent,
+  read, taken by SMTP and fetched by POP3. Then root uses `rlogin`,
+  with a password and without, and talks with `talk` to a user whom the
+  host has logged in with `telnet`, and whom `comsat` tells of a letter
   ([the C library and programs](docs/userland.md#the-networks-programs)).
 - `tests/bench` boots it and runs `bench`, this port's benchmark, while
   the harness times each test by the marks it writes and samples where
@@ -424,7 +429,7 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   system's part of the disk: past its 1024 cylinders, or on a controller
   it does not know.
 - The C library is built for the small and medium models, and with them
-  217 of the system's programs: `init`, `getty`, `login`, the Bourne shell and the
+  220 of the system's programs: `init`, `getty`, `login`, the Bourne shell and the
   everyday commands in the small model, and in the medium the C shell,
   `tcsh`, `ex`, which is `vi`, and `sendmail`, whose code the PDP-11 had
   to split into overlays ([the C library and programs](docs/userland.md)).
@@ -452,6 +457,11 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   other, `sendmail`'s daemon takes mail by SMTP once `rc.conf` turns it
   on, `cron` and `at` mail a job's owner what it printed, and `vi` mails
   the user when it has saved what was being edited.
+  `nroff` formats text, with `-man`, `-mdoc`, `-ms` or `-me`, and the
+  manual is on the system: `man`, `apropos` and `whatis`, with the pages
+  of its programs, calls, libraries and files formatted when the system
+  is built, by the tree's `nroff` built for the machine it is built on,
+  which formats them as the system's own does.
   The system boots from its disk to multi-user, and one logs in on the
   console or a serial port, works in any of the three shells, and edits
   with `vi`.
@@ -477,7 +487,7 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
 - What user space does not have: a library for the large model, and
   many of the programs: of the network's, `named` and `identd`; the
   compiler and what works on object files, and `calendar`, which runs
-  its preprocessor; and `nroff`.
+  its preprocessor; and `troff`, `tbl` and `eqn`.
 - Upstream's programs are kept as 2.11BSD has them, changed only for
   bugs, the compiler and the settings each machine makes. Newer
   behaviour goes in programs of this port's own beside them: so far

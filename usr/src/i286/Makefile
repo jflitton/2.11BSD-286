@@ -400,6 +400,23 @@ popper_SRCS=	$(addprefix libexec/popper/,pop_dele.c pop_dropcopy.c \
 popper_FLAGS=	-DBIND43
 MAILPROGS=	sendmail mail Mail fmt comsat biff from msgs vacation popper
 
+# nroff, which formats text for a terminal or a printer, by the macros
+# in /usr/share/tmac and a printer's table in /usr/share/term (below);
+# man, which shows a page of the manual, formatted already (the manual,
+# below); and apropos, also whatis, which finds pages by what their
+# names say.  nroff had separate I and D on the PDP-11, and is small here.
+# Upstream's preprocessor says __BSD2_11__, which is where nroff finds
+# its paths; this compiler is told.
+NROFF=		$(addprefix common_source/,ni.c nii.c n1.c n2.c n3.c n4.c \
+		n5.c) nroff/n6.c $(addprefix common_source/,n7.c n8.c n9.c) \
+		nroff/n10.c common_source/hytab.c nroff/ntab.c \
+		common_source/suftab.c
+nroff_SRCS=	$(addprefix usr.bin/roff/,$(NROFF))
+nroff_FLAGS=	-DNROFF -D__BSD2_11__ -I$(SRC)/usr.bin/roff/common_source
+man_SRCS=	ucb/man/man.c
+apropos_SRCS=	ucb/man/apropos.c
+DOCPROGS=	nroff man apropos
+
 # This port's own (docs/userland.md), each in a directory here.
 adduser_SRCS=	i286/adduser/adduser.c
 bench_SRCS=	i286/bench/bench.c
@@ -408,7 +425,7 @@ OWNPROGS=	adduser bench
 PROGS=	init getty login sh csh ls mkdir stty test hostname mknod mount \
 	umount reboot sleep ex exrecover expreserve tcsh $(BINSTD) \
 	$(NETPROGS) $(SYSPROGS) $(KMEMPROGS) $(LOGPROGS) $(YACCPROGS) \
-	$(TEXTPROGS) $(NET2PROGS) $(MAILPROGS) $(OWNPROGS)
+	$(TEXTPROGS) $(NET2PROGS) $(MAILPROGS) $(DOCPROGS) $(OWNPROGS)
 
 # The libraries the programs use besides the C library: NAME_LIB lists a
 # library's sources, and NAME_LIBFLAGS what it is compiled with.  Each is
@@ -499,6 +516,18 @@ $(LEX): $(addprefix $(LSRC)/,lmain.c sub1.c sub2.c header.c ldefs.c once.c \
 	    '-DNCFORM="$(LSRC)/ncform"' '-DNRFORM="$(LSRC)/nrform"' \
 	    -I$(LSRC) -o $@ $(addprefix $(LSRC)/,lmain.c sub1.c sub2.c \
 	    header.c) $(H)/lex.y.c
+
+# nroff, which formats the manual (below) as the system's would, which
+# tests/programs checks.  It is the system's but that it looks for its
+# macros in tmac/, and its printers' tables in term/, of the directory
+# it is run in, where it is.
+NR=	$(SRC)/usr.bin/roff
+$(H)/nroff: $(addprefix $(NR)/,$(NROFF)) $(wildcard $(NR)/common_source/*.h) \
+		| $(H)
+	@echo hostcc nroff
+	@$(HOSTCC) $(HOSTCFLAGS) -DNROFF '-D_PATH_TMAC="tmac/"' \
+	    '-D_PATH_TERMTAB="term/"' -I$(NR)/common_source -o $@ \
+	    $(addprefix $(NR)/,$(NROFF))
 
 # yacc and lex leave their files, under names of their own, in the
 # directory they run in: each runs in one made for it.
@@ -608,7 +637,7 @@ $(foreach l,$(LIBRARIES),$(foreach m,s m,$(eval $(call library,$(l),$(m)))))
 # same and are an eighth smaller.  make root STRIP=no copies the programs
 # as they are, for when the symbols are wanted on the system itself.
 R=	$(TOP)/obj/root
-ROOTSIZE= 8000
+ROOTSIZE= 12000
 ROOTDISK= wd0
 STRIP=	yes
 
@@ -665,14 +694,70 @@ $(R)/termcap: $(wildcard $(SRC)/share/termcap/*) $(TOP)/tools/mktermcap.py \
 		| $(R)
 	python3 -I $(TOP)/tools/mktermcap.py $(SRC)/share/termcap $@
 
+# nroff's macros, as upstream installs them in /usr/share/tmac: most as
+# they are, and mdoc's, which is doc and the files it reads, and -me's,
+# which go in /usr/share/me but for tmac.e, without their comments, by
+# strip.sed (the -me Makefile has the same sed in its own lines).
+TM=	$(SRC)/share/tmac
+MDOC=	doc doc-ditroff doc-common doc-nroff doc-syms
+MEFILES= tmac.e acm.me chars.me deltext.me eqn.me float.me footnote.me \
+	index.me local.me null.me refer.me sh.me tbl.me thesis.me
+
+$(R)/tmac $(R)/me $(R)/term $(H)/tmac:
+	mkdir -p $@
+$(addprefix $(R)/tmac/tmac.,$(MDOC)): $(R)/tmac/tmac.%: $(TM)/% \
+		$(TM)/strip.sed | $(R)/tmac
+	LC_ALL=C sed -f $(TM)/strip.sed $< > $@
+$(addprefix $(R)/me/,$(MEFILES)): $(R)/me/%: $(SRC)/share/me/% \
+		$(TM)/strip.sed | $(R)/me
+	LC_ALL=C sed -f $(TM)/strip.sed $< > $@
+
+# The tables of the printers nroff drives besides a terminal, for -T:
+# each is a table in C, which mktab, built with it for this machine,
+# writes out as the text nroff reads.
+NT=	$(SRC)/usr.bin/roff/nroff_term
+TERMS=	37 lpr 300 300-12 302 302-12 382 382-12 450 450-12 833 833-12 epson \
+	itoh itoh12 nec nec12 nec-t nec25-t qume qume12 xerox xerox12 x-ecs \
+	x-ecs12
+$(R)/term/tab%.tab: $(NT)/tab%.c $(NT)/mktab.c $(NR)/common_source/tw.h \
+		| $(R)/term $(H)
+	@echo mktab tab$*
+	@$(HOSTCC) $(HOSTCFLAGS) -I$(NR)/common_source -o $(H)/mktab$* \
+	    $(NT)/mktab.c $<
+	@$(H)/mktab$* > $@
+
+# The manual: the pages man.list names, formatted by the host's nroff
+# with the macros the system has, but that the copies of those it reads
+# look for each other in tmac/, beside it, where the system's say
+# /usr/share/tmac/; and the links among them and /usr/man/whatis.  What
+# tools/mkman.py makes is in obj/man, with man.proto, which root.proto
+# includes.
+MANO=	$(TOP)/obj/man
+MANLIST:= $(shell awk '$$1 ~ /^cat/ { for (i = 2; i <= NF; i++) print $$i }' \
+	man.list)
+MANSRCS:= $(addprefix $(SRC)/,$(MANLIST)) $(wildcard $(SRC)/man/man*/* \
+	$(addprefix $(SRC)/,$(addsuffix Makefile,$(dir $(MANLIST)))))
+HTMAC=	$(addprefix $(H)/tmac/tmac.,an an.new an6n an6t $(MDOC))
+$(filter-out $(addprefix %.,$(MDOC)),$(HTMAC)): $(H)/tmac/%: $(TM)/% \
+		| $(H)/tmac
+	LC_ALL=C sed 's,/usr/share/tmac/,tmac/,' $< > $@
+$(filter $(addprefix %.,$(MDOC)),$(HTMAC)): $(H)/tmac/%: $(R)/tmac/% \
+		| $(H)/tmac
+	LC_ALL=C sed 's,/usr/share/tmac/,tmac/,' $< > $@
+$(MANO)/man.proto: man.list $(MANSRCS) $(SRC)/man/makewhatis.sed $(HDRS) \
+		$(H)/nroff $(HTMAC) $(TOP)/tools/mkman.py
+	@python3 -I $(TOP)/tools/mkman.py $(H)/nroff $(SRC) man.list $(MANO)
+
 $(R)/root.fs: root.proto $(wildcard etc/* root/* skel/*) \
 		$(addprefix $(R)/bin/,$(PROGS)) \
 		$(R)/passwd $(R)/passwd.dir $(R)/passwd.pag $(R)/fstab \
 		$(R)/syserrlst $(R)/aliases.dir $(R)/aliases.pag $(R)/empty \
-		$(R)/zero $(R)/termcap \
+		$(R)/zero $(R)/termcap $(addprefix $(R)/tmac/tmac.,$(MDOC)) \
+		$(addprefix $(R)/me/,$(MEFILES)) \
+		$(patsubst %,$(R)/term/tab%.tab,$(TERMS)) $(MANO)/man.proto \
 		$(TOP)/obj/PC/unix $(TOP)/obj/stand/boot
 	python3 -I $(TOP)/tools/mkfs.py -s $(ROOTSIZE) root.proto $@
 
 clean:
-	rm -rf $(O) $(EXO) $(TCO) $(H) $(G) $(R) $(foreach l,$(LIBRARIES),$(LIB)/[sm]/$(l) \
-	    $(LIB)/[sm]/lib$(l).lib)
+	rm -rf $(O) $(EXO) $(TCO) $(H) $(G) $(R) $(MANO) \
+	    $(foreach l,$(LIBRARIES),$(LIB)/[sm]/$(l) $(LIB)/[sm]/lib$(l).lib)

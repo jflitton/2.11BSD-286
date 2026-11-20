@@ -345,6 +345,102 @@ f /usr/ucb/from 755 ../../../obj/root/bin/from
 f /usr/ucb/msgs 755 ../../../obj/root/bin/msgs
 f /usr/ucb/vacation 755 ../../../obj/root/bin/vacation
 f /usr/libexec/popper 700 ../../../obj/root/bin/popper
+f /usr/bin/nroff 755 ../../../obj/root/bin/nroff
+d /usr/share/tmac 755
+f /usr/share/tmac/tmac.a 444 ../share/tmac/tmac.a
+f /usr/share/tmac/tmac.an 444 ../share/tmac/tmac.an
+f /usr/share/tmac/tmac.an.new 444 ../share/tmac/tmac.an.new
+f /usr/share/tmac/tmac.an6n 444 ../share/tmac/tmac.an6n
+f /usr/share/tmac/tmac.an6t 444 ../share/tmac/tmac.an6t
+f /usr/share/tmac/tmac.ayday 444 ../share/tmac/tmac.ayday
+f /usr/share/tmac/tmac.cp 444 ../share/tmac/tmac.cp
+f /usr/share/tmac/tmac.imagen 444 ../share/tmac/tmac.imagen
+f /usr/share/tmac/tmac.os 444 ../share/tmac/tmac.os
+f /usr/share/tmac/tmac.r 444 ../share/tmac/tmac.r
+f /usr/share/tmac/tmac.s 444 ../share/tmac/tmac.s
+f /usr/share/tmac/tmac.scover 444 ../share/tmac/tmac.scover
+f /usr/share/tmac/tmac.sdisp 444 ../share/tmac/tmac.sdisp
+f /usr/share/tmac/tmac.skeep 444 ../share/tmac/tmac.skeep
+f /usr/share/tmac/tmac.srefs 444 ../share/tmac/tmac.srefs
+f /usr/share/tmac/tmac.vcat 444 ../share/tmac/tmac.vcat
+f /usr/share/tmac/tmac.doc 444 ../../../obj/root/tmac/tmac.doc
+f /usr/share/tmac/tmac.doc-ditroff 444 ../../../obj/root/tmac/tmac.doc-ditroff
+f /usr/share/tmac/tmac.doc-common 444 ../../../obj/root/tmac/tmac.doc-common
+f /usr/share/tmac/tmac.doc-nroff 444 ../../../obj/root/tmac/tmac.doc-nroff
+f /usr/share/tmac/tmac.doc-syms 444 ../../../obj/root/tmac/tmac.doc-syms
+f /usr/share/tmac/tmac.e 444 ../../../obj/root/me/tmac.e
+d /usr/share/me 755
+f /usr/share/me/acm.me 444 ../../../obj/root/me/acm.me
+f /usr/share/me/chars.me 444 ../../../obj/root/me/chars.me
+f /usr/share/me/deltext.me 444 ../../../obj/root/me/deltext.me
+f /usr/share/me/eqn.me 444 ../../../obj/root/me/eqn.me
+f /usr/share/me/float.me 444 ../../../obj/root/me/float.me
+f /usr/share/me/footnote.me 444 ../../../obj/root/me/footnote.me
+f /usr/share/me/index.me 444 ../../../obj/root/me/index.me
+f /usr/share/me/local.me 444 ../../../obj/root/me/local.me
+f /usr/share/me/null.me 444 ../../../obj/root/me/null.me
+f /usr/share/me/refer.me 444 ../../../obj/root/me/refer.me
+f /usr/share/me/sh.me 444 ../../../obj/root/me/sh.me
+f /usr/share/me/tbl.me 444 ../../../obj/root/me/tbl.me
+f /usr/share/me/thesis.me 444 ../../../obj/root/me/thesis.me
+f /usr/share/me/revisions 444 ../share/me/revisions
+f /usr/share/me/summary.extern 444 ../share/me/summary.extern
+f /usr/share/me/test.accent 444 ../share/me/test.accent
+f /usr/share/me/test.umlaut 444 ../share/me/test.umlaut
+d /usr/share/ms 755
+f /usr/share/ms/README 444 ../share/ms/README
+f /usr/share/ms/end.awk 444 ../share/ms/end.awk
+f /usr/share/ms/endnote 555 ../share/ms/endnote
+f /usr/share/ms/s.acc 444 ../share/ms/s.acc
+f /usr/share/ms/s.cov 444 ../share/ms/s.cov
+f /usr/share/ms/s.eqn 444 ../share/ms/s.eqn
+f /usr/share/ms/s.ref 444 ../share/ms/s.ref
+f /usr/share/ms/s.tbl 444 ../share/ms/s.tbl
+f /usr/share/ms/s.ths 444 ../share/ms/s.ths
+f /usr/share/ms/s.toc 444 ../share/ms/s.toc
+d /usr/share/term 755
+f /usr/share/term/tab37.tab 755 ../../../obj/root/term/tab37.tab
+f /usr/share/term/tablpr.tab 755 ../../../obj/root/term/tablpr.tab
+f /usr/share/term/tab300.tab 755 ../../../obj/root/term/tab300.tab
+f /usr/share/term/tab300-12.tab 755 ../../../obj/root/term/tab300-12.tab
+f /usr/share/term/tab302.tab 755 ../../../obj/root/term/tab302.tab
+f /usr/share/term/tab302-12.tab 755 ../../../obj/root/term/tab302-12.tab
+f /usr/share/term/tab382.tab 755 ../../../obj/root/term/tab382.tab
+f /usr/share/term/tab382-12.tab 755 ../../../obj/root/term/tab382-12.tab
+f /usr/share/term/tab450.tab 755 ../../../obj/root/term/tab450.tab
+f /usr/share/term/tab450-12.tab 755 ../../../obj/root/term/tab450-12.tab
+f /usr/share/term/tab833.tab 755 ../../../obj/root/term/tab833.tab
+f /usr/share/term/tab833-12.tab 755 ../../../obj/root/term/tab833-12.tab
+f /usr/share/term/tabepson.tab 755 ../../../obj/root/term/tabepson.tab
+f /usr/share/term/tabitoh.tab 755 ../../../obj/root/term/tabitoh.tab
+f /usr/share/term/tabitoh12.tab 755 ../../../obj/root/term/tabitoh12.tab
+f /usr/share/term/tabnec.tab 755 ../../../obj/root/term/tabnec.tab
+f /usr/share/term/tabnec12.tab 755 ../../../obj/root/term/tabnec12.tab
+f /usr/share/term/tabnec-t.tab 755 ../../../obj/root/term/tabnec-t.tab
+f /usr/share/term/tabnec25-t.tab 755 ../../../obj/root/term/tabnec25-t.tab
+f /usr/share/term/tabqume.tab 755 ../../../obj/root/term/tabqume.tab
+f /usr/share/term/tabqume12.tab 755 ../../../obj/root/term/tabqume12.tab
+f /usr/share/term/tabxerox.tab 755 ../../../obj/root/term/tabxerox.tab
+f /usr/share/term/tabxerox12.tab 755 ../../../obj/root/term/tabxerox12.tab
+f /usr/share/term/tabx-ecs.tab 755 ../../../obj/root/term/tabx-ecs.tab
+f /usr/share/term/tabx-ecs12.tab 755 ../../../obj/root/term/tabx-ecs12.tab
+h /usr/share/term/tabtn300.tab /usr/share/term/tablpr.tab
+h /usr/share/term/tabcrt.tab /usr/share/term/tablpr.tab
+h /usr/share/term/tab300s.tab /usr/share/term/tab302.tab
+h /usr/share/term/tab300s-12.tab /usr/share/term/tab302-12.tab
+h /usr/share/term/tabdtc.tab /usr/share/term/tab302.tab
+h /usr/share/term/tabdtc12.tab /usr/share/term/tab302-12.tab
+h /usr/share/term/tabipsi.tab /usr/share/term/tab450.tab
+h /usr/share/term/tabipsi12.tab /usr/share/term/tab450-12.tab
+f /usr/share/term/README 644 ../usr.bin/roff/nroff_term/README
+f /usr/ucb/man 755 ../../../obj/root/bin/man
+f /usr/ucb/apropos 755 ../../../obj/root/bin/apropos
+h /usr/ucb/whatis /usr/ucb/apropos
+d /usr/man 755
+f /usr/man/man.template 444 ../man/man.template
+f /usr/man/makewhatis.sed 444 ../man/makewhatis.sed
+f /usr/man/manroff 755 ../man/manroff
+i ../../../obj/man/man.proto
 c /dev/console 622 0 0
 c /dev/ttyv1 666 0 1
 c /dev/ttyv2 666 0 2

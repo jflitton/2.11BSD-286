@@ -799,3 +799,104 @@ ac -p | awk '{ print $1 }'
 total
 root
 total
+=file manroff
+# sh /mnt/d/manroff SOURCE PAGE: whether nroff makes of SOURCE, as
+# manroff does, what the build made of it (tools/mkman.py), but for the
+# date each was printed on.
+nroff -man -h $1 | sed 's,^Printed [0-9/]*,Printed,' > a
+sed 's,^Printed [0-9/]*,Printed,' $2 | cmp - a && echo $2
+== nroff
+sh /mnt/d/manroff /mnt/d/ls.1 /usr/man/cat1/ls.0
+sh /mnt/d/manroff /mnt/d/mkdir.1 /usr/man/cat1/mkdir.0
+sh /mnt/d/manroff /mnt/d/csh.1 /usr/man/cat1/csh.0
+--
+/usr/man/cat1/ls.0
+/usr/man/cat1/mkdir.0
+/usr/man/cat1/csh.0
+== nroff-ms
+printf '.ND\n.TL\nA Title\n.AU\nAn Author\n.PP\nSome text, filled and adjusted as the -ms macros have it.\n.SH\nA Section\n.PP\nMore.\n' > d.ms
+nroff -ms d.ms | col -b | sed '/^$/d'
+--
+                          A Title
+                         An Author
+     Some text, filled and adjusted as the -ms  macros  have
+it.
+A Section
+     More.
+== nroff-me
+printf '.pp\nA paragraph of -me.\n.sh 1 "A Section"\n.pp\nMore.\n' > d.me
+nroff -me d.me | col -b | sed '/^$/d'
+--
+     A paragraph of -me.
+1.  A Section
+     More.
+== nroff-T
+printf 'x\\u2\\dy \\fBb\\fP \\fIi\\fP\n' > d
+nroff d | od -c | sed 2q
+nroff -T37 d | od -c | sed 2q
+nroff -Tlpr d | od -c | sed 2q
+nroff -Tnone d; echo $?
+--
+0000000    x   2   y       b  \b   b       _  \b   i  \n  \n  \n  \n  \n
+0000020   \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n
+0000000    x 033   8   2 033   9   y       b  \b   b       _  \b   i  \n
+0000020   \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n
+0000000    x   2   y       b  \b   b       _  \b   i  \n  \n  \n  \n  \n
+0000020   \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n  \n
+nroff: Cannot open none
+1
+== man
+man ls | col -b | sed -n 4,9p
+man -w ls
+man -w 8 cron
+man 2 fork | col -b | sed -n 8,9p
+man egrep | col -b | sed -n 8,9p
+man nosuch; echo $?
+MANPATH=/nonexistent man ls; echo $?
+--
+LS(1)               UNIX Programmer's Manual                LS(1)
+
+
+
+NAME
+     ls - list contents of directory
+man: found in /usr/man/cat1/ls.0.
+man: found in /usr/man/cat8/cron.0.
+NAME
+     fork - create a new process
+NAME
+     grep, egrep, fgrep - search a file for a pattern
+man: no entry for nosuch in the manual.
+1
+man: no entry for ls in the manual.
+1
+== whatis
+whatis ls lseek
+apropos "data base"
+man -f fclose
+man -k "read/write offset"
+--
+ls (1) - list contents of directory
+lseek (2) - reposition read/write offset
+dbm_open, dbm_close, dbm_fetch, dbm_store, dbm_delete, dbm_firstkey, dbm_nextkey, dbm_error, dbm_clearerr (3) - data base subroutines
+dbminit, fetch, store, delete, firstkey, nextkey (3) - data base subroutines
+gettytab (5) - terminal configuration data base
+hosts (5) - host name data base
+networks (5) - network name data base
+newaliases (1) - rebuild the data base for the mail aliases file
+phones (5) - remote host phone number data base
+printcap (5) - printer capability data base
+protocols (5) - protocol name data base
+services (5) - service name data base
+termcap (5) - terminal capability data base
+vgrindefs (5) - vgrind's language definition data base
+fclose (3) - close a stream
+lseek (2) - reposition read/write offset
+== makewhatis
+for f in /usr/man/cat4/*.0 /usr/man/cat7/*.0
+do
+	sed -n -f /usr/man/makewhatis.sed $f
+done | sort -u > w
+grep ' ([47]) - ' /usr/man/whatis | cmp - w && wc -l < w
+--
+      24

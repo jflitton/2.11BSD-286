@@ -1099,6 +1099,109 @@ frozen configuration; `ex`'s `preserve`, which mails the user; and
 in from the host with `telnet` gives `biff y`, and `comsat` must tell
 that terminal of the letter root sends, from where the letter begins.
 
+## nroff and the manual
+
+Then `nroff`, and with it the manual: `man`, and `apropos`, which is
+also `whatis`.
+
+| Where | |
+|---|---|
+| `/usr/bin` | `nroff` |
+| `/usr/ucb` | `man`, `apropos`, which is also `whatis` |
+| `/usr/share/tmac` | the macros: `-man`, and `-mdoc`, which `tmac.an` reads for a page that starts with `.Dd`; `-ms`, `-me` and the rest of upstream's |
+| `/usr/share/me`, `/usr/share/ms` | what `-me` and `-ms` read |
+| `/usr/share/term` | the tables of the printers `nroff -T` drives |
+| `/usr/man` | the manual, formatted: `cat1` to `cat8`, and `whatis` |
+
+`nroff` is 2.11BSD's own, reworked since 2020 with prototypes, a hash
+table of its requests and printers' tables that it reads as text. With
+no `-T` it writes for a terminal, by a table compiled in, and it makes
+bold by printing a character twice with a backspace between, and
+underlines with `_` and a backspace, which `more` shows as the terminal
+can. It had separate code and data on the PDP-11; here it is
+small-model, with 36K of code and 30K of data. It finds its macros
+and printers' tables by `paths.h` only where the preprocessor says
+`__BSD2_11__`, which upstream's says and this compiler is told for
+`nroff` alone. Three of its handlers of signals are declared to take
+the signal's number and defined to take nothing: this compiler let it
+pass, the host's does not, and they take it now. A printer's table is a
+table in C, which `mktab` writes out as text; the build compiles
+`mktab` with each, for the machine it is run on, as upstream's
+`nroff_term` Makefile does. The tables and the links among them are
+upstream's 25 and 8.
+
+`man` shows only what is formatted already: it looks for
+`/usr/man/catN/NAME.0` in the sections in its order, 1, 8 and 6, then
+the others, and pages through it with `more -s`, or `$PAGER`, or copies
+it out when its output is not a terminal. Upstream formats each page
+once, with `manroff`, `nroff -man -h`, as it installs it on the PDP-11
+itself, in `usr/src/man` and in each program's Makefile; to format a
+page each time it is asked for would be slow on either machine: `ls`'s
+page takes 8.5 seconds on the 286, `csh`'s 65, `mkdir`'s, which is
+mdoc's, 30, and `printf(3)`'s 3.6 minutes. Here nothing is installed on
+a running system: the root file system is made on the machine the
+system is built on. So the build formats the pages there, with the
+tree's `nroff` built for that machine, as `yacc` and `lex` are, in
+`obj/host`. That `nroff` is the system's but that it
+looks for its macros in `tmac/` where it is run, which is where it is,
+and the copies of the macros there say `tmac/` where the system's say
+`/usr/share/tmac/`. `tools/mkman.py` gives it each page, with what the
+page's `.so` lines name put in their places: another page beside it,
+as `errno.2` is `intro.2`, or a header from the tree's `usr/include`,
+as `utmp(5)` and others show one. The system's `nroff` makes of a page what the
+build's did, byte for byte, which `tests/programs` checks with three
+pages, and was seen to of `printf(3)` and `tcsh`'s too. Each page's
+footer says `Printed` and the date it was formatted, as upstream's do:
+here, the day it was built.
+
+`usr/src/i286/man.list` says which pages go on the system. Of sections
+1 and 8, those of the programs on it, wherever their sources keep them,
+and the introductions; of 2, 3, 5 and 7, the kernel's calls, the
+libraries, the files and the rest, what upstream's Makefile of each
+formats, with the pages of those kinds that `cron` and `tcpd` keep
+with them; of 4, those not of the PDP-11's devices: `tty`, `pty`,
+`null`, and the network's. Section 6 is the games, and 3f Fortran's
+library, which have nothing on the system to go with them. That is 542
+pages, with the 307 other names upstream's Makefiles give them by `ln`,
+`egrep` for `grep` and `fprintf` for `printf`, and 2.1 MB. `whatis` is
+made as `usr/src/man`'s Makefile makes it: its `makewhatis.sed` takes
+the name and the line under NAME of each page, and `sort -u` sorts
+them. The system's own `sed` and `sort` make the same, which
+`tests/programs` checks of sections 4 and 7.
+
+`makewhatis.sed` took a page's section only from a heading that says
+"UNIX Programmer's Manual", and took off only the underlining of a
+name. The pages of mdoc, 45 of them, say "BSD Programmer's Manual" or
+"BSD Reference Manual", and make the name bold, so `whatis lseek` said
+"l^Hls^Hse^Hee^Hek^Hk (l)". It takes the section from any heading that
+ends in "Manual" now, and takes off what is printed over, either way. A
+bug on the PDP-11 too. `shar`'s page's heading names an institute,
+and has no section in `whatis`.
+
+What upstream does that is left as it is:
+
+- `timedc`'s page starts with an empty page: its source starts with an
+  empty line.
+- mdoc's `.Dd` without a date gives the year as "19" and
+  `tm_year`, 19126; no page here is without one.
+- `man -f` and `man -k` are `whatis` and `apropos`, run by name from
+  the `PATH`.
+
+Left out: `troff`, which drives a phototypesetter; `tbl`, `eqn` and
+`neqn`, `refer` and the rest that `nroff` is given documents through;
+and of the manual, the pages of programs not on the system, and
+upstream's `adduser(8)`, which tells how to add a user by hand, where
+`adduser` here is a program of this port's own. Neither it nor `bench`
+has a page yet.
+
+`tests/programs` has the system format three pages, `ls`, `mkdir` and
+`csh`, and make of each what the build did; format a document with
+`-ms`, with `-me`, and with superscripts and fonts for its own table,
+`-T37` and `-Tlpr`; show pages with `man`, by section, by another name,
+and to say where one is; look pages up with `whatis` and `apropos`; and
+make the lines of `whatis` for two sections again. At the terminal it
+shows `ls`'s page with `man`, which `more` pages through.
+
 ## The root file system
 
 `usr/src/i286/root.proto` lists it: the kernel and `/boot`, `/etc/init`,
@@ -1189,7 +1292,10 @@ network's others [after them](#the-networks-programs), and mail's
 `/etc/aliases` and its database, an empty `/etc/sendmail.fc` and
 `/var/log/sendmail.st`, `/etc/Mail.rc`, the help of `sendmail` and
 `Mail` in `/usr/share/misc`, and the directories `/usr/spool/mail` and
-`/usr/msgs`.
+`/usr/msgs`. `nroff`'s macros, its printers' tables and the manual are
+[after those](#nroff-and-the-manual): `tools/mkman.py` writes a list of
+the manual's pages and their links, which `root.proto` takes in with a
+line `i ../../../obj/man/man.proto`.
 
 The programs are in it without their symbol tables, as upstream's
 `install -s` leaves them. `obj/bin` has each as it was linked, with its
@@ -1207,8 +1313,11 @@ kernel](#programs-that-read-the-kernel)). The system's own `strip` makes
 of a file what `tools/strip.py` does, which `tests/programs` checks on
 the kernel.
 
-The file system is 8000 blocks of 1K, of which the system takes 4650.
-The 217 programs are 3.6 MB of that, and 4.2 MB with their symbols.
+The file system is 12000 blocks of 1K, of which the system takes 7650.
+The 220 programs are 3.7 MB of that, and 4.3 MB with their symbols, and
+the manual's pages are 2.1 MB in 2500 blocks. It was 8000 blocks until
+the manual came. A machine's own disk is made with as many as it has
+room for (`make root ROOTSIZE=...`, or `tools/mkfs.py -s`).
 
 ## Following a program
 
@@ -1342,15 +1451,18 @@ copied files.
 `tests/programs` boots the same system from a disk with the root, a
 swap area and a small file system of checks, logs in as root on the
 first serial port, mounts that file system and runs its `check.sh`. For
-each of the 75 checks in `tests/programs/checks` it runs the check's
+each of the 82 checks in `tests/programs/checks` it runs the check's
 lines with the shell in an empty directory and compares what they wrote
 with what the check says they must, and says `ok` or shows what was
 written. A check is of one program, by its name, or of one use of it:
 `sort` has one for its options and one that sorts 6000 lines, more than
 it holds in memory, so that it merges files; `diff` has four, among
-them one of directories and one against an empty file. The test fails
-unless all 75 say `ok`. Then, at the terminal, it runs `tty` and `mesg`;
-pages through a file and through a pipe with `more`; records a shell
+them one of directories and one against an empty file; `nroff` formats
+three of the manual's pages and must make of each what the build did
+([nroff and the manual](#nroff-and-the-manual)). The test fails
+unless all 82 say `ok`. Then, at the terminal, it runs `tty` and `mesg`;
+pages through a file and through a pipe with `more`, and through `ls`'s
+page with `man`; records a shell
 with `script`, which it leaves with ^D, and finds the command it typed
 in the file; locks the terminal with `lock`, gives it a wrong key and
 then the right one; has `tset` name the terminal and `clear` write the
@@ -1411,7 +1523,8 @@ Not done, or not tested:
   `expreserve`.
 - Many programs are not built yet: of the network's, `named` and
   `identd`; the compiler and what works on object files, among them
-  `/lib/cpp`, which `calendar` waits for; `nroff` and the rest for documents;
+  `/lib/cpp`, which `calendar` waits for; `troff`, and `tbl`, `eqn` and
+  the rest that `nroff` is given documents through;
   the line printer's; and `disklabel`. With no `disklabel`, a partition
   can be made a file system only where `tools/mkdisk.py` labelled it
   one: the kernel mounts nothing else.

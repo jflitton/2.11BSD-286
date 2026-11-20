@@ -4,7 +4,7 @@
 # have it run each of the checks in tests/programs/checks, which are on a
 # file system of their own with the files they read.  A check is a few
 # lines for the shell and what they must write, to the byte.  Then use
-# what needs a terminal: tty and mesg, more, script, lock, tset and
+# what needs a terminal: tty and mesg, more, man, script, lock, tset and
 # clear; and stop the system with shutdown.  The kernel, /boot, the C
 # library, the programs and the root file system are built as they would
 # be for a real machine, as tests/system has them.
@@ -36,6 +36,10 @@ python3 -I "$top/tests/harness/checks.py" "$top/tests/programs/checks" checks
 # The kernel as tools/strip.py leaves it: the system's strip must make
 # the same of /unix, which has its symbols for ps and the like.
 python3 -I "$top/tools/strip.py" "$top/obj/PC/unix" checks/d/unix.stripped
+# The sources of three of the manual's pages, of which the system's nroff
+# must make what the build's made (tools/mkman.py).
+cp "$top/usr/src/man/man1/ls.1" "$top/usr/src/bin/mkdir/mkdir.1" \
+    "$top/usr/src/man/man1/csh.1" checks/d
 {
     echo "d /t 755"; echo "d /x 755"; echo "d /d 755"
     echo "f /check.sh 644 checks/check.sh"
@@ -65,6 +69,8 @@ TIMEOUT=${TIMEOUT:-900} python3 -I "$top/tests/harness/runtest.py" \
     --type "--More--" 'q' \
     --type "# " 'ls -l /etc | more' \
     --type "--More--" 'q' \
+    --type "# " 'man ls' \
+    --type "--More--" 'q' \
     --type "# " 'script /tmp/ts' \
     --type "# " 'echo "in-sc""ript"' \
     --type "# " "${CTRLD}" \
@@ -89,7 +95,8 @@ if ! grep -q "^checks: $n ok, 0 bad" "$serial"; then
     echo "programs: not all $n checks ran" >&2
     exit 1
 fi
-for want in "^/dev/tty00" "^is y" "^is n" "--More--(.*%)" "^ts-1" \
+for want in "^/dev/tty00" "^is y" "^is n" "--More--(.*%)" \
+    "^     ls - list contents of directory" "^ts-1" \
     "Script started, file is /tmp/ts" "Script done, file is /tmp/ts" \
     "lock: /dev/tty00 on .* timeout in 15 minutes" "tset-vt100" \
     "^0000000  *033  *\[" "System going down IMMEDIATELY" "going down" \
@@ -100,4 +107,4 @@ for want in "^/dev/tty00" "^is y" "^is n" "--More--(.*%)" "^ts-1" \
     fi
 done
 python3 -I "$top/tools/fsck.py" programs.img
-echo "programs: $n checks of the programs that work on text and files, and tty, mesg, more, script, lock, tset, clear and shutdown at a terminal"
+echo "programs: $n checks of the programs that work on text and files and of nroff and man, and tty, mesg, more, man, script, lock, tset, clear and shutdown at a terminal"
