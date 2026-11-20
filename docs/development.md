@@ -221,8 +221,8 @@ tests/network/run.sh    # the network's programs, on the system booted to
                         # terminals
 tests/programs/run.sh   # the programs that work on text and files, on the
                         # system booted to multi-user, nroff and man, and
-                        # disklabel and the file system checkers on a
-                        # second disk: 96 checks, each a few lines for
+                        # disklabel, fsck and the other checkers on a
+                        # second disk: 97 checks, each a few lines for
                         # the shell and what they must write, and more,
                         # man, script, lock, tset and shutdown at a
                         # terminal
@@ -299,15 +299,14 @@ tests/vt/run.sh         # the console's terminal emulator, on the machine
   ([the C library and programs](userland.md),
   [the console](console.md), [the network](network.md)).
 - `tests/programs` boots that system too, with a file system of checks
-  beside the root: 96 of them, each a few lines for the shell and what
+  beside the root: 97 of them, each a few lines for the shell and what
   they must write, to the byte, for `sort`, `sed`, `diff`, `tar`,
   `patch`, `m4`, `compress` and the other programs that work on text and
   files, for `nroff`, which must format three of the manual's pages
-  as the build did, and `man`, and for `disklabel`, `fsck`'s elders and
-  `fstat`, with a second disk to write labels and file systems on. Then
-  it uses the ones that need a
-  terminal, `more`, `man`, `script`, `lock` and `tset`, and stops the
-  system with `shutdown`
+  as the build did, and `man`, and for `disklabel`, `fsck` and its
+  elders and `fstat`, with a second disk to write labels and file systems
+  on. Then it uses the ones that need a terminal, `more`, `man`,
+  `script`, `lock` and `tset`, and stops the system with `shutdown`
   ([the C library and programs](userland.md)).
 - `tests/network` boots it with the Ethernet card and has it run 33
   checks of the same kind: `finger`, `rsh`, `rcp`, `tftp` and `ftp`, as

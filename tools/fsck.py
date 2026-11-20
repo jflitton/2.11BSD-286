@@ -225,6 +225,9 @@ class Fs:
         if ifree != self.tinode:
             self.bad("the super block counts %d free inodes; there are %d"
                      % (self.tinode, ifree))
+        if not 0 <= self.ninode <= NICINOD:
+            self.bad("the super block's list of free inodes has %d in it"
+                     % self.ninode)
         for n in self.inodes[:max(0, min(self.ninode, NICINOD))]:
             if n in inodes:
                 self.bad("the super block lists inode %d as free; it is in use" % n)

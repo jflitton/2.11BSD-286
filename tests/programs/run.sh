@@ -115,5 +115,6 @@ for want in "^/dev/tty00" "^is y" "^is n" "--More--(.*%)" \
     fi
 done
 python3 -I "$top/tools/fsck.py" programs.img
+python3 -I "$top/tools/fsck.py" -p a spare.img
 python3 -I "$top/tools/fsck.py" -p e spare.img
 echo "programs: $n checks of the programs that work on text and files, of nroff and man, and of disklabel, the file system checkers and fstat, and tty, mesg, more, man, script, lock, tset, clear and shutdown at a terminal"

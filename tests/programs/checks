@@ -1101,6 +1101,9 @@ REMOVE?  yes
 ** Phase 3 - Check Connectivity
 ** Phase 4 - Check Reference Counts
 ** Phase 5 - Check Free List
+FREE INODE COUNT WRONG IN SUPERBLOCK
+SALVAGE?  yes
+
 BLK(S) MISSING
 SALVAGE?  yes
 
@@ -1110,6 +1113,62 @@ Marking file system clean
 
 ***** FILE SYSTEM WAS MODIFIED *****
 lost+found
+== fsck-full
+newfs -i 32768 /dev/rwd1a > /dev/null
+mkdir m
+mount /dev/wd1a /tmp/w/m && echo x > m/f && sync
+dd if=/dev/rwd1a of=sb bs=1k skip=1 count=1 2> /dev/null
+for i in 1 2 3 4 5 6 7 8 9 10 11 12; do touch m/f$i; done
+ls -i m/f
+umount /dev/wd1a
+fsck -f /dev/rwd1a
+dd if=sb of=/dev/rwd1a bs=1k seek=1 count=1 2> /dev/null
+fsck -f -y /dev/rwd1a
+fsck -f /dev/rwd1a
+--
+    16 m/f
+** /dev/rwd1a
+File System: /tmp/w/m
+
+** Last Mounted on /tmp/w/m
+** Phase 1 - Check Blocks and Sizes
+** Phase 2 - Check Pathnames
+** Phase 3 - Check Connectivity
+** Phase 4 - Check Reference Counts
+** Phase 5 - Check Free List
+15 files, 3 used, 994 free
+Marking file system clean
+
+***** FILE SYSTEM WAS MODIFIED *****
+** /dev/rwd1a
+File System: /tmp/w/m
+
+** Last Mounted on /tmp/w/m
+** Phase 1 - Check Blocks and Sizes
+** Phase 2 - Check Pathnames
+** Phase 3 - Check Connectivity
+** Phase 4 - Check Reference Counts
+** Phase 5 - Check Free List
+FREE INODE COUNT WRONG IN SUPERBLOCK
+SALVAGE?  yes
+
+ALLOCATED INODE(S) IN IFREE LIST
+FIX?  yes
+
+15 files, 3 used, 994 free
+Marking file system clean
+
+***** FILE SYSTEM WAS MODIFIED *****
+** /dev/rwd1a
+File System: /tmp/w/m
+
+** Last Mounted on /tmp/w/m
+** Phase 1 - Check Blocks and Sizes
+** Phase 2 - Check Pathnames
+** Phase 3 - Check Connectivity
+** Phase 4 - Check Reference Counts
+** Phase 5 - Check Free List
+15 files, 3 used, 994 free
 == fstat
 sleep 30 < /etc/motd &
 sleep 1

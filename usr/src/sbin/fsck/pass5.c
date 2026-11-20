@@ -23,6 +23,7 @@ struct	inodesc idesc;
 
 	bzero(&idesc, sizeof (idesc));
 	idesc.id_type = ADDR;
+	inocount();
 
 	if(sflag)
 		fixfree = 1;
@@ -75,6 +76,30 @@ struct	inodesc idesc;
 	}
 }
 
+/*
+ * Put right the superblock's count of free inodes, which nothing else
+ * does: the kernel only adds to it and takes from it.  An inode is free
+ * when the passes before have left it USTATE; inode 1 never is.  This
+ * must come before the free map is made, which is the state map's room.
+ */
+inocount()
+{
+	struct inodesc idesc;
+	register ino_t ino;
+	ino_t nifree;
+
+	bzero(&idesc, sizeof (idesc));
+	nifree = 0;
+	for (ino = ROOTINO; ino <= imax; ino++)
+		if (getstate(ino) == USTATE)
+			nifree++;
+	if (nifree != sblock.fs_tinode &&
+	    dofix(&idesc, "FREE INODE COUNT WRONG IN SUPERBLOCK")) {
+		sblock.fs_tinode = nifree;
+		sbdirty();
+	}
+}
+
 ifreechk() {
 	register int i;
 	ino_t	inum;
@@ -90,7 +115,7 @@ ifreechk() {
 			if (preen)
 				printf(" (FIXED)\n");
 			if (preen || reply("FIX") == 1) {
-				sblock.fs_ninode = i-1;
+				sblock.fs_ninode = i;
 				sbdirty();
 			}
 			return;

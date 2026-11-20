@@ -242,7 +242,7 @@ checkfilesys(filesys)
 	 */
 	pwarn("%ld files, %ld used, %ld free\n",
 	    n_files, n_blks, sblock.fs_tfree);
-	if (debug && (n_files -= imax - ROOTINO - sblock.fs_tinode))
+	if (debug && (n_files -= imax - ROOTINO + 1 - sblock.fs_tinode))
 		printf("%ld files missing, imax: %u tinode: %u\n", n_files,
 			imax,sblock.fs_tinode);
 	if (debug) {

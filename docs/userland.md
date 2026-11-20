@@ -1291,6 +1291,32 @@ These are the Seventh Edition's, and had bugs on the PDP-11 too:
   system, when it is given none, is `/dev/rwd0a` here, where it was the
   PDP-11's `rxp0a` and `rxp0h`.
 
+`fsck` is 4.3BSD's, made over for 2.11BSD's file system, and had bugs
+of its own, on the PDP-11 as here:
+
+- 4.3BSD numbers its inodes from 0 to one short of their count, and
+  2.11BSD from 1 to `imax`. `fsck` kept 4.3BSD's bounds, and so left
+  the last inode out: its first pass stopped before it, and its check
+  of a directory entry took that inode's number for one out of range.
+  The kernel fills the superblock's list of free inodes in order and
+  takes from the end, so where no more than 100 are free the next file
+  made gets the highest-numbered, on a new file system the last. `fsck`
+  then called the directory corrupted, and salvaging it threw away the
+  file's entry and every entry after it in the same 512 bytes. Those
+  files went to `lost+found`, and the file itself was lost, its blocks
+  put on the free list while its inode still had them. Its bounds are
+  `imax`'s now.
+- It never put right the superblock's count of free inodes, which the
+  kernel only adds to and takes from, so after a crash or a `clri` the
+  count stayed wrong; with `-d` it compared the count, wrongly by one.
+  Pass 5 now counts the inodes the passes before it left unallocated,
+  and puts the count right as it does the count of free blocks ("FREE
+  INODE COUNT WRONG IN SUPERBLOCK").
+- When the superblock's list of free inodes named one in use, as it can
+  after a crash, `fsck` cut the list one short of where it should, and
+  to -1 when the first was in use. The kernel, the next time it freed an
+  inode, stored its number over the list's count.
+
 The disks' devices are the group `operator`'s, as upstream's `MAKEDEV`
 makes them, and `disklabel` and `quot` run with that group, as upstream
 installs them, so that an operator may run them; the swap areas' block
@@ -1325,10 +1351,15 @@ sector in `e`, which `fsck -y` keeps; `icheck` must find that sector's
 block in it, `ncheck` must name every file, `dcheck` must find nothing
 wrong, and `quot` must add up two users' files, and name each file's
 owner from `ncheck`'s list. In a file system of its own in `a`, `clri`
-clears the inode of a file, which `dcheck` must notice and `fsck` mend. `fstat` must list what a `sleep`
+clears the inode of a file, which `dcheck` must notice and `fsck` mend,
+with the count of free inodes. In another there, of 16 inodes, the
+first file made must get the last of them, and `fsck` must find nothing
+wrong once every one is in use; then, with the superblock put back as it
+was before the last twelve were made, `fsck -y` must cut its list of
+free inodes and put right its count. `fstat` must list what a `sleep`
 has open, who has `/etc/motd` open, `syslogd`'s socket in the UNIX
 domain and `inetd`'s on the Internet. Afterwards `tools/fsck.py` must
-find nothing wrong with the file system in `e`.
+find nothing wrong with the file systems in `a` and `e`.
 
 ## The root file system
 
@@ -1580,7 +1611,7 @@ copied files.
 `tests/programs` boots the same system from a disk with the root, a
 swap area and a small file system of checks, logs in as root on the
 first serial port, mounts that file system and runs its `check.sh`. For
-each of the 96 checks in `tests/programs/checks` it runs the check's
+each of the 97 checks in `tests/programs/checks` it runs the check's
 lines with the shell in an empty directory and compares what they wrote
 with what the check says they must, and says `ok` or shows what was
 written. A check is of one program, by its name, or of one use of it:
@@ -1688,13 +1719,9 @@ Not done, or not tested:
   itself, so its driver counts no seeks, as upstream's MSCP driver
   counts none; upstream's drivers count them where they give the drive
   a seek to do.
-- `fsck` does not put right the superblock's count of free inodes,
-  which it compares only with `-d`, and then wrongly by one; `clri`
-  leaves that count short by one for each inode it clears. And its
-  first pass stops before the last inode (`inumber < imax`, where the
-  inodes are numbered from 1 to `imax`), so pass 2 would take a file in
-  that inode for one not allocated and offer to remove its entry. Both
-  are upstream's, the second found by reading and not tried.
+- `newfs -i 65536`, which its manual allows, gives `mkfs` `-i 0`:
+  65536 does not fit in an `unsigned int` of 16 bits. `mkfs` prints its
+  usage and makes nothing. Upstream's, and not put right.
 - `fsck` keeps its tables in what is left of 56K of data, as on the
   PDP-11: room for a file system of about 40 MB with an inode for each
   4K, `newfs`'s default. A bigger one needs a scratch file, `fsck -t`,
