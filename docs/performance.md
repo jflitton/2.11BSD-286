@@ -328,6 +328,34 @@ the buffers were left, and `update`'s sync every 30 seconds falls in
 one test or another. In a run of four of the tests `exec` took 32 ms
 where the whole table has 27.
 
+## How much memory
+
+1 MB at least, 640K and 384K above 1M, which is the least such a machine
+was sold with; 2 MB is what to have, so that a few users at once do not
+swap. The kernel, its buffers and the network take 422K of 1 MB. Of
+more memory a sixteenth is buffers, up to 256K with 4 MB, and those
+past the first 64K keep what files had in them, so that a file read
+again does not come from the disk again. The rest of it is for more
+users and larger programs:
+
+| memory | buffers | left for programs | free after booting, logged in | four users on telnet |
+|---|---|---|---|---|
+| 1 MB | 64K | 600K | 130 to 165K | within 4% of as quick as with 4 MB; 100K swapped out |
+| 2 MB | 128K | 1.5 MB | 895K | nothing swapped |
+| 4 MB | 256K | 3.4 MB | 2.7 MB | nothing swapped |
+
+That is the system in multi-user with its daemons, `inetd` among them:
+a dozen processes, 470K. The largest program is `tcsh`, 150K of code
+and data, and a process may have 2 MB. A process is swapped whole, so a
+machine short of memory waits for its disk and does not fail, until one
+program is larger than what the kernel leaves. On a machine with memory
+to spare more shows as used than this: the code of programs that have
+run is kept until something wants the memory.
+
+Measured in the emulator, with the kernel told to use no more memory
+than each line says (`extlimit`, `sys/i286/machdep.c`). No machine with
+640K and nothing above 1M has been tried.
+
 ## Users on telnet
 
 `telkey` and `telcmd` came after the rest, to see what several users
