@@ -18,6 +18,7 @@ static char sccsid[] = "@(#)mail.c	4.33.6 (2.11BSD) 1999/10/25";
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include <stdarg.h>
 
 	/* copylet flags */
 #define REMOTE		1		/* remote mail, add rmtmsg */
@@ -50,7 +51,8 @@ int	error;
 int	changed;
 int	forward;
 char	from[] = "From ";
-int	delex();
+void	delex();
+void	panic(char *, ...);
 int	flgf;
 int	flgp;
 int	delflg = 1;
@@ -624,7 +626,12 @@ sendmail(n, name, fromaddr)
 		return(0);
 	}
 	fchown(fd, pw->pw_uid, pw->pw_gid);
-	oldsize = ftell(malf);
+	/*
+	 * The size before this letter, where it begins, for comsat and for
+	 * cutting the file back to.  Not ftell: a stream fdopen'ed to append
+	 * says where its descriptor is, at the start, until it has written.
+	 */
+	oldsize = lseek(fd, 0L, L_XTND);
 	(void)sprintf(buf, "%s@%ld\n", name, oldsize);
 
 	copylet(n, malf, ORDINARY);     /* Try to deliver the message */
@@ -650,7 +657,9 @@ sendmail(n, name, fromaddr)
 	return(1);
 }
 
+void
 delex(i)
+	int i;
 {
 	sigset_t sigt;
 
@@ -718,12 +727,15 @@ safefile(f)
 	return (1);
 }
 
-panic(msg, a1, a2, a3)
-	char *msg;
+void
+panic(char *msg, ...)
 {
+	va_list ap;
 
 	fprintf(stderr, "mail: ");
-	fprintf(stderr, msg, a1, a2, a3);
+	va_start(ap, msg);
+	vfprintf(stderr, msg, ap);
+	va_end(ap);
 	fprintf(stderr, "\n");
 	done();
 }

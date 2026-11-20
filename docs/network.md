@@ -303,8 +303,10 @@ controller is set; the driver has not run on one, nor on any real card.
   the other goes, which the card's 16K would allow; the multicast
   filter; the workaround for the early DP8390s that want a remote read
   before each remote write.
-- The mail system, `named` and `identd`; the network's other programs
-  are in [the C library and programs](userland.md#the-networks-programs).
+- `named` and `identd`; the network's other programs are in [the C
+  library and programs](userland.md#the-networks-programs), and mail,
+  `sendmail` with its SMTP server among it, [after
+  them](userland.md#mail).
   `syslogd` takes messages from other machines on its UDP port, which
   has not been tried, nor has its sending of them to another machine's.
   (`netstat`, `arp` and `route -f` read the network's tables through

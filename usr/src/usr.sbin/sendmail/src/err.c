@@ -16,6 +16,9 @@ static char	SccsId[] = "@(#)err.c	5.7.1 (2.11BSD GTE) 7/14/94";
 # include <errno.h>
 # include <netdb.h>
 # include <string.h>
+# include <stdarg.h>
+
+static	fmtmsg(char *, char *, char *, int, char *, va_list);
 
 /*
 **  SYSERR -- Print error message.
@@ -39,18 +42,20 @@ static char	SccsId[] = "@(#)err.c	5.7.1 (2.11BSD GTE) 7/14/94";
 char	MsgBuf[BUFSIZ*2];	/* text of most recent message */
 
 /*VARARGS1*/
-syserr(fmt, a, b, c, d, e)
-	char *fmt;
+syserr(char *fmt, ...)
 {
 	register char *p;
 	int olderrno = errno;
+	va_list ap;
 
 	/* format and output the error message */
 	if (olderrno == 0)
 		p = Arpa_PSyserr;
 	else
 		p = Arpa_TSyserr;
-	fmtmsg(MsgBuf, (char *) NULL, p, olderrno, fmt, a, b, c, d, e);
+	va_start(ap, fmt);
+	fmtmsg(MsgBuf, (char *) NULL, p, olderrno, fmt, ap);
+	va_end(ap);
 	puterrmsg(MsgBuf);
 
 	/* determine exit status if not already set */
@@ -89,16 +94,18 @@ syserr(fmt, a, b, c, d, e)
 */
 
 /*VARARGS1*/
-usrerr(fmt, a, b, c, d, e)
-	char *fmt;
+usrerr(char *fmt, ...)
 {
 	extern char SuprErrs;
 	extern int errno;
+	va_list ap;
 
 	if (SuprErrs)
 		return;
 
-	fmtmsg(MsgBuf, CurEnv->e_to, Arpa_Usrerr, errno, fmt, a, b, c, d, e);
+	va_start(ap, fmt);
+	fmtmsg(MsgBuf, CurEnv->e_to, Arpa_Usrerr, errno, fmt, ap);
+	va_end(ap);
 	puterrmsg(MsgBuf);
 
 	if (QuickAbort)
@@ -121,12 +128,14 @@ usrerr(fmt, a, b, c, d, e)
 */
 
 /*VARARGS2*/
-message(num, msg, a, b, c, d, e)
-	register char *num;
-	register char *msg;
+message(char *num, char *msg, ...)
 {
+	va_list ap;
+
 	errno = 0;
-	fmtmsg(MsgBuf, CurEnv->e_to, num, 0, msg, a, b, c, d, e);
+	va_start(ap, msg);
+	fmtmsg(MsgBuf, CurEnv->e_to, num, 0, msg, ap);
+	va_end(ap);
 	putmsg(MsgBuf, FALSE);
 }
 /*
@@ -148,12 +157,14 @@ message(num, msg, a, b, c, d, e)
 */
 
 /*VARARGS2*/
-nmessage(num, msg, a, b, c, d, e)
-	register char *num;
-	register char *msg;
+nmessage(char *num, char *msg, ...)
 {
+	va_list ap;
+
 	errno = 0;
-	fmtmsg(MsgBuf, (char *) NULL, num, 0, msg, a, b, c, d, e);
+	va_start(ap, msg);
+	fmtmsg(MsgBuf, (char *) NULL, num, 0, msg, ap);
+	va_end(ap);
 	putmsg(MsgBuf, FALSE);
 }
 /*
@@ -234,14 +245,8 @@ puterrmsg(msg)
 **		none.
 */
 
-/*VARARGS5*/
 static
-fmtmsg(eb, to, num, eno, fmt, a, b, c, d, e)
-	register char *eb;
-	char *to;
-	char *num;
-	int eno;
-	char *fmt;
+fmtmsg(register char *eb, char *to, char *num, int eno, char *fmt, va_list ap)
 {
 	char del;
 
@@ -274,7 +279,7 @@ fmtmsg(eb, to, num, eno, fmt, a, b, c, d, e)
 	}
 
 	/* output the message */
-	(void) sprintf(eb, fmt, a, b, c, d, e);
+	(void) vsprintf(eb, fmt, ap);
 	while (*eb != '\0')
 		*eb++ &= 0177;
 

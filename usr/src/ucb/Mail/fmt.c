@@ -230,7 +230,7 @@ prefix(line)
 		oflush();
 	pfx = np;
 	if (h)
-		pack(cp);
+		pack(cp, strlen(cp));
 	else	split(cp);
 	if (h)
 		oflush();

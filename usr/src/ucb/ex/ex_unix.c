@@ -325,17 +325,22 @@ recover()
 }
 
 /*
- * Wait for the process (pid an external) to complete.
+ * Wait for the process (pid an external) to complete.  Every child is
+ * waited for; rpid is then pid if it was among them, as preserve and
+ * revocer look for, and -1 if not.
  */
 waitfor()
 {
-	int stat = 0;
+	int stat = 0, found = -1;
 
 	do {
 		rpid = wait(&stat);
-		if (rpid == pid)
+		if (rpid == pid) {
 			status = stat;
+			found = pid;
+		}
 	} while (rpid != -1);
+	rpid = found;
 	status = (status >> 8) & 0377;
 }
 

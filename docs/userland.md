@@ -89,7 +89,8 @@ tools. The build also needs a C compiler for the machine it runs on,
 `cc` unless `HOSTCC` names another, for the tree's `yacc` and `lex`
 ([grammars](#grammars-yacc-and-lex)).
 
-Three programs are medium-model so far. `csh` was linked with two
+Four programs are medium-model so far: `csh`, `ex` and `tcsh`, here,
+and `sendmail` ([mail](#mail)). `csh` was linked with two
 overlays on the PDP-11; here its 67K of code is in two segments, and its
 data segment has 11K of data and 8K of stack, leaving about 45K for its
 heap. `ex`, which is also `vi`, had two overlays as well. Its 77K of
@@ -276,8 +277,10 @@ a union (`bin/sh/mode.h`); the shell's few other such uses have casts.
   break now. `csh` frees only what lies between `end` and its stack, to
   pass over strings in its data and on its stack, and so here would free
   nothing; on the 286 it frees what lies above where the break started
-  (`_minbrk`). `c2` and `sendmail` take the heap to start at `end` too,
-  and are not built yet.
+  (`_minbrk`). `c2` takes the heap to start at `end` too, and is not
+  built yet. `sendmail` freezes what lies from `end` to the break, which
+  here is the BSS and the heap with the stack between them, and writes
+  the two each by itself ([mail](#mail)).
 - **That `printf` can be written in PDP-11 assembly.** `csh` prints
   through its own `putchar`, with the formats of `doprnt11.s`; on the 286
   that is C, in `bin/csh/printf.c`.
@@ -571,10 +574,10 @@ makes `/var/cron/tabs`, where `crontab` keeps each user's table, and
 it runs `/etc/crontab` as well, which is this port's own. That has
 upstream's line that runs `atrun` every quarter of an hour. Upstream's
 also runs `/usr/adm/daily`, `weekly` and `monthly` and mails root what
-they print, but the tree has no such scripts, and there is no mail yet.
-`cron` mails what a job prints to the job's owner, through `sendmail`,
-so until that is built a job's output is lost unless the job sends it
-somewhere.
+they print, but the tree has no such scripts. This one has `sendmail
+-q` try each hour to deliver what is in mail's queue, which upstream
+leaves to `sendmail`'s daemon ([mail](#mail)). `cron` mails what a job
+prints to the job's owner, through `sendmail`.
 
 `cron` reads the tables again when `/etc/crontab` or the directory of
 tables has a later time of modification than it last saw. So it does
@@ -598,8 +601,7 @@ which upstream's library uses now as well, stops, as the C standard
 says. The later formats begin with a blank now, which passes over the
 newline. (`atq` and `atrm` open the file again for each line they
 want.) `atrun` mails a job's owner, through `/bin/mail`, if the job
-wrote to its standard error or was queued with `-m`; with no `mail`
-that is lost too.
+wrote to its standard error or was queued with `-m`.
 
 `/etc/rc` turns on the accounting of processes as upstream's does, with
 `accton /usr/adm/acct`. `accton` writes `/etc/acctd.cf` and starts
@@ -794,8 +796,8 @@ left as it is:
   `daemon`.
 
 Left out of this batch: `tc` and `tk`, which are for a Tektronix
-4014; `calendar`, `from`, `biff` and `msgs`, which
-wait for `mail`; `tcopy`, `mt` and `tp`, for tapes; the scripts
+4014; `from`, `biff` and `msgs`, which came with
+[mail](#mail), and `calendar`, which runs `/lib/cpp`; `tcopy`, `mt` and `tp`, for tapes; the scripts
 `lorder`, `mkdep` and `lint`, which run `nm`, the compiler and the
 passes of `lint`; `spell`, which needs its word lists made; `indent`,
 where the script found 16 calls to read, each with another number of
@@ -937,8 +939,8 @@ everyone, as before there was a `tcpd`, and says how to narrow that.
 is on as shipped.
 
 Left out: `identd`, which reads the kernel's tables to find whose a
-connection is, with the others that read the kernel; `comsat` and
-`biff`, and `popper`, which wait for `mail`; `named` and its tools,
+connection is, with the others that read the kernel; `comsat`, `biff`
+and `popper`, which came with [mail](#mail); `named` and its tools,
 though the library's resolver is there to ask another machine's;
 `mkhosts`, for a table of hosts the library here does not read;
 `slattach`, since the kernel has no serial line interface; `trpt` and
@@ -949,6 +951,153 @@ tapes; and `rdist`, `tn3270`, `tip` and `uucp`.
 and, for the daemons that speak to the whole network, on the Ethernet
 card: 21 checks in `tests/network/checks`, and `rlogin` and `talk` at
 terminals.
+
+## Mail
+
+Then mail, which `cron`, `at` and the editor were waiting for:
+`sendmail`, `/bin/mail` and `Mail`, and what waited for them, `comsat`
+and `biff`, `from`, `msgs`, `vacation` and `popper`. Of the 10, 4 are
+compiled as upstream has them. `sendmail` is medium-model, and the rest
+small.
+
+| Where | Programs |
+|---|---|
+| `/bin` | `mail` |
+| `/usr/ucb` | `Mail`, which is also `mail`; `fmt`, `biff`, `from`, `msgs`, `vacation` |
+| `/usr/sbin` | `sendmail`, which is also `newaliases` and `mailq` in `/usr/bin` |
+| `/usr/libexec` | `comsat`, `popper` |
+
+A letter goes to `sendmail`, from whoever sends one: `/bin/mail` given
+names, `Mail`, `cron`, `at`'s `atrun`, `expreserve` through `/bin/mail`,
+or another machine by SMTP. `sendmail` works out from
+`/etc/sendmail.cf` whom it is for and hands it on: to `/bin/mail -d` for
+a user here, which adds it to the user's mailbox in `/usr/spool/mail`
+and tells `comsat`, which tells the user at each terminal `biff y` was
+given on; to a program, for an alias such as `msgs`'s; or by SMTP to
+another machine. `sendmail.cf` is upstream's: mail for a user here is
+delivered here, and the rest goes to a relay it calls
+`RELAY.EXAMPLE.COM`, to be set for the machine's network. `/etc/aliases`
+is upstream's too.
+
+sendmail looks an alias up in a database, `aliases.dir` and
+`aliases.pag`, which `newaliases` makes. Until the database is there
+and has its last key, every `sendmail` waits for someone to finish
+making it, as long as `sendmail.cf`'s option `a` says: ten minutes. So
+the root file system has it, made by `tools/mkaliases.py` with
+`tools/mkpasswd.py`'s copy of ndbm, as the password database is; the
+system's own `newaliases` makes the same bytes, which `tests/network`
+checks. A user may forward mail with a `.forward`, which is how
+`vacation` is set to answer it.
+
+`sendmail` had three overlays on the PDP-11. Here its 70K of code is in
+two segments, and its data segment has 21K of data and 16K of stack,
+leaving about 27K for its heap. It takes the PDP-11's sizes for its
+tables (`conf.h`): lines of 256 bytes, ten jobs to a run of the queue.
+On the PDP-11 it is linked with `libstubs`, which has `ctimed`, another
+process, do `localtime` and the like for it, to save room in its code;
+here it is linked without, and has the library's own. The PDP-11's
+build also takes its messages out into `/usr/share/misc/sendmail.sr`
+with `mkstr` and `xstr`, as `ex`'s are, which this one has the room not
+to do. What the compiler needed: `syserr`, `usrerr`, `message`,
+`nmessage`, `setproctitle` and `smtpmessage`, which took five arguments
+or three and passed them on, are variadic; and `daemon.c` has two
+`#else`s to one `#ifndef DAEMON`, which the PDP-11's preprocessor took
+as a toggle and this one refuses.
+
+`sendmail -bz` freezes its configuration: it writes the memory it read
+`sendmail.cf` into, from `edata` to the break, to `/etc/sendmail.fc`,
+and a later `sendmail` reads that back in place of the file, which is
+quicker. On the 286 the stack lies between `end` and the heap, with the
+arguments and environment above it, so the BSS and the heap are written
+each by itself, and the heap read back to where it was. That is above
+the later `sendmail`'s own arguments only if they and its environment
+take no more clicks than those of the one that froze it; otherwise it
+reads `sendmail.cf`, as it does when the frozen file is empty, as it is
+shipped, as upstream ships it. `tests/network` freezes the
+configuration, moves `sendmail.cf` away and has a letter delivered.
+
+`sendmail`'s daemon (`sendmail -bd -q1h`) takes mail from other
+machines by SMTP and every hour tries again to deliver what is in its
+queue. Upstream's `rc.conf` starts it; this one's leaves it off, since
+it holds its 70K of code and at least 37K of data while it waits, a
+sixth of what a machine of 1 MB has for programs, and mail sent here is
+delivered without it.
+`/etc/crontab` has `sendmail -q` try the queue each hour instead.
+`sendmail=YES` in `rc.conf` starts it, as upstream's `rc.local` does.
+
+`/bin/mail` passes letters to send to `sendmail` and delivers what
+`sendmail` gives it with `-d`. Its `panic` is variadic, and the handler
+of its signals `void`. It took the size of a mailbox before a letter
+from `ftell` on a stream that `fdopen` had opened to append, which the
+tree's stdio leaves where the descriptor is, at the start, until it has
+written. So it told `comsat` the new letter began at the start of the
+mailbox, and if the write failed it would have cut the mailbox back to
+nothing. It asks the descriptor for the end now. That is the tree's
+stdio, and a bug on the PDP-11 too.
+
+`Mail` passes its `start_command` the nulls that end its arguments
+where one call left them off, and is linked with a stack of 16K, two of
+its commands' functions having 3K of local variables each. `fmt` left
+out the length of a word in one call of `pack`, a bug on any machine.
+`comsat` kept the time `utmp` was last changed in a 16-bit `u_int`,
+which never held one, so it read the file again every 15 seconds; it
+is a `time_t`. `popper`'s `pop_msg` used `va_start` without being
+declared with `...`, which this compiler refuses. `vacation` keeps whom
+it has answered in a dbm database, with `libdbm`, which is built for it
+and `sendmail` in each model.
+
+`ex` saves what is being edited when its terminal hangs up, and the
+`preserve` command does the same: it runs `expreserve`, which copies
+the editor's buffer to `/usr/preserve` and mails the user that it has.
+`ex` always said "Preserve failed!", and on a hangup left its
+temporary files for `expreserve -a` to save, and mail about, again at
+the next boot. Its `waitfor` waits for every child, until `wait` has no
+more to give, and leaves `rpid` at -1, so that `preserve`'s test that
+`rpid` is the child's never held. It leaves `rpid` the child's now, if
+the child was among them. A bug on the PDP-11 too.
+
+What upstream does that the test's author did not expect, and that is
+left as it is:
+
+- A letter root sends is postmarked "From daemon" in the mailbox.
+  `sendmail` runs no mailer as root, but as `daemon`, and gives
+  `/bin/mail` the sender's name only when it was given one, by `-f` or
+  SMTP; the `From:` line in the letter is root's.
+- A client that sends its SMTP commands without waiting for each
+  answer, as `nc` from a file does, has what it sent after a letter's
+  `MAIL` read again. `sendmail` takes each letter in a child, which
+  reads ahead from the connection and ends when the letter is taken;
+  the parent then reads from its own buffer what came before the child
+  did.
+- `comsat`, while it runs, reads who is logged in every 15 seconds, so
+  it does not tell someone who logged in since. It rings the bell after
+  the address in "New mail for".
+- `Mail` notes each letter it sends, the sender, the number of
+  recipients and the size, in `/usr/spool/mqueue/syslog`, where
+  `sendmail`'s log goes too.
+- `popper` leaves an empty `.user.pop` in `/usr/spool/mail`, and marks
+  a letter it has listed but not given `Status: U`.
+- `vacation` has no message of its own to send: the tree has no
+  `/usr/share/misc/vacation.def`, so a user writes `.vacation.msg`.
+
+`popper` is on the system and not started: upstream's `inetd.conf` does
+not name it, and its `services` has no `pop3`. This system's
+`inetd.conf` has the line, commented out, and says what `services`
+needs. `comsat` is started by `inetd` as upstream's has it.
+
+Left out: `calendar`, which runs the C preprocessor, `/lib/cpp`, that
+comes with the compiler; `rmail`, for mail by UUCP; and
+`sendmail.MX`, which asks a name server for a domain's mail exchanger.
+
+`tests/network` has the system run 12 checks of mail after the others:
+`newaliases`; `/bin/mail` and `Mail` sending to a user, `Mail` and
+`from` reading; `sendmail`'s SMTP server, from a client that waits for
+each answer; an alias; `msgs` and `vacation`, which an alias and a
+`.forward` give letters to; `popper`, once `inetd` is told of it; a
+frozen configuration; `ex`'s `preserve`, which mails the user; and
+`cron`, which mails a job's owner what it printed. Then a user logged
+in from the host with `telnet` gives `biff y`, and `comsat` must tell
+that terminal of the letter root sends, from where the letter begins.
 
 ## The root file system
 
@@ -1006,7 +1155,8 @@ which has the kernel write what it holds for the disks every 30
 seconds, and `cron`; turns accounting on ([the log, and what the clock
 runs](#the-log-and-what-the-clock-runs)); and starts `inetd`, and the
 daemons `rc.conf` asks for ([the network's
-programs](#the-networks-programs)). `inetd.conf`, `hosts.allow` and
+programs](#the-networks-programs)), among them `sendmail`'s, which is
+off as shipped ([mail](#mail)). `inetd.conf`, `hosts.allow` and
 `hosts.equiv` are this port's own, as is a `hosts` that names only
 `localhost`; `services`, `protocols`, `hosts.deny`, `ftpusers` and
 `ntp.conf` are upstream's ([the network](network.md)).
@@ -1033,8 +1183,13 @@ other names as hard links, and also `[` and `halt`. It makes everything
 root's unless the list says otherwise, as it does for `at`, `atq`,
 `atrm` and their queue, which are `daemon`'s, and for the programs that
 run with the group `kmem`. The programs that work on text and files are
-listed [above](#programs-that-work-on-text-and-files), and the
-network's others [after them](#the-networks-programs).
+listed [above](#programs-that-work-on-text-and-files), the
+network's others [after them](#the-networks-programs), and mail's
+[after those](#mail), with mail's files: `/etc/sendmail.cf`,
+`/etc/aliases` and its database, an empty `/etc/sendmail.fc` and
+`/var/log/sendmail.st`, `/etc/Mail.rc`, the help of `sendmail` and
+`Mail` in `/usr/share/misc`, and the directories `/usr/spool/mail` and
+`/usr/msgs`.
 
 The programs are in it without their symbol tables, as upstream's
 `install -s` leaves them. `obj/bin` has each as it was linked, with its
@@ -1052,8 +1207,8 @@ kernel](#programs-that-read-the-kernel)). The system's own `strip` makes
 of a file what `tools/strip.py` does, which `tests/programs` checks on
 the kernel.
 
-The file system is 8000 blocks of 1K, of which the system takes 4300.
-The 207 programs are 3.4 MB of that, and 3.9 MB with their symbols.
+The file system is 8000 blocks of 1K, of which the system takes 4650.
+The 217 programs are 3.6 MB of that, and 4.2 MB with their symbols.
 
 ## Following a program
 
@@ -1204,7 +1359,7 @@ now` and a message, which must be shown before the system halts.
 Afterwards `tools/fsck.py` must find nothing wrong with the root.
 
 `tests/network` boots it with the Ethernet card, logs in as root on
-the serial port, adds the users `guest` and `ftp`, and runs the 21
+the serial port, adds the users `guest` and `ftp`, and runs the 33
 checks of `tests/network/checks` in the same way. The first names the
 machine, brings its interface up at the address the emulator's network
 expects, and has `inetd` read its table again with `rexecd`, `tftpd`
@@ -1223,12 +1378,13 @@ TCP, to `inetd`'s own `tcpmux` and `echo`, and scanning two ports;
 `whois` against an `nc` that listens; `traceroute` to the machine and
 to the gateway; `rwhod` with `rwho` and `ruptime`; `timed`, which makes
 itself the network's master, with `timedc`; `ntpd` with `ntpdc` and
-`ntp`, and `ntest`, in which `ntp` checks its arithmetic; and `routed`
-with its trace. Then root uses `rlogin` to the user, with `.rhosts` and
-then with a password; from there `rsh` and a second `rlogin`, which
-`hosts.equiv` lets through; and `~.` to leave. The host logs the user
-in with `telnet`, which `tcpd` now stands before, root asks for the
-user with `talk`, the user answers what the daemon wrote on the
+`ntp`, and `ntest`, in which `ntp` checks its arithmetic; `routed`
+with its trace; and the 12 of mail ([mail](#mail)). Then root uses
+`rlogin` to the user, with `.rhosts` and then with a password; from
+there `rsh` and a second `rlogin`, which `hosts.equiv` lets through;
+and `~.` to leave. The host logs the user in with `telnet`, which
+`tcpd` now stands before; the user gives `biff y`, and `comsat` must
+show the letter root then sends; root asks for the user with `talk`, the user answers what the daemon wrote on the
 terminal, each sees what the other types, and an interrupt ends it for
 both.
 
@@ -1246,18 +1402,16 @@ Not done, or not tested:
 
 - The large model has no library, and the three helpers for `__huge`
   pointers are not written.
-- `csh`, `ex` and `tcsh` are the medium-model programs so far. The other
-  12 that the PDP-11 overlays (`sendmail`, `named`, `uucp`, `jove`,
+- `csh`, `ex`, `tcsh` and `sendmail` are the medium-model programs so
+  far. The other 11 that the PDP-11 overlays (`named`, `uucp`, `jove`,
   `kermit` and some games) are the ones meant for it. `csh`'s file name
   completion, and `tcsh` as a login shell, have not been tried.
-- `ex`'s `preserve`, and the saving of an editor's file when its
-  terminal hangs up, fail. `expreserve` saves the file and then mails
-  its owner through `/bin/mail`, which is not built. That `mail` hands
-  letters to `sendmail`, and it tells `comsat` of a new one over the
-  network. So these wait for `mail` and `sendmail`.
-- Many programs are not built yet: `mail` and what waits for it; of
-  the network's, `named` and `identd`; the compiler
-  and what works on object files; `nroff` and the rest for documents;
+- `ex`'s saving of what it was editing when its terminal hangs up has
+  not been tried, only its `preserve` command, which runs the same
+  `expreserve`.
+- Many programs are not built yet: of the network's, `named` and
+  `identd`; the compiler and what works on object files, among them
+  `/lib/cpp`, which `calendar` waits for; `nroff` and the rest for documents;
   the line printer's; and `disklabel`. With no `disklabel`, a partition
   can be made a file system only where `tools/mkdisk.py` labelled it
   one: the kernel mounts nothing else.
@@ -1271,7 +1425,9 @@ Not done, or not tested:
   but the library's `rexec`. `ftp`'s macros, its `.netrc` and its
   transfers between two other machines, `tftpd` writing anywhere but to
   a file made ready for it, and `talk` with a machine other than its own
-  are not tried.
+  are not tried. No letter has gone to another machine, which
+  `sendmail.cf` sends to a relay to be named for the network, or come
+  from one but the machine itself.
 - Of the programs that work on text and files, `tests/programs` gives
   each a check or a few, not every option. `su` is tried only from root,
   which is asked for no password; `lock` only with a key typed for it,
@@ -1289,8 +1445,6 @@ Not done, or not tested:
   has `/usr/adm/daily`, `weekly` and `monthly` do that, and the tree has
   no such scripts. `acctd` stops when the file system is nearly full;
   `syslogd` does not.
-- `cron` and `atrun` cannot mail a job's owner what the job printed,
-  for want of `sendmail` and `mail`.
 - `iostat`'s seek times (`msps`) are 0. An IDE or SCSI drive seeks by
   itself, so its driver counts no seeks, as upstream's MSCP driver
   counts none; upstream's drivers count them where they give the drive

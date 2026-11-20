@@ -339,8 +339,9 @@ for the one and loaded for the other. A process that never touches the
   of the program's data, which the program knows; the kernel passes the
   break in BX only because, as things are, it does not. A program that
   takes the heap to start at `end`, as the PDP-11's did, finds its stack
-  there instead: the shell did, and starts at the break now; `csh`, `c2`
-  and `sendmail`, not built yet, do too. The arguments would have to go
+  there instead: the shell did, and starts at the break now; `csh`
+  frees from there and `sendmail` freezes from there, and are made to
+  pass over the stack (userland.md); `c2`, not built yet, does too. The arguments would have to go
   elsewhere, since a stack at the bottom cannot be made larger for them.
 - More data segments for a program that asks for them, by a system call.
 - A segment that is not in memory. The fault it causes, 11, is the hook

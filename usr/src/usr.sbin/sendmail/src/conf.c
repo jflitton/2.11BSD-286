@@ -15,6 +15,7 @@ static char	SccsId[] = "@(#)conf.c	5.14.6 (2.11BSD GTE) 1997/10/2";
 #include <pwd.h>
 #include <sys/ioctl.h>
 #include "sendmail.h"
+#include <stdarg.h>
 
 /*
 **  CONF.C -- Sendmail Configuration Tables.
@@ -392,8 +393,7 @@ shouldqueue(pri)
 */
 
 /*VARARGS1*/
-setproctitle(fmt, a, b, c)
-	char *fmt;
+setproctitle(char *fmt, ...)
 {
 # ifdef SETPROCTITLE
 	register char *p;
@@ -401,8 +401,11 @@ setproctitle(fmt, a, b, c)
 	extern char **Argv;
 	extern char *LastArgv;
 	char buf[MAXLINE];
+	va_list ap;
 
-	(void) sprintf(buf, fmt, a, b, c);
+	va_start(ap, fmt);
+	(void) vsprintf(buf, fmt, ap);
+	va_end(ap);
 
 	/* make ps print "(sendmail)" */
 	p = Argv[0];

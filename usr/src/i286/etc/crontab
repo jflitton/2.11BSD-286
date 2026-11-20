@@ -1,5 +1,8 @@
 # What cron runs for the system, each line naming the user it runs as
 # (crontab(5)).  Upstream's (../../etc/crontab) also runs /usr/adm/daily,
 # weekly and monthly, and mails root what they print; there are no such
-# scripts here yet, and no mail.
+# scripts here yet.  Here sendmail tries again each hour to deliver what
+# is in its queue (/usr/spool/mqueue), which upstream has the daemon do,
+# since the daemon is not run unless /etc/rc.conf says to.
 0,15,30,45 * * * *	root /usr/libexec/atrun
+40 * * * *	root /usr/sbin/sendmail -q

@@ -7,14 +7,22 @@
 # inetd given more to start; ntp's check of its arithmetic; finger and
 # fingerd; tcpd's rules, with a connection it refuses; rsh, rcp and
 # rexecd; tftp; ftp as a user, as nobody who may, and as the anonymous
-# one; nc, whois and traceroute; and the daemons that keep the network
-# told, rwhod, timed, ntpd and routed, with what asks them.  Then use
-# what needs a terminal: rlogin as a user with a password and as one
-# /etc/hosts.equiv lets in without, one inside the other, and its
-# escape; and talk between root on the serial port and the user logged
-# in from the host with telnet, which tcpd lets through.  The kernel,
-# /boot, the C library, the programs and the root file system are built
-# as they would be for a real machine, as tests/system has them.
+# one; nc, whois and traceroute; the daemons that keep the network
+# told, rwhod, timed, ntpd and routed, with what asks them; and mail:
+# newaliases, which must make the database tools/mkaliases.py made,
+# /bin/mail and Mail sending through sendmail, Mail and from reading,
+# sendmail's SMTP server, an alias, msgs, vacation, popper, ex's
+# preserve, which mails the user, and cron, which mails what a job
+# printed.  Then use what needs a terminal: rlogin as a user with a
+# password and as one /etc/hosts.equiv lets in without, one inside the
+# other, and its escape; biff and comsat, which tell the user logged in
+# from the host with telnet that mail has come; and talk between root on
+# the serial port and that user, whom tcpd let through.  comsat, which
+# may still be running from the last letter, reads who is logged in
+# every 15 seconds, so the letter waits that long after the login.  The
+# kernel, /boot, the C library, the programs and the root file system
+# are built as they would be for a real machine, as tests/system has
+# them.
 #
 # The Ethernet card is 86Box's NETCARD, ne2k8 if it is not set, as in
 # tests/system.  Run from the top of the repository after
@@ -67,7 +75,7 @@ geometry=$(python3 -I "$top/tools/mkdisk.py" -p -b "$stand/hdboot.bin" \
 # Exiting]", is written over the one before from where they differ.
 CTRLC=$(printf '\003')
 CTRLD=$(printf '\004')
-TIMEOUT=${TIMEOUT:-900} python3 -I "$top/tests/harness/runtest.py" \
+TIMEOUT=${TIMEOUT:-1200} python3 -I "$top/tests/harness/runtest.py" \
     --hd network.img,$geometry,xtide --until halting \
     --net ${NETCARD:-ne2k8} --term vt100:80x24 \
     --type "login: " "root" \
@@ -103,8 +111,10 @@ TIMEOUT=${TIMEOUT:-900} python3 -I "$top/tests/harness/runtest.py" \
     --type "rl-two" '~.' \
     --telnet "login: " 'guest' \
     --telnet "Password:" 'Gu3st-pw' \
-    --telnet "$ " 'echo "tel""-in" $TERM; mesg; who' \
-    --type "Closed connection." 'talk guest' \
+    --telnet "$ " 'echo "tel""-in" $TERM; mesg; biff y; biff; who' \
+    --type "Closed connection." 'sleep 20; echo comsat-body | mail guest' \
+    --telnet "comsat-body" '' \
+    --type "# " 'talk guest' \
     --telnet "respond with" 'talk root@pc286' \
     --telnet "established" 'hello-from-guest' \
     --type "hello-from-guest" 'hello-from-root' \
@@ -142,9 +152,11 @@ for want in "^rl-in vt100 /dev/ttyp0" "pc286.guest  *ttyp0 .*(localhost)" \
     fi
 done
 # What the user logged in from the host saw: the login, which tcpd let
-# through to telnetd; talk's announcement, written to the terminal by
-# the daemon; and what root typed.
+# through to telnetd; comsat's word that mail had come, with a bell
+# after the address, and the letter root sent and not one before it; talk's announcement, written to the
+# terminal by the daemon; and what root typed.
 for want in "tel-in vt100" "^is y" "guest  *ttyp0 .*(10.0.2.2)" \
+    "New mail for guest@pc286.* has arrived" "^comsat-body" \
     "Message from Talk_Daemon@pc286" \
     "talk: connection requested by root@pc286" \
     "talk: respond with:  talk root@pc286" "Connection established" \
@@ -154,5 +166,11 @@ for want in "tel-in vt100" "^is y" "guest  *ttyp0 .*(10.0.2.2)" \
         exit 1
     fi
 done
+# comsat shows the new letter from where /bin/mail said it began, not
+# the cron job's letter before it.
+if grep -a -q "Cron Daemon" "$out/telnet.txt"; then
+    echo "network: comsat showed the letter before the new one" >&2
+    exit 1
+fi
 python3 -I "$top/tools/fsck.py" network.img
-echo "network: $n checks of the network's programs, and rlogin and talk at terminals, one of them a telnet from the host"
+echo "network: $n checks of the network's programs and mail, and rlogin, biff and talk at terminals, one of them a telnet from the host"

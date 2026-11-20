@@ -27,10 +27,13 @@ d /usr/spool 755
 d /usr/spool/at 755:1.1
 d /usr/spool/at/past 755:1.1
 d /usr/spool/mqueue 755
+d /usr/spool/mail 755
+d /usr/msgs 777
 d /usr/spool/rwho 755
 d /usr/tmp 1777
 d /var 755
 d /var/run 755
+d /var/log 755
 d /lost+found 755
 d /mnt 755
 d /home 755
@@ -71,6 +74,16 @@ f /etc/passwd 644 ../../../obj/root/passwd
 f /etc/passwd.dir 644 ../../../obj/root/passwd.dir
 f /etc/passwd.pag 644 ../../../obj/root/passwd.pag
 f /etc/syserrlst 644 ../../../obj/root/syserrlst
+f /etc/sendmail.cf 644 ../etc/sendmail.cf
+f /etc/sendmail.fc 644 ../../../obj/root/empty
+f /etc/aliases 644 ../etc/aliases
+f /etc/aliases.dir 644 ../../../obj/root/aliases.dir
+f /etc/aliases.pag 644 ../../../obj/root/aliases.pag
+f /etc/Mail.rc 444 ../ucb/Mail/Mail.rc
+f /usr/share/misc/sendmail.hf 444 ../usr.sbin/sendmail/lib/sendmail.hf
+f /usr/share/misc/Mail.help 444 ../share/misc/Mail.help
+f /usr/share/misc/Mail.tildehelp 444 ../share/misc/Mail.tildehelp
+f /var/log/sendmail.st 666 ../../../obj/root/empty
 f /etc/tcsh6.00strgs 444 ../../../obj/tcsh/tcsh6.00strgs
 f /usr/share/misc/termcap 444 ../../../obj/root/termcap
 l /etc/termcap ../usr/share/misc/termcap
@@ -319,6 +332,19 @@ f /usr/sbin/ntp 755 ../../../obj/root/bin/ntp
 f /usr/sbin/ntpd 755 ../../../obj/root/bin/ntpd
 f /usr/sbin/ntpdc 755 ../../../obj/root/bin/ntpdc
 f /sbin/routed 755 ../../../obj/root/bin/routed
+f /usr/sbin/sendmail 4755 ../../../obj/root/bin/sendmail
+l /usr/bin/newaliases ../sbin/sendmail
+l /usr/bin/mailq ../sbin/sendmail
+f /bin/mail 4755 ../../../obj/root/bin/mail
+f /usr/ucb/Mail 755 ../../../obj/root/bin/Mail
+h /usr/ucb/mail /usr/ucb/Mail
+f /usr/ucb/fmt 755 ../../../obj/root/bin/fmt
+f /usr/libexec/comsat 755 ../../../obj/root/bin/comsat
+f /usr/ucb/biff 755 ../../../obj/root/bin/biff
+f /usr/ucb/from 755 ../../../obj/root/bin/from
+f /usr/ucb/msgs 755 ../../../obj/root/bin/msgs
+f /usr/ucb/vacation 755 ../../../obj/root/bin/vacation
+f /usr/libexec/popper 700 ../../../obj/root/bin/popper
 c /dev/console 622 0 0
 c /dev/ttyv1 666 0 1
 c /dev/ttyv2 666 0 2

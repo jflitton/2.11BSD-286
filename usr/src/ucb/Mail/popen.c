@@ -101,7 +101,8 @@ Popen(cmd, mode)
 		hisside = fd0 = p[READ];
 		fd1 = -1;
 	}
-	if ((pid[myside] = start_command(cmd, 0L, fd0, fd1, NOSTR)) < 0) {
+	if ((pid[myside] = start_command(cmd, 0L, fd0, fd1, NOSTR, NOSTR,
+	    NOSTR)) < 0) {
 		close(p[READ]);
 		close(p[WRITE]);
 		return NULL;

@@ -3,13 +3,25 @@ empty directory, once it has a user guest with the password Gu3st-pw and
 a user ftp, and must write what follows its "--", to the byte
 (tests/harness/checks.py).  The first names the machine, brings its
 Ethernet interface up and has inetd start the three daemons that
-/etc/inetd.conf has commented out; the rest rely on it.
+/etc/inetd.conf has commented out; the rest rely on it.  It starts
+sendmail's daemon too, which /etc/rc.conf leaves off, for its SMTP
+server: once the machine has its name, which sendmail takes as it
+starts.
+
+The checks of mail come last, since they leave mail in guest's home
+directory.  A letter is shown less the lines that differ from one run
+to the next: the date and the queue's name for it.  A letter from root
+is postmarked "From daemon": sendmail runs no mailer as root, but as
+daemon, and names the sender to /bin/mail only when it was named to
+sendmail.  A configuration sendmail has frozen is one it can thaw
+without the file it was read from.
 
 == setup
 hostname pc286
 echo "10.0.2.15 pc286" >> /etc/hosts
 ifconfig ne0 inet 10.0.2.15 netmask 255.255.255.0 up
 route add default 10.0.2.2 1 >/dev/null
+sendmail -bd -q1h
 cat >> /etc/inetd.conf <<END
 exec stream tcp nowait root /usr/libexec/rexecd rexecd
 tftp dgram udp wait nobody /usr/libexec/tcpd tftpd
@@ -338,3 +350,262 @@ netstat -rn | grep "^10.0.2" | awk '{print $1, $2, $3}'
 action dst 10.0.0.0, router 10.0.2.15, metric 0
 action dst 10.0.2.0, router 10.0.2.15, metric 0
 10.0.2 10.0.2.15 U
+=file wait
+# sh /mnt/d/wait FILE N: wait up to a minute for FILE to hold N letters.
+n=0
+while test `cat $1 2>/dev/null | grep -c '^From '` -lt $2 -a $n -lt 60
+do
+	sleep 1; n=`expr $n + 1`
+done
+=file letters
+# sh /mnt/d/letters [FILE]: the letters in FILE, or what is read, less
+# the lines that differ from run to run.
+sed -e 's/^\(From [^ ]*\) .*/\1/' -e '/^Received: /d' -e '/^[ 	]*id AA/d' \
+    -e '/^Date: /d' -e '/^Message-Id: /d' $1
+=file smtp
+# What a client of sendmail's sends it, a line at a time as one that
+# waits for each answer does.  sendmail reads what follows MAIL in a
+# child, which ends when the letter has been taken, and what was read
+# ahead of that is gone with it.
+for l in "HELO localhost" "MAIL From:<guest@localhost>" "RCPT To:<root>" \
+    "DATA" "Subject: by smtp" "" "smtp-body" "." "QUIT"
+do
+	echo "$l"; sleep 1
+done
+=file pop
+for l in "USER guest" "PASS Gu3st-pw" "STAT" "RETR 1" "DELE 1" "QUIT"
+do
+	echo "$l"; sleep 1
+done
+== newaliases
+cp /etc/aliases.dir a.dir; cp /etc/aliases.pag a.pag
+newaliases
+cmp a.dir /etc/aliases.dir && cmp a.pag /etc/aliases.pag && echo same
+--
+6 aliases, longest 21 bytes, 117 bytes total
+same
+== binmail
+echo "binmail-body" | mail guest
+sh /mnt/d/wait /usr/spool/mail/guest 1
+sh /mnt/d/letters /usr/spool/mail/guest
+ls -l /usr/spool/mail/guest | awk '{print $1, $3}'
+--
+From daemon
+From: root (System Administrator)
+Apparently-To: guest
+
+binmail-body
+
+-rw------- guest
+== Mail-send
+echo "Mail-body" | Mail -s "a subject" guest
+sh /mnt/d/wait /usr/spool/mail/guest 2
+sh /mnt/d/letters /usr/spool/mail/guest | sed 1,6d
+from guest | sed 's/^\(From [^ ]*\) .*/\1/'
+--
+From daemon
+From: root (System Administrator)
+To: guest
+Subject: a subject
+
+Mail-body
+
+From daemon
+From daemon
+== Mail-read
+printf 'p 2\nq\n' | su guest -c "Mail -N" | sh /mnt/d/letters
+ls /home/guest/mbox
+sh /mnt/d/letters /usr/spool/mail/guest
+--
+Mail version 5.5 6/1/90.  Type ? for help.
+"/usr/spool/mail/guest": 2 messages 2 new
+Message 2:
+From daemon
+From: root (System Administrator)
+To: guest
+Subject: a subject
+
+Mail-body
+
+Saved 1 message in mbox
+Held 1 message in /usr/spool/mail/guest
+/home/guest/mbox
+From daemon
+From: root (System Administrator)
+Apparently-To: guest
+Status: O
+
+binmail-body
+
+== smtp
+sh /mnt/d/smtp | nc -w 10 localhost 25 | tr -d '\015' | sed 's/ at .*//'
+sh /mnt/d/wait /usr/spool/mail/root 1
+sh /mnt/d/letters /usr/spool/mail/root
+--
+220 pc286 Sendmail 5.52.1/1.25 ready
+250 pc286 Hello localhost, pleased to meet you
+250 <guest@localhost>... Sender ok
+250 <root>... Recipient ok
+354 Enter mail, end with "." on a line by itself
+250 Ok
+221 pc286 closing connection
+From guest@localhost
+From: guest@localhost
+Subject: by smtp
+Apparently-To: <root>
+
+smtp-body
+
+== alias
+echo alias-body | mail help
+sh /mnt/d/wait /usr/spool/mail/root 2
+sh /mnt/d/letters /usr/spool/mail/root | sed 1,7d
+mailq
+grep "to=<root>" /usr/spool/mqueue/syslog | sed 's/.*: to=/to=/; s/, delay=[^,]*//'
+--
+From daemon
+From: root (System Administrator)
+Apparently-To: help
+
+alias-body
+
+Mail queue is empty
+to=<root>, stat=Sent
+== msgs
+echo "msgs-body" | Mail -s "a notice" msgs
+n=0; while test ! -s /usr/msgs/1 -a $n -lt 60; do sleep 1; n=`expr $n + 1`; done
+sleep 2
+ls /usr/msgs
+sh /mnt/d/letters /usr/msgs/1
+msgs -q
+--
+1
+bounds
+From root
+From: root (System Administrator)
+To: msgs
+Subject: a notice
+
+msgs-body
+There are new messages.
+== vacation
+rm -f /usr/spool/mail/guest /usr/spool/mail/root
+su guest -c 'cd; vacation -I'
+echo '\guest, "|/usr/ucb/vacation guest"' > /home/guest/.forward
+printf 'Subject: away\n\nguest is away\n' > /home/guest/.vacation.msg
+chown guest /home/guest/.forward /home/guest/.vacation.msg
+echo vacation-body | mail guest
+sh /mnt/d/wait /usr/spool/mail/guest 1
+sh /mnt/d/wait /usr/spool/mail/root 1
+sh /mnt/d/letters /usr/spool/mail/guest
+sh /mnt/d/letters /usr/spool/mail/root
+echo second | mail guest
+sh /mnt/d/wait /usr/spool/mail/guest 2
+sleep 5
+grep -c '^From ' /usr/spool/mail/root
+rm /home/guest/.forward
+--
+From daemon
+From: root (System Administrator)
+Apparently-To: guest
+
+vacation-body
+
+From guest
+From: guest (Guest User)
+Subject: away
+Apparently-To: root
+
+guest is away
+
+1
+== popper
+echo "pop3 110/tcp" >> /etc/services
+echo "pop3 stream tcp nowait root /usr/libexec/tcpd popper" >> /etc/inetd.conf
+kill -1 `ps ax | grep "[i]netd" | awk '{print $1}'`
+sleep 2
+sh /mnt/d/pop | nc -w 10 localhost 110 | tr -d '\015' | sh /mnt/d/letters | sed 's/[0-9][0-9]* octets/N octets/; s/^\(+OK [0-9]*\) [0-9]*$/\1/'
+sh /mnt/d/letters /usr/spool/mail/guest
+--
++OK UCB Pop server (version 1.831beta) at pc286 starting.
++OK Password required for guest.
++OK guest has 2 message(s) (N octets).
++OK 2
++OK N octets
+From: root (System Administrator)
+Apparently-To: guest
+
+vacation-body
+
+.
++OK Message 1 has been deleted.
++OK Pop server at pc286 signing off.
+From daemon
+From: root (System Administrator)
+Apparently-To: guest
+Status: U
+
+second
+
+== freeze
+sendmail -bz
+test -s /etc/sendmail.fc && echo frozen
+mv /etc/sendmail.cf cf
+rm -f /usr/spool/mail/guest
+echo frozen-body | mail guest
+sh /mnt/d/wait /usr/spool/mail/guest 1
+mv cf /etc/sendmail.cf
+cp /dev/null /etc/sendmail.fc
+sh /mnt/d/letters /usr/spool/mail/guest
+--
+frozen
+From daemon
+From: root (System Administrator)
+Apparently-To: guest
+
+frozen-body
+
+== preserve
+rm -f /usr/spool/mail/guest
+printf 'a\nkept\n.\npreserve\nq!\n' | su guest -c "cd /tmp; ex - pfile"
+sh /mnt/d/wait /usr/spool/mail/guest 1
+sh /mnt/d/letters /usr/spool/mail/guest | sed 's/at <.*> on/at <> on/'
+su guest -c "ex -r" 2>&1 | sed 's/^On .* saved/On ... saved/'
+--
+ [New file]
+File preserved.
+From guest
+From: guest (Guest User)
+Subject: editor saved ``pfile''
+Apparently-To: guest
+
+You were editing the file "pfile"
+at <> on the machine ``pc286''
+when the editor was killed.
+
+You can retrieve most of your changes to this file
+using the "recover" command of the editor.
+An easy way to do this is to give the command "vi -r pfile".
+This method also works using "ex" and "edit".
+
+On ... saved 1 lines of file "pfile"
+== cron
+rm -f /usr/spool/mail/guest
+echo "* * * * * echo cron-said" > ct
+su guest -c "crontab /tmp/w/ct"
+sh /mnt/d/wait /usr/spool/mail/guest 1
+sh /mnt/d/wait /usr/spool/mail/guest 1
+su guest -c "crontab -r"
+sh /mnt/d/letters /usr/spool/mail/guest | sed -n '1,/^cron-said$/p'
+--
+From daemon
+From: root (Cron Daemon)
+To: guest
+Subject: Cron <guest@pc286> echo cron-said
+X-Cron-Env: <SHELL=/bin/sh>
+X-Cron-Env: <HOME=/home/guest>
+X-Cron-Env: <PATH=/usr/bin:/bin>
+X-Cron-Env: <LOGNAME=guest>
+X-Cron-Env: <USER=guest>
+
+cron-said

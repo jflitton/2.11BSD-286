@@ -351,6 +351,55 @@ NET2PROGS=	rlogin rsh rcp rlogind rshd rexecd ftp ftpd tftp tftpd \
 		traceroute routed timed timedc ntp ntpd ntpdc ntest tcpd \
 		tcpdmatch tcpdchk try-from safe_finger
 
+# Mail.  sendmail takes a letter from whoever sends one, here or over
+# the network, and hands it to what delivers it: /bin/mail for a user
+# here, which also reads a mailbox the old way, or SMTP for another
+# machine.  Mail is what a user reads and sends mail with, and fmt
+# fills its lines.  sendmail had three overlays on the PDP-11 and is
+# medium-model here.  There it was linked with libstubs, which has
+# ctimed, another process, do localtime and the like to save room in
+# its code; it is linked without here, and has the library's own.  Its
+# aliases are a dbm database, through libdbm.  Each holds a message's
+# header on the stack, and Mail its commands' arguments.
+SENDMAIL=	conf.c main.c collect.c parseaddr.c alias.c deliver.c \
+		savemail.c err.c readcf.c stab.c headers.c recipient.c \
+		stats.c daemon.c usersmtp.c srvrsmtp.c queue.c macro.c util.c \
+		clock.c trace.c envelope.c sysexits.c arpadate.c convtime.c \
+		Version.c
+sendmail_SRCS=	$(addprefix usr.sbin/sendmail/src/,$(SENDMAIL))
+sendmail_FLAGS=	-I$(SRC)/usr.sbin/sendmail/include -DVMUNIX -DNOSCCS \
+		-stack 16384
+sendmail_LIBS=	-ldbm
+sendmail_MODEL=	m
+mail_SRCS=	bin/mail.c
+Mail_SRCS=	$(addprefix ucb/Mail/,version.c aux.c cmd1.c cmd2.c cmd3.c \
+		cmdtab.c collect.c edit.c fio.c getname.c head.c v7.local.c \
+		lex.c list.c main.c names.c popen.c quit.c send.c strings.c \
+		temp.c tty.c vars.c)
+Mail_FLAGS=	-stack 16384
+fmt_SRCS=	ucb/Mail/fmt.c ucb/Mail/head.c
+# What waited for mail: comsat, which tells a user logged in that mail
+# has come, if biff has said to; from, which lists who it is from; msgs,
+# the system's messages, which mail to msgs adds to; vacation, which
+# answers mail while its user is away, and keeps whom it has answered in
+# a dbm database; and popper, which lets another machine fetch a user's
+# mail by POP3.
+comsat_SRCS=	libexec/comsat/comsat.c
+biff_SRCS=	ucb/biff.c
+from_SRCS=	ucb/from.c
+msgs_SRCS=	ucb/msgs/msgs.c
+msgs_LIBS=	-ltermcap
+vacation_SRCS=	ucb/vacation.c
+vacation_LIBS=	-ldbm
+popper_SRCS=	$(addprefix libexec/popper/,pop_dele.c pop_dropcopy.c \
+		pop_dropinfo.c pop_get_command.c pop_get_subcommand.c \
+		pop_init.c pop_last.c pop_list.c pop_log.c pop_lower.c \
+		pop_msg.c pop_parse.c pop_pass.c pop_quit.c pop_rset.c \
+		pop_send.c pop_stat.c pop_updt.c pop_user.c pop_xtnd.c \
+		pop_xmit.c popper.c)
+popper_FLAGS=	-DBIND43
+MAILPROGS=	sendmail mail Mail fmt comsat biff from msgs vacation popper
+
 # This port's own (docs/userland.md), each in a directory here.
 adduser_SRCS=	i286/adduser/adduser.c
 bench_SRCS=	i286/bench/bench.c
@@ -359,7 +408,7 @@ OWNPROGS=	adduser bench
 PROGS=	init getty login sh csh ls mkdir stty test hostname mknod mount \
 	umount reboot sleep ex exrecover expreserve tcsh $(BINSTD) \
 	$(NETPROGS) $(SYSPROGS) $(KMEMPROGS) $(LOGPROGS) $(YACCPROGS) \
-	$(TEXTPROGS) $(NET2PROGS) $(OWNPROGS)
+	$(TEXTPROGS) $(NET2PROGS) $(MAILPROGS) $(OWNPROGS)
 
 # The libraries the programs use besides the C library: NAME_LIB lists a
 # library's sources, and NAME_LIBFLAGS what it is compiled with.  Each is
@@ -387,7 +436,9 @@ wrap_LIB=	$(addprefix libexec/tcpd/,hosts_access.c options.c shell_cmd.c \
 		clean_exit.c fix_options.c socket.c tli.c workarounds.c \
 		update.c misc.c diag.c percent_m.c)
 wrap_LIBFLAGS=	$(WRAPFLAGS)
-LIBRARIES=	util termcap m curses wrap
+dbm_LIB=	usr.lib/libdbm/dbm.c
+dbm_LIBFLAGS=	-DNOSCCS
+LIBRARIES=	util termcap m curses wrap dbm
 
 all:	$(addprefix $(O)/,$(PROGS))
 
@@ -595,6 +646,14 @@ FORCE:
 $(R)/syserrlst: $(SRC)/usr.lib/liberrlst/errlst.c $(TOP)/tools/mkerrlst.py | $(R)
 	python3 -I $(TOP)/tools/mkerrlst.py $< $@
 
+# The database of /etc/aliases, aliases.dir and aliases.pag, which
+# newaliases makes on the system: without it every sendmail waits for
+# someone to make it.
+$(R)/aliases.dir: $(SRC)/etc/aliases $(TOP)/tools/mkaliases.py \
+		$(TOP)/tools/mkpasswd.py | $(R)
+	python3 -I $(TOP)/tools/mkaliases.py $< $(R)
+$(R)/aliases.pag: $(R)/aliases.dir ;
+
 $(R)/empty: | $(R)
 	: > $@
 
@@ -609,7 +668,8 @@ $(R)/termcap: $(wildcard $(SRC)/share/termcap/*) $(TOP)/tools/mktermcap.py \
 $(R)/root.fs: root.proto $(wildcard etc/* root/* skel/*) \
 		$(addprefix $(R)/bin/,$(PROGS)) \
 		$(R)/passwd $(R)/passwd.dir $(R)/passwd.pag $(R)/fstab \
-		$(R)/syserrlst $(R)/empty $(R)/zero $(R)/termcap \
+		$(R)/syserrlst $(R)/aliases.dir $(R)/aliases.pag $(R)/empty \
+		$(R)/zero $(R)/termcap \
 		$(TOP)/obj/PC/unix $(TOP)/obj/stand/boot
 	python3 -I $(TOP)/tools/mkfs.py -s $(ROOTSIZE) root.proto $@
 

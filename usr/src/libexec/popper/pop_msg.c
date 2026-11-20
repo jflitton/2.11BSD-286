@@ -18,7 +18,7 @@ static char SccsId[] = "@(#)@(#)pop_msg.c	2.2  (2.11BSD) 2025/12/26";
  *  msg:    Send a formatted line to the POP client
  */
 
-pop_msg(POP *p, int stat, char *format)
+pop_msg(POP *p, int stat, char *format, ...)
 {
 
     va_list             ap;

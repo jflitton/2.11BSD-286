@@ -114,7 +114,7 @@ void
 onalrm()
 {
 	static u_int utmpsize;		/* last malloced size for utmp */
-	static u_int utmpmtime;		/* last modification time for utmp */
+	static time_t utmpmtime;	/* last modification time for utmp */
 	struct stat statbf;
 
 	if (time((time_t *)NULL) - lastmsgtime >= MAXIDLE)
