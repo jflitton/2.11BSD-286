@@ -224,12 +224,13 @@ tests/network/run.sh    # the network's programs, on the system booted to
                         # talk at terminals
 tests/programs/run.sh   # the programs that work on text and files, on the
                         # system booted to multi-user, nroff and man,
-                        # tbl, eqn, refer, spell and their kind,
-                        # disklabel, fsck and the other checkers on a
-                        # second disk, and the games: 139 checks, each a
-                        # few lines for the shell and what they must
-                        # write, and more, man, script, lock, tset, five
-                        # games and shutdown at a terminal
+                        # tbl, eqn, refer, spell and their kind, zic
+                        # and /usr/adm's scripts, disklabel, fsck and
+                        # the other checkers on a second disk, and the
+                        # games: 145 checks, each a few lines for the
+                        # shell and what they must write, and more, man,
+                        # script, lock, tset, five games and shutdown at
+                        # a terminal
 tests/system/run.sh     # the system, booted from a hard disk to multi-user:
                         # checks its root with fsck and starts again,
                         # logs in on a serial port and on two of the
@@ -303,17 +304,19 @@ tests/vt/run.sh         # the console's terminal emulator, on the machine
   ([the C library and programs](userland.md),
   [the console](console.md), [the network](network.md)).
 - `tests/programs` boots that system too, with a file system of checks
-  beside the root: 139 of them, each a few lines for the shell and what
+  beside the root: 145 of them, each a few lines for the shell and what
   they must write, to the byte, for `sort`, `sed`, `diff`, `tar`,
   `patch`, `m4`, `compress` and the other programs that work on text and
   files, for `nroff`, which must format three of the manual's pages
   as the build did, and `man`, for `tbl`, `eqn`, `refer`, `spell` and
-  the rest that documents go through, for `disklabel`, `fsck` and its
-  elders and `fstat`, with a second disk to write labels and file systems
-  on, and for the games that can be played from a file. Then it uses the
-  ones that need a terminal, `more`, `man`, `script`, `lock` and `tset`,
-  and `battlestar`, `hack`, `rogue`, `robots` and `hangman`, and stops
-  the system with `shutdown` ([the C library and programs](userland.md)).
+  the rest that documents go through, for `zic` and `zdump` and
+  `/usr/adm`'s `daily`, `weekly` and `monthly`, for `disklabel`, `fsck`
+  and its elders and `fstat`, with a second disk to write labels and
+  file systems on, and for the games that can be played from a file.
+  Then it uses the ones that need a terminal, `more`, `man`, `script`,
+  `lock` and `tset`, and `battlestar`, `hack`, `rogue`, `robots` and
+  `hangman`, and stops the system with `shutdown` ([the C library and
+  programs](userland.md)).
 - `tests/network` boots it with the Ethernet card and has it run 34
   checks of the same kind: `finger`, `rsh`, `rcp`, `tftp` and `ftp`, as
   a user and as the anonymous one, against their daemons on the loopback

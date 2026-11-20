@@ -133,7 +133,7 @@ char *	argv[];
 		if (t > 0)		/* time_t is unsigned */
 			t = 0;
 		show(argv[i], t, TRUE);
-		t += SECS_PER_HOUR * HOURS_PER_DAY;
+		t += SECS_PER_DAY;
 		show(argv[i], t, TRUE);
 		while (timecnt-- > 0) {
 			char	code[4];
@@ -154,9 +154,9 @@ char *	argv[];
 		t = 0xffffffff;
 		if (t < 0)		/* time_t is signed */
 			t = 0x7fffffff ;
-		t -= SECS_PER_HOUR * HOURS_PER_DAY;
+		t -= SECS_PER_DAY;
 		show(argv[i], t, TRUE);
-		t += SECS_PER_HOUR * HOURS_PER_DAY;
+		t += SECS_PER_DAY;
 		show(argv[i], t, TRUE);
 		free(tzequals);
 	}

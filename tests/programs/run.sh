@@ -47,6 +47,10 @@ cp "$top/usr/src/man/man1/ls.1" "$top/usr/src/bin/mkdir/mkdir.1" \
 # spell's words to stop at, of which the system's spellin must make the
 # list the build made.
 cp "$top/usr/src/usr.bin/spell/stop" checks/d
+# The tables of time zones, of which the system's zic must make the
+# files the build made.
+(cd "$top/usr/src/share/zoneinfo" && cp asia australasia europe etcetera \
+    northamerica pacificnew systemv "$out/checks/d")
 {
     echo "d /t 755"; echo "d /x 755"; echo "d /d 755"
     echo "f /check.sh 644 checks/check.sh"
@@ -73,7 +77,7 @@ spare=$(python3 -I "$top/tools/mkdisk.py" -p -g 100,4,17 spare.img a=fs:2000 \
 # the end of the file: one that is at a terminal does not obey exit.
 CTRLD=$(printf '\004')
 CTRLC=$(printf '\003')
-TIMEOUT=${TIMEOUT:-900} python3 -I "$top/tests/harness/runtest.py" \
+TIMEOUT=${TIMEOUT:-1500} python3 -I "$top/tests/harness/runtest.py" \
     --hd programs.img,$geometry,xtide --hd2 spare.img,$spare --until halting \
     --type "login: " "root" \
     --type "# " 'mount /dev/wd0d /mnt; sh /mnt/check.sh; umount /mnt' \
@@ -140,4 +144,4 @@ done
 python3 -I "$top/tools/fsck.py" programs.img
 python3 -I "$top/tools/fsck.py" -p a spare.img
 python3 -I "$top/tools/fsck.py" -p e spare.img
-echo "programs: $n checks of the programs that work on text and files, of nroff and man, of tbl, eqn, refer, spell and the rest documents go through, of disklabel, the file system checkers and fstat, and of the games, and tty, mesg, more, man, script, lock, tset, clear, five games and shutdown at a terminal"
+echo "programs: $n checks of the programs that work on text and files, of nroff and man, of tbl, eqn, refer, spell and the rest documents go through, of zic and /usr/adm's scripts, of disklabel, the file system checkers and fstat, and of the games, and tty, mesg, more, man, script, lock, tset, clear, five games and shutdown at a terminal"

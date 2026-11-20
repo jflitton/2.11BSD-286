@@ -573,12 +573,36 @@ points at its own copy.
 `cron` and `crontab` are upstream's, Paul Vixie's, unchanged. `cron`
 makes `/var/cron/tabs`, where `crontab` keeps each user's table, and
 it runs `/etc/crontab` as well, which is this port's own. That has
-upstream's line that runs `atrun` every quarter of an hour. Upstream's
-also runs `/usr/adm/daily`, `weekly` and `monthly` and mails root what
-they print, but the tree has no such scripts. This one has `sendmail
--q` try each hour to deliver what is in mail's queue, which upstream
-leaves to `sendmail`'s daemon ([mail](#mail)). `cron` mails what a job
-prints to the job's owner, through `sendmail`.
+upstream's lines: `atrun` every quarter of an hour, and
+`/usr/adm/daily`, `weekly` and `monthly` (below), each piped to `mail
+root`. It adds `sendmail -q` each hour, to deliver what is in mail's
+queue, which upstream leaves to `sendmail`'s daemon ([mail](#mail)).
+`cron` mails what a job prints to the job's owner, through `sendmail`.
+The times in the table are local ([time zones](#time-zones)).
+
+`daily` runs at five past midnight. It starts a new file of accounting
+records, has `sa` add the old one to its summaries, `savacct` and
+`usracct`, and compresses it, keeping four; it keeps eight days of
+mail's log and of `daemonlog` and `debuglog`; it has `msgs -c` remove
+old messages; and it lists mail's queue. `weekly`, at quarter past on
+Sunday, keeps four weeks of `messages` and `cron`, compressed, makes
+`/usr/man/whatis` again with `makewhatis`, and has `updatedb` make the
+list of the system's files that `find` looks a name up in when given
+only the name, `/var/db/find.codes`. It runs that as `nobody`, so that
+the list has only what anyone may see; the root file system has the
+file, empty and `nobody`'s, for it to write. `monthly`, on the first,
+totals each user's time logged in with `ac -p` and keeps six months of
+`wtmp`. `bigram` and `code`, which `updatedb` runs, are in
+`/usr/libexec/find` with it.
+
+The scripts are the port's, in `usr/src/i286/etc`, made from
+upstream's (`usr/adm` in the tree, from the tape). Upstream's `daily`
+also runs `calendar` and cleans up after UUCP, and `weekly` UUCP too,
+neither of which is on the system ([what is not
+ported](unported.md)). And upstream's move each log's older copies
+along with a fixed list of `mv` commands, which on a new system mail
+root an error for each copy not made yet, 27 the first night. The
+port's move only the copies there are.
 
 `cron` reads the tables again when `/etc/crontab` or the directory of
 tables has a later time of modification than it last saw. So it does
@@ -614,7 +638,53 @@ behind: the kernel wakes `acctd` at every tenth record, and `acctd`
 writes the file a kilobyte at a time, 32 records. `acctd` does not
 make the file, so it is in the root file system, empty.
 
-`find` is built because `/etc/rc` clears `/tmp` with it.
+`/etc/rc` clears `/tmp` with `find`.
+
+## Time zones
+
+`localtime` takes the zone the system is in, and when its clocks
+change, from `/etc/localtime`, or from the file in `/usr/share/zoneinfo`
+that a user's `TZ` names; without either it keeps universal time, which
+it calls GMT. The root file system has no `/etc/localtime`: `zic -l
+US/Pacific`, say, makes it a link to that zone's file. The kernel takes
+the clock chip to keep universal time
+([above](#the-log-and-what-the-clock-runs)), so on a machine whose chip
+keeps local time, as DOS has it, the chip must be set to universal time
+in the machine's setup: the kernel reads the chip only as it starts and
+never writes it, so `date` sets the time only until the next boot.
+
+`zic` makes the files from upstream's tables in `usr/src/share/zoneinfo`:
+72 zones and 13 other names for them, those of the United States,
+Canada, Europe, Australia, New Zealand, Japan and Singapore, System V's,
+and `GMT+N` and `GMT-N` for each whole hour. `zdump -v` shows each
+zone's changes. A file holds a zone's changes from 1901 to 2038, the
+range of a 32-bit `time_t`, as on the PDP-11. The build makes them, as
+upstream's Makefile has the system do, but with upstream's `zic` built
+for the machine the build runs on. That makes the same files: a file's
+numbers are four bytes, high byte first, on any machine, and
+`tests/programs` has the system's own `zic` make them all again and
+compare. The build's `zic` is built with a 32-bit `time_t`
+(`tools/hostzic.h`), since it works out from the type which years to
+cover: with the 64 bits of `time_t` on such a host it would write each
+rule's changes up to the year 292 billion.
+
+Patch level 500 brought the rules of the United States and Canada up to
+those of 2007, but it ended the United States' rule that sets the
+clocks back in October in 1973, so that from 1974 to 2006 summer time
+never ended there, and left Canada's going on after 2007, so that its
+clocks went back in October and again in November. Both rules now end
+in 2006. Compared with the database of the machine the build ran on,
+the four zones of the 48 states, Arizona's, Hawaii's, and Canada's
+Atlantic and Eastern zones have every change from 1970 to 2038 right,
+and Alaska's those from 1984. The rest are as upstream had them in the 1990s, and many of
+their places have changed their rules since: Indiana, Newfoundland,
+British Columbia, much of Europe, Russia, Australia and New Zealand,
+among others.
+
+`zdump -v` showed the second and the second-last of its times wrong: it
+added and took off a day as `SECS_PER_HOUR * HOURS_PER_DAY`, 86400 in
+an int, which a 16-bit int does not hold, on the PDP-11 as here. It
+uses `SECS_PER_DAY`, a long, now.
 
 ## Grammars: yacc and lex
 
@@ -1162,7 +1232,7 @@ formats, with the pages of those kinds that `cron` and `tcpd` keep
 with them; of 4, those not of the PDP-11's devices: `tty`, `pty`,
 `null`, and the network's; of 6, those of the games on it
 ([games](#games)). 3f, Fortran's library, has nothing on the system to
-go with it. That is 594 pages, with the 315 other names upstream's
+go with it. That is 596 pages, with the 315 other names upstream's
 Makefiles give them by `ln`, `egrep` for `grep` and `fprintf` for
 `printf`, and 2.4 MB. A page its Makefile installs under another name,
 as `phantasia`'s `phant.nr` is `phantasia.0`, has that name after its
@@ -1821,9 +1891,11 @@ The programs: `init`, `getty`, `login`, `sh`, `csh`, `ls`, `cat`, `cp`,
 names, as upstream has them, `w` and `uptime`, one file under two,
 `vmstat`, `top`, `logger` and `lastcomm`. `/usr/sbin` has `update`,
 `vipw`, `chown`, `adduser`, `dev_mkdb`, `pstat`, `tracebuf`, `syslogd`,
-`cron`, `accton`,
-`sa`, `exrecover` and `expreserve`, and `/usr/libexec` `atrun` and
-`acctd`. For the network there are `ifconfig`, `ping` and `route` in
+`cron`, `accton`, `sa`, `zic`, `zdump`, `exrecover` and `expreserve`,
+and `/usr/libexec` `atrun` and `acctd`, and in `find` `updatedb` and
+the `bigram` and `code` it runs. `/usr/adm` has `daily`, `weekly` and
+`monthly` ([the log, and what the clock
+runs](#the-log-and-what-the-clock-runs)). For the network there are `ifconfig`, `ping` and `route` in
 `/sbin`, `inetd` and `arp` in `/usr/sbin`, `telnetd` in `/usr/libexec`,
 and `telnet` and `netstat` in `/usr/ucb`. `tools/mkfs.py` makes these
 other names as hard links, and also `[` and `halt`. It makes everything
@@ -1839,7 +1911,8 @@ network's others [after them](#the-networks-programs), and mail's
 `/usr/msgs`. `nroff`'s macros, its printers' tables and the manual are
 [after those](#nroff-and-the-manual): `tools/mkman.py` writes a list of
 the manual's pages and their links, which `root.proto` takes in with a
-line `i ../../../obj/man/man.proto`. The programs for disks and file
+line `i ../../../obj/man/man.proto`; the Makefile lists the zone files
+of `/usr/share/zoneinfo` likewise ([time zones](#time-zones)). The programs for disks and file
 systems are [after the manual](#disks-and-file-systems), and the games
 [after those](#games).
 
@@ -1859,8 +1932,8 @@ kernel](#programs-that-read-the-kernel)). The system's own `strip` makes
 of a file what `tools/strip.py` does, which `tests/programs` checks on
 the kernel.
 
-The file system is 15000 blocks of 1K, of which the system takes 12273.
-The 288 programs are 5.6 MB of that, and 6.4 MB with their symbols; the
+The file system is 15000 blocks of 1K, of which the system takes 12442.
+The 292 programs are 5.7 MB of that, and 6.5 MB with their symbols; the
 manual's pages are 2.4 MB in about 2700 blocks; the games and their
 files take about 3300 blocks, 1600 of them `fortune`'s; and
 `/usr/dict/words` takes 206. It was 8000 blocks until the manual came,
@@ -2002,7 +2075,7 @@ copied files.
 `tests/programs` boots the same system from a disk with the root, a
 swap area and a small file system of checks, logs in as root on the
 first serial port, mounts that file system and runs its `check.sh`. For
-each of the 139 checks in `tests/programs/checks` it runs the check's
+each of the 145 checks in `tests/programs/checks` it runs the check's
 lines with the shell in an empty directory and compares what they wrote
 with what the check says they must, and says `ok` or shows what was
 written. A check is of one program, by its name, or of one use of it:
@@ -2010,11 +2083,14 @@ written. A check is of one program, by its name, or of one use of it:
 it holds in memory, so that it merges files; `diff` has four, among
 them one of directories and one against an empty file; `nroff` formats
 three of the manual's pages and must make of each what the build did
-([nroff and the manual](#nroff-and-the-manual)); `disklabel` and
+([nroff and the manual](#nroff-and-the-manual)); `zic` must make the
+zone files the build made ([time zones](#time-zones)); `daily`,
+`weekly` and `monthly` are run, and must move the logs along and make
+`whatis` and `find`'s list; `disklabel` and
 the programs that read a file system directly work on a second disk
 ([disks and file systems](#disks-and-file-systems)); and the games that
 can be played from a file are played ([games](#games)). The test fails
-unless all 139 say `ok`. Then, at the terminal, it runs `tty` and `mesg`;
+unless all 145 say `ok`. Then, at the terminal, it runs `tty` and `mesg`;
 pages through a file and through a pipe with `more`, and through `ls`'s
 page with `man`; records a shell
 with `script`, which it leaves with ^D, and finds the command it typed
@@ -2110,10 +2186,11 @@ Not done, or not tested:
   five are started at a terminal and left; none is played through.
   `hunt` has not had a player, `sail` two ships, or `monop` a game
   saved and restored.
-- Nothing trims the logs or the accounting file. Upstream's `crontab`
-  has `/usr/adm/daily`, `weekly` and `monthly` do that, and the tree has
-  no such scripts. `acctd` stops when the file system is nearly full;
-  `syslogd` does not.
+- `/usr/adm/daily`, `weekly` and `monthly` have been run by hand, not
+  by `cron` at their times, and `zic -l` and `TZ` tried only with the
+  zones' names. `acctd` stops when the file system is nearly full;
+  `syslogd` does not, and the logs are trimmed only as often as the
+  scripts run.
 - `iostat`'s seek times (`msps`) are 0. An IDE or SCSI drive seeks by
   itself, so its driver counts no seeks, as upstream's MSCP driver
   counts none; upstream's drivers count them where they give the drive

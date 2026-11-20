@@ -101,3 +101,4 @@ cat8	usr.sbin/ntp/man/ntpd.8 usr.sbin/ntp/man/ntpdc.8 usr.sbin/pstat/pstat.8
 cat8	usr.sbin/quot/quot.8 usr.sbin/rwhod/rwhod.8 usr.sbin/sa/sa.8
 cat8	usr.sbin/syslogd/syslogd.8 usr.sbin/traceroute/traceroute.8
 cat8	usr.sbin/update/update.8 usr.sbin/vipw/vipw.8
+cat8	share/zoneinfo/zic.8 share/zoneinfo/zdump.8

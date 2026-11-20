@@ -1,0 +1,65 @@
+#! /bin/sh -
+# /usr/adm/daily, which cron runs each night, mailing root what it
+# prints (/etc/crontab).  Upstream's ../../../../usr/adm/daily, without
+# calendar and UUCP, which are not on the system; and it moves a log's
+# older copies along only if they are there, so that a new system does
+# not mail root an error for each it has not had time to make.
+#
+PATH=/usr/sbin:/usr/ucb:/bin:/usr/bin
+echo "Subject: daily run output"
+echo ""
+msgs -c
+
+echo ""
+echo "Rotating accounting records:"
+cd /usr/adm
+for i in 2 1 0
+do
+	test -f acct.$i.Z && mv -f acct.$i.Z acct.`expr $i + 1`.Z
+done
+mv -f /usr/adm/acct /usr/adm/acct.0
+cp /dev/null /usr/adm/acct
+chmod 644 /usr/adm/acct
+accton /usr/adm/acct
+sa -s -f -v 10 /usr/adm/acct.0 > /dev/null
+compress -f /usr/adm/acct.0
+
+echo ""
+echo "Rotating mail syslog:"
+cd /usr/spool/mqueue
+for i in 6 5 4 3 2 1 0
+do
+	test -f syslog.$i && mv syslog.$i syslog.`expr $i + 1`
+done
+mv syslog    syslog.0
+cp /dev/null syslog
+chmod 644    syslog
+
+echo ""
+echo "Rotating daemonlog:"
+cd /usr/adm
+for i in 6 5 4 3 2 1 0
+do
+	test -f daemonlog.$i && mv daemonlog.$i daemonlog.`expr $i + 1`
+done
+mv daemonlog    daemonlog.0
+cp /dev/null daemonlog
+chmod 644    daemonlog
+
+echo ""
+echo "Rotating debuglog:"
+cd /usr/adm
+for i in 6 5 4 3 2 1 0
+do
+	test -f debuglog.$i && mv debuglog.$i debuglog.`expr $i + 1`
+done
+mv debuglog    debuglog.0
+cp /dev/null debuglog
+chmod 644    debuglog
+
+kill -1 `cat /var/run/syslog.pid`
+cd /
+
+echo ""
+echo "mail:"
+mailq

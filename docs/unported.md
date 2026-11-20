@@ -77,7 +77,6 @@ These are the rest of the writer's tools.
 |---|---|---|
 | `dump`, `restor` | `sbin` | to a file as well as a tape |
 | `chflags` | `bin/chflags` | the kernel has the calls |
-| `zic`, `zdump` and the zone files | `share/zoneinfo` | with none, the time is UTC |
 | `gcore`, `savecore` | `ucb`, `sbin` | `savecore` waits on crash dumps |
 | `quota`, `quotacheck`, `quotaon`, `edquota`, `repquota` | `ucb`, `sbin`, `usr.sbin` | wait on quotas |
 | `window` | `ucb/window` | |

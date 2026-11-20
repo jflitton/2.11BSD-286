@@ -19,7 +19,7 @@ Rule	US	1918	1919	-	Mar	lastSun	2:00	1:00	D
 Rule	US	1918	1919	-	Oct	lastSun	2:00	0	S
 Rule	US	1942	only	-	Feb	9	2:00	1:00	W # War
 Rule	US	1945	only	-	Sep	30	2:00	0	S
-Rule	US	1967	1973	-	Oct	lastSun	2:00	0	S
+Rule	US	1967	2006	-	Oct	lastSun	2:00	0	S
 Rule	US	1967	1973	-	Apr	lastSun	2:00	1:00	D
 Rule	US	1974	only	-	Jan	6	2:00	1:00	D
 Rule	US	1975	only	-	Feb	23	2:00	1:00	D
@@ -79,7 +79,7 @@ Link	US/Hawaii	HST
 # Canada is doing so.
 
 # Rule	NAME	FROM	TO	TYPE	IN	ON	AT	SAVE	LETTER/S
-Rule	Canada	1969	max	-	Oct	lastSun	2:00	0	S
+Rule	Canada	1969	2006	-	Oct	lastSun	2:00	0	S
 Rule	Canada	1969	1986	-	Apr	lastSun	2:00	1:00	D
 Rule    Canada  1987    2006    -       Apr     Sun>=1  2:00    1:00    D
 Rule    Canada  2007    max     -       Mar     Sun>=8  2:00    1:00    D

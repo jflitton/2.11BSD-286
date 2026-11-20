@@ -190,6 +190,17 @@ find_SRCS=	usr.bin/find/find.c
 LOGPROGS=	syslogd logger dmesg cron crontab $(ATPROGS) accton acctd \
 		lastcomm sa find
 
+# What /usr/adm/weekly runs to make find's list of the system's files,
+# which find looks a name up in when given only the name: bigram and
+# code, which updatedb, a script, runs.  And the time zones: zic, which
+# makes the files in /usr/share/zoneinfo that localtime reads, and
+# zdump, which shows them.
+bigram_SRCS=	usr.bin/find/bigram.c
+code_SRCS=	usr.bin/find/code.c
+zic_SRCS=	$(addprefix share/zoneinfo/,zic.c scheck.c ialloc.c)
+zdump_SRCS=	$(addprefix share/zoneinfo/,zdump.c ialloc.c)
+ADMPROGS=	bigram code zic zdump
+
 # Those with a grammar for yacc, and yacc and lex themselves.  The
 # grammars are made into C by the tree's own yacc and lex, built for the
 # machine the system is built on (below) in obj/host, and the C is in
@@ -639,8 +650,8 @@ OWNPROGS=	adduser bench
 PROGS=	init getty login sh csh ls mkdir stty test hostname mknod mount \
 	umount reboot sleep ex exrecover expreserve tcsh $(BINSTD) \
 	$(NETPROGS) $(SYSPROGS) $(DISKPROGS) $(KMEMPROGS) $(LOGPROGS) \
-	$(YACCPROGS) $(TEXTPROGS) $(NET2PROGS) $(MAILPROGS) $(DOCPROGS) \
-	$(WRITERPROGS) $(GAMEPROGS) $(OWNPROGS)
+	$(ADMPROGS) $(YACCPROGS) $(TEXTPROGS) $(NET2PROGS) $(MAILPROGS) \
+	$(DOCPROGS) $(WRITERPROGS) $(GAMEPROGS) $(OWNPROGS)
 
 # The libraries the programs use besides the C library: NAME_LIB lists a
 # library's sources, and NAME_LIBFLAGS what it is compiled with.  Each is
@@ -955,6 +966,35 @@ $(SO)/hstop: $(SP)/stop $(H)/spellin
 	@mkdir -p $(SO)
 	$(H)/spellin < $< > $@
 
+# The zone files, made by zic from the tables upstream's Makefile
+# installs, as the system's own zic makes them (tests/programs): their
+# numbers are four bytes, high byte first, on any machine.  This zic is
+# built for 32-bit time_t (tools/hostzic.h), whose sums it expects to
+# wrap.  zone.proto lists them for root.proto, each name a Link gives
+# the zone being another link to its file, as zic makes it.
+ZI=		$(SRC)/share/zoneinfo
+ZO=		$(TOP)/obj/zoneinfo
+ZDATA=		asia australasia europe etcetera northamerica pacificnew \
+		systemv
+$(H)/zic: $(addprefix $(ZI)/,zic.c scheck.c ialloc.c) \
+		$(TOP)/usr/include/tzfile.h $(TOP)/tools/hostzic.h | $(H)
+	@echo hostcc zic
+	@mkdir -p $(H)/include
+	@cp $(TOP)/usr/include/tzfile.h $(H)/include
+	@$(HOSTCC) $(HOSTCFLAGS) -fwrapv -include $(TOP)/tools/hostzic.h \
+	    -I$(H)/include -o $@ $(filter %.c,$^)
+$(ZO)/zone.proto: $(addprefix $(ZI)/,$(ZDATA)) $(H)/zic
+	@rm -rf $(ZO) && mkdir -p $(ZO)
+	cd $(ZI) && $(H)/zic -d $(ZO) $(ZDATA)
+	@cd $(ZI) && awk 'BEGIN { z = "/usr/share/zoneinfo"; \
+	    print "# The zone files, made by zic in obj/zoneinfo."; \
+	    print "d " z " 755" } \
+	    $$1 == "Zone" { if (split($$2, p, "/") > 1 && !(p[1] in d)) { \
+		d[p[1]]; print "d " z "/" p[1] " 755" } \
+		print "f " z "/" $$2 " 644 " $$2 } \
+	    $$1 == "Link" { h = h "h " z "/" $$3 " " z "/" $$2 "\n" } \
+	    END { printf "%s", h }' $(ZDATA) > $@
+
 # What root.proto takes of the games' besides their programs.
 GAMEDATA=	$(GO)/battlestar/battle_strings $(GO)/fortunes.dat \
 		$(GO)/cards.pck $(GO)/crib.instr $(GO)/bogdict \
@@ -1136,9 +1176,10 @@ $(R)/root.fs: root.proto $(wildcard etc/* root/* skel/*) adventure/Makefile \
 		$(addprefix $(R)/me/,$(MEFILES)) \
 		$(patsubst %,$(R)/term/tab%.tab,$(TERMS)) $(MANO)/man.proto \
 		$(GAMEDATA) $(addprefix $(SO)/,hlista hlistb hstop) \
+		$(ZO)/zone.proto \
 		$(TOP)/obj/PC/unix $(TOP)/obj/stand/boot $(TOP)/obj/stand/hdboot.bin
 	python3 -I $(TOP)/tools/mkfs.py -s $(ROOTSIZE) root.proto $@
 
 clean:
-	rm -rf $(O) $(EXO) $(TCO) $(H) $(G) $(R) $(MANO) $(GO) $(SO) \
+	rm -rf $(O) $(EXO) $(TCO) $(H) $(G) $(R) $(MANO) $(GO) $(SO) $(ZO) \
 	    $(foreach l,$(LIBRARIES),$(LIB)/[sm]/$(l) $(LIB)/[sm]/lib$(l).lib)

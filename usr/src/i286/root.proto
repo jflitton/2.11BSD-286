@@ -190,6 +190,18 @@ f /usr/libexec/acctd 700 ../../../obj/root/bin/acctd
 f /usr/ucb/lastcomm 755 ../../../obj/root/bin/lastcomm
 f /usr/sbin/sa 755 ../../../obj/root/bin/sa
 f /usr/bin/find 755 ../../../obj/root/bin/find
+d /usr/libexec/find 755
+f /usr/libexec/find/bigram 755 ../../../obj/root/bin/bigram
+f /usr/libexec/find/code 755 ../../../obj/root/bin/code
+f /usr/libexec/find/updatedb 755 ../usr.bin/find/updatedb.csh
+d /var/db 755
+f /var/db/find.codes 644:32767.31 ../../../obj/root/empty
+f /usr/adm/daily 755 etc/daily
+f /usr/adm/weekly 755 etc/weekly
+f /usr/adm/monthly 755 etc/monthly
+f /usr/sbin/zic 755 ../../../obj/root/bin/zic
+f /usr/sbin/zdump 755 ../../../obj/root/bin/zdump
+i ../../../obj/zoneinfo/zone.proto
 f /bin/expr 755 ../../../obj/root/bin/expr
 f /bin/awk 755 ../../../obj/root/bin/awk
 f /usr/bin/egrep 755 ../../../obj/root/bin/egrep
