@@ -58,6 +58,7 @@ than each line says (`extlimit`, `sys/i286/machdep.c`). No machine with
 | `tools/` | host-side tools (below) | yes |
 | `tests/` | tests that boot in an emulator (below) | yes |
 | `docs/` | our notes | yes |
+| `LICENSE`, `COPYRIGHT` | the port's license, and whose each part of the tree is ([license](#license)) | yes |
 | `reference/MANIFEST` | what third-party material we use, where it comes from, checksums | yes |
 | `reference/upstream/` | the install tape, patches, setup guide | no |
 | `reference/manuals/` | Intel, IBM, Adaptec and DEC manuals; Ralf Brown's Interrupt List | no |
@@ -493,3 +494,16 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
   behaviour goes in programs of this port's own beside them: so far
   `adduser` and `bench`, and an editor in the manner of `vim` is to come
   ([the C library and programs](docs/userland.md)).
+
+## License
+
+The port's own work is under the BSD 3-clause license in
+[LICENSE](LICENSE): the kernel's 286 code, the library's, the build and
+the root file system's lists in `usr/src/i286`, `tools/`, `tests/` and
+`docs/`. Its changes to upstream's files are under each file's own
+terms, and `git diff upstream main` shows them all. The 2.11BSD tree
+keeps its terms, file by file: Berkeley's licenses, whose advertising
+clause the University deleted in 1999; Caldera's 2002 license for what
+came from the Seventh Edition and 32V; and others' notices, some of
+which ask that their programs not be sold.
+[COPYRIGHT](COPYRIGHT) says which are which, and has Caldera's license.
