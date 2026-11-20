@@ -1,0 +1,341 @@
+
+rm02|RM02|rm03|RM03|DEC RM02/03
+	Partition a: size=14080, offset=0, type=2.11BSD
+	Partition b: size=8960, offset=14080, type=swap
+	Partition c: size=131680, offset=0
+	Partition g: size=108480, offset=23040, type=2.11BSD
+	Partition h: size=131520, offset=0
+
+rm05|RM05|cdc9766|CDC9766
+	Partition a: size=14592, offset=0, type=2.11BSD
+	Partition b: size=9728, offset=14592, type=swap
+	Partition c: size=500384, offset=0
+	Partition g: size=475456, offset=24320, type=2.11BSD
+	Partition h: size=499776, offset=0
+
+rp04|RP04|rp05|RP05|DEC RP04/05
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=9196, offset=15884, type=swap
+	Partition c: size=171798, offset=0
+	Partition g: size=145464, offset=25080, type=2.11BSD
+	Partition h: size=171380, offset=0
+
+rp06|RP06|DEC RP06
+	Partition a: size=16720, offset=0, type=2.11BSD
+	Partition b: size=10032, offset=16720, type=swap
+	Partition c: size=340670, offset=0
+	Partition g: size=313500, offset=26752, type=2.11BSD
+	Partition h: size=340252, offset=0
+
+rp07|RP07|DEC RP07
+	Partition a: size=14400, offset=0, type=2.11BSD
+	Partition b: size=9600, offset=14400, type=swap
+	Partition c: size=1008000, offset=0
+	Partition f: size=491200, offset=24000, type=2.11BSD
+	Partition g: size=491200, offset=515200, type=2.11BSD
+	Partition h: size=1006400, offset=0
+
+rm2x|fuji160|Fujitsu 160
+	Partition a: size=12800, offset=0, type=2.11BSD
+	Partition b: size=9600, offset=12800, type=swap
+	Partition c: size=263360, offset=0
+	Partition g: size=240640, offset=22400, type=2.11BSD
+	Partition h: size=263360, offset=0
+
+diva|DIVA|ampex9300|Diva Comp V, Ampex 9300 (in direct mode)
+	Partition a: size=12540, offset=0, type=2.11BSD
+	Partition b: size=10032, offset=12540, type=swap
+	Partition c: size=511005, offset=0
+	Partition g: size=487806, offset=22572, type=2.11BSD
+	Partition h: size=510378, offset=0
+
+si_eagle|SI_Eagle|2351|2351A|Fujitsu Eagle 2351A (48 sectors)
+	Partition a: size=12480, offset=0, type=2.11BSD
+	Partition b: size=11520, offset=12480, type=swap
+	Partition c: size=808320, offset=0
+	Partition g: size=779520, offset=24000, type=2.11BSD
+	Partition h: size=803520, offset=0
+
+rk06|RK06|DEC RK06
+	Partition a: size=8316, offset=0, type=2.11BSD
+	Partition b: size=8316, offset=8316, type=swap
+	Partition c: size=27126, offset=0, type=unused
+	Partition g: size=10428, offset=16632, type=2.11BSD
+	Partition h: size=27060, offset=0
+
+rk07|RK07|DEC RK07
+	Partition a: size=8316, offset=0, type=2.11BSD
+	Partition b: size=8316, offset=8316, type=swap
+	Partition c: size=53790, offset=0, type=unused
+	Partition g: size=37092, offset=16632, type=2.11BSD
+	Partition h: size=53724, offset=0
+
+rl01|RL01|DEC RL01
+	Partition a: size=10240, offset=0, type=2.11BSD
+
+rl02|RL02|DEC RL02
+	Partition a: size=15360, offset=0, type=2.11BSD
+	Partition b: size=5120, offset=15360, type=swap
+	Partition c: size=20480, offset=0
+
+rk05|RK05|DEC RK05
+	Partition a: size=4872, offset=0, type=2.11BSD
+
+rc25|RC25|rcf25|RCF25|DEC RC25 and RC25F
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=8360, offset=15884, type=swap
+	Partition c: size=50902, offset=0, type=2.11BSD
+	Partition g: size=26658, offset=24244, type=2.11BSD
+
+rd31|RD31|DEC RD31
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=8360, offset=15884, type=swap
+	Partition c: size=41560, offset=0, type=2.11BSD
+	Partition g: size=17316, offset=24244, type=2.11BSD
+
+rd32|RD32|DEC RD32
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=8360, offset=15884, type=swap
+	Partition c: size=83236, offset=0, type=2.11BSD
+	Partition g: size=58992, offset=24244, type=2.11BSD
+
+rd33|RD33|DEC RD33
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=8360, offset=15884, type=swap
+	Partition c: size=138565, offset=0, type=2.11BSD
+	Partition g: size=114321, offset=24244, type=2.11BSD
+
+rd51|RD51|DEC RD51
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=5716, offset=15884, type=swap
+	Partition c: size=21600, offset=0, type=2.11BSD
+
+rd52|RD52|DEC RD52
+ 	Partition a: size=15884, offset=0, type=2.11BSD
+ 	Partition b: size=8360, offset=15884, type=swap
+ 	Partition c: size=60480, offset=0, type=2.11BSD
+ 	Partition g: size=36236, offset=24244, type=2.11BSD
+
+rd53|RD53|DEC RD53
+ 	Partition a: size=15884, offset=0, type=2.11BSD
+ 	Partition b: size=8360, offset=15884, type=swap
+ 	Partition c: size=138672, offset=0, type=2.11BSD
+ 	Partition g: size=114428, offset=24244, type=2.11BSD\
+
+rd54|RD54|DEC RD54
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=16720, offset=15884, type=swap
+	Partition c: size=311200, offset=0, type=unused
+	Partition g: size=278596, offset=32604, type=2.11BSD
+
+rx23|RX23|DEC RX23
+	Partition a: size=2880, offset=0, type=2.11BSD
+
+rx26|RX26|DEC RX26
+	Partition a: size=5760, offset=0, type=2.11BSD
+
+rx33|RX33|DEC RX33
+	Partition a: size=2400, offset=0, type=2.11BSD
+
+rx50|RX50|DEC RX50
+	Partition a: size=800, offset=0:2.11BSD
+
+ra60|RA60|DEC RA60
+ 	Partition a: size=15884, offset=0, type=2.11BSD
+ 	Partition b: size=16720, offset=15884, type=swap
+ 	Partition c: size=400176, offset=0
+ 	Partition d: size=227136, offset=32604, type=2.11BSD
+ 	Partition e: size=140436, offset=259740, type=2.11BSD
+ 	Partition g: size=367572, offset=32604, type=2.11BSD
+
+ra70|RA70|DEC RA70
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=16720, offset=15884, type=swap
+	Partition c: size=547041, offset=0
+	Partition d: size=227136, offset=32604, type=2.11BSD
+	Partition e: size=287301, offset=259740, type=2.11BSD
+	Partition g: size=514437, offset=32604, type=2.11BSD
+
+ra71|RA71|DEC RA71
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=16720, offset=15884, type=swap
+	Partition c: size=1367310, offset=0
+	Partition d: size=227136, offset=32604, type=2.11BSD
+	Partition e: size=409600, offset=259740, type=2.11BSD
+	Partition f: size=182464, offset=669340, type=2.11BSD
+	Partition g: size=819200, offset=32604, type=2.11BSD
+	Partition h: size=515506, offset=851804, type=2.11BSD
+
+ra72|RA72|DEC RA72
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=16720, offset=15884, type=swap
+	Partition c: size=1953300, offset=0
+	Partition d: size=227136, offset=32604, type=2.11BSD
+	Partition e: size=409600, offset=259740, type=2.11BSD
+	Partition f: size=182464, offset=669340, type=2.11BSD
+	Partition g: size=819200, offset=32604, type=2.11BSD
+	Partition h: size=1101496, offset=851804, type=2.11BSD
+
+ra73|RA73|DEC RA73
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=16720, offset=15884, type=swap
+	Partition c: size=3920490, offset=0
+	Partition d: size=227136, offset=32604, type=2.11BSD
+	Partition e: size=409600, offset=259740, type=2.11BSD
+	Partition f: size=182464, offset=669340, type=2.11BSD
+	Partition g: size=819200, offset=32604, type=2.11BSD
+	Partition h: size=3068686, offset=851804, type=2.11BSD
+
+ra80|RA80|DEC RA80
+ 	Partition a: size=15884, offset=0, type=2.11BSD
+ 	Partition b: size=16720, offset=15884, type=swap
+ 	Partition c: size=237212, offset=0
+ 	Partition g: size=204608, offset=32604, type=2.11BSD
+
+ra81|RA81|DEC RA81
+ 	Partition a: size=15884, offset=0, type=2.11BSD
+ 	Partition b: size=16720, offset=15884, type=swap
+ 	Partition c: size=891072, offset=0
+ 	Partition d: size=227136, offset=32604, type=2.11BSD
+ 	Partition e: size=409600, offset=259740, type=2.11BSD
+ 	Partition f: size=182464, offset=669340, type=2.11BSD
+ 	Partition g: size=819200, offset=32604, type=2.11BSD
+ 	Partition h: size=39268, offset=851804, type=2.11BSD
+
+ra81x|RA81X|Extended DEC RA81
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=33440, offset=15884, type=swap
+	Partition c: size=193282, offset=49324, type=2.11BSD
+	Partition d: size=15884, offset=242606, type=2.11BSD
+	Partition e: size=307200, offset=258490, type=2.11BSD
+	Partition f: size=728952, offset=565690, type=2.11BSD
+	Partition g: size=1052036, offset=242606
+	Partition h: size=1294642, offset=0, type=2.11BSD
+
+ra82|RA82|DEC RA82
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=16720, offset=15884, type=swap
+	Partition c: size=1216665, offset=0
+	Partition d: size=227136, offset=32604, type=2.11BSD
+	Partition e: size=409600, offset=259740, type=2.11BSD
+	Partition f: size=182464, offset=669340, type=2.11BSD
+	Partition g: size=819200, offset=32604, type=2.11BSD
+	Partition h: size=364861, offset=851804, type=2.11BSD
+
+ra90|RA90|DEC RA90
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=16720, offset=15884, type=swap
+	Partition c: size=2376153, offset=0
+	Partition d: size=227136, offset=32604, type=2.11BSD
+	Partition e: size=409600, offset=259740, type=2.11BSD
+	Partition f: size=182464, offset=669340, type=2.11BSD
+	Partition g: size=819200, offset=32604, type=2.11BSD
+	Partition h: size=1524349, offset=851804, type=2.11BSD
+
+ra92|RA92|DEC RA92
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=16720, offset=15884, type=swap
+	Partition c: size=2940951, offset=0
+	Partition d: size=227136, offset=32604, type=2.11BSD
+	Partition e: size=409600, offset=259740, type=2.11BSD
+	Partition f: size=182464, offset=669340, type=2.11BSD
+	Partition g: size=819200, offset=32604, type=2.11BSD
+	Partition h: size=2089147, offset=851804, type=2.11BSD
+
+rz22|RZ22|DEC RZ22
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=8360, offset=15884, type=swap
+	Partition c: size=102432, offset=0
+	Partition g: size=78188, offset=24244, type=2.11BSD
+
+rz23|RZ23|DEC RZ23
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=8360, offset=15884, type=swap
+	Partition c: size=204864, offset=0
+	Partition g: size=180620, offset=24244, type=2.11BSD
+
+rz23l|RZ23L|DEC RZ23L
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=8360, offset=15884, type=swap
+	Partition c: size=237588, offset=0
+	Partition g: size=213344, offset=24244, type=2.11BSD
+
+rz24|RZ24|DEC RZ24
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=16720, offset=15884, type=swap
+	Partition c: size=409792, offset=0
+	Partition d: size=227136, offset=32604, type=2.11BSD
+	Partition e: size=150052, offset=259740, type=2.11BSD
+	Partition g: size=377188, offset=32604, type=2.11BSD
+
+rz24l|RZ24L|DEC RZ24L
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=16720, offset=15884, type=swap
+	Partition c: size=479350, offset=0
+	Partition d: size=227136, offset=32604, type=2.11BSD
+	Partition e: size=219610, offset=259740, type=2.11BSD
+	Partition g: size=446746, offset=32604, type=2.11BSD
+
+rz25|RZ25|DEC RZ25
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=16720, offset=15884, type=swap
+	Partition c: size=832527, offset=0
+	Partition d: size=227136, offset=32604, type=2.11BSD
+	Partition e: size=409600, offset=259740, type=2.11BSD
+	Partition f: size=130590, offset=669340, type=2.11BSD
+	Partition g: size=799923, offset=32604, type=2.11BSD
+
+rz26|RZ26|DEC RZ26
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=16720, offset=15884, type=swap
+	Partition c: size=2050860, offset=0
+	Partition d: size=227136, offset=32604, type=2.11BSD
+	Partition e: size=409600, offset=259740, type=2.11BSD
+	Partition f: size=182464, offset=669340, type=2.11BSD
+	Partition g: size=819200, offset=32604, type=2.11BSD
+	Partition h: size=1199056, offset=851804, type=2.11BSD
+
+rz55|RZ55|DEC RZ55
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=16720, offset=15884, type=swap
+	Partition c: size=649040, offset=0
+	Partition d: size=227136, offset=32604, type=2.11BSD
+	Partition e: size=389300, offset=259740, type=2.11BSD
+	Partition g: size=616436, offset=32604, type=2.11BSD
+
+rz56|RZ56|DEC RZ56
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=16720, offset=15884, type=swap
+	Partition c: size=1299174, offset=0
+	Partition d: size=227136, offset=32604, type=2.11BSD
+	Partition e: size=409600, offset=259740, type=2.11BSD
+	Partition f: size=182464, offset=669340, type=2.11BSD
+	Partition g: size=819200, offset=32604, type=2.11BSD
+	Partition h: size=447370, offset=851804, type=2.11BSD
+
+rz57|RZ57|DEC RZ57
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=16720, offset=15884, type=swap
+	Partition c: size=1954050, offset=0
+	Partition d: size=227136, offset=32604, type=2.11BSD
+	Partition e: size=409600, offset=259740, type=2.11BSD
+	Partition f: size=182464, offset=669340, type=2.11BSD
+	Partition g: size=819200, offset=32604, type=2.11BSD
+	Partition h: size=1102246, offset=851804, type=2.11BSD
+
+rz58|RZ58|DEC RZ58
+	Partition a: size=15884, offset=0, type=2.11BSD
+	Partition b: size=16270, offset=15884, type=swap
+	Partition c: size=2698061, offset=0
+	Partition d: size=227136, offset=32604, type=2.11BSD
+	Partition e: size=409600, offset=259740, type=2.11BSD
+	Partition f: size=182464, offset=669340, type=2.11BSD
+	Partition g: size=819200, offset=32604, type=2.11BSD
+	Partition h: size=1846257, offset=851804, type=2.11BSD
+
+rx01|RX01|DEC RX01
+	Partition a: size=500
+
+rx02|RX02|DEC RX02
+	Partition b: size=1001
+

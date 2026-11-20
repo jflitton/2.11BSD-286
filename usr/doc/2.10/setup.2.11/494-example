@@ -1,0 +1,53 @@
+Subject: DZ driver syntax error, top(1) long usernames bug (#494)
+Index:   src/sys/pdpuba/dz.c, src/ucb/top/top.c
+
+Description:
+        1) patch 493 introduced a syntax error in the DZ11 driver
+
+        2) long usernames cause corruption of the displayed info in top(1)
+
+Repeat-By:
+        1) build a kernel with the DZ driver configured:
+
+cc -O -DKERNEL -DKNARF -DUCB_METER -DINET -DUCB_CLIST -I. -I../h -S ../pdpuba/dz.c
+\&../pdpuba/dz.c:377: Expression syntax
+\&../pdpuba/dz.c:377: Statement syntax
+\&../pdpuba/dz.c:379: Expression syntax
+\&../pdpuba/dz.c:379: Statement syntax
+
+        2) Run top(1) on a system with usernames longer than 7 characters.  The
+           displayed tables will be corrupted.
+        
+Fix:
+        Thanks to frank@wortner.com for spotting the missing ')' characters
+        in dz.c
+
+        top(1) change forwarded by bqt@softjar.se
+
+        Cut where indicated and save to a file (/usr/tmp/494.patch).  Then:
+
+cd /
+patch -p0 < /usr/tmp/494.patch
+
+cd /usr/src/ucb/top
+make install
+make clean
+
+        If you have a DZ configured in the kernel then you'll now be able to
+        compile the kernel without syntax errors ;)
+
+        This and previous updates to 2.11BSD are available at the following
+        locations:
+        
+        ftp://ftp.dfupdate.se/pub/pdp11/2.11BSD
+        https://www.tuhs.org/Archive/Distributions/UCB/2.11BSD/Patches/
+        ftp://ftp.2bsd.com/2.11BSD
+        http://www.2bsd.com/2.11BSD/
+
+---------------------------cut here--------------------
+*** ./usr/src/sys/pdpuba/dz.c.old       Tue Aug 12 18:39:14 2025
+--- ./usr/src/sys/pdpuba/dz.c   Wed Aug 13 06:07:16 2025
+***************
+*** 3,9 ****
+   * All rights reserved.  The Berkeley software License Agreement
+[snip]
