@@ -17,7 +17,7 @@ char	*name;
 	static long	uid;
 	extern char	*ttyname();
 
-	uid = htonl(getuid());
+	uid = htonl((long) getuid());
 	(void) write(Socket, (char *) &uid, sizeof uid);
 	(void) write(Socket, name, NAMELEN);
 	(void) strcpy(Buf, ttyname(fileno(stderr)));

@@ -304,13 +304,13 @@ char *argv[];
 	int x;
 	int z;
 	char *info;
-	int tvec[2];
+	long tvec;
 	char *t;
 	extern void done();
 	int count;
 	info = "/usr/games/lib/quiz.k/index";
-	time(tvec);
-	inc = tvec[1]&077774|01;
+	time(&tvec);
+	inc = (int)tvec&077774|01;
 loop:
 	if(argc>1&&*argv[1]=='-') {
 		switch(argv[1][1]) {

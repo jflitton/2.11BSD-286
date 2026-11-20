@@ -452,6 +452,127 @@ f /usr/man/man.template 444 ../man/man.template
 f /usr/man/makewhatis.sed 444 ../man/makewhatis.sed
 f /usr/man/manroff 755 ../man/manroff
 f /usr/sbin/makewhatis 755 ../usr.sbin/makewhatis/makewhatis.sh
+d /usr/games 755
+d /usr/games/lib 755:10
+f /usr/games/arithmetic 755 ../../../obj/root/bin/arithmetic
+f /usr/games/banner 755 ../../../obj/root/bin/banner
+f /usr/games/bcd 755 ../../../obj/root/bin/bcd
+f /usr/games/cfscores 755 ../../../obj/root/bin/cfscores
+f /usr/games/factor 755 ../../../obj/root/bin/factor
+f /usr/games/fish 755 ../../../obj/root/bin/fish
+f /usr/games/morse 755 ../../../obj/root/bin/morse
+f /usr/games/number 755 ../../../obj/root/bin/number
+f /usr/games/ppt 755 ../../../obj/root/bin/ppt
+f /usr/games/wump 755 ../../../obj/root/bin/wump
+f /usr/games/canfield 755 ../../../obj/root/bin/canfield
+f /usr/games/primes 755 ../../../obj/root/bin/primes
+f /usr/games/rain 755 ../../../obj/root/bin/rain
+f /usr/games/worm 755 ../../../obj/root/bin/worm
+f /usr/games/worms 755 ../../../obj/root/bin/worms
+f /usr/games/wargames 755 ../games/wargames.sh
+f /usr/games/lib/cfscores 777:10 ../../../obj/root/empty
+d /usr/games/lib/atc 700:5.10
+f /usr/games/lib/atc/ATC_scores 600:5.10 ../games/atc/games/ATC_scores
+f /usr/games/lib/atc/Game_List 600:5.10 ../games/atc/games/Game_List
+f /usr/games/lib/atc/Killer 600:5.10 ../games/atc/games/Killer
+f /usr/games/lib/atc/crossover 600:5.10 ../games/atc/games/crossover
+f /usr/games/lib/atc/default 600:5.10 ../games/atc/games/default
+f /usr/games/lib/atc/easy 600:5.10 ../games/atc/games/easy
+f /usr/games/lib/atc/game_2 600:5.10 ../games/atc/games/game_2
+f /usr/games/atc 4711:5.10 ../../../obj/root/bin/atc
+f /usr/games/backgammon 755 ../../../obj/root/bin/backgammon
+f /usr/games/teachgammon 755 ../../../obj/root/bin/teachgammon
+f /usr/games/battlestar 755 ../../../obj/root/bin/battlestar
+f /usr/games/lib/battle_strings 644:10 ../../../obj/games/battlestar/battle_strings
+f /usr/games/lib/battlestar.log 666:10 ../../../obj/root/empty
+f /usr/games/btlgammon 755 ../../../obj/root/bin/btlgammon
+f /usr/games/lib/backrules 755:10 ../games/btlgammon/backrules
+f /usr/games/cribbage 755 ../../../obj/root/bin/cribbage
+f /usr/games/lib/crib.instr 644:10 ../../../obj/games/crib.instr
+f /usr/games/fortune 4711:1.0 ../../../obj/root/bin/fortune
+f /usr/games/lib/fortunes.dat 600:1.10 ../../../obj/games/fortunes.dat
+f /usr/games/hack 4711:1.0 ../../../obj/root/bin/hack
+d /usr/games/lib/hackdir 700:1.10
+f /usr/games/lib/hackdir/data 644:1.10 ../games/hack/data
+f /usr/games/lib/hackdir/help 644:1.10 ../games/hack/help
+f /usr/games/lib/hackdir/hh 644:1.10 ../games/hack/hh
+f /usr/games/lib/hackdir/rumors 644:1.10 ../games/hack/rumors
+f /usr/games/lib/hackdir/perm 644:1.10 ../../../obj/root/empty
+f /usr/games/lib/hackdir/record 644:1.10 ../../../obj/root/empty
+d /usr/games/lib/hackdir/save 755:1.10
+f /usr/games/hunt 755 ../../../obj/root/bin/hunt
+f /usr/games/lib/hunt.driver 755:10 ../../../obj/root/bin/hunt.driver
+f /usr/games/mille 755:0.10 ../../../obj/root/bin/mille
+f /usr/games/monop 755 ../../../obj/root/bin/monop
+f /usr/games/lib/cards.pck 644:10 ../../../obj/games/cards.pck
+f /usr/games/phantasia 4711:1.0 ../../../obj/root/bin/phantasia
+d /usr/games/lib/phantasia 755:1.10
+f /usr/games/lib/phantasia/monsters 444:1.10 ../games/phantasia/monsters
+f /usr/games/lib/phantasia/phant.help 444:1.10 ../../../obj/games/phantasia/phant.help
+f /usr/games/lib/phantasia/gold 600:1.10 ../../../obj/games/phantasia/gold
+f /usr/games/lib/phantasia/motd 600:1.10 ../../../obj/games/phantasia/motd
+f /usr/games/lib/phantasia/mess 600:1.10 ../../../obj/games/phantasia/mess
+f /usr/games/lib/phantasia/characs 600:1.10 ../../../obj/games/phantasia/characs
+f /usr/games/lib/phantasia/void 600:1.10 ../../../obj/games/phantasia/void
+f /usr/games/lib/phantasia/lastdead 600:1.10 ../../../obj/games/phantasia/lastdead
+f /usr/games/lib/phantasia/enemy 600:1.10 ../../../obj/games/phantasia/enemy
+f /usr/games/quiz 755 ../../../obj/root/bin/quiz
+d /usr/games/lib/quiz.k 755:10
+f /usr/games/lib/quiz.k/africa 444:10 ../games/quiz/quiz.k/africa
+f /usr/games/lib/quiz.k/america 444:10 ../games/quiz/quiz.k/america
+f /usr/games/lib/quiz.k/areas 444:10 ../games/quiz/quiz.k/areas
+f /usr/games/lib/quiz.k/arith 444:10 ../games/quiz/quiz.k/arith
+f /usr/games/lib/quiz.k/asia 444:10 ../games/quiz/quiz.k/asia
+f /usr/games/lib/quiz.k/babies 444:10 ../games/quiz/quiz.k/babies
+f /usr/games/lib/quiz.k/bard 444:10 ../games/quiz/quiz.k/bard
+f /usr/games/lib/quiz.k/chinese 444:10 ../games/quiz/quiz.k/chinese
+f /usr/games/lib/quiz.k/collectives 444:10 ../games/quiz/quiz.k/collectives
+f /usr/games/lib/quiz.k/ed 444:10 ../games/quiz/quiz.k/ed
+f /usr/games/lib/quiz.k/elements 444:10 ../games/quiz/quiz.k/elements
+f /usr/games/lib/quiz.k/europe 444:10 ../games/quiz/quiz.k/europe
+f /usr/games/lib/quiz.k/greek 444:10 ../games/quiz/quiz.k/greek
+f /usr/games/lib/quiz.k/inca 444:10 ../games/quiz/quiz.k/inca
+f /usr/games/lib/quiz.k/index 444:10 ../games/quiz/quiz.k/index
+f /usr/games/lib/quiz.k/latin 444:10 ../games/quiz/quiz.k/latin
+f /usr/games/lib/quiz.k/locomotive 444:10 ../games/quiz/quiz.k/locomotive
+f /usr/games/lib/quiz.k/midearth 444:10 ../games/quiz/quiz.k/midearth
+f /usr/games/lib/quiz.k/morse 444:10 ../games/quiz/quiz.k/morse
+f /usr/games/lib/quiz.k/murders 444:10 ../games/quiz/quiz.k/murders
+f /usr/games/lib/quiz.k/poetry 444:10 ../games/quiz/quiz.k/poetry
+f /usr/games/lib/quiz.k/posneg 444:10 ../games/quiz/quiz.k/posneg
+f /usr/games/lib/quiz.k/pres 444:10 ../games/quiz/quiz.k/pres
+f /usr/games/lib/quiz.k/province 444:10 ../games/quiz/quiz.k/province
+f /usr/games/lib/quiz.k/seq-easy 444:10 ../games/quiz/quiz.k/seq-easy
+f /usr/games/lib/quiz.k/seq-hard 444:10 ../games/quiz/quiz.k/seq-hard
+f /usr/games/lib/quiz.k/sexes 444:10 ../games/quiz/quiz.k/sexes
+f /usr/games/lib/quiz.k/sov 444:10 ../games/quiz/quiz.k/sov
+f /usr/games/lib/quiz.k/spell 444:10 ../games/quiz/quiz.k/spell
+f /usr/games/lib/quiz.k/state 444:10 ../games/quiz/quiz.k/state
+f /usr/games/lib/quiz.k/trek 444:10 ../games/quiz/quiz.k/trek
+f /usr/games/lib/quiz.k/ucc 444:10 ../games/quiz/quiz.k/ucc
+f /usr/games/robots 4711:1.0 ../../../obj/root/bin/robots
+f /usr/games/lib/robots_roll 644:1.10 ../../../obj/root/empty
+f /usr/games/rogue 4711:1.10 ../../../obj/root/bin/rogue
+f /usr/games/lib/rogue.scores 644:1.10 ../../../obj/root/empty
+f /usr/games/sail 4755:1.0 ../../../obj/root/bin/sail
+f /usr/games/lib/saillog 644:1.10 ../../../obj/root/empty
+f /usr/games/snake 4755:1.0 ../../../obj/root/bin/snake
+f /usr/games/snscore 755:1.0 ../../../obj/root/bin/snscore
+f /usr/games/lib/busy 755:1.10 ../../../obj/root/bin/busy
+f /usr/games/lib/snakerawscores 644:1.10 ../../../obj/root/empty
+f /usr/games/trek 755 ../../../obj/root/bin/trek
+f /usr/games/warp 4711:3.0 ../../../obj/root/bin/warp
+d /usr/games/lib/warp 755:3.10
+f /usr/games/lib/warp/smap.0 644:3.10 ../../../obj/games/warp/smap.0
+f /usr/games/lib/warp/smap.1 644:3.10 ../../../obj/games/warp/smap.1
+f /usr/games/lib/warp/smap.2 644:3.10 ../../../obj/games/warp/smap.2
+f /usr/games/lib/warp/smap.3 644:3.10 ../../../obj/games/warp/smap.3
+f /usr/games/lib/warp/smap.4 644:3.10 ../../../obj/games/warp/smap.4
+f /usr/games/lib/warp/smap.5 644:3.10 ../../../obj/games/warp/smap.5
+f /usr/games/lib/warp/smap.6 644:3.10 ../../../obj/games/warp/smap.6
+f /usr/games/lib/warp/smap.7 644:3.10 ../../../obj/games/warp/smap.7
+f /usr/games/lib/warp/warp.doc 644:3.10 ../games/warp/warp.doc
+f /usr/games/lib/warp/warp.news 644:3.10 ../games/warp/warp.news
 i ../../../obj/man/man.proto
 c /dev/console 622 0 0
 c /dev/ttyv1 666 0 1

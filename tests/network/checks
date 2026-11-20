@@ -350,6 +350,10 @@ netstat -rn | grep "^10.0.2" | awk '{print $1, $2, $3}'
 action dst 10.0.0.0, router 10.0.2.15, metric 0
 action dst 10.0.2.0, router 10.0.2.15, metric 0
 10.0.2 10.0.2.15 U
+== hunt
+/usr/games/hunt -q; echo $?
+--
+1
 =file wait
 # sh /mnt/d/wait FILE N: wait up to a minute for FILE to hold N letters.
 n=0

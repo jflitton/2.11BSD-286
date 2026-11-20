@@ -19,6 +19,7 @@ getcom(buf, size, prompt, error)
 {
 	for (;;) {
 		fputs(prompt, stdout); 
+		fflush(stdout);
 		if (fgets(buf, size, stdin) == 0) {
 			clearerr(stdin);
 			continue;

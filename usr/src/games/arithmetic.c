@@ -44,7 +44,7 @@ char	*argv[];
 	}
 	if(range > MAX) {
 		printf("Range is too large.\n");
-		exit();
+		exit(1);
 	}
 
 	if(dif == 0) {
@@ -130,11 +130,11 @@ char *s;
 
 	while((*rs = getchar()) == ' ');
 	while(*rs != '\n')
-		if(*rs == 0)
-			exit();
+		if(*rs == 0 || *rs == EOF)
+			exit(0);
 		else if(rs >= &s[99]) {
 			while((*rs = getchar()) != '\n')
-				if(*rs == '\0')	exit();
+				if(*rs == '\0' || *rs == EOF)	exit(0);
 		}
 		else
 			*++rs = getchar();
@@ -194,7 +194,7 @@ score()
 	printf("\n\nRights %d; Wrongs %d; Score %d%%\n", rights, wrongs,
 		(rights * 100)/(rights + wrongs));
 
-	if(rights == 0)	return;
+	if(rights == 0)	return(0);
 	printf("Total time %ld seconds; %.1f seconds per problem\n\n\n",
 		etvec - stvec,
 		(etvec - stvec) / (rights + 0.));
@@ -205,13 +205,14 @@ score()
 	return(0);
 }
 
+void
 delete()
 {
 	if(rights + wrongs == 0.) {
 		printf("\n");
-		exit();
+		exit(0);
 	}
 	score();
-	exit();
+	exit(0);
 }
 

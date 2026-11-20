@@ -45,7 +45,8 @@ Rules:
 - Models arrive in that order. Small first, because every existing program
   works in it unchanged. Medium next: 15 programs in the tree are linked
   with overlays today (csh, ex, sendmail, f77, named and others); csh, ex,
-  tcsh and sendmail are built so. Large last.
+  tcsh, sendmail and the games hack, phantasia, rogue and warp are built
+  so. Large last.
 - Moving a program to large is a deliberate change made after cleaning it
   up. Old C that passes a bare `0` for a pointer, keeps a pointer in an
   `int`, or calls an undeclared function that returns a pointer compiles

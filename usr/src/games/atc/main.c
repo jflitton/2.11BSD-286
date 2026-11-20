@@ -103,12 +103,12 @@ main(ac, av)
 
 	addplane();
 
-	signal(SIGINT, quit);
-	signal(SIGQUIT, quit);
+	signal(SIGINT, (sig_t) quit);
+	signal(SIGQUIT, (sig_t) quit);
 	signal(SIGTSTP, SIG_IGN);
 	signal(SIGSTOP, SIG_IGN);
-	signal(SIGHUP, log_score);
-	signal(SIGTERM, log_score);
+	signal(SIGHUP, (sig_t) log_score);
+	signal(SIGTERM, (sig_t) log_score);
 
 	ioctl(fileno(stdin), TIOCGETP, &tty_start);
 	bcopy(&tty_start, &tty_new, sizeof(tty_new));
@@ -116,7 +116,7 @@ main(ac, av)
 	tty_new.sg_flags &= ~ECHO;
 	ioctl(fileno(stdin), TIOCSETP, &tty_new);
 
-	signal(SIGALRM, update);
+	signal(SIGALRM, (sig_t) update);
 
 	itv.it_value.tv_sec = 0;
 	itv.it_value.tv_usec = 1;

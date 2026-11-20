@@ -8,7 +8,8 @@
 # fingerd; tcpd's rules, with a connection it refuses; rsh, rcp and
 # rexecd; tftp; ftp as a user, as nobody who may, and as the anonymous
 # one; nc, whois and traceroute; the daemons that keep the network
-# told, rwhod, timed, ntpd and routed, with what asks them; and mail:
+# told, rwhod, timed, ntpd and routed, with what asks them; hunt, which
+# looks for a game by broadcasting on the Ethernet; and mail:
 # newaliases, which must make the database tools/mkaliases.py made,
 # /bin/mail and Mail sending through sendmail, Mail and from reading,
 # sendmail's SMTP server, an alias, msgs, vacation, popper, ex's

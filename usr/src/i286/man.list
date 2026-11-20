@@ -4,8 +4,9 @@
 # the system, wherever its source is, and the introduction to each; 2, 3,
 # 5 and 7, the kernel's calls, the libraries, the files and the rest,
 # are all of upstream's, what the Makefile of each formats, with those of
-# the programs here; 4 has those not about the PDP-11's devices.  6, the
-# games, and 3f, Fortran's library, have nothing here to go with them.
+# the programs here; 4 has those not about the PDP-11's devices; 6 those
+# of the games here.  3f, Fortran's library, has nothing here to go with
+# it.
 
 cat1	man/man1/intro.1 man/man1/cd.1 man/man1/wait.1
 
@@ -62,6 +63,14 @@ cat4	man/man4/lo.4 man/man4/networking.4 man/man4/null.4 man/man4/pty.4
 cat4	man/man4/tcp.4 man/man4/tty.4 man/man4/udp.4
 cat5	man/man5/Makefile usr.sbin/cron/crontab.5 libexec/tcpd/hosts_access.5
 cat5	libexec/tcpd/hosts_options.5 bin/disklabel/disklabel.5.5
+cat6	man/man6/arithmetic.6 man/man6/backgammon.6 man/man6/banner.6
+cat6	man/man6/bcd.6 man/man6/canfield.6 man/man6/cribbage.6 man/man6/fish.6
+cat6	man/man6/fortune.6 man/man6/hunt.6 man/man6/mille.6 man/man6/monop.6
+cat6	man/man6/number.6 man/man6/quiz.6 man/man6/rain.6 man/man6/robots.6
+cat6	man/man6/rogue.6 man/man6/snake.6 man/man6/trek.6 man/man6/warp.6
+cat6	man/man6/worm.6 man/man6/worms.6 man/man6/wump.6
+cat6	games/atc/atc.6 games/battlestar/battlestar.6 games/hack/hack.6
+cat6	games/phantasia/phant.nr:phantasia games/sail/sail.6
 cat7	man/man7/Makefile
 
 cat8	man/man8/intro.8 man/man8/fsck.8 man/man8/getty.8 man/man8/makekey.8

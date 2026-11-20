@@ -189,6 +189,7 @@ nline()
 }
 
 cprint(s)
+char *s;
 {
 
 	if(flag)

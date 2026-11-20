@@ -43,11 +43,11 @@ abandon()
 	register struct event	*e;
 
 	if (Ship.ship == QUEENE)
-		return (printf("You may not abandon ye Faire Queene\n"));
+		{ printf("You may not abandon ye Faire Queene\n"); return; }
 	if (Ship.cond != DOCKED)
 	{
 		if (damaged(SHUTTLE))
-			return (out(SHUTTLE));
+			{ out(SHUTTLE); return; }
 		printf("Officers escape in shuttlecraft\n");
 		/* decide on fate of crew */
 		q = &Quad[Ship.quadx][Ship.quady];

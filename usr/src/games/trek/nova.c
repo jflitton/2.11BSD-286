@@ -38,7 +38,7 @@ int	x, y;
 		return;
 	}
 	if (ranf(100) < 5)
-		return (snova(x, y));
+		{ snova(x, y); return; }
 	printf("Spock: Star at %d,%d gone nova\n", x, y);
 
 	if (ranf(4) != 0)

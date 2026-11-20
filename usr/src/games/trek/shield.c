@@ -52,7 +52,7 @@ int	f;
 	{
 		/* cloaking device */
 		if (Ship.ship == QUEENE)
-			return (printf("Ye Faire Queene does not have the cloaking device.\n"));
+			{ printf("Ye Faire Queene does not have the cloaking device.\n"); return; }
 		device = "Cloaking device";
 		dev2 = "is";
 		ind = CLOAK;

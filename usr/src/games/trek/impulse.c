@@ -23,9 +23,9 @@ impulse()
 	extern double		move();
 
 	if (Ship.cond == DOCKED)
-		return (printf("Scotty: Sorry captain, but we are still docked.\n"));
+		{ printf("Scotty: Sorry captain, but we are still docked.\n"); return; }
 	if (damaged(IMPULSE))
-		return (out(IMPULSE));
+		{ out(IMPULSE); return; }
 	if (getcodi(&course, &dist))
 		return;
 	power = 20 + 100 * dist;

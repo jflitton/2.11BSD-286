@@ -247,9 +247,9 @@ list_all() {
 quit() {
 
 	putchar('\n');
-	if (getyn("Do you all really want to quit? ", yn) == 0)
+	if (getyn("Do you all really want to quit? ") == 0)
 		exit(0);
-	signal(2, quit);
+	signal(2, (sig_t) quit);
 }
 /*
  *	This routine copies one structure to another
@@ -277,7 +277,7 @@ shell_out() {
 		execsh(shell);
 	}
 	ignoresigs();
-	wait();
+	wait((int *) 0);
 	resetsigs();
 	putchar('\n');
 	printline();
@@ -326,5 +326,5 @@ resetsigs() {
 
 	for (i = 0; i < NSIG; i++)
 		signal(i, SIG_DFL);
-	signal(2, quit);
+	signal(2, (sig_t) quit);
 }

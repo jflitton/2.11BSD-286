@@ -239,7 +239,7 @@ char	**av;
 		do_connect(name);
 		playit();
 	} while (!quit());
-	leave(0, NULL);
+	leave(0, (char *) NULL);
 	/* NOTREACHED */
 }
 
@@ -363,7 +363,7 @@ FLAG	do_startup;
 
 # ifdef BROADCAST
 	if (initial)
-		brdc = broadcast_vec(test_socket, &brdv);
+		brdc = broadcast_vec(test_socket, (struct sockaddr **) &brdv);
 
 	if (brdc <= 0) {
 		Daemon.sin_family = SOCK_FAMILY;
@@ -412,6 +412,7 @@ FLAG	do_startup;
 get_response:
 	namelen = DAEMON_SIZE;
 	oldsigalrm = signal(SIGALRM, sigalrm);
+	(void) siginterrupt(SIGALRM, 1);	/* the alarm ends recvfrom */
 	errno = 0;
 	(void) alarm(1);
 # ifndef OLDIPC
@@ -507,6 +508,7 @@ bad_con()
  *	Handle a core dump signal by not dumping core, just leaving,
  *	so we end up with a core dump from the driver
  */
+void
 dumpit()
 {
 	(void) kill(Master_pid, SIGQUIT);
@@ -518,9 +520,10 @@ dumpit()
  * sigterm:
  *	Handle a terminate signal
  */
+void
 sigterm()
 {
-	leave(0, NULL);
+	leave(0, (char *) NULL);
 	/* NOTREACHED */
 }
 
@@ -529,6 +532,7 @@ sigterm()
  * sigemt:
  *	Handle a emt signal - shouldn't happen on vaxes(?)
  */
+void
 sigemt()
 {
 	leave(1, "Unable to start driver.  Try again.");
@@ -540,6 +544,7 @@ sigemt()
  * sigalrm:
  *	Handle an alarm signal
  */
+void
 sigalrm()
 {
 	return;
@@ -589,7 +594,7 @@ intr()
 		if (ch == 'y') {
 			(void) write(Socket, "q", 1);
 			(void) close(Socket);
-			leave(0, NULL);
+			leave(0, (char *) NULL);
 		}
 		else if (ch == 'n') {
 			(void) signal(SIGINT, intr);

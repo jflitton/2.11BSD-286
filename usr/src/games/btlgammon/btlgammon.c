@@ -54,7 +54,7 @@ struct	{
 
 main()
 {
-	int	go[5], tvec[2];
+	int	go[6], tvec[2];
 	int	k, n, pid, ret, rpid, t;
 	char	s[100];
 

@@ -58,6 +58,6 @@ run:
 		case 0:
 			goto start;
 		default:
-			exit();
+			exit(0);
 	}
 }

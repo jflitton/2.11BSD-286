@@ -13,7 +13,7 @@ static char sccsid[] = "wump.c	4.2 (2.11BSD) 2025/12/25";
 #define	NROOM	20
 #define	NTUNN	3
 #define	NPIT	3
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 #define	BIGINT 32768.0
 #else
 #define BIGINT 2147483648.0
@@ -325,7 +325,7 @@ rline()
 	r = c;
 	while(c != '\n' && c != ' ') {
 		if(c == EOF)
-			exit();
+			exit(0);
 		c = getchar();
 	}
 	tchar = c;
@@ -354,7 +354,7 @@ rin()
 		if(c<'0' || c>'9') {
 			while(c != '\n') {
 				if(c == EOF)
-					exit();
+					exit(0);
 				c = getchar();
 			}
 			return(0);

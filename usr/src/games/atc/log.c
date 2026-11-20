@@ -56,9 +56,20 @@ log_score(list_em)
 	register int	i, fd, num_scores = 0, good, changed = 0, found = 0;
 	struct passwd	*pw;
 	FILE		*fp;
-	char		*cp, logstr[BUFSIZ], *index(), *rindex();
+	char		*cp, logstr[BUFSIZ], *index(), *rindex(), *malloc();
+#ifdef i286
+	SCORE		*score, thisscore;	/* 100 would not fit the stack */
+#else
 	SCORE		score[100], thisscore;
+#endif
 
+#ifdef i286
+	score = (SCORE *) malloc(NUM_SCORES * sizeof (SCORE));
+	if (score == NULL) {
+		perror("malloc");
+		return (-1);
+	}
+#endif
 	strcpy(logstr, SPECIAL_DIR);
 	strcat(logstr, LOG);
 

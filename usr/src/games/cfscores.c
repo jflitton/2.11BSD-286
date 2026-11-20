@@ -27,6 +27,7 @@ struct betinfo {
 
 char *scorefile = "/usr/games/lib/cfscores";
 int dbfd;
+long lseek();
 
 main(argc, argv)
 	int argc;
@@ -78,13 +79,14 @@ printuser(pw, printfail)
 {
 	struct betinfo total;
 	int i;
+	long pos;
 
 	if (pw->pw_uid < 0) {
 		printf("Bad uid %d\n", pw->pw_uid);
 		return;
 	}
-	i = lseek(dbfd, pw->pw_uid * sizeof(struct betinfo), 0);
-	if (i < 0) {
+	pos = lseek(dbfd, (long)pw->pw_uid * sizeof(struct betinfo), 0);
+	if (pos < 0) {
 		perror("lseek");
 		return;
 	}
@@ -105,14 +107,14 @@ printuser(pw, printfail)
 		printf("* Losses for %-10s*\n", pw->pw_name);
 	printf("*======================*\n");
 	printf("|Costs           Total |\n");
-	printf("| Hands       %8d |\n", total.hand);
-	printf("| Inspections %8d |\n", total.inspection);
-	printf("| Games       %8d |\n", total.game);
-	printf("| Runs        %8d |\n", total.runs);
-	printf("| Information %8d |\n", total.information);
-	printf("| Think time  %8d |\n", total.thinktime);
-	printf("|Total Costs  %8d |\n", total.wins - total.worth);
-	printf("|Winnings     %8d |\n", total.wins);
-	printf("|Net Worth    %8d |\n", total.worth);
+	printf("| Hands       %8ld |\n", total.hand);
+	printf("| Inspections %8ld |\n", total.inspection);
+	printf("| Games       %8ld |\n", total.game);
+	printf("| Runs        %8ld |\n", total.runs);
+	printf("| Information %8ld |\n", total.information);
+	printf("| Think time  %8ld |\n", total.thinktime);
+	printf("|Total Costs  %8ld |\n", total.wins - total.worth);
+	printf("|Winnings     %8ld |\n", total.wins);
+	printf("|Net Worth    %8ld |\n", total.worth);
 	printf("*----------------------*\n\n");
 }

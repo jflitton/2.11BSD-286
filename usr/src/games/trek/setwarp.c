@@ -26,9 +26,9 @@ setwarp()
 	if (warpfac < 0.0)
 		return;
 	if (warpfac < 1.0)
-		return (printf("Minimum warp speed is 1.0\n"));
+		{ printf("Minimum warp speed is 1.0\n"); return; }
 	if (warpfac > 10.0)
-		return (printf("Maximum speed is warp 10.0\n"));
+		{ printf("Maximum speed is warp 10.0\n"); return; }
 	if (warpfac > 6.0)
 		printf("Damage to warp engines may occur above warp 6.0\n");
 	Ship.warp = warpfac;

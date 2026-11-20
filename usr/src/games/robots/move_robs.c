@@ -25,7 +25,7 @@ bool	was_sig;
 	static COORD	newpos;
 
 	if (Real_time)
-		signal(SIGALRM, move_robots);
+		signal(SIGALRM, (sig_t) move_robots);
 # ifdef DEBUG
 	move(Min.y, Min.x);
 	addch(inch());

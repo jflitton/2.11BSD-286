@@ -18,8 +18,10 @@ LIST says which pages go on the system: a line names a directory of
 in it; a Makefile there stands for the pages it formats, those its SRCS,
 SRCS1 and so on list, as usr/src/man/man2/Makefile does all of section
 2.  A page's name is its source's less the source's suffix, `.1`, `.3f`,
-`.man` or the like: bin/ar/ar.5.5 would be ar.0.  Blank lines and what
-follows a # are ignored.
+`.man` or the like: bin/ar/ar.5.5 would be ar.0.  A source followed by a
+colon and a name is installed under that name, as its Makefile installs
+it: games/phantasia/phant.nr:phantasia is phantasia.0.  Blank lines and
+what follows a # are ignored.
 
 A page's `.so FILE` is put in its place before nroff reads the page, as
 nroff would put it, from the directory the page is in, or from the tree's
@@ -62,6 +64,7 @@ def pages(src, listing):
         if len(w) < 2:
             fail("%s:%d: a directory and its pages" % (listing, n))
         for name in w[1:]:
+            name, _, called = name.partition(":")
             path = os.path.join(src, name)
             if os.path.basename(name) == "Makefile":
                 found = sources(path)
@@ -71,7 +74,8 @@ def pages(src, listing):
                 if not os.path.exists(path):
                     fail("%s:%d: no %s" % (listing, n, path))
                 base = os.path.basename(path)
-                out.append((w[0], SUFFIX.sub("", base) + ".0", path))
+                out.append((w[0], (called or SUFFIX.sub("", base)) + ".0",
+                            path))
     return out
 
 

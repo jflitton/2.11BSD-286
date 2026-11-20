@@ -85,7 +85,7 @@ char	**argv;
 #else
 	raw = ((noech = old & ~ECHO) | RAW);		/* set up modes */
 #endif
-	ospeed = old.sg_ospeed;				/* for termlib */
+	ospeed = tty.sg_ospeed;				/* for termlib */
 
 							/* check user count */
 # ifdef CORY

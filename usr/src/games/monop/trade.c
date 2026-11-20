@@ -242,7 +242,7 @@ resign() {
 			sqp = op->sqr;
 			sqp->owner = -1;
 			sqp->desc->morg = FALSE;
-			if (op->type == PRPTY) {
+			if (sqp->type == PRPTY) {
 				isnot_monop(sqp->desc->mon_desc);
 				sqp->desc->houses = 0;
 			}

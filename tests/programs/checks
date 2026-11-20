@@ -924,10 +924,10 @@ drivedata: 0
 
 4 partitions:
 #        size   offset    fstype   [fsize bsize]
-  a:    24000        0   2.11BSD     1024  1024         # (Cyl.    0 - 352*)
-  b:     4000    24000      swap                        # (Cyl.  352*- 411*)
+  a:    30000        0   2.11BSD     1024  1024         # (Cyl.    0 - 441*)
+  b:     4000    30000      swap                        # (Cyl.  441*- 499*)
   c:    41803        0    unused        0     0         # (Cyl.    0 - 614*)
-  d:     1600    28000   2.11BSD     1024  1024         # (Cyl.  411*- 435*)
+  d:     1600    34000   2.11BSD     1024  1024         # (Cyl.  500 - 523*)
 == disklabel-r
 disklabel -r wd0 | sed 1d > r
 disklabel wd0 | sed 1d | cmp - r && echo same
@@ -1188,3 +1188,215 @@ sleep 0 /etc/motd
 syslogd 3* (unix dgram
 syslogd 4* (inet dgram
 inetd (inet stream tcp
+== arithmetic
+/usr/games/arithmetic 200; echo $?
+--
+Range is too large.
+1
+== banner
+/usr/games/banner -w20 Hi | sed 's/ *$//'
+--
+     #            #
+     ##############
+     #            #
+
+
+     ##############
+     ##############
+
+     #
+     ########  ##
+== bcd
+/usr/games/bcd 'UNIX 2.11' | cat -v
+--
+
+
+
+
+ ________________________________________________
+/UNIX 2.11                                       |
+|  [^H^A^A^A^A^A]   [^H^A^A^A^A^A]                                         |
+| [^H^A^A^A^A^A]                                              |
+|[^H^A^A^A^A^A]  [^H^A^A^A^A^A]                                            |
+|1111111[^H^A^A^A^A^A][^H^A^A^A^A^A]111111111111111111111111111111111111111|
+|22222[^H^A^A^A^A^A]222222222222222222222222222222222222222222|
+|333333[^H^A^A^A^A^A]33333333333333333333333333333333333333333|
+|[^H^A^A^A^A^A]44444444444444444444444444444444444444444444444|
+|5[^H^A^A^A^A^A]5555555555555555555555555555555555555555555555|
+|666666666666666666666666666666666666666666666666|
+|777[^H^A^A^A^A^A]77777777777777777777777777777777777777777777|
+|888888[^H^A^A^A^A^A]88888888888888888888888888888888888888888|
+|99[^H^A^A^A^A^A]999999999999999999999999999999999999999999999|
+|________________________________________________|
+
+
+
+
+== ppt
+echo 286 | /usr/games/ppt
+--
+___________
+|  oo . o |
+|  ooo.   |
+|  oo .oo |
+|    o. o |
+___________
+== morse
+echo 'sos 286' | /usr/games/morse
+--
+ dit dit dit,
+ daw daw daw,
+ dit dit dit,
+ ...
+ dit dit daw daw daw,
+ daw daw daw dit dit,
+ daw dit dit dit dit,
+ ...
+== number
+echo 1984 | /usr/games/number
+echo 3.25 | /usr/games/number
+--
+ one thousand.
+nine hundred eighty four.
+...
+ three.
+...
+. 2 5 ...
+== factor
+/usr/games/factor 32767
+echo 360 1 97 | /usr/games/factor
+--
+	7
+	31
+	151
+	2
+	2
+	2
+	3
+	3
+	5
+	1
+	97
+== primes
+/usr/games/primes 90 | sed 6q
+--
+97
+101
+103
+107
+109
+113
+
+== fortune
+/usr/games/fortune; /usr/games/fortune
+--
+A bather whose clothing was strewed
+By breezes that left her quite nude,
+	Saw a man come along
+	And, unless I'm quite wrong,
+You expected this line to be lewd.
+There are three possibilities:
+Pioneer's solar panel has turned away from the sun;
+there's a large meteor blocking transmission;
+someone loaded Star Trek 3.2 into our video processor.
+== quiz
+/usr/games/quiz
+--
+Subjects:
+
+- state capital abbreviation flower
+- American capital
+- European capital
+- African capital
+- president term successor
+- sovereign century successor
+- easy-sequence next name
+- hard-sequence next name
+- positive negative
+- Shakespeare-lines next work character
+- victim killer
+- individuals collective
+- star trek
+- baby adult
+- poem-line next poem author
+- Middle-Earth capital
+- inca successor
+- clear morse
+- male female
+- greek english
+- latin english
+- locomotive name
+- section ucc
+- year next
+- symbol number weight element
+- province capital
+- Asian capital
+- arithmetic answer
+- area-code state-region city
+- function ed-command
+
+For example,
+    quiz state capital
+asks you a state and you answer the capital
+    quiz capital state
+works the other way around
+
+Type empty line to get correct answer.
+== wump
+echo y | /usr/games/wump >o; sed -n 2p o
+--
+Welcome to 'Hunt the Wumpus.'
+== wargames
+echo global | /usr/games/wargames
+--
+Would you like to play a game? Funny, the only way to win is not to play at all
+== cfscores
+/usr/games/cfscores root; /usr/games/cfscores nosuch
+--
+root has never played canfield.
+User nosuch unknown
+== snscore
+/usr/games/snscore; /usr/games/lib/busy
+--
+Snake players scores to date
+0
+== atc
+/usr/games/atc -l; /usr/games/atc -s
+--
+available games:
+	default
+	easy
+	crossover
+	Killer
+	game_2
+ #:  name      host      game                time  real time  planes safe
+-------------------------------------------------------------------------------
+ 1:  schumann  puff      game_2              1414       3:15   171
+ 2:  schumann  puff      default              220        :59    18
+ 3:  schumann  puff      easy                 182       2:26    13
+ 4:  schumann  puff      crossover             74       7:28    11
+ 5:  schumann  puff      Killer                38        :27     0
+
+== robots
+/usr/games/robots -s; echo $?
+--
+0
+== hack
+/usr/games/hack -s
+--
+
+Ct fnd u.
+== sail
+/usr/games/sail -s
+--
+Nobody has sailed yet.
+== phantasia
+/usr/games/phantasia -m >o; sed 4q o
+/usr/games/phantasia -a
+--
+ #  Name                    Str     Brains  Quick   Hits    Exp     Treas   Type    Flock%
+
+ 0  a Water Leaper          12      14      16      24      59      0       0       62
+ 1  a Leech                 4       19      29      30      66      0       0       73
+Current characters on file are:
+

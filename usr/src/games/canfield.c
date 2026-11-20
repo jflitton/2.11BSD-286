@@ -156,6 +156,7 @@ struct betinfo this, total;
 bool startedgame = FALSE, infullgame = FALSE;
 time_t acctstart;
 int dbfd = -1;
+long lseek(), random();
 
 /*
  * The following procedures print the board onto the screen using the
@@ -1025,23 +1026,23 @@ updatebettinginfo()
 	if (status != BETTINGBOX)
 		return;
 	move(tboxrow + 3, boxcol + 13);
-	printw("%4d%9d", this.hand, total.hand);
+	printw("%4ld%9ld", this.hand, total.hand);
 	move(tboxrow + 4, boxcol + 13);
-	printw("%4d%9d", this.inspection, total.inspection);
+	printw("%4ld%9ld", this.inspection, total.inspection);
 	move(tboxrow + 5, boxcol + 13);
-	printw("%4d%9d", this.game, total.game);
+	printw("%4ld%9ld", this.game, total.game);
 	move(tboxrow + 6, boxcol + 13);
-	printw("%4d%9d", this.runs, total.runs);
+	printw("%4ld%9ld", this.runs, total.runs);
 	move(tboxrow + 7, boxcol + 13);
-	printw("%4d%9d", this.information, total.information);
+	printw("%4ld%9ld", this.information, total.information);
 	move(tboxrow + 8, boxcol + 13);
-	printw("%4d%9d", this.thinktime, total.thinktime);
+	printw("%4ld%9ld", this.thinktime, total.thinktime);
 	move(tboxrow + 9, boxcol + 13);
-	printw("%4d%9d", thiscosts, totalcosts);
+	printw("%4ld%9ld", thiscosts, totalcosts);
 	move(tboxrow + 10, boxcol + 13);
-	printw("%4d%9d", this.wins, total.wins);
+	printw("%4ld%9ld", this.wins, total.wins);
 	move(tboxrow + 11, boxcol + 13);
-	printw("%4d%9d", this.worth, total.worth);
+	printw("%4ld%9ld", this.worth, total.worth);
 }
 
 /*
@@ -1494,6 +1495,7 @@ instruct()
 initall()
 {
 	int uid, i;
+	long pos;
 
 	srandom(getpid());
 	time(&acctstart);
@@ -1504,8 +1506,8 @@ initall()
 	dbfd = open("/usr/games/lib/cfscores", 2);
 	if (dbfd < 0)
 		return;
-	i = lseek(dbfd, uid * sizeof(struct betinfo), 0);
-	if (i < 0) {
+	pos = lseek(dbfd, (long)uid * sizeof(struct betinfo), 0);
+	if (pos < 0) {
 		close(dbfd);
 		dbfd = -1;
 		return;
@@ -1516,7 +1518,7 @@ initall()
 		dbfd = -1;
 		return;
 	}
-	lseek(dbfd, uid * sizeof(struct betinfo), 0);
+	lseek(dbfd, (long)uid * sizeof(struct betinfo), 0);
 }
 
 /*

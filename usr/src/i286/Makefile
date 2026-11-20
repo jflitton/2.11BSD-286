@@ -435,6 +435,131 @@ man_SRCS=	ucb/man/man.c
 apropos_SRCS=	ucb/man/apropos.c
 DOCPROGS=	nroff man apropos
 
+# The games, in /usr/games, with their data and scores in
+# /usr/games/lib, as the games' Makefiles install them (docs/userland.md).
+# Those of one file in games, and those in a directory of their own.
+GAMESTD=	arithmetic banner bcd cfscores factor fish morse number ppt \
+		wump primes canfield rain worm worms
+$(foreach p,$(GAMESTD),$(eval $(p)_SRCS = games/$(p).c))
+primes_LIBS=	-lm
+$(foreach p,canfield rain worm worms,$(eval $(p)_LIBS = -lcurses -ltermcap))
+CURSES=		-lcurses -ltermcap
+GS=		games
+GO=		$(TOP)/obj/games
+atc_SRCS=	$(addprefix $(GS)/atc/,extern.c graphics.c input.c list.c \
+		log.c main.c tunable.c update.c) $(GO)/atc/grammar.c \
+		$(GO)/atc/lex.c
+atc_FLAGS=	-DBSD '-DDEST="/usr/games/lib/atc/"' -I$(GO)/atc \
+		-I$(SRC)/games/atc
+atc_LIBS=	-lln -lm $(CURSES)
+BG=		allow.c board.c check.c fancy.c init.c odds.c one.c save.c \
+		subs.c table.c
+backgammon_SRCS= $(addprefix $(GS)/backgammon/,$(BG) extra.c main.c move.c \
+		text.c message.c)
+backgammon_FLAGS= -DV7
+backgammon_LIBS= -ltermcap
+teachgammon_SRCS= $(addprefix $(GS)/backgammon/,$(BG) data.c teach.c \
+		ttext1.c ttext2.c tutor.c)
+teachgammon_FLAGS= -DV7
+teachgammon_LIBS= -ltermcap
+battlestar_SRCS= $(addprefix $(GS)/battlestar/,battlestar.c com1.c com2.c \
+		com3.c com4.c com5.c com6.c com7.c init.c cypher.c getcom.c \
+		parse.c room.c save.c fly.c misc.c dayobjs.c nightobjs.c \
+		words.c) $(addprefix $(GO)/battlestar/xx,dayfile.c \
+		nightfile.c globals.c)
+battlestar_FLAGS= -I$(SRC)/games/battlestar
+battlestar_LIBS= $(CURSES)
+btlgammon_SRCS=	$(GS)/btlgammon/btlgammon.c
+cribbage_SRCS=	$(addprefix $(GS)/cribbage/,extern.c crib.c support.c cards.c \
+		score.c io.c)
+cribbage_LIBS=	$(CURSES)
+fortune_SRCS=	$(GS)/fortune/fortune.c
+HUNTDEFS=	-I$(SRC)/games/hunt -DBROADCAST -DRANDOM -DREFLECT -DMONITOR \
+		-DINTERNET -DOOZE -DFLY -DVOLCANO
+hunt_SRCS=	$(addprefix $(GS)/hunt/,hunt.c connect.c playit.c pathname.c)
+hunt_FLAGS=	$(HUNTDEFS)
+hunt_LIBS=	$(CURSES)
+hunt.driver_SRCS= $(addprefix $(GS)/hunt/,answer.c driver.c draw.c execute.c \
+		expl.c makemaze.c shots.c terminal.c extern.c pathname.c)
+hunt.driver_FLAGS= $(HUNTDEFS)
+mille_SRCS=	$(addprefix $(GS)/mille/,comp.c end.c extern.c init.c mille.c \
+		misc.c move.c print.c roll.c save.c types.c varpush.c)
+mille_LIBS=	$(CURSES)
+monop_SRCS=	$(addprefix $(GS)/monop/,monop.c cards.c execute.c getinp.c \
+		houses.c jail.c misc.c morg.c print.c prop.c rent.c roll.c \
+		spec.c strcmp.c trade.c)
+# phantasia's settings are its Makefile's, but for -Dpdp11, which is the
+# PDP-11's own.
+phantasia_SRCS=	$(addprefix $(GS)/phantasia/,main.c fight.c func0.c func1.c \
+		func2.c)
+phantasia_FLAGS= -I$(SRC)/games/phantasia \
+		'-DPATH="/usr/games/lib/phantasia"' '-DWIZARD="daemon"' \
+		-DUID=1 -DRAND=32768.0 -DENEMY
+phantasia_LIBS=	-lm $(CURSES)
+phantasia_MODEL= m
+quiz_SRCS=	$(GS)/quiz/quiz.c
+robots_SRCS=	$(addprefix $(GS)/robots/,extern.c init_field.c main.c \
+		make_level.c move.c move_robs.c play_level.c query.c rnd_pos.c \
+		score.c flush_in.c)
+robots_FLAGS=	-DMAX_PER_UID=5
+robots_LIBS=	$(CURSES)
+rogue_SRCS=	$(addprefix $(GS)/rogue/,curses.c hit.c init.c inventory.c \
+		level.c machdep.c main.c message.c monster.c move.c object.c \
+		pack.c play.c random.c ring.c room.c save.c score.c spec_hit.c \
+		throw.c trap.c use.c zap.c)
+rogue_FLAGS=	-DUNIX -DUNIX_BSD4_2
+rogue_LIBS=	$(CURSES)
+rogue_MODEL=	m
+sail_SRCS=	$(addprefix $(GS)/sail/,main.c pl_main.c pl_1.c pl_2.c pl_3.c \
+		pl_4.c pl_5.c pl_6.c pl_7.c dr_main.c dr_1.c dr_2.c dr_3.c \
+		dr_4.c dr_5.c lo_main.c assorted.c game.c globals.c misc.c \
+		parties.c sync.c version.c)
+sail_LIBS=	$(CURSES)
+snake_SRCS=	$(GS)/snake/snake.c $(GS)/snake/move.c
+snake_FLAGS=	-DCHECKBUSY
+snake_LIBS=	-lm -ltermcap
+snscore_SRCS=	$(GS)/snake/snscore.c
+snscore_FLAGS=	-DCHECKBUSY
+busy_SRCS=	$(GS)/snake/busy.c
+busy_FLAGS=	-DCHECKBUSY
+trek_SRCS=	$(addprefix $(GS)/trek/,abandon.c attack.c autover.c \
+		capture.c check_out.c checkcond.c compkl.c computer.c damage.c \
+		damaged.c dcrept.c destruct.c dock.c dumpgame.c dumpme.c \
+		dumpssradio.c events.c externs.c getcodi.c getpar.c help.c \
+		impulse.c initquad.c kill.c klmove.c lose.c lrscan.c main.c \
+		move.c nova.c out.c phaser.c play.c ram.c ranf.c rest.c \
+		schedule.c score.c setup.c setwarp.c shell.c shield.c snova.c \
+		srscan.c systemname.c torped.c utility.c visual.c warp.c win.c \
+		cgetc.c)
+trek_LIBS=	-lm
+# hack's sources, each run through the preprocessor and then crypt, a
+# program of hack's own built for this machine, which shortens the words
+# of the messages in its strings, as hack's Makefile has it.
+HACK=		hack.Decl.c hack.apply.c hack.bones.c hack.c hack.cmd.c \
+		hack.do.c hack.do_name.c hack.do_wear.c hack.dog.c hack.eat.c \
+		hack.end.c hack.engrave.c hack.fight.c hack.invent.c \
+		hack.ioctl.c hack.lev.c hack.main.c hack.makemon.c \
+		hack.mhitu.c hack.mklev.c hack.mkmaze.c hack.mkobj.c \
+		hack.mkshop.c hack.mon.c hack.monst.c hack.o_init.c \
+		hack.objnam.c hack.options.c hack.pager.c hack.potion.c \
+		hack.pri.c hack.read.c hack.rip.c hack.rumors.c hack.save.c \
+		hack.search.c hack.shk.c hack.shknam.c hack.steal.c \
+		hack.termcap.c hack.timeout.c hack.topl.c hack.track.c \
+		hack.trap.c hack.tty.c hack.unix.c hack.u_init.c hack.vault.c \
+		hack.wield.c hack.wizard.c hack.worm.c hack.worn.c hack.zap.c \
+		hack.version.c rnd.c alloc.c
+hack_SRCS=	$(addprefix $(GO)/hack/,$(HACK))
+hack_LIBS=	-ltermcap
+hack_MODEL=	m
+warp_SRCS=	$(addprefix $(GS)/warp/,bang.c init.c intrp.c move.c object.c \
+		play.c score.c sig.c term.c them.c us.c util.c version.c \
+		warp.c weapon.c)
+warp_LIBS=	-ltermcap -lm
+warp_MODEL=	m
+GAMEPROGS=	$(GAMESTD) atc backgammon teachgammon battlestar btlgammon \
+		cribbage fortune hunt hunt.driver mille monop quiz robots \
+		rogue sail snake snscore busy trek warp hack phantasia
+
 # This port's own (docs/userland.md), each in a directory here.
 adduser_SRCS=	i286/adduser/adduser.c
 bench_SRCS=	i286/bench/bench.c
@@ -444,7 +569,7 @@ PROGS=	init getty login sh csh ls mkdir stty test hostname mknod mount \
 	umount reboot sleep ex exrecover expreserve tcsh $(BINSTD) \
 	$(NETPROGS) $(SYSPROGS) $(DISKPROGS) $(KMEMPROGS) $(LOGPROGS) \
 	$(YACCPROGS) $(TEXTPROGS) $(NET2PROGS) $(MAILPROGS) $(DOCPROGS) \
-	$(OWNPROGS)
+	$(GAMEPROGS) $(OWNPROGS)
 
 # The libraries the programs use besides the C library: NAME_LIB lists a
 # library's sources, and NAME_LIBFLAGS what it is compiled with.  Each is
@@ -474,7 +599,11 @@ wrap_LIB=	$(addprefix libexec/tcpd/,hosts_access.c options.c shell_cmd.c \
 wrap_LIBFLAGS=	$(WRAPFLAGS)
 dbm_LIB=	usr.lib/libdbm/dbm.c
 dbm_LIBFLAGS=	-DNOSCCS
-LIBRARIES=	util termcap m curses wrap dbm
+# lex's library, libln, which upstream also installs as libl: yywrap for
+# atc's scanner.
+ln_LIB=		$(addprefix usr.lib/libln/,allprint.c main.c reject.c yyless.c \
+		yywrap.c)
+LIBRARIES=	util termcap m curses wrap dbm ln
 
 all:	$(addprefix $(O)/,$(PROGS))
 
@@ -600,6 +729,105 @@ $(O)/awk: $(A)/awk.def
 $(O)/yacc: $(YSRC)/dextern $(YSRC)/files
 $(O)/lex: $(LSRC)/ldefs.c $(LSRC)/once.c
 
+# What the games' Makefiles make for them, in obj/games.  atc's grammar
+# and scanner, the first with y.tab.h, the tokens' numbers, which the
+# second includes.
+$(GO)/atc $(GO)/battlestar:
+	mkdir -p $@
+$(GO)/atc/grammar.c: $(SRC)/games/atc/grammar.y $(YACC) | $(GO)/atc
+	@echo yacc atc/grammar.y
+	@$(call yacc,$<,$@,$(GO)/atc/y.tab.h)
+$(GO)/atc/y.tab.h: $(GO)/atc/grammar.c ;
+$(GO)/atc/lex.c: $(SRC)/games/atc/lex.l $(LEX) | $(GO)/atc
+	@echo lex atc/lex.l
+	@$(call lex,$<,$@)
+$(O)/atc: $(GO)/atc/y.tab.h
+
+# battlestar's descriptions of its places and things are in
+# /usr/games/lib/battle_strings, which its own mkstr, built for this
+# machine, makes of three files as it takes them out: each string that
+# is strstr's argument becomes its offset in the file, a long.  The
+# files are made again together, the strings added in the order its
+# Makefile has make take them.
+BS=		$(SRC)/games/battlestar
+BSTR=		$(addprefix $(GO)/battlestar/xx,dayfile.c nightfile.c globals.c)
+$(H)/bmkstr: $(BS)/mkstr.c | $(H)
+	@echo hostcc battlestar/mkstr
+	@$(HOSTCC) $(HOSTCFLAGS) -o $@ $<
+$(GO)/battlestar/battle_strings: $(addprefix $(BS)/,dayfile.c nightfile.c \
+		globals.c) $(H)/bmkstr | $(GO)/battlestar
+	@echo mkstr battlestar
+	@cd $(BS) && rm -f $@ && for f in globals.c dayfile.c nightfile.c; do \
+	    $(H)/bmkstr - $@ $(GO)/battlestar/xx $$f || exit 1; done
+$(BSTR): $(GO)/battlestar/battle_strings ;
+
+# hack's sources as they are compiled, and crypt, which is built for this
+# machine and reads and writes C, with -Di286 for the system's compiler,
+# whose #pragma lines it leaves alone.  hack.onames.h, the names of its
+# objects, which its makedefs writes, is in the tree as makedefs writes
+# it.
+HK=		$(SRC)/games/hack
+$(GO)/hack:
+	mkdir -p $@
+$(H)/hcrypt: $(HK)/crypt.c | $(H)
+	@echo hostcc hack/crypt
+	@$(HOSTCC) $(HOSTCFLAGS) -Di286 -o $@ $<
+$(GO)/hack/%.c: $(HK)/%.c $(wildcard $(HK)/*.h) $(H)/hcrypt | $(GO)/hack
+	@$(CC) -E -mm -I$(HK) $< > $@.i
+	@$(H)/hcrypt < $@.i > $@.new && mv $@.new $@ && rm $@.i
+
+# fortune's text, scene and then obscene after a line "%-", which
+# tools/strfile.py makes into the table fortune reads, as strfile -r does.
+FT=		$(SRC)/games/fortune
+$(GO)/fortunes.dat: $(FT)/scene $(FT)/obscene $(TOP)/tools/strfile.py
+	@mkdir -p $(GO)
+	@{ cat $(FT)/scene; echo "%-"; cat $(FT)/obscene; } > $(GO)/fortunes
+	python3 -I $(TOP)/tools/strfile.py -r $(GO)/fortunes $@
+
+# monop's cards, which tools/initdeck.py packs as initdeck does.
+$(GO)/cards.pck: $(SRC)/games/monop/cards.inp $(TOP)/tools/initdeck.py
+	@mkdir -p $(GO)
+	python3 -I $(TOP)/tools/initdeck.py $< $@
+
+# phantasia's files, which its setfiles makes as it is installed
+# (tools/setfiles.py), and its help, which its Makefile formats with tbl
+# and then nroff -Ttn300, the table of a printer.  There is no tbl, and
+# nroff formats it alone, as the Makefile formats phantasia's page.  The
+# host's nroff finds the table in term/, beside it.
+PH=		$(GO)/phantasia
+$(PH)/characs: $(TOP)/tools/setfiles.py
+	python3 -I $(TOP)/tools/setfiles.py $(PH)
+$(addprefix $(PH)/,gold motd mess enemy lastdead void): $(PH)/characs ;
+$(H)/term/tabtn300.tab: $(TOP)/obj/root/term/tablpr.tab
+	@mkdir -p $(H)/term
+	cp $< $@
+$(PH)/phant.help: $(SRC)/games/phantasia/phant.nr $(H)/nroff \
+		$(H)/tmac/tmac.an $(H)/term/tabtn300.tab
+	@mkdir -p $(PH)
+	cd $(H) && ./nroff -man -Ttn300 < $< > $@
+
+# warp's maps of the stars, each of which its sm, built for this machine,
+# makes of a picture of one.
+WP=		$(SRC)/games/warp
+$(H)/sm: $(WP)/sm.c $(WP)/config.h | $(H)
+	@echo hostcc warp/sm
+	@$(HOSTCC) $(HOSTCFLAGS) -I$(WP) -o $@ $<
+$(GO)/warp/smap.%: $(WP)/smp.% $(H)/sm
+	@mkdir -p $(GO)/warp
+	$(H)/sm < $< > $@
+
+# cribbage's instructions, formatted by nroff as its Makefile has it.
+$(GO)/crib.instr: $(SRC)/games/cribbage/cribbage.n \
+		$(SRC)/games/cribbage/macro $(H)/nroff
+	@mkdir -p $(GO)
+	cd $(SRC)/games/cribbage && $(H)/nroff cribbage.n > $@
+
+# What root.proto takes of the games' besides their programs.
+GAMEDATA=	$(GO)/battlestar/battle_strings $(GO)/fortunes.dat \
+		$(GO)/cards.pck $(GO)/crib.instr \
+		$(addprefix $(PH)/,characs phant.help) \
+		$(addprefix $(GO)/warp/smap.,0 1 2 3 4 5 6 7)
+
 # ex's sources with its messages taken out, and the file they are in.
 $(EXO)/exstrings: $(addprefix $(SRC)/ucb/ex/,$(EX)) \
 		$(wildcard $(SRC)/ucb/ex/*.h) $(TOP)/tools/mkstr.py | $(EXO)
@@ -656,7 +884,7 @@ $(foreach l,$(LIBRARIES),$(foreach m,s m,$(eval $(call library,$(l),$(m)))))
 # same and are an eighth smaller.  make root STRIP=no copies the programs
 # as they are, for when the symbols are wanted on the system itself.
 R=	$(TOP)/obj/root
-ROOTSIZE= 12000
+ROOTSIZE= 15000
 ROOTDISK= wd0
 STRIP=	yes
 
@@ -752,8 +980,8 @@ $(R)/term/tab%.tab: $(NT)/tab%.c $(NT)/mktab.c $(NR)/common_source/tw.h \
 # tools/mkman.py makes is in obj/man, with man.proto, which root.proto
 # includes.
 MANO=	$(TOP)/obj/man
-MANLIST:= $(shell awk '$$1 ~ /^cat/ { for (i = 2; i <= NF; i++) print $$i }' \
-	man.list)
+MANLIST:= $(shell awk '$$1 ~ /^cat/ { for (i = 2; i <= NF; i++) \
+	{ sub(/:.*/, "", $$i); print $$i } }' man.list)
 MANSRCS:= $(addprefix $(SRC)/,$(MANLIST)) $(wildcard $(SRC)/man/man*/* \
 	$(addprefix $(SRC)/,$(addsuffix Makefile,$(dir $(MANLIST)))))
 HTMAC=	$(addprefix $(H)/tmac/tmac.,an an.new an6n an6t $(MDOC))
@@ -774,9 +1002,10 @@ $(R)/root.fs: root.proto $(wildcard etc/* root/* skel/*) \
 		$(R)/zero $(R)/termcap $(addprefix $(R)/tmac/tmac.,$(MDOC)) \
 		$(addprefix $(R)/me/,$(MEFILES)) \
 		$(patsubst %,$(R)/term/tab%.tab,$(TERMS)) $(MANO)/man.proto \
+		$(GAMEDATA) \
 		$(TOP)/obj/PC/unix $(TOP)/obj/stand/boot $(TOP)/obj/stand/hdboot.bin
 	python3 -I $(TOP)/tools/mkfs.py -s $(ROOTSIZE) root.proto $@
 
 clean:
-	rm -rf $(O) $(EXO) $(TCO) $(H) $(G) $(R) $(MANO) \
+	rm -rf $(O) $(EXO) $(TCO) $(H) $(G) $(R) $(MANO) $(GO) \
 	    $(foreach l,$(LIBRARIES),$(LIB)/[sm]/$(l) $(LIB)/[sm]/lib$(l).lib)

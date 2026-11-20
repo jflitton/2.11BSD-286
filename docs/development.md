@@ -112,7 +112,7 @@ python3 tools/mkdisk.py -p -b obj/stand/hdboot.bin -m obj/stand/mbr.bin \
 ```
 
 The last makes a bootable image of a 20 MB IDE disk with the root and
-2 MB of swap. The root file system is 12 MB, with 7.6 MB in it;
+2 MB of swap. The root file system is 15 MB, with 11 MB in it;
 `make root ROOTSIZE=` makes it larger, and `ROOTDISK=sd0` makes it for a
 SCSI disk, whose image `mkdisk.py -t scsi` makes. [Booting](boot.md) and
 [disks](disks.md) say more, and [the root file
@@ -168,6 +168,9 @@ driver talks to.
 | `tools/cc` | compiles and links programs against the C library, as `cc` would |
 | `tools/commonize.py` | gives an object's uninitialized variables common storage, as the tree's C expects |
 | `tools/mkerrlst.py` | makes `/etc/syserrlst`, the system's error messages |
+| `tools/strfile.py` | makes `fortune`'s table of fortunes, as `strfile -r` does |
+| `tools/initdeck.py` | packs `monop`'s cards, as `initdeck` does |
+| `tools/setfiles.py` | makes `phantasia`'s files of characters and of the grail, as its `setfiles` does when it is installed |
 | `tools/mkpasswd.py` | makes `/etc/passwd` and the password database from `master.passwd`, as `mkpasswd -p` does |
 | `tools/mkman.py` | formats the manual's pages for `/usr/man` with the host's build of `nroff`, with upstream's links among them and the `whatis` database |
 | `tools/ne2aout.py` | turns the linker's output into the system's executable format; `--dump` prints one |
@@ -215,17 +218,17 @@ tests/bench/run.sh      # how fast the system is: its benchmark, each
                         # the emulator's, and a profile of each; fails
                         # only if the measuring does
 tests/network/run.sh    # the network's programs, on the system booted to
-                        # multi-user with an emulated NE2000: 33 checks,
+                        # multi-user with an emulated NE2000: 34 checks,
                         # of ftp, rsh, rcp, tftp, finger, tcpd, nc, the
-                        # daemons and mail, and rlogin, biff and talk at
-                        # terminals
+                        # daemons, hunt and mail, and rlogin, biff and
+                        # talk at terminals
 tests/programs/run.sh   # the programs that work on text and files, on the
-                        # system booted to multi-user, nroff and man, and
+                        # system booted to multi-user, nroff and man,
                         # disklabel, fsck and the other checkers on a
-                        # second disk: 97 checks, each a few lines for
-                        # the shell and what they must write, and more,
-                        # man, script, lock, tset and shutdown at a
-                        # terminal
+                        # second disk, and the games: 116 checks, each a
+                        # few lines for the shell and what they must
+                        # write, and more, man, script, lock, tset, four
+                        # games and shutdown at a terminal
 tests/system/run.sh     # the system, booted from a hard disk to multi-user:
                         # checks its root with fsck and starts again,
                         # logs in on a serial port and on two of the
@@ -299,25 +302,27 @@ tests/vt/run.sh         # the console's terminal emulator, on the machine
   ([the C library and programs](userland.md),
   [the console](console.md), [the network](network.md)).
 - `tests/programs` boots that system too, with a file system of checks
-  beside the root: 97 of them, each a few lines for the shell and what
+  beside the root: 116 of them, each a few lines for the shell and what
   they must write, to the byte, for `sort`, `sed`, `diff`, `tar`,
   `patch`, `m4`, `compress` and the other programs that work on text and
   files, for `nroff`, which must format three of the manual's pages
-  as the build did, and `man`, and for `disklabel`, `fsck` and its
+  as the build did, and `man`, for `disklabel`, `fsck` and its
   elders and `fstat`, with a second disk to write labels and file systems
-  on. Then it uses the ones that need a terminal, `more`, `man`,
-  `script`, `lock` and `tset`, and stops the system with `shutdown`
-  ([the C library and programs](userland.md)).
-- `tests/network` boots it with the Ethernet card and has it run 33
+  on, and for the games that can be played from a file. Then it uses the
+  ones that need a terminal, `more`, `man`, `script`, `lock` and `tset`,
+  and `battlestar`, `hack`, `rogue` and `robots`, and stops the system
+  with `shutdown` ([the C library and programs](userland.md)).
+- `tests/network` boots it with the Ethernet card and has it run 34
   checks of the same kind: `finger`, `rsh`, `rcp`, `tftp` and `ftp`, as
   a user and as the anonymous one, against their daemons on the loopback
   interface; `tcpd`'s rules and a connection it refuses; `nc`, `whois`
-  and `traceroute`; and `rwhod`, `timed`, `ntpd` and `routed` on the
-  Ethernet card, with the programs that ask them; and mail, sent,
-  read, taken by SMTP and fetched by POP3. Then root uses `rlogin`,
-  with a password and without, and talks with `talk` to a user whom the
-  host has logged in with `telnet`, and whom `comsat` tells of a letter
-  ([the C library and programs](userland.md#the-networks-programs)).
+  and `traceroute`; `rwhod`, `timed`, `ntpd` and `routed` on the
+  Ethernet card, with the programs that ask them, and `hunt` looking
+  for a game there; and mail, sent, read, taken by SMTP and fetched by
+  POP3. Then root uses `rlogin`, with a password and without, and talks
+  with `talk` to a user whom the host has logged in with `telnet`, and
+  whom `comsat` tells of a letter ([the C library and
+  programs](userland.md#the-networks-programs)).
 - `tests/bench` boots it and runs `bench`, this port's benchmark, while
   the harness times each test by the marks it writes and samples where
   the processor is. It prints what each test took and leaves

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Compile and link C programs for 2.11BSD on the 286, as cc(1) would.
 
-usage: cc [-c] [-o OUT] [-O] [-s] [-ms|-mm] [-Dname[=val]] [-Uname] [-Idir]
-          [-Ldir] [-lname] [-stack N] [-packcode N] FILE ...
+usage: cc [-c|-E] [-o OUT] [-O] [-s] [-ms|-mm] [-Dname[=val]] [-Uname]
+          [-Idir] [-Ldir] [-lname] [-stack N] [-packcode N] FILE ...
 
 FILE is a C source (.c), assembly for NASM (.s, which may include the
 library's DEFS.inc), an object (.o) or a library (.lib).  Each .c and .s is compiled; with -c that is all, each
@@ -18,6 +18,9 @@ variable a file defines without a value gets common storage
 use as names, such as inline, far and interrupt, are names again.  A
 variable defined twice with a value is an error.
 
+    -E          run each .c through the preprocessor only, as it is
+                compiled, and write what comes out, with #line lines,
+                to the standard output
     -O          optimize; the compiler always does, for size
     -s          leave out the symbol table
     -lname      the library obj/lib/M/libname.lib, M being the model's
@@ -134,6 +137,26 @@ def compiler_flags(cflags):
         ["-U" + k for k in MACROS] + ["-Dinline=inline_"]
 
 
+def preprocess(src, model, cflags):
+    """The preprocessor's output for SRC, to the standard output."""
+    fd, out = tempfile.mkstemp(suffix=".i", prefix="cc286.")
+    os.close(fd)
+    try:
+        r = subprocess.run([os.path.join(TOOLS, "cc286"), "-m" + model] +
+                           cflags + ["-pl", "-o", out, src],
+                           capture_output=True, text=True)
+        msg = r.stdout + r.stderr
+        sys.stderr.write(msg)
+        if r.returncode != 0 or "Error!" in msg:
+            sys.exit(1)
+        sys.stdout.flush()
+        with open(out, "rb") as f:
+            sys.stdout.buffer.write(f.read())
+        sys.stdout.flush()
+    finally:
+        os.unlink(out)
+
+
 def compile_c(src, obj, model, cflags):
     """cc286, which prints the compiler's messages; an error is fatal."""
     r = subprocess.run([os.path.join(TOOLS, "cc286"), "-m" + model] + cflags +
@@ -152,6 +175,7 @@ def compile_c(src, obj, model, cflags):
 def main():
     args = sys.argv[1:]
     compile_only = False
+    preprocess_only = False
     out = None
     strip = False
     stack = 8192
@@ -177,6 +201,8 @@ def main():
 
         if a == "-c":
             compile_only = True
+        elif a == "-E":
+            preprocess_only = True
         elif a == "-o":
             if i >= len(args):
                 fail("-o needs an argument")
@@ -224,6 +250,11 @@ def main():
         fail("-packcode: the small model has one code segment")
     lib = os.path.join(LIBS, model)
     cflags = compiler_flags(cflags)
+    if preprocess_only:
+        for f in files:
+            if f.endswith(".c"):
+                preprocess(f, model, cflags)
+        return
     sources = [f for f in files if f.endswith((".c", ".s"))]
     if compile_only and out and len(sources) > 1:
         fail("-o with -c and more than one file")

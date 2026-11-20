@@ -90,7 +90,7 @@ computer()
 	while (1)
 	{
 		r = getcodpar("\nRequest", Cputab);
-		switch (r->value)
+		switch ((int) r->value)
 		{
 
 		  case 1:			/* star chart */

@@ -38,7 +38,7 @@ not a port. Everything here waits on that.
 | `adb` and its scripts | `bin/adb`, `share/adb` |
 | `lint`, `prof`, `mkdep`, `error` | `usr.bin`, `ucb/error` |
 | `f77` (*medium*), `efl` (*medium*), `ratfor`, `struct`, `pascal` | `usr.bin`, `ucb/pascal` |
-| `liby`, `libln`, `libF77`, `libI77`, `libU77` | `usr.lib` |
+| `liby`, `libF77`, `libI77`, `libU77` | `usr.lib` |
 | `calendar`, which runs `/lib/cpp` | `usr.bin/calendar` |
 
 ## Typesetting and text
@@ -100,14 +100,13 @@ the rest of the writer's tools.
 
 ## Games
 
-None is built yet: `adventure`, `arithmetic`, `atc`, `backgammon`,
-`banner`, `battlestar`, `bcd`, `boggle`, `btlgammon`, `canfield`,
-`cfscores`, `cribbage`, `factor`, `fish`, `fortune`, `hack` (*medium*),
-`hangman`, `hunt`, `mille`, `monop`, `morse`, `number`, `phantasia`
-(*medium*), `ppt`, `primes`, `quiz`, `rain`, `robots`, `rogue`
-(*medium*), `sail`, `snake`, `trek`, `wargames`, `warp` (*medium*),
-`words`, `worm`, `worms` and `wump`. `games/pdp` is in PDP-11 assembly
-and is left out.
+| program | where | notes |
+|---|---|---|
+| `adventure` | `games/adventure` | its Makefile runs it once, to read its data and save its own memory as the program to install, with the messages after it; that must be done on the 286, and the root file system is made on another machine |
+| `hangman`, `words` | `games/hangman`, `games/words` | read `/usr/dict/words`, which is on upstream's `/usr` tape and not in its source tree |
+| `boggle` | `games/boggle` | its dictionary, `bogdict`, is made of `/usr/dict/words` |
+
+`games/pdp` is in PDP-11 assembly and is left out.
 
 ## `new` and `local`
 
@@ -128,11 +127,11 @@ and is left out.
 
 ## Libraries
 
-Built: `libc`, `libm`, `libutil`, `libtermcap`, `libcurses`, `libdbm`
-and `libwrap`; `liberrlst`'s messages are made into `/etc/syserrlst` at
-build time, by `tools/mkerrlst.py` in the place of `mkerrlst`. Not
-built, besides those above: `libmp` (numbers of any size) and `libvmf`
-(virtual memory in a file).
+Built: `libc`, `libm`, `libutil`, `libtermcap`, `libcurses`, `libdbm`,
+`libwrap` and `libln`; `liberrlst`'s messages are made into
+`/etc/syserrlst` at build time, by `tools/mkerrlst.py` in the place of
+`mkerrlst`. Not built, besides those above: `libmp` (numbers of any
+size) and `libvmf` (virtual memory in a file).
 
 ## Not to be ported
 

@@ -189,7 +189,7 @@
 #define MAXCUMBER	10
 
 struct room {
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 	off_t name;
 #else
 	char *name;
@@ -203,7 +203,7 @@ struct room {
 #define access	link[5]
 #define down	link[6]
 #define flyhere	link[7]
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 	off_t	desc;
 #else
 	char *desc;
@@ -215,7 +215,7 @@ struct room nightfile[];
 struct room *location;
 
 	/* object characteristics */
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 unsigned objdes[NUMOFOBJECTS];
 #else
 char *objdes[NUMOFOBJECTS];

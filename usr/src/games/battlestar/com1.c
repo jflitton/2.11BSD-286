@@ -101,7 +101,7 @@ news()
 			puts("The three amulets glow and reenforce each other in power.\nYou are now a wizard.");
 	}
 	if (testbit(location[position].objects,ELF)){
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 		strprt(ELF);
 #else
 		printf("%s\n",objdes[ELF]);
@@ -109,7 +109,7 @@ news()
 		fight(ELF,rnd(30));
 	}
 	if (testbit(location[position].objects,DARK)){
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 		strprt(DARK);
 #else
 		printf("%s\n",objdes[DARK]);
@@ -117,7 +117,7 @@ news()
 		fight(DARK,100);
 	}
 	if (testbit(location[position].objects,WOODSMAN)){
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 		strprt(WOODSMAN);
 #else
 		printf("%s\n",objdes[WOODSMAN]);

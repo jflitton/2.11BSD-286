@@ -42,13 +42,13 @@ help()
 
 	/* check to see if calling for help is reasonable ... */
 	if (Ship.cond == DOCKED)
-		return (printf("Uhura: But Captain, we're already docked\n"));
+		{ printf("Uhura: But Captain, we're already docked\n"); return; }
 
 	/* or possible */
 	if (damaged(SSRADIO))
-		return (out(SSRADIO));
+		{ out(SSRADIO); return; }
 	if (Now.bases <= 0)
-		return (printf("Uhura: I'm not getting any response from starbase\n"));
+		{ printf("Uhura: I'm not getting any response from starbase\n"); return; }
 
 	/* tut tut, there goes the score */
 	Game.helps += 1;

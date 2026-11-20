@@ -41,10 +41,10 @@ double	d;
 	extern double		move();
 
 	if (Ship.cond == DOCKED)
-		return (printf("%s is docked\n", Ship.shipname));
+		{ printf("%s is docked\n", Ship.shipname); return; }
 	if (damaged(WARP))
 	{
-		return (out(WARP));
+		{ out(WARP); return; }
 	}
 	if (fl < 0)
 	{
@@ -107,7 +107,7 @@ double	d;
 	sleep(4);
 	if (ranf(100) >= 100 * dist)
 	{
-		return (printf("Equilibrium restored -- all systems normal\n"));
+		{ printf("Equilibrium restored -- all systems normal\n"); return; }
 	}
 
 	/* select a bizzare thing to happen to us */

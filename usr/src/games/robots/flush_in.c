@@ -9,6 +9,7 @@ static char sccsid[] = "@(#)flush_in.c     5.2 (2.11BSD) 2026/5/12";
 #endif
 
 # include	<curses.h>
+# include	<sys/file.h>
 
 /*
  * flush_in:
@@ -17,7 +18,9 @@ static char sccsid[] = "@(#)flush_in.c     5.2 (2.11BSD) 2026/5/12";
 flush_in()
 {
 # ifdef TIOCFLUSH
-	ioctl(fileno(stdin), TIOCFLUSH, NULL);
+	static int	flags = FREAD;	/* the input: 0 is the output too */
+
+	ioctl(fileno(stdin), TIOCFLUSH, &flags);
 # else TIOCFLUSH
 	crmode();
 # endif TIOCFLUSH

@@ -40,7 +40,7 @@ struct sqr_st {			/* structure for square			*/
 	char	*name;			/* place name			*/
 	shrt	owner;			/* owner number			*/
 	shrt	type;			/* place type			*/
-	char	*desc;			/* description struct		*/
+	struct prp_st	*desc;		/* description struct		*/
 	int	cost;			/* cost				*/
 };
 

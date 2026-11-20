@@ -3,6 +3,7 @@
 
 #include "hack.h"
 #include <stdio.h>
+#include <stdarg.h>
 xchar scrlx, scrhx, scrly, scrhy;	/* corners of new area on screen */
 
 extern char *hu_stat[];	/* in eat.c */
@@ -32,14 +33,17 @@ swallowed()
 /*VARARGS1*/
 boolean panicking;
 
-panic(str,a1,a2,a3,a4,a5,a6)
-char *str;
+panic(char *str, ...)
 {
+	va_list ap;
+
 	if(panicking++) exit(1);    /* avoid loops - this should never happen*/
 	home();
 	puts(" Suddenly, the dungeon collapses.");
 	fputs(" ERROR:  ", stdout);
-	printf(str,a1,a2,a3,a4,a5,a6);
+	va_start(ap, str);
+	vprintf(str, ap);
+	va_end(ap);
 #ifdef DEBUG
 #ifdef UNIX
 	if(!fork())

@@ -32,7 +32,7 @@ dock()
 	register struct event	*e;
 
 	if (Ship.cond == DOCKED)
-		return (printf("Chekov: But captain, we are already docked\n"));
+		{ printf("Chekov: But captain, we are already docked\n"); return; }
 	/* check for ok to dock, i.e., adjacent to a starbase */
 	ok = 0;
 	for (i = Ship.sectx - 1; i <= Ship.sectx + 1 && !ok; i++)
@@ -51,7 +51,7 @@ dock()
 		}
 	}
 	if (!ok)
-		return (printf("Chekov: But captain, we are not adjacent to a starbase.\n"));
+		{ printf("Chekov: But captain, we are not adjacent to a starbase.\n"); return; }
 
 	/* restore resources */
 	Ship.energy = Param.energy;

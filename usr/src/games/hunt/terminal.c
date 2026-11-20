@@ -65,7 +65,7 @@ register int	len;
 clrscr(pp)
 register PLAYER	*pp;
 {
-	sendcom(pp, CLEAR);
+	sendcom(pp, CLEAR, 0, 0);
 	pp->p_cury = 0;
 	pp->p_curx = 0;
 }
@@ -77,7 +77,7 @@ register PLAYER	*pp;
 ce(pp)
 PLAYER	*pp;
 {
-	sendcom(pp, CLRTOEOL);
+	sendcom(pp, CLRTOEOL, 0, 0);
 }
 
 /*
@@ -87,7 +87,7 @@ PLAYER	*pp;
 ref(pp)
 register PLAYER	*pp;
 {
-	sendcom(pp, REFRESH);
+	sendcom(pp, REFRESH, 0, 0);
 }
 
 /*

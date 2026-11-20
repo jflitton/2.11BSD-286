@@ -716,6 +716,25 @@ main ()
     while  ((c = getchar ()) != EOF)
     {  putchar (c);
 
+#ifdef i286
+      /*
+       * A line for the preprocessor, which is passed as it is: the
+       * 286's compiler is given its conventions by #pragma lines with
+       * instructions in strings, which are not hack's.
+       */
+      if  (c == '#'  &&  (lastc == '\n'  ||  lastc == '\0')  &&
+           !incomment  &&  !incharacter)
+      { while  ((c = getchar ()) != EOF)
+        { putchar (c);
+          if  (c == '\n'  &&  lastc != '\\')
+            break;
+          lastc = c;
+        }
+        lastc = c;
+        continue;
+      }
+#endif
+
       if  (incomment)
         incomment = !(lastc == '*'  &&  c == '/');
       else

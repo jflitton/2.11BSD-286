@@ -11,6 +11,7 @@ static char sccsid[] = "@(#)io.c	5.3 (2.11BSD) 2026/9/22";
 # include	<curses.h>
 # include	<ctype.h>
 # include	<signal.h>
+# include	<stdarg.h>
 # include	"deck.h"
 # include	"cribbage.h"
 # include	"cribcur.h"
@@ -31,6 +32,8 @@ static char sccsid[] = "@(#)io.c	5.3 (2.11BSD) 2026/9/22";
 # endif		/* killchar() */
 
 char		linebuf[ LINESIZE ];
+
+int		msg(char *, ...), addmsg(char *, ...);
 
 char		*rankname[ RANKS ]	= { "ACE", "TWO", "THREE", "FOUR",
 					    "FIVE", "SIX", "SEVEN", "EIGHT",
@@ -349,11 +352,13 @@ int		Mpos = 0;
 static int	Newpos = 0;
 
 /* VARARGS1 */
-msg(fmt, args)
-char	*fmt;
-int	args;
+msg(char *fmt, ...)
 {
-    doadd(fmt, &args);
+    va_list	ap;
+
+    va_start(ap, fmt);
+    doadd(fmt, ap);
+    va_end(ap);
     endmsg();
 }
 
@@ -362,11 +367,13 @@ int	args;
  *	Add things to the current message
  */
 /* VARARGS1 */
-addmsg(fmt, args)
-char	*fmt;
-int	args;
+addmsg(char *fmt, ...)
 {
-    doadd(fmt, &args);
+    va_list	ap;
+
+    va_start(ap, fmt);
+    doadd(fmt, ap);
+    va_end(ap);
 }
 
 /*
@@ -428,7 +435,7 @@ endmsg()
  */
 doadd(fmt, args)
 char	*fmt;
-int	*args;
+va_list	args;
 {
     static FILE	junk;
 
@@ -438,7 +445,7 @@ int	*args;
     junk._flags = __SWR + __SSTR;
     junk._bf._base = junk._p = (unsigned char *)&Msgbuf[Newpos];
     junk._bf._size = junk._w = 32767;
-    __svfprintf(&junk, fmt, (char *)args);
+    __svfprintf(&junk, fmt, args);
     putc('\0', &junk);
     Newpos = strlen(Msgbuf);
 }

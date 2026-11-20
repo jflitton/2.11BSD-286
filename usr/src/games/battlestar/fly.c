@@ -26,13 +26,10 @@ sig_t oldsig;
 void
 succumb()
 {
-	switch (oldsig) {
-	case SIG_DFL:
+	if (oldsig == SIG_DFL) {
 		endfly();
 		exit(1);
-	case SIG_IGN:
-		break;
-	default:
+	} else if (oldsig != SIG_IGN) {
 		endfly();
 		(*oldsig)(0);
 	}

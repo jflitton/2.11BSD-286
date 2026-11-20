@@ -15,7 +15,7 @@ static char sccsid[] = "@(#)globals.c	1.3 4/24/85";
 int WEIGHT = MAXWEIGHT;
 int CUMBER = MAXCUMBER;
 
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 unsigned objdes[NUMOFOBJECTS] = {
 #else
 char *objdes[NUMOFOBJECTS] = {

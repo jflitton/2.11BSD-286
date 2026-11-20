@@ -10,7 +10,7 @@ static char sccsid[] = "@(#)room.c	1.5 (2.11BSD) 2026/7/11";
 
 #include "externs.h"
 
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 #include <sys/file.h>
 #include <sys/types.h>
 

@@ -45,13 +45,13 @@ torped()
 
 	if (Ship.cloaked)
 	{
-		return (printf("Federation regulations do not permit attack while cloaked.\n"));
+		{ printf("Federation regulations do not permit attack while cloaked.\n"); return; }
 	}
 	if (check_out(TORPED))
 		return;
 	if (Ship.torped <= 0)
 	{
-		return (printf("All photon torpedos expended\n"));
+		{ printf("All photon torpedos expended\n"); return; }
 	}
 
 	/* get the course */
@@ -86,7 +86,7 @@ torped()
 		if (burst <= 0)
 			return;
 		if (burst > 15)
-			return (printf("Maximum burst angle is 15 degrees\n"));
+			{ printf("Maximum burst angle is 15 degrees\n"); return; }
 	}
 	sectsize = NSECTS;
 	n = -1;

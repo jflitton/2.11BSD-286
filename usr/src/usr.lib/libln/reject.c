@@ -2,7 +2,7 @@
 
 # include <stdio.h>
 
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 extern FILE *yyout, *yyin;
 extern int yyprevious , *yyfnd;
 extern char yyextra[];

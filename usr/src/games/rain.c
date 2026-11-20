@@ -144,7 +144,7 @@ char c;
     putchar(c);
 }
 float ranf() {
-#if !defined(pdp11)
+#if !defined(pdp11) && !defined(i286)
     return((float)rand()/2147483647.);
 #else
     return((float)rand()/32767.);

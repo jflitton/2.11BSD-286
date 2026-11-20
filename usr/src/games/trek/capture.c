@@ -38,7 +38,7 @@ capture()
 		return;
 	}
 	if (damaged(SSRADIO))
-		return (out(SSRADIO));
+		{ out(SSRADIO); return; }
 	/* find out if there are any at all */
 	if (Etc.nkling <= 0)
 	{

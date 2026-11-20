@@ -77,11 +77,11 @@ phaser()
 	struct cvntab		*ptr;
 
 	if (Ship.cond == DOCKED)
-		return(printf("Phasers cannot fire through starbase shields\n"));
+		{ printf("Phasers cannot fire through starbase shields\n"); return; }
 	if (damaged(PHASER))
-		return (out(PHASER));
+		{ out(PHASER); return; }
 	if (Ship.shldup)
-		return (printf("Sulu: Captain, we cannot fire through shields.\n"));
+		{ printf("Sulu: Captain, we cannot fire through shields.\n"); return; }
 	if (Ship.cloaked)
 	{
 		printf("Sulu: Captain, surely you must realize that we cannot fire\n");
@@ -166,7 +166,7 @@ phaser()
 	{
 		/* automatic distribution of power */
 		if (Etc.nkling <= 0)
-			return (printf("Sulu: But there are no Klingons in this quadrant\n"));
+			{ printf("Sulu: But there are no Klingons in this quadrant\n"); return; }
 		printf("Phasers locked on target.  ");
 		while (flag)
 		{

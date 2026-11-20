@@ -7,7 +7,7 @@ This is 2.11BSD, at its current patch level, ported to the 286 in
 protected mode. It boots from a hard disk to multi-user. Users can log
 In via the local consoles (4 total), at a serial terminal, or over the
 network with `telnet` or `rlogin`.  Shells include `sh`, `csh`, and `tcsh`.
-Most programs have been ported (228 to date), among them `vi`, mail and
+Most programs have been ported (265 to date), among them `vi`, mail and
 the manual. It runs in 86Box and on real machines.
 
 ## Lineage

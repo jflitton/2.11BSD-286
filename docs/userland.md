@@ -65,7 +65,8 @@ The root file system needs the kernel and `/boot` made first
 `tools/cc286`, assembles each `.s` with NASM, and links behind `crt0.o`
 with `libc.lib` last, converting the result to the system's format with
 `tools/ne2aout.py`. It takes `-c`, `-o`, `-D`, `-I`, `-U`, `-L`, `-l`,
-`-s` and `-stack N`, and ignores the PDP-11's `-i` and `-n`.
+`-s` and `-stack N`, and `-E`, which writes what the preprocessor makes
+of each file, and ignores the PDP-11's `-i` and `-n`.
 
 `-mm` makes a medium-model program, and `-ms`, the default, a small one
 ([memory model](memory-model.md)). The medium model's code is far, in as
@@ -81,16 +82,16 @@ makes them N bytes at most.
 The programs are listed in `usr/src/i286/Makefile` with their sources,
 and with `NAME_MODEL = m` for one that is medium-model; each is compiled
 and linked in one run of `tools/cc`, and what the compiler says goes to
-`obj/bin/log`. `libutil`, `libtermcap`, `libm`, `libcurses` and `libwrap`
-are built for each model a program wants, in `obj/lib/s` or
-`obj/lib/m`. Upstream's own
-Makefiles are not used: they install as they go, with the PDP-11's
-tools. The build also needs a C compiler for the machine it runs on,
-`cc` unless `HOSTCC` names another, for the tree's `yacc` and `lex`
-([grammars](#grammars-yacc-and-lex)).
+`obj/bin/log`. `libutil`, `libtermcap`, `libm`, `libcurses`, `libwrap`,
+`libdbm` and `libln` are built for each model a program wants, in
+`obj/lib/s` or `obj/lib/m`. Upstream's own Makefiles are not used: they
+install as they go, with the PDP-11's tools. The build also needs a C
+compiler for the machine it runs on, `cc` unless `HOSTCC` names another,
+for the tree's `yacc` and `lex` ([grammars](#grammars-yacc-and-lex)).
 
-Four programs are medium-model so far: `csh`, `ex` and `tcsh`, here,
-and `sendmail` ([mail](#mail)). `csh` was linked with two
+Eight programs are medium-model so far: `csh`, `ex` and `tcsh`, here,
+`sendmail` ([mail](#mail)), and the games `hack`, `phantasia`, `rogue`
+and `warp` ([games](#games)). `csh` was linked with two
 overlays on the PDP-11; here its 67K of code is in two segments, and its
 data segment has 11K of data and 8K of stack, leaving about 45K for its
 heap. `ex`, which is also `vi`, had two overlays as well. Its 77K of
@@ -674,8 +675,8 @@ The system has `yacc` and `lex` themselves too, in `/usr/bin`, with
 and scanner, which must be byte for byte what the build's made: so the
 programs on the 286 and the ones compiled for the build's machine, from
 the same source, agree. There is no C compiler on the system to give
-their output to, so the libraries that go with them, `liby` and `libln`,
-are not built.
+their output to, so `liby`, the library that goes with `yacc`, is not
+built; `lex`'s, `libln`, is, for `atc`'s scanner ([games](#games)).
 
 `awk` uses floating point throughout, and the mathematical library for
 `sqrt`, `exp` and `log`. `libm` is `usr.lib/libom`, the older of
@@ -1160,10 +1161,13 @@ and the introductions; of 2, 3, 5 and 7, the kernel's calls, the
 libraries, the files and the rest, what upstream's Makefile of each
 formats, with the pages of those kinds that `cron` and `tcpd` keep
 with them; of 4, those not of the PDP-11's devices: `tty`, `pty`,
-`null`, and the network's. Section 6 is the games, and 3f Fortran's
-library, which have nothing on the system to go with them. That is 552
-pages, with the 307 other names upstream's Makefiles give them by `ln`,
-`egrep` for `grep` and `fprintf` for `printf`, and 2.1 MB. `whatis` is
+`null`, and the network's; of 6, those of the games on it
+([games](#games)). 3f, Fortran's library, has nothing on the system to
+go with it. That is 579 pages, with the 309 other names upstream's
+Makefiles give them by `ln`, `egrep` for `grep` and `fprintf` for
+`printf`, and 2.3 MB. A page its Makefile installs under another name,
+as `phantasia`'s `phant.nr` is `phantasia.0`, has that name after its
+source in `man.list`. `whatis` is
 made as `usr/src/man`'s Makefile makes it: its `makewhatis.sed` takes
 the name and the line under NAME of each page, and `sort -u` sorts
 them. The system's `makewhatis`, upstream's script, which does that with
@@ -1361,6 +1365,212 @@ has open, who has `/etc/motd` open, `syslogd`'s socket in the UNIX
 domain and `inetd`'s on the Internet. Afterwards `tools/fsck.py` must
 find nothing wrong with the file systems in `a` and `e`.
 
+## Games
+
+Then the games of `usr/src/games`: 34 of upstream's 38, and 37 programs
+with those that go with them. `adventure`, `hangman`, `boggle` and
+`words` are not built yet ([what is not ported](unported.md#games)), and
+`games/pdp` is the PDP-11's assembly.
+
+| Where | |
+|---|---|
+| `/usr/games` | `arithmetic`, `atc`, `backgammon`, `banner`, `battlestar`, `bcd`, `btlgammon`, `canfield`, `cfscores`, `cribbage`, `factor`, `fish`, `fortune`, `hack`, `hunt`, `mille`, `monop`, `morse`, `number`, `phantasia`, `ppt`, `primes`, `quiz`, `rain`, `robots`, `rogue`, `sail`, `snake`, `snscore`, `teachgammon`, `trek`, `warp`, `worm`, `worms`, `wump`, and the script `wargames` |
+| `/usr/games/lib` | `hunt.driver`, which `hunt` starts; `busy`, which `snake` asks how busy the system is; and the games' data, scores and logs |
+| `/usr/man/cat6` | their pages: those of `usr/src/man/man6` and of `atc`, `battlestar`, `hack`, `phantasia` and `sail`, which keep theirs with them |
+
+Each is installed as its Makefile installs it. `fortune`, `hack`,
+`phantasia`, `robots` and `rogue` run as `daemon`, mode 4711, and `sail`
+and `snake` as `daemon` with mode 4755; `warp` runs as `bin`; `mille`
+and `rogue` are the group `staff`'s. The scores and logs of those that
+run as another user are that user's, and all are made as their Makefiles
+make them: empty where the Makefile copies `/dev/null`, as `cfscores`,
+mode 777, and `battlestar.log`, 666, are. `/usr/games/lib` is the group
+`staff`'s, as on upstream's tape, and so is what is put in it, as a new
+file takes its directory's group. `atc`'s Makefile is 4.3BSD's, and
+2.11BSD's games Makefile leaves it out: it installs `atc` as
+`/usr/games/hide/atc`, mode 4700, for `dm`, the program that says when
+games may be played, and makes `/usr/games/atc` a link to `dm`. There is
+no `dm` in 2.11BSD; here `atc` is `/usr/games/atc` itself, set-user-id
+`games` with mode 4711, and its games and scores are in
+`/usr/games/lib/atc`, mode 700, as the Makefile has them. `atc`'s
+scanner wants `yywrap` from lex's library, `libln`, which the Makefile
+builds now.
+
+Four are medium-model programs, as the PDP-11 overlaid them: `hack`,
+with 128K of code in three segments and 44K of data; `rogue`, 71K and
+25K; `phantasia`, 72K and 23K; and `warp`, 74K and 28K. The rest are
+small; `sail`, with 51K of code, is the largest.
+
+What the Makefiles make as they build is made here on the machine the
+system is built on. Programs of the games' own that write text or C are
+built for that machine, as `yacc` and `lex` are; what is not text is
+written by a tool of this port's own, laid out as the 286 has it:
+
+- `fortune`'s `fortunes.dat` is `scene` and `obscene` made into a table
+  by `strfile -r`, which `tools/strfile.py` stands in for: the number of
+  fortunes and the offset of each, longs, then the text. The `-r` puts
+  each section's fortunes in a random order, which `fortune` keeps to,
+  taking the next each time it is run; `strfile` seeds its generator
+  with the time, and `tools/strfile.py` shuffles as it does with the C
+  library's `rand()` from its first number, so that each build makes
+  the same file. It is upstream's file but for that order.
+- `monop`'s cards, `cards.pck`, are packed by `tools/initdeck.py` as
+  `initdeck` packs them: the same bytes as upstream's file but for the
+  order of a long's words, and a pointer, which `monop` sets as it reads
+  the file and upstream's has as `initdeck`'s memory had it.
+- `phantasia`'s files are made by its `setfiles` as it is installed;
+  `tools/setfiles.py` makes them: its file of characters, with the one
+  `<null>`, and where the grail is, both structures with doubles, and
+  the empty files. `setfiles` never seeds `rand()`, so where it puts
+  them is the library's sequence from its start, which is the same here.
+  Its help, `phant.help`, is formatted with `tbl` and `nroff -Ttn300`;
+  there is no `tbl`, and the host's `nroff` formats it alone, as the
+  Makefile formats the manual page: its two tables come out as text run
+  together.
+- `battlestar` keeps the descriptions of its places and things in
+  `/usr/games/lib/battle_strings`, which its own `mkstr` makes of three
+  of its files as it takes the strings out of them, leaving each
+  string's offset in the file. Here it is the same, byte for byte, as
+  upstream's.
+- `warp`'s maps of the stars are made by its `sm` from pictures of them,
+  `cribbage`'s instructions by `nroff`, and `atc`'s grammar and scanner
+  by `yacc` and `lex`; the maps and the instructions are the same as
+  upstream's.
+- `hack`'s Makefile has each file run through the preprocessor and then
+  its `crypt`, which shortens words in its messages, "experienced" to
+  "xprncd", to save the PDP-11's room. The build does the same, with
+  `tools/cc -E` for the preprocessor. The system's headers give the
+  compiler its conventions in `#pragma` lines with instructions in
+  strings, and `crypt` took the "and" of `alloca`'s for a word; with
+  `-Di286` it leaves lines for the preprocessor alone. `hack.onames.h`,
+  which `makedefs` writes, is in the tree as it writes it.
+- `hack` and `monop` also run their C through `xstr`, which gathers the
+  strings into one array so that one copy of each is kept: not done
+  here, where their data fits without it. `backgammon`'s Makefile has
+  `ex` put the day it is built in `message.c`, which is compiled as the
+  tree has it, with the day of upstream's own build.
+
+What the compiler needed:
+
+- `arithmetic`'s `delete` was declared `void` and defined as an `int`;
+  `number`'s `cprint` and `atc`'s `yyerror` declare that they take a
+  string.
+- `battlestar` switched on a pointer to a function, a signal's handler,
+  which is an `if` now, and `trek` on a pointer to a function used as a
+  number, which is cast. 11 of `trek`'s commands returned what `printf` or
+  `out` returns in some places and nothing in others; they return
+  nothing.
+- `cribbage`'s `msg` and `addmsg`, and `hack`'s `panic`, walked their
+  arguments from the address of the first; they are variadic, with
+  `stdarg.h`.
+- `hunt` declares its signal handlers `void` before they are used and
+  casts a null pointer it passes as a string; `robots`, `atc` and
+  `monop` cast handlers that take a `char` or return an `int`.
+  `terminal.c` gives `hunt`'s `sendcom` the arguments it leaves off.
+- `monop` reached a square's description through a `char *` with the
+  members of the structure it is: the pointer is to that structure now.
+  `teachgammon` declared an array it never used without a size.
+- `libln`'s `reject.c` declared `lex`'s variables in its first function,
+  which PCC let the next one use, and declares them outside it for the
+  286 as for the PDP-11.
+
+What the machine needed, in an `#ifdef i286` where the PDP-11 has code
+of its own:
+
+- `battlestar` takes the PDP-11's branch, which reads its descriptions
+  from `battle_strings`: in its data they would not fit.
+- `rain`, `worms`, `wump` and the `hunt` driver take the PDP-11's
+  branch of their random numbers: the other divided `rand()` by 2^31, or
+  shifted a 16-bit `int` right by 16, which is 0.
+- `monop` saves a game by writing all of its data from address 0 to the
+  break, and restores one by reading it back over it. On the 286 the
+  stack lies between the BSS and the heap, and reading it back would
+  write over the stack it is running on: the data and BSS and the heap
+  are written each by itself, with where each begins, and read back by
+  the same `monop` only, as `sendmail` freezes its configuration
+  ([mail](#mail)).
+- `atc` kept 100 scores of 528 bytes each on the stack, 52K: they are
+  allocated, as many as it keeps, 18.
+- `canfield` declares `random()` a `long`. Undeclared, its result was
+  taken from the low word, and so half the time negative, and an index
+  into the deck.
+- `quiz` takes the time as a `long` and its low word for the step
+  between questions, where it read the second `int` of two, the PDP-11's
+  low word and the 286's high one.
+- `robots` flushed what had been typed with `TIOCFLUSH` and a null
+  pointer, through which the kernel reads which of the terminal's queues
+  to flush. Here it reads 0, which is both, and the screen `robots` had
+  just drawn was thrown away before it had all been sent: there was
+  half a field and no help beside it. It flushes the input, `FREAD`, as
+  its comment says and as `mille` does.
+
+Bugs, which the PDP-11 has too:
+
+- `arithmetic` took a NUL for the end of its input, as `getchar`
+  returned in the Sixth Edition, and so asked for ever once its input
+  had ended. It, `wump` and `battlestar` left with `exit()` and so with
+  whatever status was on the stack.
+- `canfield` and `cfscores` gave `lseek` a user's place in the file of
+  scores as an `unsigned`, where it takes a `long`, and printed the
+  scores, which are `long`s, with `%d`.
+- `backgammon` and `teachgammon` set the terminal's speed for the
+  termcap from `old.sg_ospeed`, where `old` is an `int` holding the
+  terminal's flags: PCC took the member's offset, and so the flags' high
+  byte. They take the speed from the terminal's modes.
+- `btlgammon` read up to five moves into an array of five and ended the
+  list with a sixth.
+- `monop`'s resignation to the bank looked at a square's type in the
+  element of the player's list of property, beyond its end, to decide
+  whether to take the houses off; it looks at the square. It asked
+  `stat` about a file into an array smaller than `struct stat`, and gave
+  `ctime` a time where it takes the time's address, and `wait` nothing
+  where it takes a pointer.
+- `hunt` gave `htonl` a user's number as an `int`. It looks for a game
+  by broadcasting and waiting a second for an answer, in `recvfrom`
+  with an alarm, and takes the call's being interrupted for no game;
+  but `signal` has an interrupted call taken up again, and with no game
+  running `hunt` waited for ever and never started one. The alarm
+  interrupts the call now (`siginterrupt`).
+- `battlestar` buffers its input with `setbuf`, and the library, 4.4BSD's
+  since patch 499, writes out what waits to be written before it reads
+  only for input that is unbuffered or buffered by the line: the prompt
+  did not appear until a line had been typed. `battlestar` writes it out
+  before it reads.
+- `hack`'s Makefile made its directory and put nothing in it; without
+  `perm`, its lock, `hack` will not start, and without `data`, `help`,
+  `hh` and `rumors` it can tell nothing. They are installed, with an
+  empty `record` and the directory `save`, as hack's `READ_ME` says.
+
+What upstream does that is left as it is:
+
+- `hack` says "xprncd".
+- `fortune` comes in its turn to the empty string after the last fortune
+  of `scene`, and of `obscene`, and prints nothing.
+- `rogue` locks its scores by making `/usr/games/lib/rogue.lock`, which,
+  running as `daemon`, it cannot: the directory is root's, as on
+  upstream's tape. It tries five times, says "cannot lock score file"
+  each time and waits for a space after the first, and goes on without
+  the lock.
+
+`tests/programs` plays those that can be played from a file, 19
+checks: `banner`, `bcd`, `ppt` and `morse` must write a message as
+their pictures and sounds, `number` name a number, `factor` and
+`primes` give factors and primes, and `arithmetic` refuse a range too
+large; `fortune` must give the first two fortunes, which are the build's
+order's; `quiz` must list its subjects from its index, `wump` take a
+"y" for its instructions, and `wargames` answer; `cfscores`, `snscore`,
+`robots`, `hack` and `sail` must read their empty scores and logs, and
+`busy` find the system idle; `atc` must list its games and the scores
+it comes with; and `phantasia` must list its monsters from their file
+and its characters from the one `tools/setfiles.py` made. At the
+terminal, `battlestar` must describe where it starts, from
+`battle_strings`, and leave when told to quit; `hack` must ask whether
+the player is experienced, and leave at the end of its input; `rogue`
+must show its scores, after it has failed to lock them; and `robots`
+must draw its field with its help beside it, and leave when it is
+interrupted. `tests/network` has `hunt` look for a game on the
+Ethernet, and find none.
+
 ## The root file system
 
 `usr/src/i286/root.proto` lists it: the kernel and `/boot`, `/etc/init`,
@@ -1455,7 +1665,8 @@ network's others [after them](#the-networks-programs), and mail's
 [after those](#nroff-and-the-manual): `tools/mkman.py` writes a list of
 the manual's pages and their links, which `root.proto` takes in with a
 line `i ../../../obj/man/man.proto`. The programs for disks and file
-systems are [after the manual](#disks-and-file-systems).
+systems are [after the manual](#disks-and-file-systems), and the games
+[after those](#games).
 
 The programs are in it without their symbol tables, as upstream's
 `install -s` leaves them. `obj/bin` has each as it was linked, with its
@@ -1473,10 +1684,14 @@ kernel](#programs-that-read-the-kernel)). The system's own `strip` makes
 of a file what `tools/strip.py` does, which `tests/programs` checks on
 the kernel.
 
-The file system is 12000 blocks of 1K, of which the system takes 7820.
-The 228 programs are 3.8 MB of that, and 4.4 MB with their symbols, and
-the manual's pages are 2.1 MB in about 2500 blocks. It was 8000 blocks until
-the manual came. A machine's own disk is made with as many as it has
+The file system is 15000 blocks of 1K, of which the system takes 11154.
+The 265 programs are 5.2 MB of that, and 5.9 MB with their symbols; the
+manual's pages are 2.3 MB in about 2700 blocks; and the games and their
+files take about 3100 blocks, 1600 of them `fortune`'s. It was 8000
+blocks until the manual came, and 12000 until the games did. The
+tests' disks are of 20 MB, and the one of `tests/system`, which has
+2 MB of swap and three other file systems on it as well, has room for a
+root of 16400 blocks. A machine's own disk is made with as many as it has
 room for (`make root ROOTSIZE=...`, or `tools/mkfs.py -s`).
 
 ## Following a program
@@ -1611,7 +1826,7 @@ copied files.
 `tests/programs` boots the same system from a disk with the root, a
 swap area and a small file system of checks, logs in as root on the
 first serial port, mounts that file system and runs its `check.sh`. For
-each of the 97 checks in `tests/programs/checks` it runs the check's
+each of the 116 checks in `tests/programs/checks` it runs the check's
 lines with the shell in an empty directory and compares what they wrote
 with what the check says they must, and says `ok` or shows what was
 written. A check is of one program, by its name, or of one use of it:
@@ -1619,21 +1834,23 @@ written. A check is of one program, by its name, or of one use of it:
 it holds in memory, so that it merges files; `diff` has four, among
 them one of directories and one against an empty file; `nroff` formats
 three of the manual's pages and must make of each what the build did
-([nroff and the manual](#nroff-and-the-manual)); and `disklabel` and
+([nroff and the manual](#nroff-and-the-manual)); `disklabel` and
 the programs that read a file system directly work on a second disk
-([disks and file systems](#disks-and-file-systems)). The test fails
-unless all 96 say `ok`. Then, at the terminal, it runs `tty` and `mesg`;
+([disks and file systems](#disks-and-file-systems)); and the games that
+can be played from a file are played ([games](#games)). The test fails
+unless all 116 say `ok`. Then, at the terminal, it runs `tty` and `mesg`;
 pages through a file and through a pipe with `more`, and through `ls`'s
 page with `man`; records a shell
 with `script`, which it leaves with ^D, and finds the command it typed
 in the file; locks the terminal with `lock`, gives it a wrong key and
 then the right one; has `tset` name the terminal and `clear` write the
-sequence that clears a VT100; and stops the system with `shutdown -h
-now` and a message, which must be shown before the system halts.
-Afterwards `tools/fsck.py` must find nothing wrong with the root.
+sequence that clears a VT100; starts four games and leaves each
+([games](#games)); and stops the system with `shutdown -h now` and a
+message, which must be shown before the system halts. Afterwards
+`tools/fsck.py` must find nothing wrong with the root.
 
 `tests/network` boots it with the Ethernet card, logs in as root on
-the serial port, adds the users `guest` and `ftp`, and runs the 33
+the serial port, adds the users `guest` and `ftp`, and runs the 34
 checks of `tests/network/checks` in the same way. The first names the
 machine, brings its interface up at the address the emulator's network
 expects, and has `inetd` read its table again with `rexecd`, `tftpd`
@@ -1653,7 +1870,9 @@ TCP, to `inetd`'s own `tcpmux` and `echo`, and scanning two ports;
 to the gateway; `rwhod` with `rwho` and `ruptime`; `timed`, which makes
 itself the network's master, with `timedc`; `ntpd` with `ntpdc` and
 `ntp`, and `ntest`, in which `ntp` checks its arithmetic; `routed`
-with its trace; and the 12 of mail ([mail](#mail)). Then root uses
+with its trace; `hunt -q`, which must find no game, having broadcast
+for one on the Ethernet and waited ([games](#games)); and the 12 of
+mail ([mail](#mail)). Then root uses
 `rlogin` to the user, with `.rhosts` and then with a password; from
 there `rsh` and a second `rlogin`, which `hosts.equiv` lets through;
 and `~.` to leave. The host logs the user in with `telnet`, which
@@ -1676,9 +1895,10 @@ Not done, or not tested:
 
 - The large model has no library, and the three helpers for `__huge`
   pointers are not written.
-- `csh`, `ex`, `tcsh` and `sendmail` are the medium-model programs so
-  far. The other 11 that the PDP-11 overlays (`named`, `uucp`, `jove`,
-  `kermit` and some games) are the ones meant for it. `csh`'s file name
+- `csh`, `ex`, `tcsh`, `sendmail`, `hack`, `phantasia`, `rogue` and
+  `warp` are the medium-model programs so far. The others that the
+  PDP-11 overlays (`named`, `uucp`, `jove`, `kermit` and the rest
+  [not ported](unported.md)) are the ones meant for it. `csh`'s file name
   completion, and `tcsh` as a login shell, have not been tried.
 - `ex`'s saving of what it was editing when its terminal hangs up has
   not been tried, only its `preserve` command, which runs the same
@@ -1705,12 +1925,15 @@ Not done, or not tested:
   `more` is not asked to search or to start `vi`, and `tar` reads and
   writes files, not a tape or a diskette.
 - `yacc` and `lex` are on a system with no C compiler to give their
-  output to, and `liby` and `libln` are not built. `lex -r`, for
-  Ratfor, `awk`'s saving and restoring of itself (`-S` and `-R`), and
-  `make` with archives, with its built-in rules or with anything but
-  the simplest description file, have not been tried. Of the tree's
-  other grammars, `eqn`, `rdist`, `struct` and `named`'s tools wait
-  for their programs.
+  output to, and `liby` is not built. `lex -r`, for Ratfor, `awk`'s
+  saving and restoring of itself (`-S` and `-R`), and `make` with
+  archives, with its built-in rules or with anything but the simplest
+  description file, have not been tried. Of the tree's other grammars,
+  `eqn`, `rdist`, `struct` and `named`'s tools wait for their programs.
+- Of the games, those played from a file are given a move or two, and
+  four are started at a terminal and left; none is played through.
+  `hunt` has not had a player, `sail` two ships, or `monop` a game
+  saved and restored.
 - Nothing trims the logs or the accounting file. Upstream's `crontab`
   has `/usr/adm/daily`, `weekly` and `monthly` do that, and the tree has
   no such scripts. `acctd` stops when the file system is nearly full;

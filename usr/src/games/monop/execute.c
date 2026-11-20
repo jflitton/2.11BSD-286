@@ -16,6 +16,18 @@ static char	buf[257],
 
 static bool	new_play;	/* set if move on to new player		*/
 
+#ifdef i286
+/*
+ * On the 286 the stack lies between the BSS and the heap, which begins
+ * where the break began (_minbrk), higher the more room the arguments
+ * and environment take.  A game is saved as where the BSS ends, the heap
+ * begins and the break is; the data and the BSS; and the heap.  It is
+ * restored only by this monop, whose heap begins no higher.
+ */
+extern char	end, *_minbrk;
+static unsgn	bssend = (unsgn) &end;
+#endif
+
 /*
  *	This routine executes the given command by index number
  */
@@ -122,8 +134,12 @@ save() {
 	reg char	*sp;
 	reg int		outf, num;
 	TIME		tme, *tp;
-	int		*dat_end, junk[18];
+	int		*dat_end;
+	STAT		junk;
 	unsgn		start, end;
+#ifdef i286
+	unsgn		hdr[3];
+#endif
 
 	tp = &tme;
 	printf("Which file do you wish to save it in? ");
@@ -138,7 +154,7 @@ save() {
 	 * check for existing files, and confirm overwrite if needed
 	 */
 
-	if (stat(buf, junk) > -1
+	if (stat(buf, &junk) > -1
 	    && getyn("File exists.  Do you wish to overwrite? ", yn_only) > 0)
 		return;
 
@@ -147,8 +163,8 @@ save() {
 		return;
 	}
 	printf("\"%s\" ", buf);
-	time(tp);			/* get current time		*/
-	strcpy(buf, ctime(tp));
+	time((time_t *) tp);		/* get current time		*/
+	strcpy(buf, ctime((time_t *) tp));
 	for (sp = buf; *sp != '\n'; sp++)
 		continue;
 	*sp = '\0';
@@ -157,12 +173,21 @@ save() {
 # else
 	start = 0;
 # endif
+#ifdef i286
+	hdr[0] = bssend;
+	hdr[1] = (unsgn) _minbrk;
+	hdr[2] = (unsgn) sbrk(0);
+	write(outf, (char *) hdr, sizeof hdr);
+	write(outf, (char *) start, hdr[0]);
+	write(outf, (char *) hdr[1], hdr[2] - hdr[1]);
+#else
 	end = sbrk(0);
 	while (start < end) {		/* write out entire data space */
 		num = start + 16 * 1024 > end ? end - start : 16 * 1024;
 		write(outf, start, num);
 		start += num;
 	}
+#endif
 	close(outf);
 	printf("[%s]\n", buf);
 }
@@ -193,6 +218,9 @@ reg char	*file; {
 	char		buf[80];
 	unsgn		start, end;
 	STAT		sbuf;
+#ifdef i286
+	unsgn		hdr[3];
+#endif
 
 	if ((inf=open(file, 0)) < 0) {
 		perror(file);
@@ -208,14 +236,27 @@ reg char	*file; {
 # else
 	start = 0;
 # endif
+#ifdef i286
+	if (read(inf, (char *) hdr, sizeof hdr) != sizeof hdr ||
+	    hdr[0] != bssend || hdr[1] < (unsgn) _minbrk ||
+	    hdr[2] < hdr[1] || sbuf.st_size != sizeof hdr + hdr[0] +
+	    (long) (hdr[2] - hdr[1]) || brk((char *) hdr[2]) == (char *) -1) {
+		printf("not a game this monop can restore\n");
+		close(inf);
+		return FALSE;
+	}
+	read(inf, (char *) start, hdr[0]);
+	read(inf, (char *) hdr[1], hdr[2] - hdr[1]);
+#else
 	brk(end = start + sbuf.st_size);
 	while (start < end) {		/* write out entire data space */
 		num = start + 16 * 1024 > end ? end - start : 16 * 1024;
 		read(inf, start, num);
 		start += num;
 	}
+#endif
 	close(inf);
-	strcpy(buf, ctime(sbuf.st_mtime));
+	strcpy(buf, ctime(&sbuf.st_mtime));
 	for (sp = buf; *sp != '\n'; sp++)
 		continue;
 	*sp = '\0';
