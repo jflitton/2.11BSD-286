@@ -1594,43 +1594,6 @@ register union tree *r;
 }
 
 /*
- * Multiply or divide DX:AX by r, a long operand, or by CX:BX, with the
- * library's routines (lib/libc/i286/crt), which take them there.
- */
-lmulop(op, r)
-register union tree *r;
-{
-	register char *s;
-
-	if (r) {
-		/* (the high half first: r may be at [bx]) */
-		lhalf(r, CX, HI);
-		lhalf(r, BX, 0);
-	}
-	switch (op) {
-
-	case LTIMES:
-		s = "__I4M";
-		break;
-
-	case ULTIMES:
-		s = "__U4M";
-		break;
-
-	case LDIV:
-	case LMOD:
-		s = "__I4D";
-		break;
-
-	default:
-		s = "__U4D";
-	}
-	callh(s);
-	if (op==LMOD || op==ULMOD)
-		printf("\tmov\tax,bx\n\tmov\tdx,cx\n");
-}
-
-/*
  * Call one of the library's routines for what the 286 has no
  * instruction for.  They are far in the medium model.
  */
@@ -1639,88 +1602,6 @@ char *s;
 {
 	xref(s);
 	printf(mflag? "\tcall\tfar %s\n": "\tcall\t%s\n", s);
-}
-
-/*
- * Shift a long one place.
- */
-lshift1(op)
-{
-	if (op==LSHIFT)
-		printf("\tshl\tax,1\n\trcl\tdx,1\n");
-	else
-		printf("\t%s\tdx,1\n\trcr\tax,1\n", opname(op));
-}
-
-/*
- * Shift the long l by r, leaving it in DX:AX.  If lv is given it is l
- * already made an operand, and is loaded from there once the count is
- * in hand.
- */
-lshift(op, l, r, lv)
-register union tree *l, *r;
-union tree *lv;
-{
-	register n;
-	int lbl, lbl2;
-
-	if (r->t.op==ITOL)
-		r = r->t.tr1;
-	else if (LNG(r->t.type))
-		r = optim(tnode(LTOI, INT, r, TNULL));
-	if (r->t.op==CON) {
-		if (lv)
-			load(lv, AX);
-		else
-			rcexpr(l, FORREG);
-		n = r->c.value & 037;
-		if (n >= 16) {
-			if (op==LSHIFT)
-				printf("\tmov\tdx,ax\n\txor\tax,ax\n");
-			else if (op==ULSH)
-				printf("\tmov\tax,dx\n\txor\tdx,dx\n");
-			else
-				printf("\tmov\tax,dx\n\tcwd\n");
-			if (n -= 16)
-				shiftc(op, op==LSHIFT? DX: AX, n);
-			return;
-		}
-		if (n <= 3) {
-			while (n--)
-				lshift1(op);
-			return;
-		}
-		printf("\tmov\tcx,%d\n", n);
-		lbl2 = 0;
-	} else {
-		if (lv) {
-			if (adrble(r))
-				insrp("mov", CX, r, 0);
-			else {
-				if (lv->n.class==FOFFS)
-					printf("\tpush\tes\n");
-				printf("\tpush\tbx\n");
-				rcexpr(r, FORREG);
-				printf("\tmov\tcx,ax\n\tpop\tbx\n");
-				if (lv->n.class==FOFFS)
-					printf("\tpop\tes\n");
-			}
-			load(lv, AX);
-		} else if (adrble(r)) {
-			rcexpr(l, FORREG);
-			insrp("mov", CX, r, 0);
-		} else {
-			rcexpr(r, FORSP);
-			rcexpr(l, FORREG);
-			printf("\tpop\tcx\n");
-		}
-		printf("\tjcxz\tL%d\n", lbl2 = isn++);
-	}
-	label(lbl = isn++);
-	lshift1(op);
-	printf("\tloop\tL%d\n", lbl);
-	if (lbl2)
-		label(lbl2);
 }
 
 /*
@@ -1980,9 +1861,18 @@ union tree *dest;
 	register union tree *p;
 	register n;
 	int direct, far, lbl;
+	char *body;
 
 	if (dest)
 		tmp = 1;
+	p = tree->t.tr1;
+	if (p->t.op==NAME && p->n.class==EXTERN
+	 && (body = inlbody(p->x.name)) != NULL) {
+		if (tmp)
+			error("An in-line function returns no structure");
+		inlcall(tree, body);
+		return;
+	}
 	if (tmp)
 		printf("\tpush\tsi\n");
 	n = 0;
@@ -2264,99 +2154,6 @@ register union tree *p;
 	else
 		q->n.nloc = p->n.nloc;
 	return(q);
-}
-
-/*
- * Compile an initializing expression
- */
-doinit(type, tree)
-register type;
-register union tree *tree;
-{
-	LTYPE lval;
-
-	if (type==CHAR || type==UNCHAR) {
-		if (tree->t.type&XTYPE)
-			goto illinit;
-		if (tree->t.op!=CON)
-			goto illinit;
-		printf("\tdb\t%d\n", tree->c.value&0377);
-		return;
-	}
-	if (type&XTYPE)
-		type = INT;
-	switch (type) {
-	case INT:
-	case UNSIGN:
-		if (tree->t.op==FTOI) {
-			if (tree->t.tr1->t.op!=FCON && tree->t.tr1->t.op!=SFCON)
-				goto illinit;
-			tree = tree->t.tr1;
-			tree->c.value = tree->f.fvalue;
-			tree->t.op = CON;
-		} else if (tree->t.op==LTOI) {
-			if (tree->t.tr1->t.op!=LCON)
-				goto illinit;
-			tree = tree->t.tr1;
-			lval = tree->l.lvalue;
-			tree->t.op = CON;
-			tree->c.value = W(lval);
-		}
-		if (tree->t.op==CON || tree->t.op==AMPER && adrble(tree)) {
-			printf("\tdw\t");
-			pname(tree, 0);
-			putchar('\n');
-		} else
-			goto illinit;
-		return;
-
-	case DOUBLE:
-	case FLOAT:
-		if (tree->t.op!=FCON && tree->t.op!=SFCON)
-			goto illinit;
-		fdata(type, tree->f.fvalue);
-		return;
-
-	case UNLONG:
-	case LONG:
-		/*
-		 * A far pointer to a function, or in the large model to
-		 * a variable: its address and its segment, which is for
-		 * whatever loads the program to put there.
-		 */
-		if (tree->t.op==NTOF && lflag || tree->t.op==XTOF)
-			tree = tree->t.tr1;
-		if (tree->t.op==AMPER && adrble(tree)) {
-			printf("\tdw\t");
-			pname(tree, 0);
-			putchar(',');
-			pname(tree, HI);
-			putchar('\n');
-			return;
-		}
-		if (tree->t.op==FTOL) {
-			tree = tree->t.tr1;
-			if (tree->t.op==SFCON)
-				tree->t.op = FCON;
-			if (tree->t.op!= FCON)
-				goto illinit;
-			lval = tree->f.fvalue;
-		} else if (tree->t.op==ITOL) {
-			if (tree->t.tr1->t.op != CON)
-				goto illinit;
-			if (uns(tree->t.tr1))
-				lval = UNS(tree->t.tr1->c.value);
-			else
-				lval = tree->t.tr1->c.value;
-		} else if (tree->t.op==LCON)
-			lval = tree->l.lvalue;
-		else
-			goto illinit;
-		printf("\tdw\t%u,%u\n", UNS(lval), UNS(lval>>16));
-		return;
-	}
-illinit:
-	error("Illegal initialization");
 }
 
 /*

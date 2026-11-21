@@ -130,6 +130,38 @@ These are what the cross compiler has as `__far` on a variable,
 in the way of the compiler that is compiling them
 (`i286/machparam.h`).
 
+## In-line functions
+
+A function declared `__inline` is put where it is called, in place of
+the call. Its body is assembly and nothing else, an `asm()` to a line:
+
+```c
+__inline u_short
+htons(u_short x)
+{
+	asm("xchg al,ah");
+}
+```
+
+The first argument is in AX, or in DX:AX if it is a long, as an
+expression's value always is to the second pass; any others are
+pushed as for a call, the last first, and taken off after. The body
+leaves its value where a function does, and may change what a function
+may: AX, BX, CX, DX, ES and the flags. A line that begins with a name
+and a colon is a label and any other an instruction. `%%NAME` is a
+label of that one place's own, as in a macro of NASM's; a name that
+begins with `_` is a C name, of which the assembler is told as of any
+other the file uses. The first pass sends the body to the second
+(`INLDEF`), which keeps it with the file's external names; the
+function itself is not compiled and has no address, and a header may
+define it in every file that includes it. A body is 510 characters at
+most, with eight labels. What `c2` does to the code around it it does
+to the body too: it knows `jz` and the other names of the conditional
+jumps, and takes `[ss:_x]` and `[_x]` for what may be the same place.
+
+The kernel's spl routines and byte swaps are such (`i286/machparam.h`),
+where the cross compiler has the same as `#pragma aux`.
+
 `ld -mm` looks in the `m` directories for `-l`, and `ld -ml` in the
 `l` ones. The libraries on the system are `libc`, `libm`,
 `libtermcap`, `libcurses`, `libutil`, `libdbm`, `libln`, `liby` and
@@ -336,15 +368,15 @@ are the cross compiler's kernel's, in the same order:
 
 | | this kernel | the cross compiler's |
 |---|---|---|
-| code | 179,866 bytes in 3 segments | 165,870 in 3 |
+| code | 184,800 bytes in 3 segments | 165,870 in 3 |
 | data (DGROUP) | 63,604 | 63,544 |
 | the network's (NET_GROUP) | 58,806 | 58,802 |
 | the character blocks (CLIST) and the far variables | 46,352 and 27,704 | 32,768, 13,584 and 27,704 |
 
 The spl routines and the byte swaps of the network (`htons` and the
-rest) are calls to assembly where the cross compiler has them in line
-(`i286/machparam.h`), and `tools/netcheck.py`, which reads the cross
-compiler's objects, is not run on it. With `NATIVE_KERNEL=1`,
+rest) are in line by both compilers ([above](#in-line-functions)), and
+`tools/netcheck.py`, which reads the cross compiler's objects, is not
+run on it. With `NATIVE_KERNEL=1`,
 `tests/system` and `tests/network` boot the system with this kernel.
 
 What the kernel took of the compiler was far variables, the two kinds

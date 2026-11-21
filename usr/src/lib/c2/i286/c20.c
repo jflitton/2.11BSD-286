@@ -24,6 +24,22 @@ struct optab optab[] = {
 	"jae",	CBR | JHIS<<8,
 	"jns",	CBR | JPL<<8,
 	"js",	CBR | JMI<<8,
+	/*
+	 * Other names for the same, which an in-line function's body
+	 * may have (../../ccom/i286/c10.c); the first is what is written.
+	 */
+	"jz",	CBR | JEQ<<8,
+	"jnz",	CBR | JNE<<8,
+	"jng",	CBR | JLE<<8,
+	"jnl",	CBR | JGE<<8,
+	"jnge",	CBR | JLT<<8,
+	"jnle",	CBR | JGT<<8,
+	"jc",	CBR | JLO<<8,
+	"jnae",	CBR | JLO<<8,
+	"jnbe",	CBR | JHI<<8,
+	"jna",	CBR | JLOS<<8,
+	"jnc",	CBR | JHIS<<8,
+	"jnb",	CBR | JHIS<<8,
 	"ret",	EROU,
 	"retf",	EROU | 1<<8,
 	"dw",	JSW,

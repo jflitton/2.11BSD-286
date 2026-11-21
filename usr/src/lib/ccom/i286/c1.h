@@ -218,6 +218,7 @@ union	tree *fmem();
 char	*fname();
 char	*opname();
 char	*opname2();
+char	*inlbody();
 
 /*
 	operators
@@ -403,6 +404,8 @@ char	*opname2();
 #define	FARSEG	224	/* what follows is in the file's far segment */
 #define	SEGNAME	225	/* the based segment's name */
 #define	BASEDSEG 226	/* what follows is in the based segment */
+#define	INLDEF	227	/* an in-line function: its name and its body */
+#define	INLMAX	512	/* the most of a body, as ../c02.c has it */
 
 /*
  *	types

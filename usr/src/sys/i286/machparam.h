@@ -13,8 +13,8 @@
 
 /*
  * Macros for network/external number representation conversion.  The
- * kernel has them in line where it is compiled by the cross compiler;
- * the system's own compiler calls them (mch_cksum.s).
+ * kernel has them in line, by the way of whichever compiler compiles
+ * it; mch_cksum.s has them for assembly.
  */
 #include <sys/types.h>
 #ifdef KERNEL
@@ -27,6 +27,26 @@ u_long	ntohl(u_long), htonl(u_long);
 	parm [dx ax] value [dx ax] modify exact [ax dx];
 #pragma aux htonl = "xchg al,ah" "xchg dl,dh" "xchg ax,dx" \
 	parm [dx ax] value [dx ax] modify exact [ax dx];
+#else
+/*
+ * The system's own compiler puts a function declared __inline where it
+ * is called, its body being assembly: the argument is in AX, or DX:AX
+ * if it is a long, and so is the value (docs/toolchain.md).
+ */
+__inline u_short ntohs(u_short x) { asm("xchg al,ah"); }
+__inline u_short htons(u_short x) { asm("xchg al,ah"); }
+__inline u_long ntohl(u_long x)
+{
+	asm("xchg al,ah");
+	asm("xchg dl,dh");
+	asm("xchg ax,dx");
+}
+__inline u_long htonl(u_long x)
+{
+	asm("xchg al,ah");
+	asm("xchg dl,dh");
+	asm("xchg ax,dx");
+}
 #endif
 #else
 u_short	ntohs(), htons();
@@ -111,9 +131,9 @@ u_long	ntohl(), htonl();
 extern int	cpl;
 extern unsigned	ipending, spending;
 int	splpend(void);
-#ifdef __WATCOMC__
 int	_splraise(int);
 int	_splset(int);
+#ifdef __WATCOMC__
 #pragma aux _splraise = \
 	"mov ax,ss:cpl" \
 	"cmp ax,bx" \
@@ -129,6 +149,33 @@ int	_splset(int);
 	"call far ptr splpend" \
 	"done:" \
 	parm [ax] value [ax] modify exact [ax bx es];
+#else
+/*
+ * The same by the system's own compiler: the level is in AX as these
+ * begin, and what it was in AX as they end.
+ */
+__inline int
+_splraise(int ipl)
+{
+	asm("mov bx,ax");
+	asm("mov ax,[ss:_cpl]");
+	asm("cmp ax,bx");
+	asm("jae %%done");
+	asm("mov [ss:_cpl],bx");
+	asm("%%done:");
+}
+
+__inline int
+_splset(int ipl)
+{
+	asm("xchg ax,[ss:_cpl]");
+	asm("mov bx,[ss:_ipending]");
+	asm("or bx,[ss:_spending]");
+	asm("jz %%done");
+	asm("call far _splpend");
+	asm("%%done:");
+}
+#endif
 #define	splsoftclock()	_splraise(IPL_SOFTCLOCK)
 #define	splnet()	_splraise(IPL_NET)
 #define	splbio()	_splraise(IPL_BIO)
@@ -139,15 +186,6 @@ int	_splset(int);
 #define	splhigh()	_splraise(IPL_HIGH)
 #define	splx(s)		_splset(s)
 #define	spl0()		_splset(0)
-#else
-/*
- * The system's own compiler has no way to put them in line: they are
- * calls to mch_trap.s's.
- */
-int	splsoftclock(void), splnet(void), splbio(void), splimp(void);
-int	spltty(void), spl5(void), splclock(void), splhigh(void);
-int	splx(int), spl0(void);
-#endif
 #endif
 
 /*

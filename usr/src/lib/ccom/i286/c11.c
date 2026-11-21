@@ -4,7 +4,11 @@
  * What reads the first pass's intermediate code, and what makes
  * branches, switches and the entry and exit of a function.  The reader
  * and the logic of the branches are the PDP-11 compiler's (../c11.c);
- * the instructions are the 286's, written for NASM.
+ * the instructions are the 286's, written for NASM.  And what writes
+ * the data's initial values, and puts an in-line function's body where
+ * it is called, which are here and not in c10.c with the rest of the
+ * code generator: its assembly is about as much as the system's
+ * assembler has room for when it runs on the 286.
  */
 
 #include "c1.h"
@@ -90,11 +94,14 @@ arlength(t)
  * expression is among that expression's trees, and before those are
  * given up it is moved down to where they began, after which they
  * begin above it (xsettle).
+ *
+ * An in-line function's body is kept after its name (inldef).
  */
 struct	xsym {
 	struct	xsym *xnext;
 	unsigned xsize;		/* of common storage asked for */
 	char	xdefd;
+	char	xinline;	/* an in-line function: the body follows */
 	char	xname[1];
 };
 struct	xsym	*xsyms;
@@ -111,10 +118,168 @@ register char *s;
 	xp = (struct xsym *)getblk(sizeof(*xp) + strlen(s));
 	strcpy(xp->xname, s);
 	xp->xdefd = 0;
+	xp->xinline = 0;
 	xp->xsize = 0;
 	xp->xnext = xsyms;
 	xsyms = xp;
 	return(xp);
+}
+
+/*
+ * How much of the space an entry has.
+ */
+xlen(xp)
+register struct xsym *xp;
+{
+	register n;
+
+	n = strlen(xp->xname);
+	if (xp->xinline)
+		n += strlen(xp->xname + n + 1) + 1;
+	return(sizeof(*xp) + n);
+}
+
+/*
+ * An in-line function (../c02.c): its name and then its body, which
+ * comes to the end of its line of the first pass's output.
+ */
+inldef(s)
+char *s;
+{
+	char body[INLMAX];
+	register struct xsym *xp;
+	register char *p;
+	register c;
+
+	for (p = body; (c = getchar()) != 0 && c != EOF; )
+		if (p < &body[INLMAX-1])
+			*p++ = c;
+	*p = '\0';
+	xp = (struct xsym *)getblk(sizeof(*xp) + strlen(s) + 1 + strlen(body));
+	strcpy(xp->xname, s);
+	strcpy(xp->xname + strlen(s) + 1, body);
+	xp->xdefd = 0;
+	xp->xinline = 1;
+	xp->xsize = 0;
+	xp->xnext = xsyms;
+	xsyms = xp;
+}
+
+/*
+ * The body of the in-line function named s, or NULL if it is not one.
+ */
+char *
+inlbody(s)
+char *s;
+{
+	register struct xsym *xp;
+
+	xp = xlook(s);
+	if (!xp->xinline)
+		return(NULL);
+	return(xp->xname + strlen(xp->xname) + 1);
+}
+
+/*
+ * A call of an in-line function (__inline, ../c02.c) is its body, put
+ * where the call would be.  The first argument is in AX, or in DX:AX if
+ * it is a long, as an expression's value is; any others are pushed as
+ * for a call, the last first, and taken off after.  The body leaves the
+ * function's value where a function does, and may change what a call
+ * may: AX, BX, CX, DX, ES and the flags.
+ */
+inlcall(tree, body)
+union tree *tree;
+char *body;
+{
+	register union tree *p;
+	register n;
+
+	n = 0;
+	p = tree->t.tr2;
+	if (p->t.op) {
+		while (p->t.op==COMMA) {
+			n += comarg(p->t.tr2);
+			p = p->t.tr1;
+		}
+		if (p->t.op==STRASG || isfloat(p))
+			error("An in-line function's first argument is a word or a long");
+		else
+			rcexpr(p, FORREG);
+	}
+	inlout(body);
+	popstk(n);
+}
+
+/*
+ * The body, a line at a time.  One that begins with a name and a colon
+ * is a label, and any other an instruction, which a tab goes before.
+ * %%NAME is a label of this one place's own, as in a macro of NASM's.
+ * A name that begins with _ is a C name, and the assembler is told of
+ * it as of any the file uses (xrefs).
+ */
+#define	NINL	8		/* labels in one body */
+inlout(s)
+register char *s;
+{
+	char names[NINL][16], name[40];
+	int nums[NINL];
+	register char *p;
+	register i;
+	int nl, label;
+
+	nl = 0;
+	while (*s) {
+		for (p = s; *p=='%' || inlid(*p); p++)
+			;
+		if (p==s || *p!=':') {
+			while (*s==' ' || *s=='\t')
+				s++;
+			putchar('\t');
+		}
+		while (*s && *s!='\n') {
+			if (!inlid(*s) && (s[0]!='%' || s[1]!='%')) {
+				putchar(*s++);
+				continue;
+			}
+			/* a word */
+			label = *s=='%';
+			if (label)
+				s += 2;
+			for (p = name; inlid(*s); s++)
+				if (p < &name[sizeof name - 1])
+					*p++ = *s;
+			*p = '\0';
+			if (!label) {
+				if (name[0]=='_')
+					xref(name);
+				printf("%s", name);
+				continue;
+			}
+			for (i = 0; i<nl && strcmp(names[i], name); i++)
+				;
+			if (i==nl) {
+				if (nl==NINL || strlen(name) >= sizeof names[0]) {
+					error("An in-line function's labels are %d of up to %d characters",
+					    NINL, sizeof names[0] - 1);
+					return;
+				}
+				strcpy(names[nl], name);
+				nums[nl++] = isn++;
+			}
+			printf("L%d", nums[i]);
+		}
+		putchar('\n');
+		if (*s)
+			s++;
+	}
+}
+
+inlid(c)
+register c;
+{
+	return(c>='a' && c<='z' || c>='A' && c<='Z' || c>='0' && c<='9'
+	    || c=='_' || c=='.' || c=='$' || c=='@' || c=='?');
 }
 
 /*
@@ -138,7 +303,7 @@ xsettle()
 	old = xp;
 	for (xp = next; xp; xp = next) {
 		next = xp->xnext;
-		n = sizeof(*xp) + strlen(xp->xname);
+		n = xlen(xp);
 		if (n&01)
 			n++;
 		to = funcbase;
@@ -191,7 +356,7 @@ xrefs()
 	register struct xsym *xp;
 
 	for (xp = xsyms; xp; xp = xp->xnext) {
-		if (xp->xdefd)
+		if (xp->xdefd || xp->xinline)
 			continue;
 		/*
 		 * Where the data is not the program's, what has no value
@@ -230,6 +395,99 @@ sect(s)
 		return;
 	}
 	printf("\tsegment\t%s\n", s==PROG? textseg: s==DATA? datseg: bssseg);
+}
+
+/*
+ * Compile an initializing expression
+ */
+doinit(type, tree)
+register type;
+register union tree *tree;
+{
+	LTYPE lval;
+
+	if (type==CHAR || type==UNCHAR) {
+		if (tree->t.type&XTYPE)
+			goto illinit;
+		if (tree->t.op!=CON)
+			goto illinit;
+		printf("\tdb\t%d\n", tree->c.value&0377);
+		return;
+	}
+	if (type&XTYPE)
+		type = INT;
+	switch (type) {
+	case INT:
+	case UNSIGN:
+		if (tree->t.op==FTOI) {
+			if (tree->t.tr1->t.op!=FCON && tree->t.tr1->t.op!=SFCON)
+				goto illinit;
+			tree = tree->t.tr1;
+			tree->c.value = tree->f.fvalue;
+			tree->t.op = CON;
+		} else if (tree->t.op==LTOI) {
+			if (tree->t.tr1->t.op!=LCON)
+				goto illinit;
+			tree = tree->t.tr1;
+			lval = tree->l.lvalue;
+			tree->t.op = CON;
+			tree->c.value = W(lval);
+		}
+		if (tree->t.op==CON || tree->t.op==AMPER && adrble(tree)) {
+			printf("\tdw\t");
+			pname(tree, 0);
+			putchar('\n');
+		} else
+			goto illinit;
+		return;
+
+	case DOUBLE:
+	case FLOAT:
+		if (tree->t.op!=FCON && tree->t.op!=SFCON)
+			goto illinit;
+		fdata(type, tree->f.fvalue);
+		return;
+
+	case UNLONG:
+	case LONG:
+		/*
+		 * A far pointer to a function, or in the large model to
+		 * a variable: its address and its segment, which is for
+		 * whatever loads the program to put there.
+		 */
+		if (tree->t.op==NTOF && lflag || tree->t.op==XTOF)
+			tree = tree->t.tr1;
+		if (tree->t.op==AMPER && adrble(tree)) {
+			printf("\tdw\t");
+			pname(tree, 0);
+			putchar(',');
+			pname(tree, HI);
+			putchar('\n');
+			return;
+		}
+		if (tree->t.op==FTOL) {
+			tree = tree->t.tr1;
+			if (tree->t.op==SFCON)
+				tree->t.op = FCON;
+			if (tree->t.op!= FCON)
+				goto illinit;
+			lval = tree->f.fvalue;
+		} else if (tree->t.op==ITOL) {
+			if (tree->t.tr1->t.op != CON)
+				goto illinit;
+			if (uns(tree->t.tr1))
+				lval = UNS(tree->t.tr1->c.value);
+			else
+				lval = tree->t.tr1->c.value;
+		} else if (tree->t.op==LCON)
+			lval = tree->l.lvalue;
+		else
+			goto illinit;
+		printf("\tdw\t%u,%u\n", UNS(lval), UNS(lval>>16));
+		return;
+	}
+illinit:
+	error("Illegal initialization");
 }
 
 /*
@@ -881,6 +1139,11 @@ getree()
 		outname(s);
 		if (*s)
 			printf("\tglobal\t%s\n", s);
+		break;
+
+	case INLDEF:
+		outname(s);
+		inldef(s);
 		break;
 
 	case RETRN:

@@ -4,7 +4,8 @@
 # that differ here under #ifdef i286.  c1, the second, is this
 # directory's: ../c1's reader of the first pass's output and its
 # optimizer of expressions, and a code generator of its own in place
-# of ../c1's and its tables (c10.c).  It writes assembly for NASM.
+# of ../c1's and its tables (c10.c, and c15.c for longs).  It writes
+# assembly for NASM.
 #
 # From the top of the repository:
 #
@@ -40,7 +41,7 @@ HOSTCFLAGS= -std=gnu89 -w -fno-strict-aliasing -fcommon -fsigned-char \
 	-Di286 -DLTYPE=int
 
 C0=	c00.c c02.c c03.c c05.c ansi.c
-C1=	c10.c c11.c c12.c c13.c c14.c
+C1=	c10.c c11.c c12.c c13.c c14.c c15.c
 
 host:	$(H)/c0 $(H)/c1
 	@$(MAKE) --no-print-directory -C $(SRC)/../cpp/i286 host

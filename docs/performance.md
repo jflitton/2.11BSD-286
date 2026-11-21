@@ -651,6 +651,38 @@ parser and scanner, 133 seconds against 141, `yacc` spending 40% of
 its time in the kernel, reading and writing its files; the rest is a
 second here and there.
 
+What has been done about it, each a commit of its own, with the
+system's compiler's kernel against the cross compiler's:
+
+```
+test          cross      in line
+sieve      124175 us     124600   1.00
+long          100 us        100   1.00
+getpid        174 us        184   1.06
+write         388 us        418   1.08
+stat         1325 us       1408   1.06
+pipe         3600 us       3934   1.09
+pipeio        643 K/s       605   1.06
+fork        12890 us      14443   1.12
+exec        32160 us      34670   1.08
+shell      321700 us     333300   1.04
+creat       26330 us      25000   0.95
+fswrite       315 K/s       299   1.05
+fsread        353 K/s       318   1.11
+pty            43 K/s        41   1.05
+tcp           219 K/s       207   1.06
+tcprr        7200 us       8266   1.15
+telkey      13464 us      14321   1.06
+telcmd     183750 us     193750   1.05
+```
+
+- **In line.** The system's compiler puts a function declared
+  `__inline`, whose body is assembly, where it is called ([the
+  compiler](toolchain.md#in-line-functions)), and the spl routines and
+  the byte swaps are such. More than half of what `telkey`, `tcp`,
+  `pipeio` and `fswrite` had more is gone, two fifths of `pipe`'s and a
+  quarter of `tcprr`'s.
+
 ## What is left
 
 In the order the profile gives them. The times are from profiles taken

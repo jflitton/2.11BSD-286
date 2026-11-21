@@ -100,7 +100,8 @@ c0=$top/usr/src/lib/ccom
 "$top/tools/cc" -ccom -Di286 -I"$c0" -o c0 "$c0/c00.c" "$c0/c01.c" \
     "$c0/c02.c" "$c0/c03.c" "$c0/c04.c" "$c0/c05.c" "$c0/ansi.c"
 "$top/tools/cc" -ccom -Di286 -I"$c0/i286" -o c1 "$c0/i286/c10.c" \
-    "$c0/i286/c11.c" "$c0/i286/c12.c" "$c0/i286/c13.c" "$c0/i286/c14.c"
+    "$c0/i286/c11.c" "$c0/i286/c12.c" "$c0/i286/c13.c" "$c0/i286/c14.c" \
+    "$c0/i286/c15.c"
 "$top/tools/ncc" -E -DMEDIUM=0 -o prog.i "$here/prog.c"
 "$top/tools/ncc" -S -DMEDIUM=0 -o prog.s "$here/prog.c"
 "$top/obj/host/ccom/c2" prog.s prog.want

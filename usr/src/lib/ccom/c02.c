@@ -32,7 +32,11 @@ extdef()
 		scflag++;
 		sclass = EXTERN;
 	}
-	if (sclass!=EXTERN && sclass!=STATIC && sclass!=TYPEDEF)
+	if (sclass!=EXTERN && sclass!=STATIC && sclass!=TYPEDEF
+#ifdef	i286
+	 && sclass!=INLINE
+#endif
+	)
 		error("Illegal storage class");
 	do {
 		defsym = 0;
@@ -46,6 +50,12 @@ extdef()
 		if ((ds=defsym)==0)
 			return;
 		funcsym = ds;
+#ifdef	i286
+		if (sclass==INLINE) {
+			inlfunc(ds);
+			return;
+		}
+#endif
 		if ((ds->htype&XTYPE)==FUNC) {
 			if ((peeksym=symbol())==LBRACE || peeksym==KEYW
 			 || (peeksym==NAME && csym->hclass==TYPEDEF)) {
@@ -177,6 +187,57 @@ cfunc()
 #endif
 	locbase = cb;
 }
+
+#ifdef	i286
+/*
+ * An in-line function: one declared __inline, whose body is asm() and
+ * nothing else.  It is not compiled here: its body goes to the second
+ * pass, which puts it where the function is called, in place of the
+ * call (i286/c10.c).  Each asm() is a line of it.
+ */
+#define	INLMAX	512
+inlfunc(ds)
+register struct nmlist *ds;
+{
+	char body[INLMAX];
+	register char *p;
+	register c;
+	int o;
+
+	/* the names of its parameters mean nothing here */
+	blklev++;
+	blkend();
+	paraml = NULL;
+	if ((ds->htype&XTYPE)!=FUNC || (o = symbol())!=LBRACE) {
+		error("An in-line function must be a function with a body");
+		return;
+	}
+	p = body;
+	while ((o = symbol())==KEYW && cval==ASM) {
+		if ((o = symbol())!=LPARN || (o = symbol())!=STRING)
+			goto syntax;
+		while ((c = mapch('"')) >= 0)
+			if (p < &body[INLMAX-2])
+				*p++ = c&0177;
+		if (p < &body[INLMAX-2])
+			*p++ = '\n';
+		else
+			p = &body[INLMAX-1];
+		if ((o = symbol())!=RPARN || (o = symbol())!=SEMI)
+			goto syntax;
+	}
+	if (o!=RBRACE)
+		goto syntax;
+	*p = '\0';
+	if (p >= &body[INLMAX-1])
+		error("An in-line function is %d characters at most", INLMAX-2);
+	outcode("BSF", INLDEF, ds->name, body);
+	return;
+syntax:
+	error("An in-line function's body is asm() alone");
+	errflush(o);
+}
+#endif
 
 /*
  * Process the initializers for an external definition.

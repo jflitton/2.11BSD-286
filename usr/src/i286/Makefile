@@ -729,7 +729,7 @@ cpp_FLAGS=	-DLIBVMF=0 -I$(SRC)/lib/cpp
 cpp_MODEL=	l
 c0_SRCS=	$(addprefix lib/ccom/,c00.c c01.c c02.c c03.c c04.c c05.c \
 		ansi.c)
-c1_SRCS=	$(addprefix lib/ccom/i286/,c10.c c11.c c12.c c13.c c14.c)
+c1_SRCS=	$(addprefix lib/ccom/i286/,c10.c c11.c c12.c c13.c c14.c c15.c)
 c2_SRCS=	lib/c2/i286/c20.c lib/c2/i286/c21.c
 c0_CCOM=	1
 c1_CCOM=	1

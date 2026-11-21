@@ -1065,7 +1065,9 @@ char *a, *b;
 /*
  * The address in a memory operand: what is between the brackets goes
  * to base, less a number added to it or taken from it at the end,
- * which is returned.
+ * which is returned.  SS is left out: [ss:_x] may be [_x], where DS is
+ * SS, and an in-line function's body says ss: where the compiler does
+ * not (../../ccom/i286/c10.c).
  */
 maddr(s, base)
 register char *s;
@@ -1074,7 +1076,10 @@ char *base;
 	register char *p, *e;
 	register n;
 
-	for (p = base, s = index(s, '[')+1; *s && *s!=']';)
+	s = index(s, '[')+1;
+	if (s[0]=='s' && s[1]=='s' && s[2]==':')
+		s += 3;
+	for (p = base; *s && *s!=']';)
 		*p++ = *s++;
 	*p = 0;
 	e = p;

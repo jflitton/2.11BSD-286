@@ -68,6 +68,9 @@ struct nmlist *tptr;
 		case EXTERN:
 		case REG:
 		case TYPEDEF:
+#ifdef	i286
+		case INLINE:
+#endif
 			if (skw && skw!=cval) {
 				if (skw==ARG && cval==REG)
 					cval = AREG;

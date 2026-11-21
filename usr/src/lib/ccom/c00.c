@@ -63,6 +63,7 @@ struct kwtab {
 	"__near",	NEAR,
 	"__ss",		SSKW,
 	"__based",	BASED,
+	"__inline",	INLINE,
 #endif
 	0,		0,
 };

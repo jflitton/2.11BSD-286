@@ -1710,7 +1710,7 @@ one too big, `realloc` in place, and 150,000 bytes behind a `__huge`
 pointer, or with the system's own compiler, which has no `__huge`,
 reached with `SEGADDR`. `tests/ccom` runs a program the system's
 compiler made of the model on the system, with 200K from `malloc`, and
-its 1645 checks of the code the compiler generates, as a second
+its 1671 checks of the code the compiler generates, as a second
 program of the model there; and `tests/ccom/programs.sh` has it make
 `window`.
 

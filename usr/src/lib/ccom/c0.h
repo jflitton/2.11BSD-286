@@ -465,6 +465,8 @@ int	mossym;
 #define	NEAR	35
 #define	SSKW	36	/* __ss */
 #define	BASED	37	/* __based(segment) */
+#define	INLINE	38	/* __inline: a function whose body is put where
+			   it is called (c02.c) */
 #endif
 
 /*
@@ -509,6 +511,7 @@ int	mossym;
 #define	FARSEG	224	/* what follows is in the file's far segment */
 #define	SEGNAME	225	/* the based segment's name */
 #define	BASEDSEG 226	/* what follows is in the based segment */
+#define	INLDEF	227	/* an in-line function: its name and its body */
 
 /*
   Flag bits
