@@ -31,6 +31,7 @@ static char sccsid[] = "@(#)rcmd.c	5.23 (2.11BSD) 2026/9/21";
 
 #include <netinet/in.h>
 
+#include <arpa/inet.h>
 #include <netdb.h>
 #include <errno.h>
 
@@ -125,7 +126,8 @@ rcmd(ahost, rport, locuser, remuser, cmd, fd2p)
 		FD_SET(s, &reads);
 		FD_SET(s2, &reads);
 		errno = 0;
-		if (select(32, &reads, 0, 0, 0) < 1 ||
+		if (select(32, &reads, (fd_set *)0, (fd_set *)0,
+		    (struct timeval *)0) < 1 ||
 		    !FD_ISSET(s2, &reads)) {
 			if (errno != 0)
 				perror("select: setting up stderr");

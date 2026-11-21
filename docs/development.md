@@ -186,6 +186,7 @@ driver talks to.
 | `tools/kprof.py` | says where the system spent its time: the functions, in the kernel and in programs, that the samples `runtest.py --profile` took of the emulated processor fell in |
 | `tools/strip.py` | copies an executable file without its symbol table, as `strip` leaves one: the programs in the root file system are such copies, unless it is made with `STRIP=no` |
 | `tools/farlint.py` | looks for far pointers that kernel code truncates without the compiler noticing |
+| `tools/lmlint.py` | looks a program over before it is made large-model: a `0` for a pointer or a pointer for an `int` where no prototype says which, a function that returns a pointer called undeclared, and arguments that differ in number from the definition |
 | `tools/preflight.py` | looks a program over before it is built: what the compiler rejects, calls that disagree with a definition in another file or in the library, lines that match what has gone wrong before, and whether it links and how large it is |
 | `tools/netcheck.py` | looks in the kernel's objects for calls and references between it and the network that do not switch the data segment; run at every link |
 | `tools/untap.py` | splits a SimH `.tap` tape image into its files |
@@ -211,11 +212,12 @@ tests/crt/run.sh        # the compiler's helper routines: 5,161 checks
 tests/pm/run.sh         # the kernel's start-up and trap entry: 54 checks
 tests/user/run.sh       # a process in ring 3: 58 checks
 tests/kernel/run.sh     # the kernel, with a test program as init, booted
-                        # six times: 52 checks, then 68 on each of five disks
+                        # six times: 82 checks, then 98 on each of five disks
 tests/libc/run.sh       # the C library, with a test program as init: 74
-                        # checks in the small model, 74 in the medium;
-                        # with CCOM=1, of the library and the program
-                        # as the system's own compiler makes them
+                        # checks in the small model, 74 in the medium
+                        # and 84 in the large; with CCOM=1, of the
+                        # library and the program as the system's own
+                        # compiler makes them, which has not the large
 tests/ccom/run.sh       # the system's own C compiler, run here: 1573
                         # checks of the code it generates, as it is and
                         # again as c2 improves it; 58 by a program it
@@ -230,8 +232,8 @@ tests/ccom/self.sh      # the system making its compiler: cc, cpp, the
                         # each to be what is made of it here
 tests/ccom/programs.sh  # the same compiler, assembler and linker on
                         # the system's programs: tests/programs, with
-                        # all of them made that way
-tests/as/run.sh         # the system's assembler against NASM: 279
+                        # all of them made that way but window
+tests/as/run.sh         # the system's assembler against NASM: 289
                         # files that both are to make the same of (no
                         # emulator)
 tests/preflight/run.sh  # tools/preflight.py, on two files with one of each
@@ -252,10 +254,11 @@ tests/programs/run.sh   # the programs that work on text and files, on the
                         # the other checkers, dump and restor on a second
                         # disk, cc and what goes with it compiling a
                         # program there, yacc and lex with their libraries, mkdep,
-                        # calendar and learn, and the games: 162 checks, each a few
+                        # calendar and learn, the games, segalloc and
+                        # ve: 164 checks, each a few
                         # lines for the shell and what they must write,
                         # and more, man, script, lock, tset, five games,
-                        # window and shutdown at a terminal
+                        # window, ve and shutdown at a terminal
 tests/system/run.sh     # the system, booted from a hard disk to multi-user:
                         # checks its root with fsck and starts again,
                         # logs in on a serial port and on two of the
@@ -269,6 +272,9 @@ tests/system/run.sh     # the system, booted from a hard disk to multi-user:
                         # xterm in a big window
 tests/vt/run.sh         # the console's terminal emulator, on the machine
                         # the system is built on: 302 checks
+tests/ve/run.sh         # the editor ve, built for that machine too: 115
+                        # checks, of what it makes of a file and of
+                        # the screen it draws (no emulator)
 ```
 
 - `tests/crt` is a small-model program in real mode, built through the
@@ -297,11 +303,12 @@ tests/vt/run.sh         # the console's terminal emulator, on the machine
   `tests/ccom/programs.sh` has those tools make the system's programs,
   and the libraries they use, and runs `tests/programs` on a root file
   system of those; `obj/nbin/native` lists which they were, and
-  `obj/nbin/cross` any that only the cross compiler could make, of
-  which there are none.
+  `obj/nbin/cross` any that only the cross compiler could make:
+  `window`, which is of the large model.
 - `tests/as` has the system's assembler and NASM assemble the same
-  files: one with every instruction, the C library's assembly and the
-  system call stubs for both models, and what the compiler writes for
+  files: one with every instruction, the C library's assembly, `ve`'s
+  and the system call stubs for both models, and what the compiler
+  writes for
   the programs of `tests/ccom`. `tests/as/objcmp.py` reads NASM's
   object and the assembler's and says where they differ.
 - `tests/pm` is a medium-model program that takes the place of the
@@ -331,9 +338,11 @@ tests/vt/run.sh         # the console's terminal emulator, on the machine
   ([booting](boot.md)).
 - `tests/libc` builds the C library and boots the kernel with a program
   that calls into each part of it as `/etc/init`. The program is built
-  for both models; the small one runs the medium one when it is done.
+  for each of the three models; the small one runs the medium one and
+  then the large one when it is done, and the large one has checks of
+  its own, of `malloc` over many segments and of `__huge` pointers.
   `CCOM=1 tests/libc/run.sh` does the same with the library and the
-  program compiled by the system's own compiler.
+  program compiled by the system's own compiler, in its two models.
 - `tests/system` builds the kernel, `/boot`, the library, the programs and
   the root file system as for a real machine, and boots them from an IDE
   disk, whose root is not marked clean, so that `/etc/rc` has `fsck`
@@ -398,6 +407,15 @@ tests/vt/run.sh         # the console's terminal emulator, on the machine
   hardware, built with the C compiler of the machine the system is built
   on and run there: what each sequence leaves on the screen, where it
   leaves the cursor and what the terminal answers, as a VT102 would.
+- `tests/ve` is the editor `ve`, built there in the same way from the
+  sources the system's is built from, with the system's termcap library
+  and with `tests/ve/host` for what it has from the 286: segments, which
+  come from `malloc`, the copying between them, and the terminal, of
+  which there is none; and the file its blocks go to can be made to
+  fill (`VEFULL`). Each check in `tests/ve/checks` types keys at it
+  and gives what it must leave in a file, or on the screen, which
+  `check.py` works out from what `ve` wrote as a terminal would. That
+  it runs on the system is `tests/programs`'s to say.
 
 The emulator is [86Box](https://github.com/86Box/86Box), as an
 AT-compatible 286 with a 287 and one wait state

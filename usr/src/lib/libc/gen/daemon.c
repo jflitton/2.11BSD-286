@@ -55,7 +55,7 @@ daemon(nochdir, noclose)
 	}
 
 	if ((fd = open(_PATH_TTY, O_RDWR)) >= 0) {
-		ioctl(fd, TIOCNOTTY, 0);
+		ioctl(fd, TIOCNOTTY, (char *)0);
 		close(fd);
 	}
 

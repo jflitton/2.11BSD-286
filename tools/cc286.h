@@ -16,3 +16,12 @@
  * the name main_) whatever the default is.  Give main the system's.
  */
 #pragma aux main "_*" parm caller [] modify [ax bx cx dx es];
+
+/*
+ * In the large model a pointer is four bytes, and so is NULL: where it
+ * is an argument to a function with no prototype, as it is all through
+ * the tree's older C, a plain 0 would be pushed as two.
+ */
+#ifdef __LARGE__
+#define NULL 0L
+#endif

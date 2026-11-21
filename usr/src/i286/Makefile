@@ -12,7 +12,8 @@
 # A program is listed with its sources, relative to usr/src unless they
 # are absolute, in NAME_SRCS, and may have NAME_FLAGS for the compiler
 # and linker (tools/cc), NAME_LIBS, and NAME_MODEL: s, the small model,
-# unless it is m, the medium (docs/memory-model.md).  Each is compiled
+# unless it is m, the medium, or l, the large (docs/memory-model.md).
+# Each is compiled
 # and linked in one run of tools/cc; what the compiler says goes to
 # obj/bin/log/NAME, and is shown only if it fails.
 #
@@ -21,7 +22,9 @@
 # obj/nbin and the libraries in obj/nlib/M, libNAME.a, where the C
 # library as those make it is to be (make -C ../lib/libc/i286 CCOM=1).
 # The compiler's code is nearly a tenth larger than the cross
-# compiler's, and each program is of the model it has here.  That
+# compiler's, and each program is of the model it has here; one of
+# the large model, which that compiler has not, is the cross compiler's
+# still, with the libraries in obj/lib/l.  That
 # linker reads a library once, so a program's libraries are named in
 # the order of what needs what, as they are for ld anywhere.
 
@@ -248,6 +251,10 @@ WINDOW=		char.c cmd.c cmd1.c cmd2.c cmd3.c cmd4.c cmd5.c cmd6.c cmd7.c \
 		wwwrite.c
 window_SRCS=	$(addprefix ucb/window/,$(WINDOW))
 window_LIBS=	-ltermcap
+# The large model: its copies of the screen and of each window's
+# contents are more than a data segment holds on a terminal of any
+# size.
+window_MODEL=	l
 BACKPROGS=	dump rdump dumpdir restor rmt chflags la gcore window
 
 # Those with a grammar for yacc, and yacc and lex themselves.  The
@@ -694,7 +701,13 @@ GAMEPROGS=	$(GAMESTD) adventure atc backgammon teachgammon battlestar boggle \
 # This port's own (docs/userland.md), each in a directory here.
 adduser_SRCS=	i286/adduser/adduser.c
 bench_SRCS=	i286/bench/bench.c
-OWNPROGS=	adduser bench
+# ve keeps the file it edits in segments it asks the system for
+# (segalloc(2)), so it is of the medium model for its code alone.
+ve_SRCS=	$(addprefix i286/ve/,main.c term.c screen.c text.c edit.c \
+		normal.c insert.c search.c ex.c fmem.s)
+ve_MODEL=	m
+ve_LIBS=	-ltermcap
+OWNPROGS=	adduser bench ve
 
 # What a program is made with on the system (docs/toolchain.md): cc,
 # which runs the rest; /lib/cpp; the compiler's two passes and its
@@ -796,6 +809,10 @@ all:	$(addprefix $(O)/,$(PROGS))
 list:
 	@printf '%s\n' $(PROGS)
 
+# Those of the large model, which only the cross compiler makes.
+largelist:
+	@printf '%s\n' $(foreach p,$(PROGS),$(if $(filter l,$(call model,$(p))),$(p)))
+
 # The compiler's programs, a line each: the name, and what cc is given
 # to make it, its sources named from $(SRC).  tests/ccom/self.sh has
 # the system make them from that.
@@ -813,10 +830,11 @@ HDRS:=	$(wildcard $(TOP)/usr/include/*.h $(SRC)/sys/h/*.h $(SRC)/sys/i286/*.h)
 # A program's model, the directory of that model's libraries, and its
 # sources.  One with NAME_CCOM set is made by the system's own compiler,
 # assembler and linker, with the libraries those made, when the others
-# are not.
+# are not; and one of the large model is never made by those.
+XLIB=	$(TOP)/obj/lib
 model=	$(or $($(1)_MODEL),s)
-ccom=	$(or $(CCOM),$($(1)_CCOM))
-lib=	$(if $(call ccom,$(1)),$(NLIB),$(LIB))/$(call model,$(1))
+ccom=	$(if $(filter l,$(call model,$(1))),,$(or $(CCOM),$($(1)_CCOM)))
+lib=	$(if $(call ccom,$(1)),$(NLIB),$(XLIB))/$(call model,$(1))
 lx=	$(if $(call ccom,$(1)),a,lib)
 srcs=	$(foreach s,$($(1)_SRCS),$(if $(filter /%,$(s)),$(s),$(SRC)/$(s)))
 
@@ -1165,6 +1183,21 @@ $(LIB)/$(2)/$(1):
 endef
 $(foreach l,$(LIBRARIES),$(foreach m,s m,$(eval $(call library,$(l),$(m)))))
 
+# The same for the large model, which the cross compiler alone has.
+define xlibrary
+$(XLIB)/l/lib$(1).lib: $(addprefix $(SRC)/,$($(1)_LIB)) $(HDRS) \
+		| $(XLIB)/l/$(1)
+	@echo cc lib$(1), l
+	@cd $(XLIB)/l/$(1) && rm -f *.o && \
+	    $(TOP)/tools/cc -ml $($(1)_LIBFLAGS) -c \
+	    $(addprefix $(SRC)/,$($(1)_LIB)) > log 2>&1 || { cat log; exit 1; }
+	@rm -f $$@ && wlib -q -n -b $$@ \
+	    $(patsubst %.c,+$(XLIB)/l/$(1)/%.o,$(notdir $($(1)_LIB)))
+$(XLIB)/l/$(1):
+	mkdir -p $$@
+endef
+$(foreach l,$(LIBRARIES),$(eval $(call xlibrary,$(l))))
+
 # The root file system, obj/root/root.fs, as root.proto lists it.  It
 # needs the kernel (../sys/PC) and /boot (../sys/i286stand) made first.
 # ROOTDISK is the disk it is to be on, for /etc/fstab: wd0, the first on
@@ -1376,4 +1409,5 @@ $(R)/root.fs: root.proto $(wildcard etc/* root/* skel/*) adventure/Makefile \
 
 clean:
 	rm -rf $(O) $(EXO) $(TCO) $(H) $(G) $(R) $(MANO) $(GO) $(SO) $(ZO) \
-	    $(foreach l,$(LIBRARIES),$(LIB)/[sm]/$(l) $(LIB)/[sm]/lib$(l).$(LX))
+	    $(foreach l,$(LIBRARIES),$(LIB)/[sm]/$(l) $(LIB)/[sm]/lib$(l).$(LX) \
+	    $(XLIB)/l/$(l) $(XLIB)/l/lib$(l).lib)

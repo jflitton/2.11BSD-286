@@ -52,6 +52,9 @@ for f in $(find "$libc" -name '*.s' | sort); do
     both "$f" -I "$libc/crt/"
     both "$f" -I "$libc/crt/" -DFAR
 done
+# and ve's, the one program with assembly of its own
+both "$top/usr/src/i286/ve/fmem.s" -I "$libc/crt/"
+both "$top/usr/src/i286/ve/fmem.s" -I "$libc/crt/" -DFAR
 for m in s m; do
     rm -rf "$out/stubs/$m"
     mkdir -p "$out/stubs/$m"

@@ -23,6 +23,15 @@ int	sigtramp();
 long	signal();
 char	*sbrk();
 long	lseek();
+char __far *segalloc(long);
+int	segsize(char __far *, long);
+int	segfree(char __far *);
+
+/* a far address and its two halves */
+#define	FARP(sel, off) \
+	((char __far *)(((unsigned long)(sel) << 16) | (unsigned)(off)))
+#define	SELOF(p)	((unsigned)((unsigned long)(p) >> 16))
+#define	OFFOF(p)	((unsigned)(unsigned long)(p))
 
 #define	SIGHUP	1
 #define	SIGINT	2
@@ -45,3 +54,5 @@ long	lseek();
 #define	ECHILD	10
 #define	EFAULT	14
 #define	ENOMEM	12
+#define	EBUSY	16
+#define	EINVAL	22

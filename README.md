@@ -7,7 +7,7 @@ This is 2.11BSD, at its current patch level, ported to the 286 in
 protected mode. It boots from a hard disk to multi-user. Users can log
 In via the local consoles (4 total), at a serial terminal, or over the
 network with `telnet` or `rlogin`.  Shells include `sh`, `csh`, and `tcsh`.
-Most programs have been ported (316 to date), among them `vi`, mail, the
+Most programs have been ported (317 to date), among them `vi`, mail, the
 manual and a C compiler. It runs in 86Box and on real machines.
 
 ## Lineage
@@ -42,10 +42,11 @@ The PDP-11 and the 286 are close enough that the tree carries over:
 
 ## Status
 
-- Programs are small- or medium-model so far. The medium model gives a
-  program more code than the PDP-11 held without overlays, but one data
-  segment; the library for the large model, which gives it several, is
-  still to come.
+- Programs are small- or medium-model, but for `window`, the first of
+  the large model, which has as much data as the system gives a
+  process. A program of any model can ask for more data segments
+  (`segalloc(2)`), which is where the editor `ve` keeps the text it is
+  at work on ([memory model](docs/memory-model.md)).
 - `cc` is on the system, with an assembler and a linker of its own
   ([the compiler](docs/toolchain.md)). They can build every program and
   library, themselves included, on the 286, though not yet the kernel,
@@ -55,7 +56,8 @@ The PDP-11 and the 286 are close enough that the tree carries over:
   ported](docs/unported.md) has the whole list.
 - Upstream's programs are kept as 2.11BSD has them, changed only for
   bugs, the compiler and each machine's settings. Newer behaviour goes
-  in programs of the port's own: so far `adduser` and `bench`.
+  in programs of the port's own: so far `adduser`, `bench` and `ve`, an
+  editor in the manner of `vim`.
 
 ## Building
 

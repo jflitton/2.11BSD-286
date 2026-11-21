@@ -299,6 +299,10 @@ build(op)
 		if (op==ASSIGN) {
 			if (cvn==PTI) {
 				if (t1 != (PTR|VOID) && t2 != (PTR|VOID))
+#ifdef	i286
+				/* nor of a far pointer to void */
+				if (t1 != (FPTR|VOID) && t2 != (FPTR|VOID))
+#endif
 				if (t1!=t2 || ((t1&TYPE)==STRUCT && p1->t.strp!=p2->t.strp))
 					werror("mixed pointer assignment");
 				cvn = leftc = 0;

@@ -17,7 +17,6 @@ Some programs wait on more than themselves:
 
 | what | for |
 |---|---|
-| A library for the large model, and the helpers for `__huge` pointers | programs with more than 64K of data, and `window` on a screen bigger than 80 by 24 |
 | Quotas (`sys/sys/quota_*.c` are in the tree, and not built) | `quota`, `quotacheck`, `quotaon`, `edquota`, `repquota` |
 | SLIP (`sys/net/if_sl.c`; `NSL` is 0) | `slattach` |
 | A driver for the parallel port | the line printer's programs, but for a printer on a serial port |

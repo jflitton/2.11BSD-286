@@ -95,8 +95,13 @@ void	*alloca(size_t);
  * In line: the compiler knows the stack pointer has moved, and a
  * function that calls alloca takes it back from its frame pointer.
  */
+#ifdef __LARGE__
+#pragma aux alloca = "inc ax" "and al, 0feh" "sub sp, ax" "mov ax, sp" \
+	"mov dx, ss" parm [ax] value [dx ax] modify [sp];
+#else
 #pragma aux alloca = "inc ax" "and al, 0feh" "sub sp, ax" "mov ax, sp" \
 	parm [ax] value [ax] modify [sp];
+#endif
 #endif
 
 int	daemon(int, int);

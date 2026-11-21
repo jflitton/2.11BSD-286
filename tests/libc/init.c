@@ -3,11 +3,14 @@
  * (tests/libc/run.sh).  It calls into each part of the library, checks
  * what comes back, and reports on the console.
  *
- * It is built twice, for the small model and for the medium, whose code
- * is in several segments.  The small one is /etc/init: it runs its
- * checks, then runs the medium one as /bin/libc-m, whose exit status is
- * its count of failures, and adds that to its own.  The line "@exit NN"
- * at the end is for tests/harness/runtest.py.
+ * It is built for the small model, for the medium, whose code is in
+ * several segments, and for the large, whose data is too and whose
+ * pointers are all far.  The small one is /etc/init: it runs its
+ * checks, then runs the medium one as /bin/libc-m and the large one as
+ * /bin/libc-l, whose exit status is each its count of failures, and
+ * adds those to its own.  The system's own compiler has no large model,
+ * and what it makes (NOLARGE) does without.  The line "@exit NN" at the
+ * end is for tests/harness/runtest.py.
  */
 #include <sys/param.h>
 #include <sys/file.h>
@@ -27,12 +30,18 @@
 #include <grp.h>
 #include <time.h>
 
+#ifdef __LARGE__
+#include <segment.h>
+#define	MODEL		"large"
+#define	ECHOARGS	"/bin/echoargs-l"
+#else
 #ifdef __MEDIUM__
 #define	MODEL		"medium"
 #define	ECHOARGS	"/bin/echoargs-m"
 #else
 #define	MODEL		"small"
 #define	ECHOARGS	"/bin/echoargs"
+#endif
 #endif
 
 double	modf(), ldexp(), frexp(), atof();
@@ -171,6 +180,68 @@ conversions()
 	check(sorted, "qsort");
 }
 
+#ifdef __LARGE__
+/*
+ * What the large model alone has: more from malloc than a segment
+ * holds, and a piece of more than 64K behind a __huge pointer.
+ */
+large()
+{
+	char *p[20], *q, *r;
+	char __huge *h;
+	long l, sum;
+	int i, ok;
+
+	ok = 1;
+	for (i = 0; i < 20; i++) {
+		if ((p[i] = malloc(20000)) == NULL)
+			ok = 0;
+		else
+			memset(p[i], i + 1, 20000);
+	}
+	check(ok, "malloc 400K, in blocks of 20000");
+	for (i = 0; ok && i < 20; i++)
+		if (p[i][0] != i + 1 || p[i][19999] != i + 1)
+			ok = 0;
+	check(ok, "and each has what was put in it");
+	for (i = 0; i < 20; i++)
+		free(p[i]);
+	q = malloc(65000U);
+	check(q != NULL, "a block of 65000");
+	if (q) {
+		q[64999U] = 9;
+		r = realloc(q, 100);
+		check(r == q, "it is made smaller where it is");
+		r = realloc(q, 60000U);
+		check(r == q, "and larger again");
+		free(q);
+	}
+	errno = 0;
+	check(malloc(65530U) == NULL && errno == ENOMEM,
+	    "no block of more than a segment");
+	q = malloc(3000);
+	strcpy(q, "kept");
+	free(q);
+	r = realloc(q, 5000);
+	check(r != NULL && strcmp(r, "kept") == 0,
+	    "realloc of what was just freed has it back");
+	free(r);
+
+	h = (char __huge *)segalloc(150000L);
+	check(h != NULL, "segalloc");
+	if (h == NULL)
+		return;
+	for (l = 0; l < 150000L; l++)
+		h[l] = l % 13;
+	for (sum = 0, l = 0; l < 150000L; l++)
+		sum += h[l];
+	check(sum == 11538L * 78 + 15 && &h[140000L] - h == 140000L &&
+	    &h[70000L] > &h[60000L] && h + 65536L != h,
+	    "a __huge pointer goes from one segment into the next");
+	check(segfree((void *)h) == 0, "segfree");
+}
+#endif
+
 memory()
 {
 	char *p[40], *q, *brk0;
@@ -206,7 +277,13 @@ memory()
 			ok = 0;
 	check(ok, "the others are untouched by freeing half");
 	q = malloc(10000);
+#ifdef __LARGE__
+	check(q != NULL && sbrk(0) == brk0,
+	    "a big block is not in the program's own segment");
+	large();
+#else
 	check(q != NULL && sbrk(0) > brk0, "a big block moves the break");
+#endif
 	if (q) {
 		q[9999] = 1;
 		q = realloc(q, 15000);
@@ -456,11 +533,31 @@ misc()
 	check(isatty(0) && strcmp(ttyname(0), "/dev/console") == 0, "isatty and ttyname");
 }
 
+/*
+ * Run the test as it is built for another model.
+ */
+other(path, model)
+	char *path, *model;
+{
+	int pid, status;
+
+	fflush(stdout);
+	if ((pid = fork()) == 0) {
+		/* with no environment, as this one started */
+		execle(path, path + 5, (char *)0, (char **)0);
+		_exit(255);
+	}
+	if (pid < 0 || waitpid(pid, &status, 0) != pid || (status & 0xff)) {
+		printf("FAILED: the %s model's test did not finish\n", model);
+		failed++;
+	} else
+		failed += status >> 8;
+}
+
 main(argc, argv)
 	int argc;
 	char **argv;
 {
-	int pid, status;
 
 	/* As init nothing is open yet: the console becomes 0, 1 and 2. */
 	if (getpid() == 1) {
@@ -484,16 +581,10 @@ main(argc, argv)
 	if (getpid() != 1)
 		exit(failed > 255 ? 255 : failed);
 	fflush(stdout);
-	if ((pid = fork()) == 0) {
-		/* with no environment, as this one started */
-		execle("/bin/libc-m", "libc-m", (char *)0, (char **)0);
-		_exit(255);
-	}
-	if (pid < 0 || waitpid(pid, &status, 0) != pid || (status & 0xff)) {
-		printf("FAILED: the medium model's test did not finish\n");
-		failed++;
-	} else
-		failed += status >> 8;
+	other("/bin/libc-m", "medium");
+#ifndef NOLARGE
+	other("/bin/libc-l", "large");
+#endif
 	printf("@exit %02x\n", failed > 255 ? 255 : failed);
 	fflush(stdout);
 	close(0);			/* the last close of the console */

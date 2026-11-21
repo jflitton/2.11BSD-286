@@ -30,7 +30,7 @@ SRCS=	accept.2 access.2 acct.2 adjtime.2 bind.2 brk.2 chdir.2 chmod.2 \
 	lock.2 lseek.2 mkdir.2 mknod.2 mount.2 nostk.2 open.2 phys.2 \
 	pipe.2 profil.2 ptrace.2 quota.2 read.2 readlink.2 reboot.2 \
 	recv.2 rename.2 rmdir.2 select.2 send.2 setgroups.2 setpgrp.2 \
-	setquota.2 shutdown.2 sigblock.2 sigpause.2 \
+	segalloc.2 setquota.2 shutdown.2 sigblock.2 sigpause.2 \
 	sigaction.2 sigaltstack.2 sigpending.2 sigprocmask.2 sigsuspend.2 \
 	sigreturn.2 sigsetmask.2 sigstack.2 sigwait.2 sigvec.2 socket.2 \
 	socketpair.2 \
@@ -49,7 +49,7 @@ OBJS=	accept.0 access.0 acct.0 adjtime.0 bind.0 brk.0 chdir.0 chmod.0 \
 	lock.0 lseek.0 mkdir.0 mknod.0 mount.0 nostk.0 open.0 phys.0 \
 	pipe.0 profil.0 ptrace.0 quota.0 read.0 readlink.0 reboot.0 \
 	recv.0 rename.0 rmdir.0 select.0 send.0 setgroups.0 setpgrp.0 \
-	setquota.0 shutdown.0 sigblock.0 sigpause.0 \
+	segalloc.0 setquota.0 shutdown.0 sigblock.0 sigpause.0 \
 	sigaction.0 sigaltstack.0 sigpending.0 sigprocmask.0 sigsuspend.0 \
 	sigreturn.0 sigsetmask.0 sigstack.0 sigwait.0 sigvec.0 socket.0 \
 	socketpair.0 \
@@ -76,7 +76,7 @@ REM= sbrk.0 dup2.0 fstat.0 lstat.0 readv.0 recvfrom.0 sendmsg.0 recvmsg.0 \
 	pselect.0 \
 	sethostid.0 setitimer.0 setrlimit.0 setsockopt.0 sethostname.0 \
 	setpriority.0 settimeofday.0 setlogin.0 geteuid.0 setgid.0 \
-	seteuid.0 setegid.0 getegid.0
+	seteuid.0 setegid.0 getegid.0 segsize.0 segfree.0
 
 install: _make_01
 	install -c -o root -g staff -m 444 ${OBJS} ${P}
@@ -85,6 +85,8 @@ install: _make_01
 	done
 	ln ${P}/dup.0 ${P}/dup2.0
 	ln ${P}/brk.0 ${P}/sbrk.0
+	ln ${P}/segalloc.0 ${P}/segsize.0
+	ln ${P}/segalloc.0 ${P}/segfree.0
 	ln ${P}/stat.0 ${P}/fstat.0
 	ln ${P}/stat.0 ${P}/lstat.0
 	ln ${P}/read.0 ${P}/readv.0

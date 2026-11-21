@@ -242,6 +242,7 @@ main(argc, argv, envp)
 	}
 	check(n == 0xFFF, "each computed the right thing and exited with its number");
 
+	segments();
 	hogs();
 	disk();
 
@@ -270,6 +271,136 @@ work(i)
 }
 
 /*
+ * Does a child that does this die of a segmentation violation?
+ */
+#define	FAULTS(what, said) { \
+	if ((pid = fork()) == 0) { \
+		what; \
+		exit(0); \
+	} \
+	wait4(pid, &status, 0, (char *)0); \
+	check((status & 0x7F) == SIGSEGV, said); \
+}
+
+/*
+ * More segments than the program came with: segalloc, segsize and
+ * segfree.
+ */
+segments()
+{
+	static char *av[] = { "child", "segment", 0, 0 };
+	char __far *p, __far *q, __far *h, __far *r;
+	char num[8], *np;
+	unsigned k;
+	int pid, status, i;
+
+	p = segalloc(1000L);
+	check(p != 0 && OFFOF(p) == 0 && (SELOF(p) & 7) == 7 &&
+	    SELOF(p) != getds(), "ask for a segment more");
+	for (k = 0; k < 1000 && p[k] == 0; k++)
+		;
+	check(k == 1000, "it is zero");
+	for (k = 0; k < 1000; k++)
+		p[k] = k * 3;
+	/*
+	 * (Its first byte and its last are set apart: side by side, the
+	 * compiler makes one store of the two, a word at offset 65535,
+	 * which is a fault.)
+	 */
+	q = segalloc(65536L);
+	q[65535U] = 'z';
+	check(q != 0 && SELOF(q) != SELOF(p), "and another, of 64K");
+	q[0] = 'a';
+	check(segsize(p, 40000L) == 0, "the first grows");
+	check(p[999] == (char)(999 * 3) && p[1000] == 0 && p[39999U] == 0,
+	    "and keeps what it held");
+	p[39999U] = 'e';
+	check(q[0] == 'a' && q[65535U] == 'z', "the other is as it was");
+	check(segsize(p, 600L) == 0 && segsize(p, 1500L) == 0,
+	    "it shrinks and grows again");
+	for (k = 600; k < 1500 && p[k] == 0; k++)
+		;
+	check(k == 1500 && p[599] == (char)(599 * 3),
+	    "what was given back and taken again is zero");
+	FAULTS(p[1500] = 1, "a store past its end is a segmentation violation");
+
+	pid = fork();
+	if (pid == 0) {
+		if (p[10] != 30 || q[65535U] != 'z')
+			exit(1);
+		p[10] = 1;
+		q[65535U] = 'y';
+		exit(segfree(q) == 0 ? 5 : 2);
+	}
+	wait4(pid, &status, 0, (char *)0);
+	check(status == (5 << 8) && p[10] == 30 && q[65535U] == 'z',
+	    "a child has copies of them, and the parent still its own");
+
+	/* A piece of three segments, whose selectors go up by eight. */
+	h = segalloc(150000L);
+	check(h != 0, "a piece of more than 64K");
+	for (i = 0; i < 3; i++) {
+		r = FARP(SELOF(h) + 8 * i, 0);
+		r[0] = 'A' + i;
+		r[18927] = 'a' + i;		/* the last has 18928 bytes */
+	}
+	r = FARP(SELOF(h) + 8, 65535U);
+	check(h[0] == 'A' && h[18927] == 'a' && r[0] == 0 &&
+	    FARP(SELOF(h) + 16, 0)[0] == 'C', "is segments one after another");
+	FAULTS(FARP(SELOF(h) + 16, 18928)[0] = 1, "of which the last ends where the piece does");
+	check(segsize(h, 70000L) == 0 && h[0] == 'A' &&
+	    FARP(SELOF(h) + 8, 0)[0] == 'B', "it shrinks to two");
+	FAULTS(FARP(SELOF(h) + 16, 0)[0] = 1, "and the third is gone");
+	check(segsize(h, 200000L) == 0 && FARP(SELOF(h) + 24, 0)[0] == 0 &&
+	    FARP(SELOF(h) + 8, 18927)[0] == 0 && h[18927] == 'a',
+	    "and grows to four");
+	r = segalloc(100L);
+	check(r != 0 && SELOF(r) == SELOF(h) + 32, "the next is after it");
+	check(segsize(h, 300000L) == -1 && errno == ENOMEM,
+	    "so it cannot grow to five");
+
+	check(segalloc(0L) == 0 && errno == EINVAL, "no segment of no size");
+	check(segalloc(8L << 20) == 0 && errno == ENOMEM,
+	    "nor of more than a process may have");
+	check(segfree(FARP(getds(), 0)) == -1 && errno == EINVAL,
+	    "the program's own data is not to be freed");
+	check(segfree(p + 2) == -1 && errno == EINVAL,
+	    "nor a segment by an address inside it");
+	check(segfree(FARP(SELOF(h) + 8, 0)) == -1 && errno == EINVAL,
+	    "nor a long piece from its middle");
+
+	/* Another program has none of them. */
+	np = num + sizeof (num) - 1;
+	*np = 0;
+	for (k = SELOF(p); k; k /= 10)
+		*--np = '0' + k % 10;
+	av[2] = np;
+	pid = fork();
+	if (pid == 0) {
+		execve("/bin/child", av, environ);
+		exit(1);
+	}
+	wait4(pid, &status, 0, (char *)0);
+	check(status == (9 << 8), "a program the process executes has none of them");
+
+	/*
+	 * The selector of what is freed is likely still in ES, where
+	 * the last use of the pointer left it.
+	 */
+	check(h[0] == 'A' && segfree(h) == 0, "free the long piece");
+	check(segfree(h) == -1 && errno == EINVAL, "once");
+	FAULTS(h[0] = 1, "what was freed is gone");
+	FAULTS(FARP(SELOF(h) + 24, 0)[0] = 1, "all of it");
+	check(r[0] == 0 && segfree(r) == 0 && segfree(q) == 0 &&
+	    p[39999U - 39999U + 599] == (char)(599 * 3) && segfree(p) == 0,
+	    "and the others");
+	q = segalloc(2000L);
+	check(SELOF(q) == SELOF(p) && q[599] == 0,
+	    "a slot is used again, and what is in it is zero");
+	segfree(q);
+}
+
+/*
  * More memory than the machine has: NHOG processes that each grow to
  * most of a full segment, fill it, and wait until all of them have, then
  * check that what they wrote is still there.  run.sh leaves the kernel
@@ -284,7 +415,7 @@ hogs()
 	int i, pid, status, gate[2], done[2];
 	unsigned k;
 	long n;
-	char *m, c;
+	char __far *m, c;
 
 	pipe(gate);
 	pipe(done);
@@ -295,8 +426,12 @@ hogs()
 		if (pid == 0) {
 			close(gate[1]);
 			close(done[0]);
-			m = sbrk(HOGSIZE);
-			if (m == (char *)-1)
+			/* every other one in a segment it asks for */
+			if (i & 1)
+				m = segalloc((long)HOGSIZE);
+			else if ((m = sbrk(HOGSIZE)) == (char *)-1)
+				m = 0;
+			if (m == 0)
 				exit(101);
 			for (k = 0; k < HOGSIZE; k += 61)
 				m[k] = k + i;

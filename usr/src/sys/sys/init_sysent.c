@@ -25,7 +25,7 @@ int	getpgrp(),setpgrp(), setlogin();
 int	setgid(), setegid(), setuid(), seteuid();
 
 /* 1.2 memory management */
-int	sbrk();
+int	sbrk(), segalloc(), segsize(), usegfree();
 
 /* 1.3 signals */
 int	sigstack(),sigreturn();
@@ -190,9 +190,9 @@ struct sysent sysent[] = {
 	0, nosys,			/*  68 = unused */
 	2, sbrk,			/*  69 = sbrk */
 	0, nosys,			/*  70 = unused */
-	0, nosys,			/*  71 = unused */
-	0, nosys,			/*  72 = unused */
-	0, nosys,			/*  73 = unused */
+	2, segalloc,			/*  71 = segalloc */
+	4, segsize,			/*  72 = segsize */
+	2, usegfree,			/*  73 = segfree */
 	0, nosys,			/*  74 = unused */
 	0, nosys,			/*  75 = unused */
 	0, vhangup,			/*  76 = vhangup */

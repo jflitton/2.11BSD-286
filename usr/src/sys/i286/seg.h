@@ -112,6 +112,11 @@ struct pseg {
 #define	PS_WTEXT	0x04		/* code that is writable for now:
 					   being loaded, or traced */
 #define	PS_CODE		0x08		/* the process's own, but code */
+#define	PS_ALLOC	0x10		/* asked for with segalloc, and not
+					   one the program came with */
+#define	PS_MORE		0x20		/* with PS_ALLOC: the next slot goes
+					   on with the same piece of memory,
+					   which is more than 64K */
 
 #if defined(KERNEL) && !defined(LOCORE)
 extern struct segdesc	gdt[NGDT];

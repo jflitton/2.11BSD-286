@@ -43,7 +43,9 @@
 #include <stdarg.h>
 
 /* C99 7.19.1 clause 2 */
+#ifndef NULL
 #define	NULL	0
+#endif
 typedef off_t fpos_t;
 
 /*

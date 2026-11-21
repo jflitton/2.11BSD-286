@@ -181,6 +181,9 @@ cktypep(p)
 #ifdef	i286
 		else if (ISFAR(t) && t-(FPTR-PTR) == u)
 			;	/* a near pointer made far, as it is for */
+		else if ((t == (FPTR|VOID) && ISPTR(u)) ||
+		    (ISFAR(t) && u == (FPTR|VOID)))
+			;	/* far pointers to void, as near ones above */
 #endif
 		else if (ISPTR(t) && ISPTR(u))
 			werror("mixed pointer assignment");

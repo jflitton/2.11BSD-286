@@ -58,12 +58,16 @@ taking Open Watcom's library:
 | `__I4M`, `__U4M` | 32-bit multiply |
 | `__I4D`, `__U4D` | 32-bit divide and remainder |
 | `__CHP` | round the top of the 287 stack toward zero, for conversion to an integer |
-| `__PIA`, `__PTS`, `__PTC` | add to, subtract and compare `__huge` pointers |
+| `__PIA`, `__PIS`, `__PTS`, `__PTC` | add to and subtract from a `__huge` pointer, and subtract and compare two |
 
-Those are all that 338 compiled files of the tree referred to. The first
-five are in `usr/src/lib/libc/i286/crt`, beside the PDP-11's `lmul.s` and
-`ldiv.s` in `lib/libc/pdp/crt`; assembled with `-DFAR` they return far, for
-the medium and large models. The `__huge` three are not written yet.
+Those are all that the tree's compiled files refer to. They are in
+`usr/src/lib/libc/i286/crt`, beside the PDP-11's `lmul.s` and `ldiv.s`
+in `lib/libc/pdp/crt`; assembled with `-DFAR` they return far, for the
+medium and large models. The `__huge` four (`pia.s`) are in the large
+model's library only: a pointer is in DX:AX and what is added or the
+other pointer in CX:BX, and the carry out of an offset goes into the
+selector as 8, the next slot of the process's table
+([processes](processes.md)).
 
 The compiler turns a call that is the last thing a function does into a
 jump. Assembly that looks at its caller's return address sees the

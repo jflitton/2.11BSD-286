@@ -170,7 +170,7 @@ struct value *v, *a;
 		error("Can't open variable window: %s.", wwerror());
 		return;
 	}
-	if (var_walk(printvar, (int)w) >= 0)
+	if (var_walk(printvar, (char *)w) >= 0)
 		waitnl(w);
 	closeiwin(w);
 }
@@ -252,7 +252,7 @@ l_alias(v, a)
 			error("Can't open alias window: %s.", wwerror());
 			return;
 		}
-		if (alias_walk(printalias, (int)w) >= 0)
+		if (alias_walk(printalias, (char *)w) >= 0)
 			waitnl(w);
 		closeiwin(w);
 	} else {

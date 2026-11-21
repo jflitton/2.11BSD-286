@@ -40,13 +40,14 @@ tests, each a fixed amount of one kind of work, of the processor, system
 calls, pipes, `fork` and `exec`, the file system, a pseudo-terminal,
 TCP and users logged in by telnet, timed by the system's clock ([performance](performance.md)).
 
-The next planned is an editor in the manner of `vim`, beside
-`vi`: one that fills a window of any size, where `vi` refuses a window
-bigger than its copy of the screen ("Screen too large for internal
-buffer"); whose Home and End go to the start and end of the line, where
-`vi`'s Home goes to the top of the screen and it knows no End; whose
-Page Up, Page Down, Delete and Insert work with no `.exrc`; and which
-knows the cursor keys in insert mode too.
+The third is `ve`, an editor in the manner of `vim`, beside `vi`
+([below](#ve)): one that fills a window of any size, where `vi` refuses
+a window bigger than its copy of the screen ("Screen too large for
+internal buffer"); that edits a file of megabytes, where `vi` has room
+for 10,000 lines; whose Home and End go to the start and end of the
+line, where `vi`'s Home goes to the top of the screen and it knows no
+End; whose Page Up, Page Down, Delete and Insert work with no `.exrc`;
+and which knows the cursor keys in insert mode too.
 
 ## Building
 
@@ -68,11 +69,13 @@ with `libc.lib` last, converting the result to the system's format with
 `-s` and `-stack N`, and `-E`, which writes what the preprocessor makes
 of each file, and ignores the PDP-11's `-i` and `-n`.
 
-`-mm` makes a medium-model program, and `-ms`, the default, a small one
-([memory model](memory-model.md)). The medium model's code is far, in as
-many segments as it takes, where the PDP-11 would have overlays; its data
-is the small model's, near and in one segment. Each model has its own
-library, in `obj/lib/s` and `obj/lib/m`. The linker would take objects
+`-mm` makes a medium-model program, `-ml` a large one, and `-ms`, the
+default, a small one ([memory model](memory-model.md)). The medium
+model's code is far, in as many segments as it takes, where the PDP-11
+would have overlays; its data is the small model's, near and in one
+segment. The large model's data is far too ([below](#the-large-model)).
+Each model has its own library, in `obj/lib/s`, `obj/lib/m` and
+`obj/lib/l`. The linker would take objects
 of the two models together without complaint, and the program would
 fail as it ran, so `tools/cc` reads the model the compiler records in
 each object and library and refuses a mixture. The linker packs the code
@@ -80,11 +83,12 @@ of a medium-model program into segments of nearly 64K; `-packcode N`
 makes them N bytes at most.
 
 The programs are listed in `usr/src/i286/Makefile` with their sources,
-and with `NAME_MODEL = m` for one that is medium-model; each is compiled
+and with `NAME_MODEL = m` for one that is medium-model, or `l` for
+large; each is compiled
 and linked in one run of `tools/cc`, and what the compiler says goes to
 `obj/bin/log`. `libutil`, `libtermcap`, `libm`, `libcurses`, `libwrap`,
 `libdbm` and `libln` are built for each model a program wants, in
-`obj/lib/s` or `obj/lib/m`. Upstream's own Makefiles are not used: they
+`obj/lib/s`, `obj/lib/m` or `obj/lib/l`. Upstream's own Makefiles are not used: they
 install as they go, with the PDP-11's tools. The build also needs a C
 compiler for the machine it runs on, `cc` unless `HOSTCC` names another,
 for the tree's `yacc` and `lex` ([grammars](#grammars-yacc-and-lex)).
@@ -1234,7 +1238,7 @@ formats, with the pages of those kinds that `cron` and `tcpd` keep
 with them; of 4, those not of the PDP-11's devices: `tty`, `pty`,
 `null`, and the network's; of 6, those of the games on it
 ([games](#games)). 3f, Fortran's library, has nothing on the system to
-go with it. That is 605 pages, with the 315 other names upstream's
+go with it. That is 621 pages, with the 317 other names upstream's
 Makefiles give them by `ln`, `egrep` for `grep` and `fprintf` for
 `printf`, and 2.4 MB. A page its Makefile installs under another name,
 as `phantasia`'s `phant.nr` is `phantasia.0`, has that name after its
@@ -1628,14 +1632,16 @@ before saying a process was not there.
 
 `window` divides a terminal into windows, each with a shell on a pty of
 its own, and is upstream's, which leaves each window only the lines it
-shows (`local.h`). Its screen and its windows are kept in its 64K of
-data, at about 15 bytes for each place on the screen, with the window
-it draws frames in and the one it draws boxes in each as big as the
-screen: 80 by 24 leaves room for the two windows it starts with and a
-few more, at 132 by 24 it starts with none, and at 100 by 30 or 80 by
-36 it says "Out of memory." and stops. A bigger screen waits on the
-large model ([what is not ported](unported.md)); `stty rows 24 columns
-80` makes a bigger terminal do. It took what `sprintf` returns for the
+shows (`local.h`). It keeps its screen and its windows at about 15
+bytes for each place on the screen, with the window it draws frames in
+and the one it draws boxes in each as big as the screen. In 64K of data
+that was room at 80 by 24 for the two windows it starts with and a few
+more, and none at 100 by 30, where it said "Out of memory." and stopped.
+So it is the first program of the large model ([below](#the-large-model)):
+its windows come from `malloc`, which has segments from the system, and
+it runs on a terminal of 160 by 60. One line of a window must still fit
+a segment, and `wwalloc` says there is no memory for a bigger one, where
+its sum of 16 bits wrapped. It took what `sprintf` returns for the
 name of `~/.windowrc`: the buffer in 4.3BSD's library, and a count of
 characters in 2.11BSD's, so it never read the file. `error` took eight
 `int`s, and its table of commands ended with an initializer the
@@ -1663,6 +1669,124 @@ is killed with signal 6; `chflags uchg` must keep a file from being
 removed and written to until `nouchg`; and `la` must print three
 averages. At the terminal, it starts `window`, runs a command in a
 window on a pty, and leaves it with ^P `q`.
+
+## The large model
+
+A large-model program's pointers are all far, and its data may be more
+than a segment ([memory model](memory-model.md) says how it is laid
+out). `tools/cc -ml` makes one, with the cross compiler only, and the
+library for it is built beside the others (`make -C
+usr/src/lib/libc/i286`, in `obj/lib/l`): the same sources, with the
+start-up, `setjmp`, the signal trampoline, `modf`, the byte-order
+functions and the system call stubs each in the model's form, and its
+own `malloc` (`gen/lmalloc.c`) and helpers for `__huge` pointers
+(`crt/pia.s`).
+
+`malloc` there asks the system for a segment (`segalloc(2)`) and hands
+out pieces of it, making it larger 8K at a time up to 64K and then
+asking for another, so a program has as much as the system gives a
+process, 2 MB, and no one block of more than 65508 bytes. A freed block
+is joined to free neighbours, and `realloc` grows a block where it is
+when what follows is free.
+
+What breaks in old C is an argument of the wrong size where there is no
+prototype to say so: a `0` for a pointer, which is two bytes of the
+four; a pointer where an `int` is taken; and a function that returns a
+pointer and is called with no declaration, so that half its result is
+lost. `tools/lmlint.py FILE...` compiles each file for the model with
+the compiler's warnings on and puts them beside the definitions, in
+those files, in files named with `-k` and in the C library, to report
+each such call. The library had them in `execvp`, `rcmd`, `getmntinfo`,
+`daemon`, `ndbm`, `popen`, `scandir` and `strtoimax`, the last a
+function whose result was cut to 16 bits in every model; `window` had
+them where it walks its variables and aliases. `NULL` is `0L` in this
+model for the same reason.
+
+`tests/libc` runs its checks as a large-model program too, and has more
+for it: 400K from `malloc` in blocks, a block of nearly a segment and
+one too big, `realloc` in place, and 150,000 bytes behind a `__huge`
+pointer.
+
+## ve
+
+`ve` is a screen editor with the modes and the most used commands of
+`vim` (`ve(1)` has the list): counts, registers, the operators with
+motions and text objects, the visual modes, `.`, undo and redo of the
+last 40 changes, searches with patterns, and the commands after a colon,
+among them `:s`, `:g`, filters and reading from a command. It is this
+port's own, in `usr/src/i286/ve`, and compiles with either compiler.
+
+- **The file is not in its data segment, nor all in memory.** The text
+  is in blocks of 4K, each holding whole lines one after another; what
+  is known of a block, how full it is, how many lines and its
+  neighbours, is in a table, and a line is copied to a buffer in the
+  program's own data to be looked at or changed (`text.c`). The blocks
+  that are in memory are in segments `ve` asks the system for
+  (`segalloc(2)`), and so is the table: `ve` is a medium-model program
+  with far pointers in one file and five assembly routines, two to copy
+  through them, one to look for a byte, and `read` and `write` with a
+  far address (`fmem.s`). There are as many blocks in memory as the
+  cache holds, 128K unless `:set cache` says otherwise, 32K to 960K;
+  when there are more, those not used lately go to a file in `/tmp`,
+  which has no name once it is open, and are read again when they are
+  wanted. So `ve` is no larger with a file of megabytes than with one
+  of 128K, which matters where the kernel swaps whole processes and
+  several people are editing; and a file that fits in the cache, as
+  most do, never has the file in `/tmp` made. The text may be 16 MB,
+  the file, the registers and what undo keeps together.
+- **`/tmp` filling is seen to where something can be done about it.**
+  A new block is given its memory when it is made, another going to
+  `/tmp` for it if need be, and when that cannot be written the text
+  does not grow: a file is read as far as it went and marked read
+  only, so that it is not written back cut short, and a change is made
+  without being kept for undo, and `ve` says so. Reading a block back
+  never needs room: one place in memory is kept free for it, and the
+  block that then goes out takes the place in the file of the one that
+  came in, if it has none of its own.
+- **A file is read as it is wanted.** Enough of it to fill the window
+  is read before the window is shown, and the rest while nothing is
+  typed. What moves over the part that is there is done at once; a
+  search reads as far as it goes; anything else, `G` or a change,
+  waits for the rest, and ^C ends the wait. `:q`, `:e` and `:n` do not
+  wait.
+- **Undo keeps lines, not commands.** What a command changed is one run
+  of lines: where it starts, how many it is now, and the lines it was.
+  To undo it the two are exchanged, a line at a time so that it needs no
+  memory, and the record is then what does the change again (`edit.c`).
+  When there is no memory to keep a change it is made all the same, and
+  `ve` says that it cannot be undone.
+- **The screen is its copy of the terminal**, a byte for the character
+  and one for whether it stands out, in two more segments, so a window
+  may be as big as 65,000 places. A row is made as it should be and
+  compared with the copy, and only what differs is written; a line put
+  in or taken out, or the window moving over the file, is done with the
+  terminal's scrolling region or its insert and delete line
+  (`screen.c`). It uses termcap, and knows the usual sequences of the
+  cursor keys, Home, End, Insert, Delete, Page Up and Page Down
+  whatever the terminal's entry says. A long line is not folded: the
+  window moves sideways.
+- **It reads `$HOME/.verc`** for `:set` commands, and on a hangup writes
+  what was being edited to *file*`.save`.
+
+On the emulated 286, with a file of 20,000 lines and 960K and the cache
+at its 128K, so that seven eighths of the file is in `/tmp`: the window
+is there at once, and `:q` takes half a second; reading all of it takes
+13 seconds, 8 for the file and 5 to put most of it in `/tmp`, and
+writing it 13; taking out half its lines and undoing that, 40; a
+search that goes through all of it and finds nothing until the end, up
+to 25, where every line begins as the pattern does; `:%s/abc/X/g`,
+which changes a line in four places or so, 74; and a `:g` that takes
+out every third line, 110. Each pass over the file is a megabyte read
+from `/tmp`, and what it changed written back. A file that the cache
+holds has none of that; the editor's own time for what is done to it
+is about a tenth more than when all the text was in memory, which is
+what finding a block in the cache costs.
+
+`tests/ve` checks it on the machine the system is built on, where it is
+built from the same sources with `tests/ve/host` in place of the 286's
+segments and terminal: 115 checks, each typing keys at it and comparing
+the file it wrote, or the screen it drew as a terminal would show it.
+`tests/programs` runs it on the system.
 
 ## Games
 
@@ -2128,8 +2252,8 @@ kernel](#programs-that-read-the-kernel)). The system's own `strip` makes
 of a file what `tools/strip.py` does, which `tests/programs` checks on
 the kernel.
 
-The file system is 24000 blocks of 1K, of which the system takes 15158.
-The 316 programs are 6.2 MB of that, and 7.0 MB with their symbols; the
+The file system is 24000 blocks of 1K, of which the system takes 15251.
+The 317 programs are 6.2 MB of that, and 7.1 MB with their symbols; the
 manual's pages are 2.5 MB in about 2750 blocks; the games and their
 files take about 3300 blocks, 1600 of them `fortune`'s;
 `/usr/include` and the libraries take about 1080; `learn`'s lessons
@@ -2347,8 +2471,10 @@ prints its counts, `sysctl` four values by name and the whole list, and
 
 Not done, or not tested:
 
-- The large model has no library, and the three helpers for `__huge`
-  pointers are not written.
+- `window` is the only large-model program, and the system's own
+  compiler has not the model. A program moved to it wants looking over
+  first (`tools/lmlint.py`), and so does each library it uses but the C
+  library, which has been.
 - `csh`, `ex`, `tcsh`, `sendmail`, `hack`, `phantasia`, `rogue` and
   `warp` are the medium-model programs so far. The others that the
   PDP-11 overlays (`named`, `uucp`, `jove`, `kermit` and the rest

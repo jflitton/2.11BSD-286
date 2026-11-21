@@ -1,5 +1,5 @@
-; setjmp, longjmp, _setjmp and _longjmp (NASM): small model, or with
-; -DFAR medium.
+; setjmp, longjmp, _setjmp and _longjmp (NASM): small model, with -DFAR
+; medium, or with -DFAR and -DFARDATA large.
 ;
 ; A jmp_buf is a struct sigcontext (<signal.h>, <setjmp.h>).  setjmp
 ; fills in all of it: the signal mask and whether the signal stack is in
@@ -37,6 +37,7 @@ SIG_BLOCK equ   1
 
 ENV     equ     2+RA            ; the argument env, from BP
 
+%ifndef FARDATA
 ; setjmp(env)
 _setjmp:
         push    bp
@@ -140,4 +141,108 @@ __longjmp:
         jmp     far [bx+SC_IP]  ; SC_CS follows it
 %else
         jmp     word [bx+SC_IP]
+%endif
+%else
+
+; The large model.  env is a far pointer, and so is every pointer given
+; to the kernel; DS is whatever was last pointed at, here and in the
+; caller, so the context is given the program's data segment for it.
+
+; setjmp(env)
+_setjmp:
+        push    bp
+        mov     bp, sp
+        push    si
+        push    di
+        sub     sp, 8           ; the kernel's struct sigaltstack, at BP-12
+        mov     ax, sp
+        push    ss              ; _sigaltstack(0, &oss)
+        push    ax
+        xor     ax, ax
+        push    ax
+        push    ax
+        CALLC   __sigaltstack
+        lds     bx, [bp+ENV]
+        mov     ax, [bp-6]      ; its ss_flags
+        and     ax, SA_ONSTACK
+        mov     [bx+SC_ONSTACK], ax
+        lea     ax, [bx+SC_MASK]
+        push    ds              ; sigprocmask(SIG_BLOCK, 0, &env->sc_mask)
+        push    ax
+        xor     ax, ax
+        push    ax
+        push    ax
+        mov     ax, SIG_BLOCK
+        push    ax
+        CALLC   _sigprocmask
+        lea     sp, [bp-4]
+        lds     bx, [bp+ENV]
+        mov     [bx+SC_SI], si
+        mov     [bx+SC_DI], di
+        mov     ax, [bp]
+        mov     [bx+SC_BP], ax
+        mov     [bx+SC_DS], ss
+        mov     [bx+SC_ES], ss
+        mov     ax, [bp+2]
+        mov     [bx+SC_IP], ax
+        mov     ax, [bp+4]
+        mov     [bx+SC_CS], ax
+        pushf
+        pop     ax
+        mov     [bx+SC_FLAGS], ax
+        lea     ax, [bp+ENV]    ; the stack pointer after the return
+        mov     [bx+SC_SP], ax
+        mov     [bx+SC_SS], ss
+        xor     ax, ax
+        pop     di
+        pop     si
+        pop     bp
+        RET
+
+; longjmp(env, val): setjmp returns val, or 1 if val is 0.
+_longjmp:
+        mov     bp, sp
+        mov     ax, [bp+RA+4]
+        lds     bx, [bp+RA]
+        or      ax, ax
+        jnz     .val
+        inc     ax
+.val:   mov     [bx+SC_AX], ax
+        push    ds
+        push    bx
+        CALLC   _sigreturn
+        CALLC   _longjmperror   ; the kernel refused the context
+        hlt                     ; and there is nowhere to go: fault
+
+; _setjmp(env)
+__setjmp:
+        mov     bx, sp
+        mov     cx, [ss:bx]     ; the return address
+        mov     ax, [ss:bx+2]
+        lea     dx, [bx+RA]     ; the stack pointer after the return
+        lds     bx, [ss:bx+RA]
+        mov     [bx+SC_SI], si
+        mov     [bx+SC_DI], di
+        mov     [bx+SC_BP], bp
+        mov     [bx+SC_IP], cx
+        mov     [bx+SC_CS], ax
+        mov     [bx+SC_SP], dx
+        mov     [bx+SC_SS], ss
+        mov     [bx+SC_DS], ss
+        xor     ax, ax
+        RET
+
+; _longjmp(env, val)
+__longjmp:
+        mov     bx, sp
+        mov     ax, [ss:bx+RA+4]
+        lds     bx, [ss:bx+RA]
+        or      ax, ax
+        jnz     .val
+        inc     ax
+.val:   mov     si, [bx+SC_SI]
+        mov     di, [bx+SC_DI]
+        mov     bp, [bx+SC_BP]
+        mov     sp, [bx+SC_SP]
+        jmp     far [bx+SC_IP]  ; SC_CS follows it
 %endif

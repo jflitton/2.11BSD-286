@@ -7,8 +7,8 @@
 # own with the files they read.  A check is a few lines for the shell and
 # what they must write, to the byte.  Then use what needs a terminal: tty
 # and mesg, more, man, script, lock, tset and clear, the games
-# battlestar, hack, rogue, robots and hangman, and window; and stop the
-# system with shutdown.
+# battlestar, hack, rogue, robots and hangman, window and ve; and stop
+# the system with shutdown.
 # The kernel, /boot, the C library, the programs and the root file system
 # are built as they would be for a real machine, as tests/system has
 # them.
@@ -83,11 +83,19 @@ spare=$(python3 -I "$top/tools/mkdisk.py" -p -g 100,4,17 spare.img a=fs:2000 \
 # quotes where it is typed.  The shell that script starts is left with
 # the end of the file: one that is at a terminal does not obey exit.
 # window draws the space after a prompt as a move of the cursor, so what
-# is typed in it waits for its own message instead.
+# is typed in it waits for its own message instead.  It is run on a
+# terminal of 132 columns by 50 lines, which it had no memory for before
+# it was a program of the large model.  The q, the y and the end of the
+# line reach it together or apart, as it happens, and it asks "Really
+# quit [yn]?" on the screen only if the y was not there yet: what is
+# waited for is the shell's prompt after it.  ve, on the same terminal,
+# is given a line to add at the end of a file, and says what it read
+# and wrote.
 CTRLD=$(printf '\004')
 CTRLC=$(printf '\003')
 CTRLP=$(printf '\020')
-TIMEOUT=${TIMEOUT:-1500} python3 -I "$top/tests/harness/runtest.py" \
+ESC=$(printf '\033')
+TIMEOUT=${TIMEOUT:-1800} python3 -I "$top/tests/harness/runtest.py" \
     --hd programs.img,$geometry,xtide --hd2 spare.img,$spare --until halting \
     --type "login: " "root" \
     --type "# " 'mount /dev/wd0d /mnt; sh /mnt/check.sh; umount /mnt' \
@@ -124,11 +132,15 @@ TIMEOUT=${TIMEOUT:-1500} python3 -I "$top/tests/harness/runtest.py" \
     --type "Directions:" "${CTRLC}" \
     --type "# " '/usr/games/hangman' \
     --type "Guess:" "${CTRLC}" \
-    --type "# " 'window' \
+    --type "# " 'stty rows 50 columns 132; window' \
     --type "Escape character is" 'echo "in-win""dow"; tty' \
     --type "in-window" "${CTRLP}" \
     --type "Command:" 'qy' \
-    --type "Yes" '' \
+    --type "# " 'cp /etc/services /tmp/sv; ve /tmp/sv' \
+    --type "lines, " "Gototal ${ESC}:f" \
+    --type "changed, line" ':w' \
+    --type "lines, " ':q' \
+    --type "# " 'echo "ve""-"`tail -1 /tmp/sv`' \
     --type "# " 'echo "@ex""it 00"; shutdown -h now going down' \
     --boot programs
 
@@ -149,7 +161,7 @@ for want in "^/dev/tty00" "^is y" "^is n" "--More--(.*%)" \
     "lock: /dev/tty00 on .* timeout in 15 minutes" "tset-vt100" \
     "^0000000  *033  *\[" "luxurious stateroom" "Your rating was" \
     "End f input" "cannot lock score file" "Rogueists" "Directions:" \
-    "Word #:" "in-window" "/dev/ttyp[0-9]" "Really quit \[yn\]?" \
+    "Word #:" "in-window" "/dev/ttyp[0-9]" "changed, line" "^ve-total" \
     "System going down IMMEDIATELY" "going down" \
     "System shutdown time has arrived" "halting"; do
     if ! grep -q -- "$want" "$serial"; then
@@ -160,4 +172,4 @@ done
 python3 -I "$top/tools/fsck.py" programs.img
 python3 -I "$top/tools/fsck.py" -p a spare.img
 python3 -I "$top/tools/fsck.py" -p e spare.img
-echo "programs: $n checks of the programs that work on text and files, of nroff and man, of tbl, eqn, refer, spell and the rest documents go through, of zic and /usr/adm's scripts, of disklabel, the file system checkers, dump, restor and the rest of the administrator's, and fstat, and of the games, and tty, mesg, more, man, script, lock, tset, clear, five games, window and shutdown at a terminal"
+echo "programs: $n checks of the programs that work on text and files, of nroff and man, of tbl, eqn, refer, spell and the rest documents go through, of zic and /usr/adm's scripts, of disklabel, the file system checkers, dump, restor and the rest of the administrator's, and fstat, and of the games, and tty, mesg, more, man, script, lock, tset, clear, five games, window, ve and shutdown at a terminal"

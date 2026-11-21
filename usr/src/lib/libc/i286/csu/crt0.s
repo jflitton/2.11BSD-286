@@ -1,5 +1,5 @@
-; C start-up (NASM): small model, or with -DFAR medium.  This must be the
-; first file linked.
+; C start-up (NASM): small model, with -DFAR medium, or with -DFAR and
+; -DFARDATA large.  This must be the first file linked.
 ;
 ; The kernel starts a program (docs/processes.md) with DS = ES = SS its
 ; data segment and the stack pointer at the count of arguments; after it
@@ -27,6 +27,7 @@
         extern  _main, _exit, _strrchr
         global  _environ, ___progname, __curbrk, __minbrk
 
+%ifndef FARDATA
         segment _DATA
 ___progname:
         dw      empty           ; the last part of the program's name
@@ -73,3 +74,65 @@ __minbrk:                       ; and where it started, below which it
         push    ax
         CALLC   _exit           ; exit(main(argc, argv, envp))
 .hang:  jmp     .hang
+
+%else
+
+; The large model.  Every pointer here is far, those the kernel left on
+; the stack too: the arguments and the environment are in this segment,
+; which is the program's own data, and their pointers say so.  A null
+; pointer is selector 0, which nothing can be read through.
+        segment _DATA
+___progname:
+        dw      empty, DGROUP
+empty:  db      0
+
+        segment _BSS
+_environ:
+        resd    1
+__curbrk:
+        resd    1
+__minbrk:
+        resd    1
+
+        segment _TEXT
+..start:
+        mov     [__curbrk], bx
+        mov     [__curbrk+2], ds
+        mov     [__minbrk], bx
+        mov     [__minbrk+2], ds
+        mov     bp, sp
+        mov     ax, [bp]        ; argc
+        lea     cx, [bp+2]      ; argv
+        mov     dx, ax
+        inc     dx
+        shl     dx, 2
+        add     dx, cx          ; envp, after argv and its null
+        mov     [_environ], dx
+        mov     [_environ+2], ss
+        push    ss
+        push    dx
+        push    ss
+        push    cx
+        push    ax
+        or      ax, ax
+        jz      .call
+        les     bx, [bp+2]      ; argv[0]
+        mov     [___progname], bx
+        mov     [___progname+2], es
+        mov     ax, '/'
+        push    ax
+        push    es
+        push    bx
+        CALLC   _strrchr
+        add     sp, 6
+        mov     cx, ax
+        or      cx, dx
+        jz      .call
+        inc     ax
+        mov     [ss:___progname], ax
+        mov     [ss:___progname+2], dx
+.call:  CALLC   _main
+        push    ax
+        CALLC   _exit           ; exit(main(argc, argv, envp))
+.hang:  jmp     .hang
+%endif

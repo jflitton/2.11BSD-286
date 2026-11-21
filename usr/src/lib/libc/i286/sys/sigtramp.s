@@ -1,4 +1,5 @@
-; The signal trampoline (NASM): small model, or with -DFAR medium.
+; The signal trampoline (NASM): small model, with -DFAR medium, or with
+; -DFAR and -DFARDATA large.
 ; sigaction() names it to the kernel, which continues a process here to
 ; take a signal (docs/processes.md), with the address of the handler in
 ; DX:AX and on the stack the signal's number, a code, the far address of
@@ -20,11 +21,22 @@ __sigtramp:
         push    dx              ; the handler, where a far call can find
         push    ax              ;   it, below the arguments
         mov     bx, sp
+%ifdef FARDATA
+        push    word [bx+10]    ; scp, far
+        push    word [bx+8]
+        push    word [bx+6]     ; code
+        push    word [bx+4]     ; sig
+        call    far [bx]
+        add     sp, 12
+        push    ss              ; the handler left DS as it liked
+        pop     ds
+%else
         push    word [bx+8]     ; scp, near
         push    word [bx+6]     ; code
         push    word [bx+4]     ; sig
         call    far [bx]
         add     sp, 10
+%endif
 %else
         mov     bx, sp
         push    word [bx+4]     ; scp, near

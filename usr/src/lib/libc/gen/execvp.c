@@ -10,7 +10,7 @@ static char sccsid[] = "@(#)execvp.c	5.2 (Berkeley) 3/9/86";
 #define	NULL	0
 
 static	char shell[] =	"/bin/sh";
-char	*execat(), *getenv();
+char	*execat(), *getenv(), *index();
 extern	errno;
 
 execlp(name, argv)

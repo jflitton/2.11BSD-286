@@ -241,6 +241,7 @@ f /usr/ucb/top 2755:2 ../../../obj/root/bin/top
 f /usr/ucb/netstat 2755:2 ../../../obj/root/bin/netstat
 f /usr/bin/iostat 2755:2 ../../../obj/root/bin/iostat
 f /usr/bin/bench 755 ../../../obj/root/bin/bench
+f /usr/bin/ve 755 ../../../obj/root/bin/ve
 h /sbin/halt /sbin/reboot
 f /usr/bin/basename 755 ../../../obj/root/bin/basename
 f /usr/bin/cal 755 ../../../obj/root/bin/cal

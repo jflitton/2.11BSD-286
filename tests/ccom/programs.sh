@@ -12,7 +12,8 @@
 # Whatever the compiler cannot compile is then made in obj/nbin by the
 # cross compiler, with its own libraries, so that the system is whole:
 # obj/nbin/native lists the programs that are the system's compiler's
-# own work, and obj/nbin/cross the others, of which there are now none.
+# own work, and obj/nbin/cross the others: those of the large model,
+# which that compiler has not.
 #
 # Run from the top of the repository after `. tools/env.sh`.
 set -e
@@ -44,7 +45,8 @@ elif [ -n "$(names)" ]; then
 fi
 : > "$bin/cross"
 make -s -k -C "$top/usr/src/i286" CCOM=1 all > "$bin/log/ccom" 2>&1 || true
-names > "$bin/native"
+large=$(make -s -C "$top/usr/src/i286" largelist)
+names | grep -v -x -F -e "${large:-/}" > "$bin/native"
 # And the rest: a program that could not be made is not there.
 rest=
 for p in $(make -s -C "$top/usr/src/i286" list); do

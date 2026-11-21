@@ -12,6 +12,7 @@ static char sccsid[] = "@(#)ndbm.c	5.3 (Berkeley) 3/9/86";
 #include <sys/stat.h>
 #include <sys/file.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <ndbm.h>
 

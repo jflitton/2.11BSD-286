@@ -10,6 +10,15 @@
 ;       RA      is the size of a return address, 4 or 2: on entry the
 ;               first argument is at [SP+RA], and after PUSH BP and
 ;               MOV BP, SP at [BP+2+RA]
+;
+; And with -DFARDATA besides for the large model, where a data pointer is
+; far, four bytes, and compiled code keeps nothing in DS: it is loaded
+; with the segment of whatever is pointed at, as ES is, and a function
+; need not put it back.  The program's own data, which the stack is in,
+; is reached through SS.  So in a file that is assembled for the large
+; model, what is addressed through BX, SI or DI is in the segment DS was
+; last given, and the stack and the program's variables are written with
+; SS: or addressed through BP.
 
         bits    16
         cpu     286

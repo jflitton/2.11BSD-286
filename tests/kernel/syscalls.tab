@@ -33,3 +33,6 @@ _select=select	ipppp
 _sigreturn=sigreturn	p
 mkdir	pi
 rmdir	p
+segalloc	l	null
+segsize	Pl
+segfree	P

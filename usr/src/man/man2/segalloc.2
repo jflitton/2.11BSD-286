@@ -1,0 +1,127 @@
+.\"	segalloc.2: the 286 port's own
+.\"
+.TH SEGALLOC 2 "November 20, 2026"
+.UC 4
+.SH NAME
+segalloc, segsize, segfree \- more data segments for a process
+.SH SYNOPSIS
+.nf
+#include <segment.h>
+.PP
+.ft B
+void __far *segalloc(size)
+long size;
+.PP
+.ft B
+int segsize(seg, size)
+void __far *seg;
+long size;
+.PP
+.ft B
+int segfree(seg)
+void __far *seg;
+.fi
+.SH DESCRIPTION
+A process's memory is a list of segments, each of 64K bytes at most.
+A program comes with its code and its data, and in the small and
+medium memory models its data, stack and heap are one segment
+together, which
+.IR sbrk (2)
+makes larger up to that size and no further.
+These calls give a process segments besides.
+.PP
+.I Segalloc
+makes a segment of
+.I size
+bytes, all zero, and returns the far address of its first byte:
+its selector, with an offset of 0.
+A program of any memory model reaches it through a far pointer,
+declared with
+.B __far
+before the
+.BR * ,
+which is four bytes where another pointer is two.
+A reference past the end of a segment is a memory violation,
+as one past the break is.
+.PP
+If
+.I size
+is more than 65536 the piece is as many segments as it takes,
+each of them full but the last.
+Their selectors follow one another, each the one before it and 8,
+so byte
+.I n
+of the piece is at offset
+.IR n " % 65536"
+of the selector that is
+.RI "8 * (" n " / 65536)"
+more than the first;
+the macro
+.B SEGADDR(seg, n)
+is that address.
+An offset does not carry into the selector:
+adding to a far pointer changes its offset alone.
+.PP
+.I Segsize
+makes the piece that starts at
+.I seg
+.I size
+bytes long.
+What it gains is zero, and what it keeps is as it was.
+A piece that is to pass a multiple of 65536 bytes
+needs the selectors after its own to be free.
+.PP
+.I Segfree
+gives the piece that starts at
+.I seg
+back to the system.
+.PP
+.I Seg
+is the address that
+.I segalloc
+returned.
+What these calls make is the process's own, as its data is:
+a child made by
+.IR fork (2)
+has a copy of each, and they are gone when the process executes
+another program or exits.
+A process has room for 31 segments in all,
+its program's among them,
+and its segments together may be no more than the system
+lets a process have (2 megabytes as distributed).
+.SH "RETURN VALUE
+.I Segalloc
+returns the address of the new piece, or a null pointer,
+with the reason in
+.IR errno .
+.I Segsize
+and
+.I segfree
+return 0, or \-1 with the reason in
+.IR errno .
+.SH ERRORS
+.TP 15
+[EINVAL]
+.I Size
+is not more than 0;
+or
+.I seg
+is not the start of something
+.I segalloc
+made.
+.TP 15
+[ENOMEM]
+The process has no selectors free for the piece,
+or not that many in a row,
+or those after it are in use;
+or it would have more memory than a process may.
+.TP 15
+[EBUSY]
+The process's stack is in what
+.I segfree
+was to free.
+.SH "SEE ALSO"
+brk(2), execve(2), fork(2), malloc(3)
+.SH BUGS
+A segment is where it is: the system cannot move a piece to
+selectors that have room for it to grow.

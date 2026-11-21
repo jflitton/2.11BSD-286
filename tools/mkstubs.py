@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """Write system call stubs, in NASM, from a table.
 
-usage: mkstubs.py [--model s|m] [--sysent FILE] TABLE SYSCALL.H > stubs.s
-       mkstubs.py [--model s|m] [--sysent FILE] -d DIR TABLE SYSCALL.H
+usage: mkstubs.py [--model s|m|l] [--sysent FILE] TABLE SYSCALL.H > stubs.s
+       mkstubs.py [--model s|m|l] [--sysent FILE] -d DIR TABLE SYSCALL.H
 
-For the small memory model, or the medium one.  C calls a stub, near in
-the small model and far in the medium, with its arguments on the stack.
-Data pointers are near in both; a pointer to a function is near in the
-small model and far in the medium.  The stub
+For the small memory model, the medium or the large.  C calls a stub,
+near in the small model and far in the others, with its arguments on
+the stack.  Data pointers are near in the small and the medium; a
+pointer to a function is near in the small model alone.  In the large
+model both are far, as the kernel wants them, and DS is not the
+program's data segment: the stub reaches its arguments, and errno,
+through SS.  The stub
 puts the call's number in AX and its arguments, a word each, in BX, CX,
 DX, SI, DI and BP, and executes INT 30h (docs/processes.md).  To the
 kernel a pointer is always two words, offset and then selector: for a
@@ -31,7 +34,8 @@ Each line of TABLE is
 NAME is the C function's.  CALL is the system call's name in SYSCALL.H
 (<syscall.h>), whose SYS_CALL is its number; it is NAME if not given.
 ARGUMENTS is a letter for each argument of the C function, or - for
-none: i an int, l a long, p a data pointer, f a pointer to a function.
+none: i an int, l a long, p a data pointer, f a pointer to a function,
+P a data pointer that is far in every model.
 RESULT says what to do with what the kernel returns: nothing (the value
 in AX, or DX:AX, as it is), or
 
@@ -41,6 +45,8 @@ in AX, or DX:AX, as it is), or
             kernel is passed nothing
     zero    the function returns 0
     errno0  errno is cleared first, because -1 can be a good result
+    null    the result is a far pointer, in DX:AX, and a null one says
+            the call failed
 
 With --sysent, the kernel's table of calls (sys/sys/init_sysent.c) is
 read too, and each stub must pass as many words as the kernel takes for
@@ -63,10 +69,13 @@ class Model:
     arguments start, and the size of a pointer to a function."""
 
     def __init__(self, name):
-        far = name == "m"
+        far = name in ("m", "l")
         self.ret = "retf" if far else "ret"
         self.ra = 4 if far else 2       # bytes of return address
         self.farcode = far
+        self.fardata = name == "l"
+        # what the stack and the program's data are addressed through
+        self.ss = "ss:" if self.fardata else ""
 
 
 def words_of(name, args, model):
@@ -80,7 +89,10 @@ def words_of(name, args, model):
         if a == "i":
             words.append(("arg", off))
             off += 2
-        elif a == "l":
+        elif a in ("l", "P"):
+            words += [("arg", off), ("arg", off + 2)]
+            off += 4
+        elif a == "p" and model.fardata:
             words += [("arg", off), ("arg", off + 2)]
             off += 4
         elif a == "p":
@@ -97,10 +109,11 @@ def words_of(name, args, model):
     return words
 
 
-def load(reg, w, base, n):
-    """Instructions that put word W in REG, the arguments being at BASE."""
+def load(reg, w, base, n, ss=""):
+    """Instructions that put word W in REG, the arguments being at BASE,
+    with SS a segment override for it."""
     if w[0] == "arg":
-        return ["        mov     %s, [%s+%d]" % (reg, base, w[1])]
+        return ["        mov     %s, [%s%s+%d]" % (reg, ss, base, w[1])]
     seg = "ds" if w[0] == "sel" else "cs"
     tmp = "ax" if reg == "bp" else reg
     out = ["        mov     %s, %s" % (tmp, seg),
@@ -122,7 +135,10 @@ def stub(name, number, args, result, model):
         return out
     far = []
     for line in out:
-        if line.split() == ["jc", "cerror"]:
+        if line.split() == ["jc", "cnull"]:
+            far += ["        jnc     .ok%d" % len(far),
+                    "        jmp     far cnull", ".ok%d:" % len(far)]
+        elif line.split() == ["jc", "cerror"]:
             far += ["        jnc     .ok%d" % len(far),
                     "        jmp     far cerror", ".ok%d:" % len(far)]
         elif line.split() == ["jmp", "cerror"]:
@@ -160,12 +176,14 @@ def near_stub(name, number, args, result, model):
         # puts the two results.
         return out + ["        mov     ax, %d" % number, "        int     0x30",
                       "        jc      cerror", "        mov     bx, sp",
-                      "        mov     bx, [bx+%d]" % ra, "        mov     [bx], ax",
+                      "        lds     bx, [ss:bx+%d]" % ra if model.fardata
+                      else "        mov     bx, [bx+%d]" % ra,
+                      "        mov     [bx], ax",
                       "        mov     [bx+2], dx", "        xor     ax, ax",
                       "        " + model.ret]
     words = words_of(name, args, model)
     if result == "errno0":
-        out.append("        mov     word [_errno], 0")
+        out.append("        mov     word [%s_errno], 0" % model.ss)
     if len(words) <= 3:
         # Few enough for BX, CX and DX: no frame, and BX, the base,
         # loaded last.  The arguments are above the return address.
@@ -173,7 +191,7 @@ def near_stub(name, number, args, result, model):
         regs = REGS[:len(words)]
         for k in reversed(range(len(words))):
             w = words[k]
-            out += load(regs[k], (w[0], w[1] + ra), "bx", k)
+            out += load(regs[k], (w[0], w[1] + ra), "bx", k, model.ss)
         out += ["        mov     ax, %d" % number, "        int     0x30",
                 "        jc      cerror"]
     else:
@@ -206,6 +224,8 @@ def near_stub(name, number, args, result, model):
                 "        xor     ax, ax", ".parent:"]
     elif result == "zero":
         out.append("        xor     ax, ax")
+    elif result == "null":
+        out = [l.replace("cerror", "cnull") for l in out]
     elif result not in ("", "errno0"):
         sys.exit("%s: result %r" % (name, result))
     out.append("        " + model.ret)
@@ -217,13 +237,18 @@ def cerror(model):
     a jump, near or far as the stub's own return is."""
     return ["        segment _BSS public align=2 class=BSS",
             "        group   DGROUP _BSS",
-            "        global  _errno, cerror", "",
+            "        global  _errno, cerror, cnull", "",
             "        segment _BSS",
             "_errno: resw    1", "",
             "        segment _TEXT",
             "; The kernel said no: the error number is in AX.",
-            "cerror: mov     [_errno], ax",
+            "cerror: mov     [%s_errno], ax" % model.ss,
             "        mov     ax, -1",
+            "        cwd",
+            "        " + model.ret,
+            "; The same for a call whose result is a far pointer.",
+            "cnull:  mov     [%s_errno], ax" % model.ss,
+            "        xor     ax, ax",
             "        cwd",
             "        " + model.ret]
 
@@ -250,7 +275,7 @@ def sysent(path):
 
 def main():
     ap = argparse.ArgumentParser(usage=__doc__)
-    ap.add_argument("--model", default="s", choices=["s", "m"])
+    ap.add_argument("--model", default="s", choices=["s", "m", "l"])
     ap.add_argument("--sysent")
     ap.add_argument("-d")
     ap.add_argument("table")
@@ -296,7 +321,7 @@ def main():
             f.write("\n".join([made, ""] + HEAD +
                               ["        segment _BSS public align=2 class=BSS",
                                "        group   DGROUP _BSS",
-                               "        extern  cerror, _errno",
+                               "        extern  cerror, cnull, _errno",
                                "        segment _TEXT"] + s) + "\n")
 
 

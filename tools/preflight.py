@@ -143,10 +143,13 @@ EXTRALIBS = ["m", "curses", "termcap", "util"]
 
 SIZE = {"int": 2, "ptr": 2, "fn": 2, "long": 4, "far": 4, "dbl": 8}
 STUB = {"int": "int %s", "long": "long %s", "ptr": "void *%s",
-        "fn": "int (*%s)()", "dbl": "double %s"}
-LETTER = {"i": "int", "l": "long", "p": "ptr", "f": "fn", "d": "dbl"}
+        "fn": "int (*%s)()", "dbl": "double %s",
+        "far": "void __far *%s"}
+LETTER = {"i": "int", "l": "long", "p": "ptr", "f": "fn", "d": "dbl",
+          "P": "far"}
 NAMES = {"int": "int", "long": "long", "ptr": "pointer",
-         "fn": "pointer to a function", "dbl": "double"}
+         "fn": "pointer to a function", "dbl": "double",
+         "far": "far pointer"}
 
 KEYWORDS = set("""auto break case char const continue default do double
     else enum extern float for goto if int long register return short

@@ -1,0 +1,232 @@
+.\"	ve.1: the 286 port's own
+.\"
+.TH VE 1 "November 20, 2026"
+.UC 4
+.SH NAME
+ve \- screen editor in the manner of vim
+.SH SYNOPSIS
+.B ve
+[
+.B \-R
+] [
+.BI + line
+] [ file ... ]
+.SH DESCRIPTION
+.I Ve
+is a screen editor with the modes and the most used commands of
+.IR vim .
+It is for a terminal of any size, and a file of any length up to 16
+megabytes.
+Only so much of the text is in memory as the
+.B cache
+option allows, in segments of its own
+.RI ( segalloc (2));
+the rest is in a file in /tmp, which a file that fits in the cache
+never needs.
+.PP
+A file is shown as soon as enough of it has been read to fill the
+window.
+The rest is read while nothing is typed, and a command that moves over
+what is there is done at once; a search reads as far as it goes; any
+other command waits for the rest, and ^C ends the wait.
+.PP
+With
+.B \-R
+the files are not to be written.
+.BI + line
+puts the cursor on that line of the first file, and
+.B +
+alone on its last.
+.PP
+A line may be 2000 characters; a longer one is cut in two when it is
+read.
+A line longer than the screen is wide is not folded: the window
+moves sideways to keep the cursor in sight.
+Null characters are left out of a file as it is read.
+.SH "NORMAL MODE"
+A command may have a count before it, and
+.BI \(dq x
+to name the register, a to z, that it takes text from or keeps it in.
+.PP
+Motions:
+.nf
+.ta 2.2i
+h j k l, the arrows	left, down, up, right
+0 ^ $ Home End	start of line, first character, end
+w b e W B E	words, and words between blanks
+f\fIc\fP F\fIc\fP t\fIc\fP T\fIc\fP ; ,	to a character in the line
+gg G \fIn\fPG	first line, last, line \fIn\fP
+H M L	top, middle, bottom of the window
+{ }	paragraphs
+%	the matching bracket; \fIn\fP% is \fIn\fP percent
+/\fIpat\fP ?\fIpat\fP n N * #	searches
+\(aa\fIx\fP \(ga\fIx\fP \(aa\(aa	marks; where the cursor last jumped from
++ \- Return _ |	lines, and a column
+.fi
+.PP
+Operators, each followed by a motion, by itself for whole lines, or by
+an object:
+.B d
+delete,
+.B c
+change,
+.B y
+yank,
+.B >
+and
+.B <
+shift,
+.B !
+filter through a command.
+The objects are
+.B iw aw iW aW
+a word,
+.B "i( a( i[ a[ i{ a{ i< a<"
+brackets and what is in them,
+.B "i\(dq a\(dq i\(aa a\(aa"
+quotes, and
+.B "ip ap"
+a paragraph.
+.PP
+Other commands:
+.nf
+i a I A o O	insert: before, after, at the start, the end, on a new line
+R	replace mode
+x X D C s S Y	short for dl dh d$ c$ cl cc yy
+p P	put the register after, or before
+r\fIc\fP ~ J	replace a character, change case, join lines
+u ^R .	undo, redo, repeat the last change
+v V	visual mode, by characters or lines
+m\fIx\fP	mark the place \fIx\fP, a to z
+^F ^B ^D ^U ^E ^Y, PgUp PgDn	scroll
+zt z. zb	put the cursor's line at the top, middle, bottom
+^G ^L ^Z	say where; draw again; stop for a while
+ZZ ZQ	write and quit; quit without
+& ^^	repeat the last :s; edit the file before this one
+.fi
+.PP
+The last 40 changes can be undone.
+In visual mode the motions move the end of the area, and
+.B "d x y c s < > ! J ~ u U r :"
+work on it;
+.B o
+goes to its other end.
+.SH "INSERT MODE"
+What is typed goes into the file until ESC.
+Backspace takes out what is before the cursor, the end of the line
+before included;
+.B ^W
+a word and
+.B ^U
+the line so far.
+.B ^T
+and
+.B ^D
+shift the line,
+.B ^V
+puts in the next key whatever it is, and the arrows, Home, End, PgUp,
+PgDn and Delete do what they say.
+Insert changes between inserting and replacing.
+.SH "COMMAND LINE"
+After a colon come the commands of
+.IR ex ,
+with their lines before them: a number,
+.B .
+the cursor's line,
+.B $
+the last,
+.BI \(aa x
+a mark,
+.BI / pat /
+and
+.BI ? pat ?
+a search, each with
+.BI + n
+or
+.BI \- n
+perhaps, and
+.B %
+for all of them.
+.nf
+.ta 2.2i
+w[!] [\fIfile\fP], w >> \fIfile\fP	write
+wq, x, q[!]	write and quit, the same if changed, quit
+e[!] [\fIfile\fP], e #	edit a file; the one before this
+r \fIfile\fP, r !\fIcommand\fP	read in a file, or what a command writes
+n[!], prev, rew, args	the files named on the command line
+f [\fIname\fP]	say what file, or name it
+d [\fIx\fP], y [\fIx\fP], pu [\fIx\fP]	delete, yank, put
+m \fIline\fP, t \fIline\fP	move and copy
+j, >, <	join, shift
+s/\fIpat\fP/\fInew\fP/[g], &	substitute, and again
+g/\fIpat\fP/\fIcommand\fP, v/\fIpat\fP/\fIcommand\fP	for every line with, or without
+!\fIcommand\fP, \fIlines\fP!\fIcommand\fP, sh	the shell; filter lines
+p, nu, =	show lines, with numbers, a line's number
+k\fIx\fP, u, red	mark, undo, redo
+se \fIoption\fP	set
+so \fIfile\fP, cd \fIdir\fP, h	commands from a file, change directory, this page
+.fi
+.PP
+In
+.I new
+.B &
+is what the pattern matched,
+.BR \e1 " to " \e9
+its parts, and
+.B \en
+ends a line.
+In a command for the shell
+.B %
+is the file's name and
+.B #
+that of the file before it.
+.PP
+A pattern has
+.B ". [ ] * ^ $ \e< \e> \e( \e)"
+as in
+.IR ed (1),
+and
+.B "\e+ \e? \es \eS \ed \ew \et"
+besides.
+.PP
+The options, with their short names:
+.B autoindent
+(ai),
+.BI cache= n
+(128), the memory for text in K, from 32 to 960,
+.B expandtab
+(et),
+.B ignorecase
+(ic),
+.B list,
+.B number
+(nu),
+.BI shiftwidth= n
+(sw, 8),
+.BI tabstop= n
+(ts, 8), and
+.B wrapscan
+(ws, set).
+One is unset with
+.B no
+before its name.
+.SH FILES
+.ta 1.5i
+$HOME/.verc	commands done at the start, a line each
+.br
+\fIfile\fP.save	what was being edited when the terminal hung up
+.br
+/tmp/ve*	the text that is not in memory; it has no name once it is open
+.SH "SEE ALSO"
+ex(1), vi(1), ed(1), segalloc(2)
+.SH BUGS
+When /tmp is full a file is read only as far as there was room, and
+is not to be written; a change is still made, but may be one that
+cannot be undone.
+There is one file at a time, one window, no folding of long lines,
+no maps or macros, and no alternation in patterns.
+A count before
+.B o
+or
+.B O
+is not used.

@@ -35,6 +35,38 @@ segment grows in place if the memory after it is free, and is moved if
 not. Nothing a program can address lies past the break, so a stray
 reference there is a fault. Where the stack sits is not settled (below).
 
+A process may ask for more segments than its program came with
+(`segalloc(2)`, `<segment.h>`):
+
+| call | does |
+|---|---|
+| `segalloc(size)` | makes a piece of `size` bytes, all zero, in the first free slots, and returns the far address of its first byte |
+| `segsize(seg, size)` | makes the piece larger, the new part zero, or smaller |
+| `segfree(seg)` | gives it back |
+
+A piece of more than 64K is as many segments as it takes, in slots one
+after another, so their selectors are 8 apart and all but the last are
+full: byte `n` is in selector `seg + 8 * (n >> 16)` at offset `n &
+0xFFFF`, which is what a `__huge` pointer's arithmetic comes to and what
+`SEGADDR` in `<segment.h>` works out for a program that has none. The
+kernel marks each slot of a piece (`PS_ALLOC`, and `PS_MORE` on all but
+its last), so that `segsize` and `segfree` take only the address
+`segalloc` gave, and never a segment the program came with. The memory
+is the process's like the rest: counted against the same limit of 2 MB
+(`MAXMEM`), copied at `fork`, swapped with the process, written to a
+core file, and gone at `exec` and `exit`, none of which needed changing,
+since they go by the list of slots already. A selector that `segfree`
+or a shrinking `segsize` takes away may still be in DS or ES when the
+call returns; the kernel makes it the null selector there, as it does
+for any that is no good. A piece that holds the stack is not freed
+(`EBUSY`).
+
+This is what lets a program of the small or medium model keep something
+large behind `__far` pointers without being converted, as `ve` keeps
+what it has in memory of the file it edits ([userland](userland.md)),
+and it is where the large
+model's `malloc` has its memory from ([memory model](memory-model.md)).
+
 The global table has one slot, `GDT_LDT`, that names the running process's
 table.
 
@@ -344,7 +376,6 @@ for the one and loaded for the other. A process that never touches the
   pass over the stack (userland.md); upstream's `c2` does too, and the
   286's has its space from `malloc` instead. The arguments would have to go
   elsewhere, since a stack at the bottom cannot be made larger for them.
-- More data segments for a program that asks for them, by a system call.
 - A segment that is not in memory. The fault it causes, 11, is the hook
   for bringing one segment back instead of a whole process.
 - 287 errors, which reach an AT-compatible machine as interrupt request

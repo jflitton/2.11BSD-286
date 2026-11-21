@@ -15,10 +15,14 @@ wwalloc(row, col, nrow, ncol, size)
 {
 	register char *p, **pp;
 	register int i;
+	long n;
 
-	/* fast, call malloc only once */
-	pp = (char **)
-		malloc((unsigned) sizeof (char **) * nrow + size * nrow * ncol);
+	/*
+	 * fast, call malloc only once: for what a block can be, and not
+	 * what is left of the size in 16 bits
+	 */
+	n = (long)sizeof (char **) * nrow + (long)size * nrow * ncol;
+	pp = n > 65000L ? 0 : (char **)malloc((unsigned)n);
 	if (pp == 0) {
 		wwerrno = WWE_NOMEM;
 		return 0;

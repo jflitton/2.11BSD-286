@@ -1,4 +1,4 @@
-# The C library for the 286, small and medium models.
+# The C library for the 286: small, medium and large models.
 #
 # From the top of the repository, after `. tools/env.sh`:
 #
@@ -6,14 +6,23 @@
 #
 # makes, for each model, obj/lib/M/crt0.o, the start-up code every
 # program is linked with first, and obj/lib/M/libc.lib, the library: M
-# is s for the small model and m for the medium.  MODEL=s or MODEL=m
-# makes only the one.  GNU make.
+# is s for the small model, m for the medium and l for the large.
+# MODEL=s, MODEL=m or MODEL=l makes only the one.  GNU make.
 #
 # The medium model's code is far: each file's is a segment of its own,
 # and every function returns far.  Its data is near, in one segment, as
 # the small model's is.  The C is the same for both, compiled with -ms or
 # -mm; the assembly is assembled with -DFAR for the medium model
 # (crt/DEFS.inc), and the system call stubs are made for it.
+#
+# The large model has the medium's code, and data in as many segments
+# as it takes: every pointer is far, and DS is whatever was last
+# pointed at (docs/memory-model.md).  The C is compiled with -ml and
+# the assembly assembled with -DFARDATA as well.  Its malloc is
+# gen/lmalloc.c, which gets segments from the system where the others'
+# moves the break; and it has the routines compiled code calls for
+# arithmetic on __huge pointers (crt/pia.s).  The cross compiler alone
+# makes it: the system's own has no large model.
 #
 # Each variable a file defines without a value gets common storage
 # (tools/commonize.py), as for programs (tools/cc).
@@ -70,14 +79,20 @@ ifeq ($(MODEL),)
 all clean:
 	@$(MAKE) --no-print-directory MODEL=s $@
 	@$(MAKE) --no-print-directory MODEL=m $@
+	$(if $(CCOM),,@$(MAKE) --no-print-directory MODEL=l $@)
 
 .PHONY:	all clean
 
 else
 
-ifeq ($(filter $(MODEL),s m),)
-$(error MODEL is s or m)
+ifeq ($(filter $(MODEL),s m l),)
+$(error MODEL is s, m or l)
 endif
+ifeq ($(MODEL)$(CCOM),l1)
+$(error the system's own compiler has no large model)
+endif
+# What the assembly is told of the model (crt/DEFS.inc).
+FAR=	$(if $(filter m l,$(MODEL)),-DFAR) $(if $(filter l,$(MODEL)),-DFARDATA)
 
 O=	$(TOP)/obj/$(if $(CCOM),nlib,lib)/$(MODEL)
 OBJ=	$(O)/obj
@@ -94,12 +109,11 @@ CFLAGS=	-O -m$(MODEL) -I$(TOP)/usr/include
 NCC:=	$(TOP)/tools/ncc $(addprefix $(TOP)/obj/host/ccom/,c0 c1 c2 as)
 endif
 ifeq ($(CCOM),)
-AS=	nasm -f obj -I$(MD)/crt/ $(if $(filter m,$(MODEL)),-DFAR)
+AS=	nasm -f obj -I$(MD)/crt/ $(FAR)
 SAS=	nasm -f obj
 LIBC_A=	$(O)/libc.lib
 else
-AS=	$(TOP)/obj/host/ccom/as -m$(MODEL) -I$(MD)/crt \
-	$(if $(filter m,$(MODEL)),-DFAR)
+AS=	$(TOP)/obj/host/ccom/as -m$(MODEL) -I$(MD)/crt $(FAR)
 SAS=	$(TOP)/obj/host/ccom/as -m$(MODEL)
 LIBC_A=	$(O)/libc.a
 endif
@@ -144,7 +158,7 @@ MDGENC=	nsym
 MDSYSS=	sigtramp
 MDGEN=	ldexp modf setjmp $(if $(CCOM),alloca)
 MDNET=	htons
-CRT=	i4m i4d chp
+CRT=	i4m i4d chp $(if $(filter l,$(MODEL)),pia)
 
 COBJS=	$(GEN) $(GENC) $(PDPGEN) $(STDIO) $(STDLIB) $(STRING) $(COMPAT41) \
 	$(COMPAT43) $(COMPAT5) $(INET) $(NET) $(NAMED) $(NS) $(MDSYS) \
@@ -171,6 +185,11 @@ define compile
 	$(if $(CCOM),,@python3 -I $(TOP)/tools/commonize.py $(OBJ)/$*.o)
 endef
 
+# what the large model has of its own: lmalloc.c for malloc.c
+ifeq ($(MODEL),l)
+$(OBJ)/%.o: $(MD)/gen/l%.c $(HDRS) | $(OBJ)
+	$(call compile)
+endif
 $(OBJ)/%.o: $(LIBC)/gen/%.c $(HDRS) | $(OBJ)
 	$(call compile)
 # this directory's before ../pdp's, which has a nsym.c too

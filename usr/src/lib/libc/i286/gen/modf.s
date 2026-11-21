@@ -1,6 +1,6 @@
 ; modf(x, &ip): the fraction of x, with its whole part stored at ip, on
-; the 287 (NASM: small model, or with -DFAR medium).  Both have the sign
-; of x.
+; the 287 (NASM: small model, with -DFAR medium, or with -DFARDATA too
+; large).  Both have the sign of x.
 
 %include "DEFS.inc"
 
@@ -21,7 +21,11 @@ _modf:  push    bp
         fld     st0
         frndint                 ; whole, x
         fldcw   [bp-2]
+%ifdef FARDATA
+        lds     bx, [bp+2+RA+8] ; ip, far
+%else
         mov     bx, [bp+2+RA+8] ; ip, near
+%endif
         fst     qword [bx]
         fxch                    ; x, whole
         fsub    st0, st1        ; x - whole, whole

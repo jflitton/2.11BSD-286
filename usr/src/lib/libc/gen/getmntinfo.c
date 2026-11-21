@@ -51,7 +51,7 @@ getmntinfo(mntbufp, flags)
 	static int mntsize;
 	static int bufsize;
 
-	if (mntsize <= 0 && (mntsize = getfsstat(0, 0, MNT_NOWAIT)) < 0)
+	if (mntsize <= 0 && (mntsize = getfsstat((struct statfs *)0, 0, MNT_NOWAIT)) < 0)
 		return (0);
 	if (bufsize > 0 && (mntsize = getfsstat(mntbuf, bufsize, flags)) < 0)
 		return (0);

@@ -17,6 +17,19 @@
  */
 #include <errno.h>
 
+/*
+ * In the large model the break is a far address, as every address is,
+ * in the program's own data segment, and it is its offset that moves.
+ */
+#ifdef __LARGE__
+#define	OFF(p)		((unsigned)(unsigned long)(p))
+#define	AT(p, off) \
+	((char *)(((unsigned long)(p) & 0xFFFF0000L) | (unsigned)(off)))
+#else
+#define	OFF(p)		((unsigned)(p))
+#define	AT(p, off)	((char *)(off))
+#endif
+
 extern char *_curbrk, *_minbrk;
 extern int errno;
 int _brk();
@@ -25,7 +38,7 @@ char *
 brk(addr)
 	char *addr;
 {
-	if (addr < _minbrk)
+	if (OFF(addr) < OFF(_minbrk))
 		addr = _minbrk;
 	if (_brk(addr) < 0)
 		return ((char *)-1);
@@ -38,13 +51,13 @@ sbrk(incr)
 	int incr;
 {
 	char *old = _curbrk;
-	unsigned new = (unsigned)old + incr;
+	unsigned new = OFF(old) + incr;
 
-	if (incr > 0 && new <= (unsigned)old) {
+	if (incr > 0 && new <= OFF(old)) {
 		errno = ENOMEM;
 		return ((char *)-1);
 	}
-	if (incr != 0 && brk((char *)new) == (char *)-1)
+	if (incr != 0 && brk(AT(old, new)) == (char *)-1)
 		return ((char *)-1);
 	return (old);
 }

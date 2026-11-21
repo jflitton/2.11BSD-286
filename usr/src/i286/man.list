@@ -60,6 +60,9 @@ cat1	usr.bin/xargs/xargs.1 usr.bin/xinstall/install.1 usr.sbin/cron/crontab.1
 cat1	usr.sbin/nc/nc.1 usr.sbin/tracebuf/tracebuf.1 bin/chflags/chflags.1
 cat1	new/la/la.1 man/man1/gcore.1 man/man1/window.1
 
+# This port's own editor.
+cat1	i286/ve/ve.1
+
 # The compiler and what goes with it: as and ld are the 286's own, and
 # so are their pages.
 cat1	man/man1/cc.1 lib/cpp/cpp.1 bin/as/i286/as.1 bin/ld/i286/ld.1

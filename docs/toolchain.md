@@ -13,8 +13,8 @@ cc -mm -o big big.c                 # medium model: far code
 The system itself is still built with the cross compiler, Open Watcom
 ([building](development.md)). The same tools, compiled for the machine
 the system is built on, make it too (`tools/cc -ccom`), and
-`tests/ccom/programs.sh` boots a system that is all their work. And
-the system makes them of their sources itself ([below](#the-system-makes-its-own-compiler)).
+`tests/ccom/programs.sh` boots a system that is all their work but
+`window`, which is of the large model. And the system makes them of their sources itself ([below](#the-system-makes-its-own-compiler)).
 
 ## What runs what
 
@@ -54,6 +54,13 @@ The start-up code and the libraries are per model:
 | start-up | `/lib/crt0.o` | `/lib/m/crt0.o` |
 | C library | `/lib/libc.a` | `/lib/m/libc.a` |
 | others (`-lNAME`) | `/usr/lib/libNAME.a` | `/usr/lib/m/libNAME.a` |
+
+In either model a pointer to data is near unless it is declared
+`__far`, which is how a program reaches the segments `segalloc` gives
+it. A far pointer to `void` is assigned to and from any other pointer
+to data without a cast, as a near one is; that is what `segalloc`
+returns and `segfree` takes, and `ve` is written with it
+([ve](userland.md#ve)).
 
 `ld -mm` looks in the `m` directories for `-l`. The libraries on the
 system are `libc`, `libm`, `libtermcap`, `libcurses`, `libutil`,
@@ -216,4 +223,7 @@ system is built.
   `__interrupt`, `__huge` and the cross compiler's pragmas are not in
   it.
 - Profiling (`cc -p`, `mcrt0.o`, `prof`), `adb` and `ld -r`.
-- The large model.
+- The large model. `tools/cc -ml` and the libraries it links are the
+  cross compiler's ([the large model](userland.md#the-large-model)),
+  so a large-model program, of which `window` is the one, is not made
+  on the system.

@@ -81,9 +81,9 @@
 				/* 68 is old; vwrite */
 #define	SYS_sbrk	69
 #define	SYS_sstk	70
-				/* 71 is unused 4.3: mmap */
-				/* 72 is unused 4.3: vadvise */
-				/* 73 is unused 4.3: munmap */
+#define	SYS_segalloc	71
+#define	SYS_segsize	72
+#define	SYS_segfree	73
 				/* 74 is unused 4.3: mprotect */
 				/* 75 is unused 4.3: madvise */
 #define	SYS_vhangup	76

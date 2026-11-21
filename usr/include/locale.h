@@ -64,7 +64,9 @@ struct lconv {
 	char	int_n_sign_posn;
 };
 
+#ifndef NULL
 #define	NULL	0
+#endif
 
 #define	LC_ALL		0
 #define	LC_COLLATE	1

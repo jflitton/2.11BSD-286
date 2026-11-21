@@ -46,7 +46,7 @@ Rules:
   works in it unchanged. Medium next: 15 programs in the tree are linked
   with overlays today (csh, ex, sendmail, f77, named and others); csh, ex,
   tcsh, sendmail and the games hack, phantasia, rogue and warp are built
-  so. Large last.
+  so. Large last: `window` is built so.
 - Moving a program to large is a deliberate change made after cleaning it
   up. Old C that passes a bare `0` for a pointer, keeps a pointer in an
   `int`, or calls an undeclared function that returns a pointer compiles
@@ -55,8 +55,46 @@ Rules:
   large-model program, not as a model of their own.
 - A system call hands a process extra data segments, so that a small-model
   program can keep one big buffer behind `__far` pointers without being
-  converted.
+  converted (`segalloc(2)`, [processes](processes.md)).
 - libc is built once per model.
+
+### The large model as it is built
+
+`tools/cc -ml` makes a large-model program, and `obj/lib/l` has the C
+library and the others for one. Only the cross compiler has the model;
+the system's own compiler has the small and the medium.
+
+- **The program's own data is one segment still**, the one that holds
+  its stack, and SS always names it. DS does not: it is a scratch
+  register, loaded with the segment of whatever is being pointed at, and
+  a function need not leave it as it was. The compiler reaches a
+  program's variables through SS, and so does the library's assembly
+  (`-DFARDATA`, `crt/DEFS.inc`); a signal handler is entered with DS
+  made SS again.
+- **An object of more than 32K has a segment of its own**, which the
+  compiler gives it; the rest are in the program's own data, which is
+  limited to 64K as in the other models.
+- **`malloc` takes its memory from `segalloc`**, a segment at a time, and
+  grows each to 64K before it asks for another (`gen/lmalloc.c`). The
+  largest block is 65508 bytes. `sbrk` still moves the end of the
+  program's own data segment.
+- **`NULL` is `0L`**, so that it is four bytes where it is passed to a
+  function that has no prototype in sight. A bare `0` there is two, and
+  the function reads a pointer whose selector is whatever was next on
+  the stack: that is the commonest way old C fails in this model.
+- **`__huge` pointers** step from one segment to the next: `__PIA`,
+  `__PIS`, `__PTS` and `__PTC` (`crt/pia.s`) do their arithmetic, and
+  what `segalloc` gives for more than 64K is laid out for them.
+- Start-up, `setjmp` and `longjmp`, the signal trampoline and the system
+  call stubs each have a form for the model, the stubs from the same
+  table as the others (`tools/mkstubs.py --model l`).
+
+`tools/lmlint.py` looks a program over for what the model breaks before
+it is tried: a `0` passed for a pointer or a pointer for an `int`, a
+function that returns a pointer called with no declaration, and
+arguments that differ in number from the definition, in the program's
+own files or the library's. `window` is the first program moved over
+([userland](userland.md)).
 
 ## The kernel
 

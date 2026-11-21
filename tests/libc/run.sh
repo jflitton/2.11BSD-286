@@ -30,11 +30,21 @@ make -s -C "$top/usr/src/lib/libc/i286" ${CCOM:+CCOM=1} |
 
 cd "$out"
 # Each for the small model, and for the medium as NAME-m, its code packed
-# into segments of 8K so that there are several.
+# into segments of 8K so that there are several; and for the large as
+# NAME-l, likewise, but not by the system's own compiler, which has no
+# such model.
+cp "$here/proto" proto
 for p in init echoargs; do
-    $cc -o $p "$here/$p.c"
+    $cc ${CCOM:+-DNOLARGE} -o $p "$here/$p.c"
     $cc -mm -packcode 8192 -o $p-m "$here/$p.c"
+    if [ -z "$CCOM" ]; then
+        $cc -ml -packcode 8192 -o $p-l "$here/$p.c"
+    fi
 done
+if [ -z "$CCOM" ]; then
+    echo "f /bin/echoargs-l 755 echoargs-l" >> proto
+    echo "f /bin/libc-l 755 init-l" >> proto
+fi
 # The library reads users from master.passwd (or its ndbm form, which
 # this has not), and error messages from syserrlst.
 cat > passwd <<'END'
@@ -50,7 +60,6 @@ cat > group <<'END'
 wheel:*:0:root
 staff:*:20:test
 END
-cp "$here/proto" proto
-python3 -I "$top/tools/mkfs.py" -s 400 proto root.fs
+python3 -I "$top/tools/mkfs.py" -s 600 proto root.fs
 python3 -I "$top/tests/harness/runtest.py" --until halting \
     --boot $name "$top/obj/PC/unix" root.fs

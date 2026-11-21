@@ -1,0 +1,1224 @@
+# What tests/ve/run.sh has ve do.
+#
+# "=file NAME" begins a file.  "== NAME" begins a check: the lines to
+# "--" are given to sh in an empty directory that has a copy of each
+# file, and must write exactly the lines after it.  There
+#
+#	k KEYS [ARG ...]	runs ve with the arguments and types KEYS
+#	s KEYS [ARG ...]	the same, and then shows the screen
+#
+# KEYS are as printf has them: \033 is ESC, \r Return, \t a tab, and a %
+# or a \ is written twice.  An ESC must not have [ or O straight after
+# it, which is how the keys with arrows begin: \003, the interrupt, ends
+# an insertion as well.  The screen is 24 by 80 unless VEROWS and VECOLS
+# say otherwise; what stands out on it is between { and }.
+=file five
+one
+two
+three
+four
+five
+=file words
+the quick brown fox
+  jumps over (the lazy) dog
+foo.bar baz_qux "str ing" end
+
+last line
+=file code
+int
+main(argc, argv)
+{
+	if (argc > 1) {
+		puts(argv[1]);
+	}
+	return (0);
+}
+=file long
+1 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+2 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+3 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+4 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+5 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+6 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+7 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+8 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+9 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+10 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+11 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+12 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+13 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+14 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+15 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+16 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+17 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+18 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+19 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+20 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+21 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+22 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+23 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+24 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+25 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+26 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+27 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+28 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+29 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+30 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+== motions
+k 'wwx$xbx0x^xjx:wq\r' words; sed 2q words
+--
+e quick rown o
+ jumps over (the lazy) dog
+== words
+k 'jjwxwxwxWxbbx3wxex:wq\r' words; sed -n 3p words
+--
+foobar z_qux str ng en
+== find
+k 'fqxtbx$Fox;xTkx,x:wq\r' words; sed 1q words
+--
+the uickwn fx
+== lines
+k 'Gx1Gx3Gxggjx4Gx:wq\r' five; cat five
+--
+ne
+wo
+hree
+our
+ive
+== percent
+k 'j%%x%%x:wq\r' words; sed -n 2p words
+--
+  jumps over (the lazydog
+== percent-2
+k 'jj%%r]%%r[G60%%x:wq\r' code; cat code
+--
+int
+main(argc, argv)
+{
+	if (argc > 1) {
+		uts(argv[1]);
+	}
+	return (0);
+[
+== paragraph
+k '}x}x{x:wq\r' words; cat words
+--
+the quick brown fox
+  jumps over (the lazy) dog
+foo.bar baz_qux "str ing" end
+
+last lin
+== search
+k '/lazy\rx/o\rnxNNx?the\rx:wq\r' words; cat words
+--
+he quick brown fox
+  jumps ver (the azy) dog
+fo.bar baz_qux "str ing" end
+
+last line
+== search-word
+k '*xww*xG#x:wq\r' words; cat words
+--
+the quick brown fox
+  jumps over (he lazy) og
+foo.bar baz_qux "str ing" end
+
+ast line
+== search-wrap
+k ':set nows\rG/quick\rx:set ws\r/quick\rx:wq\r' words; sed -n '1p;5p' words
+--
+the uick brown fox
+ast line
+== marks
+k "jmajwmbGd'agg\`bx''x:wq\r" words; cat words
+--
+e quick brown fox
+== delete
+k 'x3xwdwd2w$x:wq\r' words; sed 1q words
+--
+quick over (the lazy) do
+== delete-2
+k 'dd2ddp:wq\r' five; cat five
+--
+four
+two
+three
+five
+== delete-3
+k 'jdjGdk:wq\r' five; cat five
+--
+one
+== delete-4
+k 'wDjd0jd$:wq\r' words; sed 3q words | tr " " _
+--
+the_
+umps_over_(the_lazy)_dog
+
+== delete-across
+k 'wwd/lazy\rd}:wq\r' words; cat words
+--
+the quick 
+
+last line
+== change
+k 'cwA\033wcwslow\033jccnew\033jCend\033:wq\r' words; sed 3q words
+--
+A slow brown fox
+new
+foend
+== change-2
+k 'sX\033jSY\033jc2wZ\033:wq\r' words; sed 3q words
+--
+Xhe quick brown fox
+Y
+Zbar baz_qux "str ing" end
+== yank-put
+k 'yyjp2yyGpggywP:wq\r' five; cat five
+--
+oneone
+two
+one
+three
+four
+five
+one
+three
+== yank-put-2
+k 'wywPjyyjP:wq\r' words; sed 4q words
+--
+the quick quick brown fox
+  jumps over (the lazy) dog
+  jumps over (the lazy) dog
+foo.bar baz_qux "str ing" end
+== yank-put-3
+k 'vjy$p:wq\r' five; cat five
+--
+oneone
+t
+two
+three
+four
+five
+== registers
+k '"ayyj"bdd"ap"bpG"aP:wq\r' five; cat five
+--
+one
+three
+one
+two
+four
+one
+five
+== registers-2
+k ':1,2y a\r:$pu a\r:0pu\ryy:3pu\r:wq\r' five; cat five
+--
+one
+two
+one
+one
+two
+three
+four
+five
+one
+two
+== replace
+k 'rX3lr-wr\r3rZjRab\033~~5~:wq\r' words; sed 3q words
+--
+Xhe-
+ZZZk brown fox
+  aBMPS OVer (the lazy) dog
+== join
+k 'J3JjJ:wq\r' words; cat words
+--
+the quick brown fox jumps over (the lazy) dog foo.bar baz_qux "str ing" end
+last line
+== join-2
+k ':1,3j\r:wq\r' five; cat five
+--
+one two three
+four
+five
+== shift
+k '>>j2>>jj>k:wq\r' five; cat five | tr "\t" T
+--
+Tone
+Ttwo
+TTthree
+Tfour
+five
+== shift-2
+k ':set sw=4 et\r>>j>>>>j>>.<<:2>\r:wq\r' five; cat five | tr " " _
+--
+____one
+____________two
+____three
+four
+five
+== objects
+k 'wdiwjfvdawfzdi(jfida"fbciwX\033:wq\r' words; sed 3q words
+--
+the  brown fox
+  jumps () dog
+foo.bar baz_quxXend
+== objects-2
+k 'jfhda(jfsci"q\033:wq\r' words; sed -n '2,3p' words
+--
+  jumps over  dog
+foo.bar baz_qux "q" end
+== objects-3
+k 'jjjjwdi{:wq\r' code; cat code
+--
+int
+main(argc, argv)
+{
+	if (argc > 1) {
+	}
+	return (0);
+}
+== objects-4
+k 'dapGdip:wq\r' words; cat words
+--
+== insert
+k 'ia\tb\033A!\033j0iX\033oline\003Otop\033:wq\r' five; cat five | tr "\t" T
+--
+aTbone!
+Xtwo
+top
+line
+three
+four
+five
+== insert-2
+k 'A x\010\010y\033jI\010z\033jA foo bar\027\027X\033jA oops\025Y\033:wq\r' five; cat five
+--
+oneyztwo
+three X
+Y
+five
+== insert-3
+k 'A\r\rz\033GA\010\010\010\010\010\010\033:wq\r' five; cat five
+--
+one
+
+z
+two
+three
+fou
+== insert-4
+k '3ix\0332jAa\rb\033:wq\r' five; cat five
+--
+xxxone
+two
+threea
+b
+four
+five
+== insert-5
+k 'A\026\011\033:wq\r' five; sed 1q five | tr "\t" T
+--
+oneT
+== insert-keys
+k 'A\033[D\033[DX\033[BY\033[HZ\033[FW\033[AV\033[3~\003:wq\r' five; cat five
+--
+oXneVZtwYoW
+three
+four
+five
+== autoindent
+k ':set ai\rjjjonew\rmore\r\033oend\033ccx\033:wq\r' code; cat code | tr "\t" T
+--
+int
+main(argc, argv)
+{
+Tif (argc > 1) {
+Tnew
+Tmore
+
+x
+TTputs(argv[1]);
+T}
+Treturn (0);
+}
+== autoindent-2
+k ':set ai sw=4\rGOa\r\024b\r\004c\033:wq\r' five; cat five | tr " " _
+--
+one
+two
+three
+four
+a
+____b
+c
+five
+== visual
+k 'vld:wq\r' five; sed 1q five
+--
+e
+== visual-2
+k 'jvjd:wq\r' five; cat five
+--
+one
+hree
+four
+five
+== visual-3
+k 'Vjdp:wq\r' five; cat five
+--
+three
+one
+two
+four
+five
+== visual-4
+k 'wviwyPjvU:wq\r' words; sed 2q words
+--
+the quickquick brown fox
+  jumps Over (the lazy) dog
+== visual-5
+k 'vjrxjjVj>:wq\r' five; cat five | tr "\t" T
+--
+xxx
+xwo
+Tthree
+Tfour
+five
+== visual-6
+k 'Vjj:s/o/0/\rGvkJ:wq\r' five; cat five
+--
+0ne
+tw0
+three
+four five
+== visual-7
+k 'jfzvi(d:wq\r' words; sed -n 2p words
+--
+  jumps over () dog
+== visual-8
+k 'jvjobd:wq\r' five; cat five
+--
+hree
+four
+five
+== visual-9
+k 'jvjd"apvly"ap:wq\r' five; cat five
+--
+one
+hree
+four
+five
+== repeat
+k 'x..jdw.:wq\r' words; sed 2q words
+--
+ quick brown fox
+over (the lazy) dog
+== repeat-2
+k 'A.\033j.j3.:wq\r' five; cat five
+--
+one.
+two.
+three...
+four
+five
+== repeat-3
+k 'cwX\033j.jdd.:wq\r' five; cat five
+--
+X
+X
+five
+== repeat-4
+k 'dwu.jdd3.:wq\r' five; cat five
+--
+== undo
+k 'ddxJuuu:w a\r\022\022:w b\ru\022\022:wq\r' five; cat a b five | tr "\n" " "; echo
+--
+one two three four five wo three four five wo three four five 
+== undo-2
+k ':g/e/d\r:w a\ru:%%s/e/E/g\r:w b\ruu\022:wq\r' five; cat a b five | tr "\n" " "; echo
+--
+two four onE two thrEE four fivE onE two thrEE four fivE 
+== undo-3
+k 'oone\rtwo\033u:wq\r' five; cat five | tr "\n" " "; echo
+--
+one two three four five 
+== ex-lines
+k ':2d\r:$d\r:wq\r' five; cat five | tr "\n" " "; echo
+--
+one three four 
+== ex-lines-2
+k ':2,3m$\r:1m2\r:wq\r' five; cat five | tr "\n" " "; echo
+--
+four one five two three 
+== ex-lines-3
+k ':1t.\r:4,5co0\r:$t$\r:wq\r' five; cat five | tr "\n" " "; echo
+--
+three four one one two three four five five 
+== ex-lines-4
+k ':/three/,$d\r:wq\r' five; cat five | tr "\n" " "; echo
+--
+one two 
+== ex-lines-5
+k ':2ka\r:'"'"'a,/four/d\r:?one?d\r:wq\r' five; cat five | tr "\n" " "; echo
+--
+five 
+== ex-lines-6
+k ':3\rdd:$-1\rdd:.,.+1d\r:wq\r' five; cat five | tr "\n" " "; echo
+--
+one two five 
+== ex-lines-7
+k '2:d\r:wq\r' five; cat five | tr "\n" " "; echo
+--
+three four five 
+== substitute
+k ':s/quick/slow/\r:2,$s/o/0/g\r:wq\r' words; cat words
+--
+the slow brown fox
+  jumps 0ver (the lazy) d0g
+f00.bar baz_qux "str ing" end
+
+last line
+== substitute-2
+k ':%%s/\\(b[a-z]*\\) \\(f[a-z]*\\)/\\2 \\1/\r:s/ /\\n/g\r:wq\r' words; sed 4q words
+--
+the
+quick
+fox
+brown
+== substitute-3
+k ':%%s/^/> /\r:%%s/$/;/\r:%%s/o/[&]/\r:wq\r' words; cat words
+--
+> the quick br[o]wn fox;
+>   jumps [o]ver (the lazy) dog;
+> f[o]o.bar baz_qux "str ing" end;
+> ;
+> last line;
+== substitute-4
+k ':%%s/x*/-/g\r:wq\r' five; cat five
+--
+-o-n-e-
+-t-w-o-
+-t-h-r-e-e-
+-f-o-u-r-
+-f-i-v-e-
+== substitute-5
+k ':s/o/0/\rj:s\rj&:1&&\r:3&g\r:wq\r' words; sed 3q words
+--
+the quick br0wn f0x
+  jumps 0ver (the lazy) dog
+f00.bar baz_qux "str ing" end
+== substitute-6
+k ':s/o/\\&\\/x/\r:wq\r' five; sed 1q five
+--
+&/xne
+== patterns
+k ':%%s/\\<[a-z]/X/\r:%%s/[a-z]\\>/Y/\r:wq\r' words; cat words
+--
+XhY quick brown fox
+  XumpY over (the lazy) dog
+XoY.bar baz_qux "str ing" end
+
+XasY line
+== patterns-2
+k ':%%s/[aeiou]\\+/_/g\r:wq\r' words; cat words
+--
+th_ q_ck br_wn f_x
+  j_mps _v_r (th_ l_zy) d_g
+f_.b_r b_z_q_x "str _ng" _nd
+
+l_st l_n_
+== patterns-3
+k ':%%s/o\\?x/!/\r:%%s/\\s\\+/ /g\r:%%s/[^a-z ]//g\r:wq\r' words; cat words
+--
+the quick brown f
+ jumps over the lazy dog
+foobar bazqu str ing end
+
+last line
+== patterns-4
+k ':%%s/a.*z/-/\r:%%s/\\./,/\r:%%s/\\w\\+$/W/\r:wq\r' words; cat words
+--
+the quick brown W
+  jumps over (the l-y) W
+foo,b-_qux "str ing" W
+
+last W
+== patterns-5
+k ':s/QUICK/x/\r:set ic\r:s/QUICK/y/\r:s/[A-C]R/z/\r:wq\r' words; sed 1q words
+--
+the y zown fox
+== patterns-6
+k ':s/[]q]/X/\r:s/[a-c]/X/g\r:s/q*u/Z/\r:wq\r' words; sed 1q words
+--
+the XZiXk Xrown fox
+== global
+k ':g/o/d\r:wq\r' five; cat five | tr "\n" " "; echo
+--
+three five 
+== global-2
+k ':v/o/d\r:wq\r' five; cat five | tr "\n" " "; echo
+--
+one two four 
+== global-3
+k ':g/e/s//E/g\r:wq\r' five; cat five | tr "\n" " "; echo
+--
+onE two thrEE four fivE 
+== global-4
+k ':g/./m0\r:wq\r' five; cat five | tr "\n" " "; echo
+--
+five four three two one 
+== global-5
+k ':g/./m$\r:wq\r' five; cat five | tr "\n" " "; echo
+--
+one two three four five 
+== global-6
+k ':g/o/t.\r:wq\r' five; cat five | tr "\n" " "; echo
+--
+one one two two three four four five 
+== global-7
+k ':2,4g/./s/$/!/\r:g!/!/d\r:wq\r' five; cat five | tr "\n" " "; echo
+--
+two! three! four! 
+== global-8
+k ':g/t/normal x\r:wq\r' five; cat five | tr "\n" " "; echo
+--
+one two three four five 
+== files
+k ':w x\r:2,3w y\r:r y\r:$r x\r:wq\r' five; cat five | tr "\n" " "; echo
+--
+one two three two three four five one two three four five 
+== files-2
+k ':2,3w >> five\r:q\r' five; cat five | tr "\n" " "; echo
+--
+one two three four five two three 
+== files-3
+k ':w words\r:w! words\rdd:e words\r:e! words\rdd:w\r:e #\rGdd:wq\r' five; cat five words | tr "\n" " "; echo
+--
+one two three four two three four five 
+== files-4
+k ':n\rdd:n\r:n!\r:prev\rdd:w\r:rew\rdd:w\r:q\r' five words; cat five; sed 1q words
+--
+two
+three
+four
+five
+foo.bar baz_qux "str ing" end
+== files-5
+k 'dd:f other\r:wq\r' five; cat five other | tr "\n" " "; echo
+--
+one two three four five two three four five 
+== files-6
+k 'ihello\033:wq\r' new; cat new
+--
+hello
+== files-7
+k 'dd:x\r' five; cat five | tr "\n" " "; echo
+--
+two three four five 
+== files-8
+k 'ddZZ' five; cat five | tr "\n" " "; echo
+--
+two three four five 
+== files-9
+k 'ddZQ' five; cat five | tr "\n" " "; echo
+--
+one two three four five 
+== files-10
+k ':q\r' five five; echo left
+--
+left
+== files-11
+k 'dd:q\r:q!\r' five; cat five | tr "\n" " "; echo
+--
+one two three four five 
+== files-12
+k 'dd' five; cat five.save | tr "\n" " "; echo
+--
+two three four five 
+== shell
+k ':1,3!sort\r:r !echo hi\r:0r !echo top\r:wq\r' five; cat five | tr "\n" " "; echo
+--
+top one hi three two four five 
+== shell-2
+k '!jtr a-z A-Z\rjj!!rev\r:4,5!cat -n | cut -c6-\r:wq\r' five; cat five | tr "\n\t" " T"; echo
+--
+ONE TWO eerht 1Tfour 2Tfive 
+== shell-3
+k ':w\r:!cp %% copy\r\r:!!2\r\r:q\r' five; cat copy copy2 | tr "\n" " "; echo
+--
+one two three four five one two three four five 
+== options
+k ':set\r:set all\r:set nu ic ai et list sw=2 ts=4 nows\r:set\r:se nonu noic noai noet nolist\r:set sw ts\r:set foo\r:set sw=0\r:set nu=3\r:q\r' five; echo ok
+--
+ok
+== startup
+echo "set ai sw=4" > .verc; printf '"a comment\n\nset et\n' >> .verc
+k 'A\r\024x\033:wq\r' five; sed -n 2p five | tr " " _
+--
+____x
+== arguments
+k 'x:wq\r' +3 five; cat five | tr "\n" " "; echo
+k 'x:wq\r' + five; cat five | tr "\n" " "; echo
+k 'x:w\r:w!\r:q\r' -R words; sed 1q words
+k 'x:w\r:q!\r' -R code; sed 1q code
+chmod 444 long; k 'x:w\r:q!\r' long; sed 1q long
+--
+one two hree four five 
+one two hree four ive 
+he quick brown fox
+int
+1 abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ
+== long-lines
+awk 'BEGIN { for (i = 0; i < 2500; i++) printf "%d", i % 10; print ""; print "x" }' < /dev/null > f
+k ':wq\r' f; awk '{ print length($0) }' f
+k 'A0123456789\033:wq\r' f; awk '{ print length($0) }' f
+k 'jJJ:wq\r' f; awk '{ print length($0) }' f
+printf 'a\0b\nno newline' > g; k ':wq\r' g; od -c g | sed 2q
+--
+2000
+500
+1
+2000
+500
+1
+2000
+502
+0000000    a   b  \n   n   o       n   e   w   l   i   n   e  \n        
+0000016
+== big
+awk 'BEGIN { for (i = 1; i <= 12000; i++) print i, "the quick brown fox jumps" }' < /dev/null > f
+k ':w g\r:4001,8000d\r:w h\ru:w i\r:g/7$/d\r:w j\r:%%s/quick/slow/\r:w k\ruu:5000r g\r:w l\r:q!\r' f
+cmp f g && cmp f i && echo same
+sed 4001,8000d f | cmp - h && grep -v '7$' f | cmp - j && grep -v '7$' f | sed s/quick/slow/ | cmp - k && echo edited
+(sed 5000q f; cat f; sed 1,5000d f) | cmp - l && echo read
+--
+same
+edited
+read
+== memory
+awk 'BEGIN { for (i = 1; i <= 40000; i++) print i, "the quick brown fox jumps over the lazy dog" }' < /dev/null > f
+cp f orig
+VEROWS=4 VECOLS=76 s ':f\r' f | sed -n 4p
+VEROWS=4 VECOLS=76 s 'Gdd' f | sed -n 4p
+VEROWS=4 VECOLS=76 s 'GAxxx\003' f | sed -n 4p
+VEROWS=4 VECOLS=76 s ':g/^[0-9]*1 /d\r:f\r' f | sed -n 4p
+VEROWS=4 VECOLS=76 s ':g/^[0-9]*1 /d\ru:f\r' f | sed -n 4p
+VEROWS=4 VECOLS=76 s 'yGGp:f\r' f | sed -n 4p
+k ':g/^[0-9]*1 /d\ru:w\r:q\r' f; cmp f orig && echo same
+k ':g/^[0-9]*1 /d\r:w\r:q\r' f; grep -v '^[0-9]*1 ' orig | cmp - f && echo edited
+cp orig f; k 'yGGp:1,40000d\r:w\r:q\r' f; cmp f orig && echo put
+--
+"f" line 1 of 40000, 1996K of text, 1872K in /tmp        1,1           Top
+                                                         39999,1       Bot
+                                                         40000,52      Bot
+"f" changed, line 35992 of 36000, 3996K of text, 3872K in /tmp
+"f" changed, line 1 of 40000, 3796K of text, 3960K in /tmp
+"f" changed, line 40001 of 80000, 5984K of text, 5860K in /tmp
+same
+edited
+put
+== cache
+awk 'BEGIN { for (i = 1; i <= 20000; i++) print i, "the quick brown fox jumps over the lazy dog" }' < /dev/null > f
+cp f orig
+VEROWS=4 VECOLS=76 s ':set cache\r' five | sed -n 4p
+VEROWS=4 VECOLS=76 s ':set cache=32\r:set cache\r' five | sed -n 4p
+VEROWS=4 VECOLS=76 s ':set cache=100\r:set cache\r' five | sed -n 4p
+VEROWS=4 VECOLS=76 s ':set cache=16\r' five | sed -n 4p
+VEROWS=4 VECOLS=76 s ':set cache=2000\r' five | sed -n 4p
+VEROWS=4 VECOLS=76 s ':set nocache\r' five | sed -n 4p
+VEROWS=4 VECOLS=76 s ':f\r' f | sed -n 4p
+VEROWS=4 VECOLS=76 s ':set cache=960\r:f\r' f | sed -n 4p
+VEROWS=4 VECOLS=76 s ':set cache=32\r:f\r' f | sed -n 4p
+echo 'set cache=960' > .verc; HOME=. VEROWS=4 VECOLS=76 s ':f\r' f | sed -n 4p
+echo 'set cache=48' > .verc; HOME=. VEROWS=4 VECOLS=76 s ':f\r' f | sed -n 4p
+k ':set cache=32\r:g/^[0-9]*1 /d\r:set cache=960\r:w g\ru:set cache=32\r:w\r:q\r' f; cmp f orig && grep -v '^[0-9]*1 ' orig | cmp - g && echo same
+k ':set cache=32\r:1,10000m$\r:set cache=64\r:1,10000m$\r:w\r:q\r' f; cmp f orig && echo moved
+--
+cache=128                                                1,1           Top
+cache=32                                                 1,1           Top
+cache=96                                                 1,1           Top
+{cache is from 32 to 960, in K}                            1,1           Top
+{cache is from 32 to 960, in K}                            1,1           Top
+{There is no such thing to set: nocache}                   1,1           Top
+"f" line 1 of 20000, 996K of text, 872K in /tmp          1,1           Top
+"f" line 1 of 20000, 996K of text, 872K in /tmp          1,1           Top
+"f" line 1 of 20000, 996K of text, 968K in /tmp          1,1           Top
+"f" line 1 of 20000, 996K of text, 40K in /tmp           1,1           Top
+"f" line 1 of 20000, 996K of text, 952K in /tmp          1,1           Top
+same
+moved
+== tmp-full
+awk 'BEGIN { for (i = 1; i <= 40000; i++) print i, "the quick brown fox jumps over the lazy dog" }' < /dev/null > f
+cp f orig
+export VEFULL=400000
+VEROWS=4 VECOLS=76 s '\007' f | sed -n 4p
+VEROWS=4 VECOLS=76 s ':f\r' f | sed -n 4p
+VEROWS=4 VECOLS=76 s ':w\r' f | sed -n 4p
+VEROWS=4 VECOLS=76 s 'yG' f | sed -n 4p
+VEROWS=4 VECOLS=76 s ':g/fox/d\r' f | sed -n 4p
+VEROWS=4 VECOLS=76 s ':g/fox/d\ru' f | sed -n 4p
+VEROWS=4 VECOLS=76 s 'Gdd:f\r' f | sed -n 4p
+VEROWS=4 VECOLS=76 s 'Gddu:f\r' f | sed -n 4p
+k 'dd:wq\r' f; cmp f orig && echo same
+VEROWS=4 VECOLS=76 s ':f\r' five | sed -n 4p
+VEFULL=3000000 VEROWS=4 VECOLS=76 s ':f\r' f | sed -n 4p
+--
+"f" read only, line 1 of 10389, 512K of text, 388K in /tmp
+"f" read only, line 1 of 10389, 512K of text, 388K in /tmp
+{The file is read only (w! to write it all the same)}      1,1           Top
+{/tmp: No space left on device}                            1,1           Top
+{No room to keep what that changed: it cannot be undone}   1,1           All
+Already at the oldest change                             1,1           All
+"f" changed, read only, line 10388 of 10388, 512K of text, 388K in /tmp
+"f" changed, read only, line 10388 of 10388, 512K of text, 388K in /tmp
+same
+"five" line 1 of 5, 4K of text                           1,1           Top
+"f" line 1 of 40000, 1996K of text, 1872K in /tmp        1,1           Top
+== lazy
+awk 'BEGIN { for (i = 1; i <= 3000; i++) print i, "the quick brown fox" }' < /dev/null > f
+cp f orig; echo x > h
+VEROWS=4 VECOLS=60 s '' f
+VEROWS=4 VECOLS=60 s 'jj' f | sed -n 4,5p
+VEROWS=4 VECOLS=60 s '\006\006' f | sed -n 3,5p
+VEROWS=4 VECOLS=60 s '/^1500\r' f | sed -n 2,5p
+VEROWS=4 VECOLS=60 s '/^2999\r' f | sed -n 4,5p
+VEROWS=4 VECOLS=60 s '?^2999\r' f | sed -n 4,5p
+VEROWS=4 VECOLS=60 s '/nowhere\r' f | sed -n 4,5p
+VEROWS=4 VECOLS=60 s ':set nows\r/^1500\r?^2999\r' f | sed -n 4,5p
+VEROWS=4 VECOLS=60 s 'G' f | sed -n 3,5p
+VEROWS=4 VECOLS=60 s '\007' f | sed -n 4,5p
+VEROWS=4 VECOLS=60 s ':$\r' f | sed -n 4,5p
+VEROWS=4 VECOLS=60 s '50%%' f | sed -n 4,5p
+VEROWS=4 VECOLS=60 s '' +2500 f | sed -n 2,5p
+VEROWS=4 VECOLS=60 s '' + f | sed -n 3,5p
+VEROWS=4 VECOLS=60 s ':e h\r' f | sed -n 1,4p
+VEROWS=4 VECOLS=60 s '/^1500\r:e h\r:e #\r' f | sed -n 2,5p
+VEROWS=4 VECOLS=60 s ':n\r' f h | sed -n 1,4p
+VEROWS=4 VECOLS=60 s ':q\r' f h | sed -n 4p
+k 'ZZ' f; cmp f orig && echo same
+k 'jZZ' f; cmp f orig && echo same
+k ':q\r' f; cmp f orig && echo same
+k ':wq\r' f; cmp f orig && echo same
+k 'jddZZ' f; sed 2d orig | cmp - f && echo edited
+--
+1 the quick brown fox
+2 the quick brown fox
+3 the quick brown fox
+"f"                                      1,1           Top
+cursor 1,1
+                                         3,1           Top
+cursor 3,1
+5 the quick brown fox
+                                         3,1           ...
+cursor 1,1
+1500 the quick brown fox
+1501 the quick brown fox
+                                         1500,1        ...
+cursor 2,1
+"f" 3000 lines, 73893 characters         2999,1        Bot
+cursor 2,1
+Search went on from the bottom           2999,1        Bot
+cursor 2,1
+{Pattern not found}                        1,1           Top
+cursor 1,1
+{Pattern not found}                        1500,1        49%
+cursor 2,1
+3000 the quick brown fox
+                                         3000,1        Bot
+cursor 3,1
+"f" line 1 of 3000, 76K of text          1,1           Top
+cursor 1,1
+"f" 3000 lines, 73893 characters         3000,1        Bot
+cursor 3,1
+                                         1500,1        49%
+cursor 2,1
+2500 the quick brown fox
+2501 the quick brown fox
+"f"                                      2500,1        ...
+cursor 2,1
+3000 the quick brown fox
+"f" 3000 lines, 73893 characters         3000,1        Bot
+cursor 3,1
+x
+~
+~
+"h" 1 lines, 2 characters                1,1           All
+1500 the quick brown fox
+1501 the quick brown fox
+"f"                                      1500,1        ...
+cursor 2,1
+x
+~
+~
+"h" 1 lines, 2 characters                1,1           All
+{1 more files to edit}                     1,1           Top
+same
+same
+same
+same
+edited
+== screen
+VEROWS=6 VECOLS=40 s '' five
+VEROWS=6 VECOLS=40 s 'jllix\003' five
+--
+one
+two
+three
+four
+five
+"five" 5 lines, 24 characters
+cursor 1,1
+one
+twxo
+three
+four
+five
+                     2,3           All
+cursor 2,3
+== screen-scroll
+VEROWS=6 VECOLS=40 s '\006' long
+VEROWS=6 VECOLS=40 s '\006\002\004' long
+VEROWS=6 VECOLS=40 s '10Gzt\005\005\031' long
+VEROWS=6 VECOLS=40 s '5jjjk' long
+VEROWS=6 VECOLS=40 s 'GH3kzzL' long
+--
+4 abcdefghijklmnopqrstuvwxyz0123456789AB
+5 abcdefghijklmnopqrstuvwxyz0123456789AB
+6 abcdefghijklmnopqrstuvwxyz0123456789AB
+7 abcdefghijklmnopqrstuvwxyz0123456789AB
+8 abcdefghijklmnopqrstuvwxyz0123456789AB
+                     4,1           13%
+cursor 1,1
+3 abcdefghijklmnopqrstuvwxyz0123456789AB
+4 abcdefghijklmnopqrstuvwxyz0123456789AB
+5 abcdefghijklmnopqrstuvwxyz0123456789AB
+6 abcdefghijklmnopqrstuvwxyz0123456789AB
+7 abcdefghijklmnopqrstuvwxyz0123456789AB
+                     7,1           10%
+cursor 5,1
+11 abcdefghijklmnopqrstuvwxyz0123456789A
+12 abcdefghijklmnopqrstuvwxyz0123456789A
+13 abcdefghijklmnopqrstuvwxyz0123456789A
+14 abcdefghijklmnopqrstuvwxyz0123456789A
+15 abcdefghijklmnopqrstuvwxyz0123456789A
+                     12,1          36%
+cursor 2,1
+4 abcdefghijklmnopqrstuvwxyz0123456789AB
+5 abcdefghijklmnopqrstuvwxyz0123456789AB
+6 abcdefghijklmnopqrstuvwxyz0123456789AB
+7 abcdefghijklmnopqrstuvwxyz0123456789AB
+8 abcdefghijklmnopqrstuvwxyz0123456789AB
+                     7,1           13%
+cursor 4,1
+21 abcdefghijklmnopqrstuvwxyz0123456789A
+22 abcdefghijklmnopqrstuvwxyz0123456789A
+23 abcdefghijklmnopqrstuvwxyz0123456789A
+24 abcdefghijklmnopqrstuvwxyz0123456789A
+25 abcdefghijklmnopqrstuvwxyz0123456789A
+                     25,1          70%
+cursor 5,1
+== screen-change
+VEROWS=6 VECOLS=40 s '2Gdd3Gp' long
+VEROWS=6 VECOLS=40 s '3GOnew\003jddGonew\003' long
+VEROWS=6 VECOLS=40 s '2G3ddu' long
+VEROWS=6 VECOLS=40 s ':2,29d\r' long
+--
+1 abcdefghijklmnopqrstuvwxyz0123456789AB
+3 abcdefghijklmnopqrstuvwxyz0123456789AB
+4 abcdefghijklmnopqrstuvwxyz0123456789AB
+2 abcdefghijklmnopqrstuvwxyz0123456789AB
+5 abcdefghijklmnopqrstuvwxyz0123456789AB
+                     4,1           Top
+cursor 4,1
+27 abcdefghijklmnopqrstuvwxyz0123456789A
+28 abcdefghijklmnopqrstuvwxyz0123456789A
+29 abcdefghijklmnopqrstuvwxyz0123456789A
+30 abcdefghijklmnopqrstuvwxyz0123456789A
+new
+                     31,3          Bot
+cursor 5,3
+1 abcdefghijklmnopqrstuvwxyz0123456789AB
+2 abcdefghijklmnopqrstuvwxyz0123456789AB
+3 abcdefghijklmnopqrstuvwxyz0123456789AB
+4 abcdefghijklmnopqrstuvwxyz0123456789AB
+5 abcdefghijklmnopqrstuvwxyz0123456789AB
+                     2,1           Top
+cursor 2,1
+1 abcdefghijklmnopqrstuvwxyz0123456789AB
+30 abcdefghijklmnopqrstuvwxyz0123456789A
+~
+~
+~
+                     2,1           All
+cursor 2,1
+== screen-wide
+VEROWS=5 VECOLS=40 s '$' long
+VEROWS=5 VECOLS=40 s '$0' long
+VEROWS=5 VECOLS=40 s ':set nu\r3G$' long
+VEROWS=5 VECOLS=40 s '40|' long
+--
+z0123456789ABCDEFGHIJ
+z0123456789ABCDEFGHIJ
+z0123456789ABCDEFGHIJ
+z0123456789ABCDEFGHIJ
+                     1,48          Top
+cursor 1,21
+1 abcdefghijklmnopqrstuvwxyz0123456789AB
+2 abcdefghijklmnopqrstuvwxyz0123456789AB
+3 abcdefghijklmnopqrstuvwxyz0123456789AB
+4 abcdefghijklmnopqrstuvwxyz0123456789AB
+                     1,1           Top
+cursor 1,1
+  1 123456789ABCDEFGHIJ
+  2 123456789ABCDEFGHIJ
+  3 123456789ABCDEFGHIJ
+  4 123456789ABCDEFGHIJ
+                     3,48          Top
+cursor 3,23
+rstuvwxyz0123456789ABCDEFGHIJ
+rstuvwxyz0123456789ABCDEFGHIJ
+rstuvwxyz0123456789ABCDEFGHIJ
+rstuvwxyz0123456789ABCDEFGHIJ
+                     1,40          Top
+cursor 1,21
+== screen-modes
+VEROWS=6 VECOLS=60 s 'i' five
+VEROWS=6 VECOLS=60 s 'R' five
+VEROWS=6 VECOLS=60 s 'jvjl' five
+VEROWS=6 VECOLS=60 s 'jVj' five
+VEROWS=6 VECOLS=60 s 'jvjl\033' five
+VEROWS=6 VECOLS=60 s ':nosuch\r' five
+VEROWS=6 VECOLS=60 s ':s/x/y' five
+--
+one
+two
+three
+four
+five
+-- INSERT --                             1,1           All
+cursor 1,1
+one
+two
+three
+four
+five
+-- REPLACE --                            1,1           All
+cursor 1,1
+one
+{two}
+{th}ree
+four
+five
+-- VISUAL --                             3,2           All
+cursor 3,2
+one
+{two }
+{three }
+four
+five
+-- VISUAL LINE --                        3,1           All
+cursor 3,1
+one
+two
+three
+four
+five
+                                         3,2           All
+cursor 3,2
+one
+two
+three
+four
+five
+{There is no such command: nosuch}         1,1           All
+cursor 1,1
+one
+two
+three
+four
+five
+:s/x/y
+cursor 6,7
+== screen-list
+VEROWS=10 VECOLS=40 s ':set list\r' code
+VEROWS=10 VECOLS=40 s ':set ts=4 nu\r' code
+VEROWS=6 VECOLS=40 s 'A\026\001\026\033\003' five
+--
+int$
+main(argc, argv)$
+{$
+^Iif (argc > 1) {$
+^I^Iputs(argv[1]);$
+^I}$
+^Ireturn (0);$
+}$
+~
+                     1,1           All
+cursor 1,1
+  1 int
+  2 main(argc, argv)
+  3 {
+  4     if (argc > 1) {
+  5         puts(argv[1]);
+  6     }
+  7     return (0);
+  8 }
+~
+                     1,1           All
+cursor 1,5
+one^A^[
+two
+three
+four
+five
+                     1,5-6         All
+cursor 1,6
+== screen-print
+VEROWS=8 VECOLS=40 s ':2,4p\r' five
+VEROWS=8 VECOLS=40 s ':2,4nu\rx' five
+VEROWS=8 VECOLS=40 s ':g/e/p\r' five
+VEROWS=6 VECOLS=40 s ':1,20p\rq' long
+VEROWS=8 VECOLS=60 s ':args\r' five words
+VEROWS=8 VECOLS=60 s 'j:=\r' five
+VEROWS=8 VECOLS=60 s ':.=\r' five
+--
+four
+five
+~
+~
+two
+three
+four
+{[Press a key to continue]}
+cursor 8,26
+one
+two
+three
+four
+five
+~
+~
+                     4,1           All
+cursor 4,1
+four
+five
+~
+~
+one
+three
+five
+{[Press a key to continue]}
+cursor 8,26
+1 abcdefghijklmnopqrstuvwxyz0123456789A
+2 abcdefghijklmnopqrstuvwxyz0123456789A
+3 abcdefghijklmnopqrstuvwxyz0123456789A
+4 abcdefghijklmnopqrstuvwxyz0123456789A
+5 abcdefghijklmnopqrstuvwxyz0123456789A
+{[Press a key to continue]}
+cursor 6,26
+one
+two
+three
+four
+five
+~
+~
+[five] words                             1,1           All
+cursor 1,1
+one
+two
+three
+four
+five
+~
+~
+5                                        2,1           All
+cursor 2,1
+one
+two
+three
+four
+five
+~
+~
+1                                        1,1           All
+cursor 1,1
+== screen-status
+VEROWS=4 VECOLS=70 s ':f\r' five
+VEROWS=4 VECOLS=70 s 'x\007' five
+VEROWS=4 VECOLS=70 s '' nosuch
+VEROWS=4 VECOLS=70 s '' /
+VEROWS=4 VECOLS=70 s ':set\r' five
+VEROWS=4 VECOLS=70 s 'x:q\r' five
+VEROWS=4 VECOLS=70 s '/nowhere\r' five
+VEROWS=4 VECOLS=70 s 'G/one\r' five
+VEROWS=4 VECOLS=70 s 'uu' five
+VEROWS=4 VECOLS=70 s ':%%s/e/E/g\r' five
+VEROWS=4 VECOLS=70 s '4dd' five
+VEROWS=4 VECOLS=70 s '3yy' five
+VEROWS=4 VECOLS=70 s ':w\r' five
+--
+one
+two
+three
+"five" line 1 of 5, 4K of text                     1,1           Top
+cursor 1,1
+ne
+two
+three
+"five" changed, line 1 of 5, 12K of text           1,1           Top
+cursor 1,1
+
+~
+~
+"nosuch" is a new file                             1,1           All
+cursor 1,1
+
+~
+~
+{/ is a directory}                                   1,1           All
+cursor 1,1
+one
+two
+three
+noai  cache=128  noet  noic  nolist  nonu  sw=8  ts=8  ws
+cursor 1,1
+ne
+two
+three
+{Not written since it was changed (q! to quit all the same)}
+cursor 1,1
+one
+two
+three
+{Pattern not found}                                  1,1           Top
+cursor 1,1
+one
+two
+three
+Search went on from the top                        1,1           Top
+cursor 1,1
+one
+two
+three
+Already at the oldest change                       1,1           Top
+cursor 1,1
+thrEE
+four
+fivE
+4 substitutions on 3 lines                         5,1           Bot
+cursor 3,1
+five
+~
+~
+4 fewer lines                                      1,1           All
+cursor 1,1
+one
+two
+three
+3 lines yanked                                     1,1           Top
+cursor 1,1
+one
+two
+three
+"five" 5 lines, 24 characters                      1,1           Top
+cursor 1,1

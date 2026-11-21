@@ -117,6 +117,7 @@ register char *name;
 var_walk1(r, func, a)
 register struct var *r;
 int (*func)();
+char *a;
 {
 	if (r == 0)
 		return 0;
