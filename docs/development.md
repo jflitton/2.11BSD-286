@@ -170,7 +170,7 @@ driver talks to.
 | `tools/env.sh` | sourced, puts the toolchain on `PATH` |
 | `tools/cc286`, `tools/cc286.h` | compile one C file with the system's memory model and calling convention |
 | `tools/cc` | compiles and links programs against the C library, as `cc` would; with `-ccom`, by the system's own compiler, assembler and linker ([toolchain](toolchain.md)) |
-| `tools/ncc` | compiles one file with the system's own compiler and assembler, as built for this machine |
+| `tools/ncc` | compiles one file with the system's own preprocessor, compiler and assembler, as built for this machine |
 | `tools/ar.py` | makes a library of the system's objects with its table of contents, as `ar` and `ranlib` do |
 | `tools/ccproto.py` | lists `/usr/include` and the libraries for the root file system |
 | `tools/commonize.py` | gives an object's uninitialized variables common storage, as the tree's C expects |

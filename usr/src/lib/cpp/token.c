@@ -1422,6 +1422,20 @@ redo:	Cflag = 0;
 		return;
 	}
 	Cflag = oldC;
+	if (ISDIGIT(ch) && Aflag == 0) {
+		/*
+		 * # 12 "file", as prtline() writes it, is #line 12 "file":
+		 * what this has written is read again, as hack's Makefile
+		 * has cc -E's output, put through a filter, compiled.
+		 */
+		if (flslvl == 0) {
+			unch(ch);
+			line();
+			return;
+		}
+		flscan();
+		goto redo;
+	}
 	if ((spechr[ch] & C_ID0) == 0)
 		goto out;
 	bp = readid(ch);

@@ -75,7 +75,7 @@ yyparse(void)
 		error("division by zero");
 	if (ctok != WARN)
 		error("junk after expression");
-	return (int)n1.nd_val;
+	return n1.nd_val != 0;	/* not (int): 0x10000 is true */
 }
 
 /*

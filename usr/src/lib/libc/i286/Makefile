@@ -29,12 +29,12 @@
 #
 # With CCOM=1 the library is made by the system's own tools, as built
 # for this machine: the C compiled by its compiler (tools/ncc -O,
-# ../../ccom/i286 and ../../c2/i286) and the assembly, which is the
-# same, assembled by its assembler (../../../bin/as/i286).  What is
-# made goes to obj/nlib/M, crt0.o and libc.a: objects of the system's
-# own kind (a.out.h) in a library of its kind, with ranlib's table
-# (tools/ar.py), which tools/cc -ccom has the system's linker link a
-# program with.  That compiler gives such variables common storage
+# ../../cpp/i286, ../../ccom/i286 and ../../c2/i286) and the assembly,
+# which is the same, assembled by its assembler (../../../bin/as/i286).
+# What is made goes to obj/nlib/M, crt0.o and libc.a: objects of the
+# system's own kind (a.out.h) in a library of its kind, with ranlib's
+# table (tools/ar.py), which tools/cc -ccom has the system's linker link
+# a program with.  That compiler gives such variables common storage
 # itself.  The library is made again when any of the tools is.  It has
 # alloca (gen/alloca.s), which the cross compiler has in line and its
 # library has not.
@@ -103,7 +103,7 @@ CFLAGS=	-m$(MODEL) -I$(TOP)/usr/include -wcd=131 -wcd=107 -wcd=121
 else
 CC=	$(TOP)/tools/ncc
 CFLAGS=	-O -m$(MODEL) -I$(TOP)/usr/include
-NCC:=	$(TOP)/tools/ncc $(addprefix $(TOP)/obj/host/ccom/,c0 c1 c2 as)
+NCC:=	$(TOP)/tools/ncc $(addprefix $(TOP)/obj/host/ccom/,cpp c0 c1 c2 as)
 endif
 ifeq ($(CCOM),)
 AS=	nasm -f obj -I$(MD)/crt/ $(FAR)

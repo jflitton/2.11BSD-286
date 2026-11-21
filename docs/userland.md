@@ -1882,10 +1882,12 @@ written by a tool of this port's own, laid out as the 286 has it:
 - `hack`'s Makefile has each file run through the preprocessor and then
   its `crypt`, which shortens words in its messages, "experienced" to
   "xprncd", to save the PDP-11's room. The build does the same, with
-  `tools/cc -E` for the preprocessor. The system's headers give the
-  compiler its conventions in `#pragma` lines with instructions in
-  strings, and `crypt` took the "and" of `alloca`'s for a word; with
-  `-Di286` it leaves lines for the preprocessor alone. `hack.onames.h`,
+  `tools/cc -E` for the preprocessor, which is the system's own,
+  `/lib/cpp`, where the system's compiler makes the programs. The
+  system's headers give the cross compiler its conventions in `#pragma`
+  lines with instructions in strings, and `crypt` took the "and" of
+  `alloca`'s for a word; with `-Di286` it leaves lines for the
+  preprocessor alone. `hack.onames.h`,
   which `makedefs` writes, is in the tree as it writes it.
 - `hack` and `monop` also run their C through `xstr`, which gathers the
   strings into one array so that one copy of each is kept: not done
@@ -2081,7 +2083,7 @@ each is and where it is from. `cc`, `/lib/cpp`, `ar`, `ranlib`, `nm`,
   assembler and the linker which it is, takes the start-up code from
   `/lib`, `/lib/m` or `/lib/l`, and runs the assembler without the
   PDP-11's `-V` and `-u`. In the large model it gives the preprocessor
-  `__LARGE__`, and `NULL` as `0L`.
+  `__LARGE__`, and `NULL` as `0L`; in the medium, `__MEDIUM__`.
 - `/lib/cpp` defines `i286` and nothing else of its own, which is what
   the system's programs were compiled with; it keeps its macros in
   memory, not in a file through `libvmf` as on the PDP-11; and what
@@ -2093,7 +2095,12 @@ each is and where it is from. `cc`, `/lib/cpp`, `ar`, `ranlib`, `nm`,
   whatever it is declared; to the cross compiler a `char` or an `int`
   of four bits is signed, 8 was -8, and a macro without arguments was
   never found again. No other field in the tree holds more than a
-  signed one can.
+  signed one can. An `#if` whose value was not 0 but whose low 16 bits
+  were, such as `#if 0x10000`, was false: the `long` was made an `int`.
+  A file's name with its directory was copied into 256 bytes, whatever
+  its length. And it reads the lines it writes to say where it is,
+  `# 12 "file"`, as `#line`, which hack's Makefile needs: it compiles
+  what `cc -E` wrote.
 - `size` adds up the segments: the text is those of code, the data what
   the last has in the file, and the bss the rest of it. For a program
   of the medium model it gives each segment of text as well, as it

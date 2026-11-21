@@ -63,7 +63,10 @@ declared `__far`, which is how a program reaches the segments
 any other pointer to data without a cast, as a near one is; that is
 what `segalloc` returns and `segfree` takes, and `ve` is written with
 it ([ve](userland.md#ve)). In the medium and large models a function
-may be said to be `__far`, which every function there is.
+may be said to be `__far`, which every function there is. `cc -mm`
+gives the preprocessor `__MEDIUM__`, as the cross compiler has it, for
+what has to know the size of a pointer to a function (the C library's
+`sigaction`).
 
 In the large model a pointer that a `*` declares is far unless it is
 said to be `__near`, and so is the address of anything: the first pass
@@ -277,12 +280,12 @@ The PDP-11's `-i`, `-n` and `-z` are taken and ignored; its overlays
 ## Where the system is built
 
 The same sources are compiled for the machine the system is built on
-(`make -C usr/src/lib/ccom/i286 host`, which makes `c0`, `c1`, `c2`,
-`as` and `ld` in `obj/host/ccom`):
+(`make -C usr/src/lib/ccom/i286 host`, which makes `cpp`, `c0`, `c1`,
+`c2`, `as` and `ld` in `obj/host/ccom`):
 
 | | |
 |---|---|
-| `tools/ncc` | compiles one file: the cross compiler's preprocessor, then `c0`, `c1`, `c2` with `-O`, and `as` |
+| `tools/ncc` | compiles one file: `cpp`, given what `cc` gives `/lib/cpp` on the system, then `c0`, `c1`, `c2` with `-O`, and `as` |
 | `tools/cc -ccom` | `cc` with those in place of the cross compiler, `as` for assembly, and `ld` |
 | `tools/ar.py` | makes a library with its table of contents, as `ar` and `ranlib` do on the system |
 | `make -C usr/src/lib/libc/i286 CCOM=1` | the C library that way, in `obj/nlib` |
@@ -295,7 +298,10 @@ another format. `make root` makes them first.
 The headers the objects are written with have a `long` of 32 bits and a
 pointer of 16; the host's copies of them are made with the types put
 right (`obj/host/ccom/include`). The host has to keep a number's low
-byte first.
+byte first. `cpp` there is given the tree's `usr/include` for the
+system's headers, a type of 32 bits for what `#if` reckons in, which is
+a `long` on the 286, and its tables as they are where a pointer is two
+bytes (`lib/cpp/i286`), so that it writes what `/lib/cpp` writes.
 
 ## The system makes its own compiler
 
@@ -308,7 +314,9 @@ byte, what `tools/cc -ccom` makes of it where the system is built. Then
 it puts them where the ones it booted with were, and does it again with
 those: the second time the compiler is the one the system made.
 
-All 22 are the same.
+All 22 are the same. Where the system is built the files go through
+its own preprocessor too, built for that machine, so that what is
+compared is the preprocessor's work as well.
 
 Two things came of the first time it was tried, neither of which a
 program of two small files had shown ([what the programs
@@ -321,8 +329,8 @@ system is built.
 
 `make -C usr/src/sys/PC CCOM=1` makes the kernel with the system's own
 tools as they are built where the system is built, in `obj/nPC`: each
-C file by `tools/ncc -k -O -mm`, which preprocesses it as the kernel's
-own Makefile does, and the network's with `-nd=NET` besides; the
+C file by `tools/ncc -k -O -mm`, with the kernel's own `-I`
+directories in their order, and the network's with `-nd=NET` besides; the
 kernel's assembly by `as`; and the whole by `ld -gdt 16`. Its segments
 are the cross compiler's kernel's, in the same order:
 

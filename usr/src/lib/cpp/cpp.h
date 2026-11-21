@@ -38,15 +38,19 @@ typedef unsigned char usch;
  * What #if reckons in.  The compiler this is the preprocessor of takes
  * long long for long, on the PDP-11 and on the 286; a compiler that
  * has more for it would call routines to do sums in it that the C
- * library of a 16-bit machine has not got.
+ * library of a 16-bit machine has not got.  Built for another machine
+ * to do there what it does on the 286 (i286/Makefile), it is given
+ * that machine's type of 32 bits as CPPLONG.
  */
+#ifndef CPPLONG
 #if defined(pdp11) || defined(i286)
-typedef	long cpplong;
-typedef	unsigned long ucpplong;
+#define	CPPLONG	long
 #else
-typedef	long long cpplong;
-typedef	unsigned long long ucpplong;
+#define	CPPLONG	long long
 #endif
+#endif
+typedef	CPPLONG cpplong;
+typedef	unsigned CPPLONG ucpplong;
 
 extern	int	trulvl;
 extern	int	flslvl;

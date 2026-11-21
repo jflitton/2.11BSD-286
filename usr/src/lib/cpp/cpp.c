@@ -349,10 +349,15 @@ main(int argc, char **argv)
 	/*
 	 * The 286: what the tree's code asks which machine it is by,
 	 * and no more, which is what the system's own programs were
-	 * compiled with (tools/cc286).
+	 * compiled with (tools/cc286).  Built for the machine the
+	 * system is built on, the system's headers are the tree's,
+	 * STDINC.
 	 */
 	bsheap(fb, "#define i286 1\n");
-	addidir("/usr/include", &incdir[SYSINC]);
+#ifndef STDINC
+#define	STDINC	"/usr/include"
+#endif
+	addidir(STDINC, &incdir[SYSINC]);
 #endif
 
 	if	(tflag == 0)
@@ -2804,8 +2809,9 @@ addname(usch *str)
 	register int len = strlen((char *)str) + 1;
 
 	if (nsz < len) {
-		nbase = xmalloc(CPPBUF);
-		nsz = CPPBUF;
+		/* a file's name with its directory may be longer */
+		nsz = len > CPPBUF ? len : CPPBUF;
+		nbase = xmalloc(nsz);
 	}
 	memcpy(nbase, str, len);
 	str = nbase;

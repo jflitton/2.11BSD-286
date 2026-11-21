@@ -14,6 +14,12 @@ and run (tests/ccom), where the system is built.  With -O the assembly
 goes through c2 on the way, the object code improver
 (usr/src/lib/c2/i286), as cc -O has it do.
 
+The file is first given to the system's preprocessor, /lib/cpp, built
+for this machine too (usr/src/lib/cpp/i286), as cc gives it on the 286
+(usr/src/bin/cc.c): told of the model, then the -D, -U and -I flags in
+their order.  The directories of -I are looked in before the system's
+headers, which are the tree's, usr/include.
+
 The object is OUT, or FILE.o in the current directory.  It is one of
 the system's own (a.out.h), which the system's linker links
 (usr/src/bin/ld/i286, as tools/cc -ccom runs it) and the cross
@@ -27,18 +33,17 @@ compiler's linker does not.
     -ms -mm -ml the small model, the default, or the medium, whose
                 functions are far: the file's are then in a segment of
                 its own, FILE_TEXT; or the large, the medium with every
-                pointer far
+                pointer far.  The preprocessor is given __MEDIUM__ for
+                the medium, and for the large __LARGE__, and NULL as 0L
     -nd=NAME    the data is in NAME_DATA and NAME_BSS, of the group
                 NAME_GROUP, and not the program's data segment, which is
                 SS: so what is in the frame is reached through SS, as
                 in the kernel's network (docs/network.md); as the cross
                 compiler's -nd and -zu have it
-    -k          the kernel's way: preprocessed as tools/cc286 does it
-                for the kernel's Makefile, with the -I directories alone
-                and in their order, and not the system's first
-    -D -U -I    have the file preprocessed first, as tools/cc -E does
-                it; without any of them it is, too, if it has a line
-                that begins with #
+    -k          what the kernel's Makefile gives, and the same as
+                without it: the kernel's -I directories are looked in
+                in their order, as every file's are
+    -D -U -I    for the preprocessor
 
 The assembly is NASM's (-S), and NASM assembles it as well: one that
 makes a conditional jump to somewhere out of its reach into a jump
@@ -54,6 +59,8 @@ import tempfile
 TOOLS = os.path.dirname(os.path.abspath(__file__))
 TOP = os.path.dirname(TOOLS)
 HOST = os.path.join(TOP, "obj", "host", "ccom")
+# What cc gives the preprocessor for the model.
+MODEL = {"s": [], "m": ["-D__MEDIUM__"], "l": ["-D__LARGE__", "-DNULL=0L"]}
 
 
 def fail(msg):
@@ -108,7 +115,8 @@ def main():
             src = a
     if not src or not src.endswith(".c"):
         sys.exit(__doc__)
-    for p in ("c0", "c1") + (("c2",) if improve else ()) + \
+    for p in ("cpp",) + (() if pre_only else ("c0", "c1")) + \
+            (("c2",) if improve and not pre_only else ()) + \
             (() if asm_only or pre_only else ("as",)):
         if not os.path.exists(os.path.join(HOST, p)):
             fail("no obj/host/ccom/%s: make -C usr/src/lib/ccom/i286 host" % p)
@@ -117,39 +125,16 @@ def main():
 
     tmp = tempfile.mkdtemp(prefix="ncc.")
     try:
-        text = open(src, "rb").read()
-        if kernel:
-            # cc286 as the kernel's Makefile runs it, but for its
-            # preprocessor alone; 121 is a name after #endif, which
-            # the kernel has, and the Makefile does not hear of.
-            i = os.path.join(tmp, base + ".p")
-            r = subprocess.run([os.path.join(TOOLS, "cc286"), "-m" + model,
-                                "-wcd=121", "-U__WATCOMC__"] + cpp +
-                               ["-pl", "-o", i, src], capture_output=True)
-            msg = (r.stdout + r.stderr).decode("latin-1")
-            sys.stderr.write(msg)
-            if r.returncode != 0 or "Error!" in msg:
-                sys.exit(1)
-            r.stdout = open(i, "rb").read()
-        if kernel or cpp or re.search(rb"^[ \t]*#", text, re.M):
-            if not kernel:
-                # The preprocessor is the cross compiler's, but what
-                # it says of whose it is is not for this compiler's
-                # files.
-                r = subprocess.run([os.path.join(TOOLS, "cc"), "-E",
-                                    "-m" + model, "-U__WATCOMC__"] + cpp +
-                                   [src], capture_output=True)
-                sys.stderr.write(r.stderr.decode("latin-1"))
-                if r.returncode != 0:
-                    sys.exit(1)
-            # c0 takes the preprocessor's lines as "# 12 "file"", and
-            # knows nothing of the cross compiler's pragmas, which are
-            # how that one is told the calling convention this one has.
-            text = re.sub(rb"^#pragma([^\n]*\\\n)*[^\n]*", b"", r.stdout,
-                          flags=re.M)
-            text = re.sub(rb"^#line ", b"# ", text, flags=re.M)
-            # And it has 64 characters for a file's name.
-            text = text.replace(b'"' + TOP.encode() + b"/", b'"')
+        # The preprocessor, as cc runs it: what it is told of the
+        # model first (usr/src/bin/cc.c), then the flags.
+        r = subprocess.run([os.path.join(HOST, "cpp")] + MODEL[model] +
+                           cpp + [src], capture_output=True)
+        sys.stderr.write(r.stderr.decode("latin-1"))
+        if r.returncode != 0:
+            sys.exit(1)
+        # c0 has 64 characters for a file's name, which here begins
+        # with where the tree is.
+        text = r.stdout.replace(b'"' + TOP.encode() + b"/", b'"')
         pre = out if pre_only else os.path.join(tmp, base + ".i")
         with open(pre, "wb") as f:
             f.write(text)

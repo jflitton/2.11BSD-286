@@ -668,7 +668,10 @@ trek_SRCS=	$(addprefix $(GS)/trek/,abandon.c attack.c autover.c \
 trek_LIBS=	-lm
 # hack's sources, each run through the preprocessor and then crypt, a
 # program of hack's own built for this machine, which shortens the words
-# of the messages in its strings, as hack's Makefile has it.
+# of the messages in its strings, as hack's Makefile has it.  The
+# preprocessor is the compiler's, the system's own with CCOM=1, whose
+# hack has its sources in a directory of its own.
+HGO=		$(GO)/$(if $(CCOM),nhack,hack)
 HACK=		hack.Decl.c hack.apply.c hack.bones.c hack.c hack.cmd.c \
 		hack.do.c hack.do_name.c hack.do_wear.c hack.dog.c hack.eat.c \
 		hack.end.c hack.engrave.c hack.fight.c hack.invent.c \
@@ -682,7 +685,7 @@ HACK=		hack.Decl.c hack.apply.c hack.bones.c hack.c hack.cmd.c \
 		hack.trap.c hack.tty.c hack.unix.c hack.u_init.c hack.vault.c \
 		hack.wield.c hack.wizard.c hack.worm.c hack.worn.c hack.zap.c \
 		hack.version.c rnd.c alloc.c
-hack_SRCS=	$(addprefix $(GO)/hack/,$(HACK))
+hack_SRCS=	$(addprefix $(HGO)/,$(HACK))
 hack_LIBS=	-ltermcap
 hack_MODEL=	m
 warp_SRCS=	$(addprefix $(GS)/warp/,bang.c init.c intrp.c move.c object.c \
@@ -1004,12 +1007,12 @@ $(BSTR): $(GO)/battlestar/battle_strings ;
 # objects, which its makedefs writes, is in the tree as makedefs writes
 # it.
 HK=		$(SRC)/games/hack
-$(GO)/hack:
+$(HGO):
 	mkdir -p $@
 $(H)/hcrypt: $(HK)/crypt.c | $(H)
 	@echo hostcc hack/crypt
 	@$(HOSTCC) $(HOSTCFLAGS) -Di286 -o $@ $<
-$(GO)/hack/%.c: $(HK)/%.c $(wildcard $(HK)/*.h) $(H)/hcrypt | $(GO)/hack
+$(HGO)/%.c: $(HK)/%.c $(wildcard $(HK)/*.h) $(H)/hcrypt | $(HGO)
 	@$(CC) -E -mm -I$(HK) $< > $@.i
 	@$(H)/hcrypt < $@.i > $@.new && mv $@.new $@ && rm $@.i
 

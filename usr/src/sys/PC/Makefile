@@ -94,7 +94,8 @@ HOST=	$(TOP)/obj/host/ccom
 NCFLAGS= -k -O -mm $(DEFS)
 $(addprefix $(O)/,$(NET)): NCFLAGS += -DSUPERVISOR -nd=NET
 
-$(O)/%.o: %.c $(HDRS) $(HOST)/c0 $(HOST)/c1 $(HOST)/c2 $(HOST)/as
+$(O)/%.o: %.c $(HDRS) $(HOST)/cpp $(HOST)/c0 $(HOST)/c1 $(HOST)/c2 \
+		$(HOST)/as
 	@echo cc $*.c
 	@$(TOP)/tools/ncc $(NCFLAGS) -o $@ $<
 
@@ -113,7 +114,7 @@ $(O)/unix: $(addprefix $(O)/,$(OBJS)) $(HOST)/ld
 	@cd $(O) && $(HOST)/ld -mm -gdt 16 -stack 0 -M -o unix $(OBJS) \
 	    > unix.map || { rm -f unix; exit 1; }
 
-$(HOST)/c0 $(HOST)/c1 $(HOST)/c2 $(HOST)/as $(HOST)/ld:
+$(HOST)/cpp $(HOST)/c0 $(HOST)/c1 $(HOST)/c2 $(HOST)/as $(HOST)/ld:
 	$(MAKE) -C $(TOP)/usr/src/lib/ccom/i286 host
 else
 $(addprefix $(O)/,$(NET)): CFLAGS += $(NETFLAGS)

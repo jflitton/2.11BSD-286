@@ -22,7 +22,9 @@ variable defined twice with a value is an error.
 
     -E          run each .c through the preprocessor only, as it is
                 compiled, and write what comes out, with #line lines,
-                to the standard output
+                to the standard output; with -ccom the preprocessor is
+                the system's own, /lib/cpp (tools/ncc -E), whose lines
+                are "# 12 "file""
     -O          optimize; the compiler always does, for size.  -O0
                 has the system's own compiler (-ccom) leave out its
                 object code improver, and is nothing to the other
@@ -157,18 +159,25 @@ def compiler_flags(cflags):
         ["-U" + k for k in MACROS] + ["-Dinline=inline_"]
 
 
-def preprocess(src, model, cflags):
-    """The preprocessor's output for SRC, to the standard output."""
+def preprocess(src, model, cflags, ccom):
+    """The preprocessor's output for SRC, to the standard output: with
+    ccom, the system's own (tools/ncc -E)."""
     fd, out = tempfile.mkstemp(suffix=".i", prefix="cc286.")
     os.close(fd)
     try:
-        r = subprocess.run([os.path.join(TOOLS, "cc286"), "-m" + model] +
-                           cflags + ["-pl", "-o", out, src],
-                           capture_output=True, text=True)
-        msg = r.stdout + r.stderr
-        sys.stderr.write(msg)
-        if r.returncode != 0 or "Error!" in msg:
-            sys.exit(1)
+        if ccom:
+            r = subprocess.run([os.path.join(TOOLS, "ncc"), "-E",
+                                "-m" + model, "-o", out] + cflags + [src])
+            if r.returncode != 0:
+                sys.exit(1)
+        else:
+            r = subprocess.run([os.path.join(TOOLS, "cc286"), "-m" + model] +
+                               cflags + ["-pl", "-o", out, src],
+                               capture_output=True, text=True)
+            msg = r.stdout + r.stderr
+            sys.stderr.write(msg)
+            if r.returncode != 0 or "Error!" in msg:
+                sys.exit(1)
         sys.stdout.flush()
         with open(out, "rb") as f:
             sys.stdout.buffer.write(f.read())
@@ -290,7 +299,9 @@ def main():
     if preprocess_only:
         for f in files:
             if f.endswith(".c"):
-                preprocess(f, model, cflags)
+                preprocess(f, model, [a for a in own if a[:2] in
+                                      ("-D", "-U", "-I")] if ccom else cflags,
+                           ccom)
         return
     sources = [f for f in files if f.endswith((".c", ".s"))]
     if compile_only and out and len(sources) > 1:

@@ -22,7 +22,8 @@ static	char sccsid[] = "@(#)cc.c 5.2 (2.11BSD) 2026/8/29";
  * library's own are (lib/libc/i286/crt/DEFS.inc).  In the large model
  * the preprocessor is given __LARGE__ defined, as the headers know the
  * model by, and NULL as 0L, which is four bytes, as a pointer is, where
- * it is passed to a function that has no prototype.
+ * it is passed to a function that has no prototype; in the medium,
+ * __MEDIUM__.
  */
 #include <sys/param.h>
 #include <stdio.h>
@@ -236,7 +237,8 @@ main(argc, argv)
 		if (large) {
 			av[na++] = "-D__LARGE__";
 			av[na++] = "-DNULL=0L";
-		}
+		} else if (medium)
+			av[na++] = "-D__MEDIUM__";
 #endif
 		for (j = 0; j < np; j++)
 			av[na++] = plist[j];
