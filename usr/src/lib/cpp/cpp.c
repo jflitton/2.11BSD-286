@@ -87,9 +87,9 @@ int Aflag, Cflag, Eflag, Mflag, dMflag, Pflag, MPflag, MMDflag;
 char *Mfile, *MPfile;
 char *Mxfile;
 int warnings, Mxlen, skpows;
-static usch utbuf[CPPBUF];
+static usch utbuf[CPPOBUF+1];	/* and the \n main() may end with */
 static char timebuf[12], datebuf[14];
-struct iobuf pb /* = { utbuf, 0, CPPBUF, 0, 1, BUTBUF } */ ;
+struct iobuf pb /* = { utbuf, 0, CPPOBUF, 0, 1, BUTBUF } */ ;
 static void macstr(const usch *s);
 #if LIBVMF
 struct vspace ibspc, macspc;
@@ -98,15 +98,33 @@ struct vseg *macvseg;
 #endif
 
 /*
- * macptr is an array of char pointers for stored macros.
- * macpos is the current encoded position.
- * nmacptr are # of allocated buffers so far.
+ * The text of the macros, and their names, are each in a space of up to
+ * 64K, of which cpp has as much as it has used, a step at a time; a
+ * place in one is an offset, mvtyp.  macpos is where the next of the
+ * text goes, nampos the next name.  On the 286 a space is a segment that
+ * cpp asks the system for (segalloc(2)) and reaches by a far pointer, so
+ * that the most of what it keeps is outside its own data, which then
+ * holds no more than the table of names and the buffers, and cpp is of
+ * the small model.  Built for another machine (i286/Makefile), NOSEGS,
+ * a space is memory of its own, as large.
  */
-#if LIBVMF == 0
-char **macptr;
-int nmacptr;
+#if defined(i286) && !defined(NOSEGS)
+#include <segment.h>
+#define	FARSEGS	1
+#else
+#define	__far
 #endif
+#define	SPL2	12		/* a step is 4K */
+struct space {
+	usch __far *base;
+	int nstep;		/* steps it has */
+};
+#if LIBVMF == 0
+static struct space macs;
+#endif
+static struct space nams;
 mvtyp macpos;
+static mvtyp nampos;
 
 /* include dirs */
 struct incs {
@@ -331,15 +349,11 @@ main(int argc, char **argv)
 #if LIBVMF
 	macvseg = vmmapseg(&macspc, 0);
 	vmlock(macvseg);
-#else
-	macptr = xmalloc((nmacptr = 10) * sizeof(char **));
-	memset(macptr, 0, nmacptr * sizeof(char **));
-	macptr[0] = xmalloc(CPPBUF);
 #endif
 
 	/* init output buffer */
 	pb.buf = utbuf;
-	pb.bsz = CPPBUF;
+	pb.bsz = CPPOBUF;
 	pb.inuse = 1;
 	pb.type = BUTBUF;
 
@@ -520,6 +534,16 @@ giob(int typ, register const usch *bp, int bsz)
 
 
 int nbufused;
+
+/*
+ * Buffers of the usual size that have been given back, to be given
+ * out again before any is asked of malloc(): there are many, for a
+ * time each, in the expanding of every macro.
+ */
+#define	NFREEB	8
+static usch *freeb[NFREEB];
+static int nfreeb;
+
 /*
  * Get a new buffer.
  */
@@ -538,14 +562,14 @@ getobuf(register int type)
 		break;
 	case BNORMAL:
 		nbufused++;
-		iob = giob(BNORMAL, NULL, CPPBUF);
+		iob = giob(BNORMAL, nfreeb ? freeb[--nfreeb] : NULL, CPPBUF);
 		iob->bsz = CPPBUF-1; /* space for \0 */
 		break;
 	case BINBUF:
 #if LIBVMF
 		iob = giob(BINBUF, (usch *)ifiles->vseg->s_cinfo, BYTESPERSEG);
 #else
-		iob = giob(BINBUF, NULL, CPPBUF);
+		iob = giob(BINBUF, NULL, PBMAX+CPPIBUF+1);	/* and a 0 */
 #endif
 		break;
 	default:
@@ -580,7 +604,10 @@ buftobuf(register struct iobuf *in, register struct iobuf *iob)
 	DPRINT(("buftobuf in %p out %p instr %s\n", in, iob, in->buf));
 	if (iob == NULL)
 		iob = getobuf(BNORMAL);
-	for (cp = 0; cp < in->cptr; cp++)
+	if (iob->cptr + in->cptr <= iob->bsz) {
+		memcpy(iob->buf + iob->cptr, in->buf, in->cptr);
+		iob->cptr += in->cptr;
+	} else for (cp = 0; cp < in->cptr; cp++)
 		putob(iob, in->buf[cp]);
 	return iob;
 }
@@ -591,9 +618,17 @@ buftobuf(register struct iobuf *in, register struct iobuf *iob)
 struct iobuf *
 strtobuf(register const usch *str, register struct iobuf *iob)
 {
+	usch *d, *e;
+
 	if (iob == NULL)
 		iob = getobuf(BNORMAL);
 	DPRINT(("strtobuf iob %p buf %p str %s\n", iob, iob->buf, str));
+	for (d = iob->buf + iob->cptr, e = iob->buf + iob->bsz; d < e; )
+		if ((*d++ = *str++) == 0) {
+			iob->cptr = (int)(d - 1 - iob->buf);
+			return iob;
+		}
+	iob->cptr = (int)(d - iob->buf);
 	do {
 		PUTOB(iob, *str);
 	} while (*str++);
@@ -601,14 +636,31 @@ strtobuf(register const usch *str, register struct iobuf *iob)
 	return iob;
 }
 
+/*
+ * Give a space its next step.
+ */
+static void
+spgrow(register struct space *s)
+{
+	long n = (long)(s->nstep + 1) << SPL2;
+
+#ifdef FARSEGS
+	if (s->base == NULL ? (s->base = segalloc(n)) == NULL :
+	    segsize(s->base, n) < 0)
+		error("out of memory");
+#else
+	s->base = xrealloc(s->base, (int)n);
+#endif
+	s->nstep++;
+}
+
 static void
 macsav(int ch)
 {
+#if LIBVMF
 	register int cpos = VALBUF(macpos);
-	register int cptr = VALPTR(macpos);
 	register char *mp;
 
-#if LIBVMF
 	if (lckmacbuf != cpos) {
 		vmmodify(macvseg);
 		vmunlock(macvseg);
@@ -617,17 +669,12 @@ macsav(int ch)
 		vmlock(macvseg);
 	}
 	mp = macvseg->s_cinfo;
+	mp[VALPTR(macpos)] = ch;
 #else
-
-	if (cpos == nmacptr) {
-		macptr = xrealloc(macptr, (nmacptr + 10) * sizeof(char **));
-		memset(macptr+nmacptr, 0, 10 * sizeof(char **));
-		nmacptr += 10;
-	}
-	if ((mp = macptr[cpos]) == NULL)
-		mp = macptr[cpos] = xmalloc(CPPBUF);
+	if ((macpos >> SPL2) == macs.nstep)
+		spgrow(&macs);
+	macs.base[macpos] = ch;
 #endif
-	mp[cptr] = ch;
 	if (++macpos == 0)	/* not to begin again over the first */
 		error("too many macros");
 }
@@ -635,6 +682,20 @@ macsav(int ch)
 static void                     
 macstr(register const usch *s)
 {
+#if LIBVMF == 0
+	register usch __far *d;
+	register unsigned n = (unsigned)strlen((const char *)s);
+
+	if ((long)macpos + n + 1 < ((long)macs.nstep << SPL2)) {
+		/* the space has it, and its NUL, and more */
+		d = macs.base + macpos;
+		macpos += n;
+		while (n-- > 0)
+			*d++ = *s++;
+		*d = 0;
+		return;
+	}
+#endif
 	do {
 		macsav(*s);
 	} while (*s++ != 0);
@@ -648,7 +709,7 @@ macget(register mvtyp a)
 	register struct vseg *vseg = vmmapseg(&macspc, VALBUF(a));
 	return vseg->s_cinfo[VALPTR(a)];
 #else
-	return macptr[VALBUF(a)][VALPTR(a)];
+	return macs.base[a];
 #endif
 }
 
@@ -661,29 +722,105 @@ macrepbuf(register mvtyp p)
 {
 	register struct iobuf *ob;
 	register int ch;
+#if LIBVMF == 0
+	const usch __far *m;
+#endif
 
 	ob = getobuf(BNORMAL);
-	while ((ch = macget(p++))) {
-		putob(ob, ch);
-		if (ch == WARN)
-			putob(ob, macget(p++));
+#if LIBVMF == 0
+	m = macs.base + p;
+	while ((ch = *m++)) {
+		PUTOB(ob, ch);
+		if (ch == WARN) {
+			ch = *m++;
+			PUTOB(ob, ch);
+		}
 	}
+#else
+	while ((ch = macget(p++))) {
+		PUTOB(ob, ch);
+		if (ch == WARN) {
+			ch = macget(p++);
+			PUTOB(ob, ch);
+		}
+	}
+#endif
 	putob(ob, 0);
 	ob->cptr = 0;
 	return ob;
 }
 
+/*
+ * Keep a name in the space of names, and say where it is.
+ */
+static mvtyp
+savname(register const usch *s, register int len)
+{
+	mvtyp p = nampos;
+	usch __far *d;
 
-#define	setcmbase()	cmbase = macptr
-#define	clrcmbase()	macptr = cmbase
+	if ((long)nampos + len + 1 < ((long)nams.nstep << SPL2)) {
+		/* the space has it, and its NUL, and more */
+		d = nams.base + nampos;
+		nampos += len + 1;
+		while (len-- > 0)
+			*d++ = *s++;
+		*d = 0;
+		return p;
+	}
+	for (;; s++) {
+		if ((nampos >> SPL2) == nams.nstep)
+			spgrow(&nams);
+		nams.base[nampos] = len-- > 0 ? *s : 0;
+		if (++nampos == 0)
+			error("too many macros");
+		if (len < 0)
+			return p;
+	}
+}
+
+/*
+ * Whether the name at n is not the len characters at k.
+ */
+static int
+namecmp(mvtyp n, register const usch *k, register int len)
+{
+	register const usch __far *m = nams.base + n;
+
+	for (; len > 0; len--)
+		if (*m++ != *k++)
+			return 1;
+	return *m != 0;
+}
+
+/*
+ * A symbol's name, where it can be read until the next is asked for.
+ */
+static const usch *
+symname(struct symtab *sp)
+{
+	static usch nbuf[MAXIDSZ+1];
+	register const usch __far *m = nams.base + sp->namep;
+	register int i;
+
+	for (i = 0; i < MAXIDSZ && (nbuf[i] = *m++) != 0; i++)
+		;
+	nbuf[i] = 0;
+	return nbuf;
+}
 
 void
 bufree(register struct iobuf *iob)
 {
 	if (iob->type == BNORMAL)
 		nbufused--;
-	if (iob->ro == 0)
-		free(iob->buf);
+	if (iob->ro == 0) {
+		if (iob->type == BNORMAL && iob->bsz == CPPBUF-1 &&
+		    nfreeb < NFREEB)
+			freeb[nfreeb++] = iob->buf;
+		else
+			free(iob->buf);
+	}
 	iob->buf = (void *)ioblnk;
 	ioblnk = iob;
 }
@@ -1097,8 +1234,23 @@ delews(mvtyp beg)
 {
 	register int c;
 	register mvtyp lastnonws = beg;
+#if LIBVMF == 0
+	register const usch __far *m;
+#endif
 
 	macsav(0);
+#if LIBVMF == 0
+	for (m = macs.base + beg;; beg++) {
+		if ((c = *m++) == 0) {
+			macpos = ++lastnonws;
+			return;
+		}
+		if (c == WARN)
+			beg++, m++;
+		if (!ISWSNL(c))
+			lastnonws = beg;
+	}
+#else
 	for (;;beg++) {
 		if ((c = macget(beg)) == 0) {
 			macpos = ++lastnonws;
@@ -1109,6 +1261,7 @@ delews(mvtyp beg)
 		if (!ISWSNL(c))
 			lastnonws = beg;
 	}
+#endif
 }
 
 /*
@@ -1137,13 +1290,8 @@ define(void)
 		goto bad;
 
 	dp = readid(c);
-	np = lookup(dp, ENTER);
-	if (np->valoff) {
-		redef = 1;
-	} else {
-		np->namep = addname(dp);
-		redef = 0;
-	}
+	np = lookup(dp, ENTER);		/* which keeps the name */
+	redef = np->valoff != 0;
 
 	type = OBJCT;
 	narg = 0;
@@ -1212,11 +1360,19 @@ define(void)
 	/* parse replacement-list, substituting arguments */
 	wascon = 0;
 	while (c != '\n') {
-		incmnt++;
-		cc[0] = c, cc[1] = cinput();
-		incmnt--;
-		t = getyp(cc);
-		cunput(cc[1]);
+		if (ISID0(c))
+			t = IDENT;
+		else if (c != '/' && c != '.' && c != '#')
+			t = c == '\'' || c == '\"' ? STRING :
+			    ISDIGIT(c) ? NUMBER : c;
+		else {
+			/* what it is hangs on what comes next */
+			incmnt++;
+			cc[0] = c, cc[1] = cinput();
+			incmnt--;
+			t = getyp(cc);
+			cunput(cc[1]);
+		}
 
 		switch (t) {
 		case ' ':
@@ -1393,7 +1549,7 @@ back:					if (c == '*') {
 		    np->type != type || np->narg != narg) { /* not equal */
 			np->valoff = begpos;
 			warning("%s redefined (previously defined at \"%s\" line %d)",
-			    np->namep, np->file, np->line);
+			    symname(np), np->file, np->line);
 		} else
 			  macpos = begpos;  /* forget this space */
 	} else
@@ -1403,7 +1559,7 @@ back:					if (c == '*') {
 
 #ifdef PCC_DEBUG
 	if (dflag) {
-		printf("!define %s: ", np->namep);
+		printf("!define %s: ", symname(np));
 		if (type == OBJCT)
 			printf("[object]");
 		else if (type == VARG)
@@ -1413,7 +1569,7 @@ back:					if (c == '*') {
 		putchar('\'');
 		prrep(np->valoff);
 		printf("\'\n");
-		printf("%s: link %d off %d\n", np->namep, VALBUF(np->valoff), VALPTR(np->valoff));
+		printf("%s: link %d off %d\n", symname(np), VALBUF(np->valoff), VALPTR(np->valoff));
 	}
 #endif
 	bufree(ab);
@@ -1515,7 +1671,7 @@ prblocker(char *s, int id)
 	printf("%s (blocker): ", s);
 	
 	for (; id; id = blokx[BLKBUF(id)][BLKPTR(id)].nidx)
-		printf("%s ", blokx[BLKBUF(id)][BLKPTR(id)].sp->namep);
+		printf("%s ", symname(blokx[BLKBUF(id)][BLKPTR(id)].sp));
 	printf("\n");
 		
 }
@@ -1632,14 +1788,14 @@ fstrnum(struct iobuf *ib, register struct iobuf *ob)
 
 	if (*s == '.') {
 		/* not digit, dot.  Next will be digit */
-		putob(ob, *s++);
+		PUTOB(ob, *s++);
 	}
 	for (;;) {
-		putob(ob, *s++);
+		PUTOB(ob, *s++);
 		if ((c2 = (*s & 0337)) == 'E' || c2 == 'P') {
 			if (s[1] != '-' && s[1] != '+')
 				break;
-			putob(ob, *s++);
+			PUTOB(ob, *s++);
 		} else if ((*s != '.') && ((spechr[*s] & C_ID) == 0))
 			break;
 	}
@@ -1657,17 +1813,17 @@ fstrstr(struct iobuf *ib, register struct iobuf *ob)
 	register int ch;
 
 	if (*s == 'L' || *s == 'U' || *s == 'u')
-		putob(ob, *s++);
+		PUTOB(ob, *s++);
 	if (*s == '8')
-		putob(ob, *s++);
+		PUTOB(ob, *s++);
 	ch = *s;
-	putob(ob, *s++);
+	PUTOB(ob, *s++);
 	while (*s != ch) {
 		if (*s == '\\')
-			putob(ob, *s++);
-		putob(ob, *s++);
+			PUTOB(ob, *s++);
+		PUTOB(ob, *s++);
 	}
-	putob(ob, *s++);
+	PUTOB(ob, *s++);
 	ib->cptr = (int)(s - ib->buf);
 }
 
@@ -1679,15 +1835,17 @@ fcmnt(struct iobuf *ib, register struct iobuf *ob)
 {
 	register usch *s = ib->buf+ib->cptr;
 
-	putob(ob, *s++); /* / */
-	putob(ob, *s++); /* * */
+	PUTOB(ob, *s++); /* / */
+	PUTOB(ob, *s++); /* * */
 	for (;;s++) {
-		putob(ob, *s);
+		PUTOB(ob, *s);
 		if (s[-1] == '*' && *s == '/')
 			break;
 	}
 	ib->cptr = (int)(s - ib->buf + 1);
 }
+
+#define	GETYP(s)	((spechr[*(s)] & C_SPEC) || *(s) == '.' ? getyp(s) : *(s))
 
 static int
 getyp(register usch *s)
@@ -1730,7 +1888,7 @@ loopover(register struct iobuf *ib, register struct iobuf *ob)
 
 	xb = getobuf(BNORMAL);
 	while ((c = ib->buf[ib->cptr])) {
-		switch (t = getyp(ib->buf+ib->cptr)) {
+		switch (t = GETYP(ib->buf+ib->cptr)) {
 		case CMNT:
 			fcmnt(ib, ob);
 			continue;
@@ -1749,7 +1907,7 @@ loopover(register struct iobuf *ib, register struct iobuf *ob)
 						cp++, cp++;
 					continue;
 				}
-				putob(ob, *cp);
+				PUTOB(ob, *cp);
 			}
 			continue;
 		case BLKID:
@@ -1776,7 +1934,7 @@ loopover(register struct iobuf *ib, register struct iobuf *ob)
 				;
 			if ((sp = lookup(cn+ib->buf, FIND)) == NULL) {
 sstr:				for (; cn < ib->cptr; cn++)
-					putob(ob, ib->buf[cn]);
+					PUTOB(ob, ib->buf[cn]);
 				continue;
 			}
 			if (expok(sp, l) == 0) {
@@ -1794,7 +1952,7 @@ sstr:				for (; cn < ib->cptr; cn++)
 					ib->cptr = cn;
 				}
 newmac:				if ((xob = submac(sp, 1, ib, 0)) == NULL) {
-					strtobuf((usch *)sp->namep, ob);
+					strtobuf(symname(sp), ob);
 				} else {
 					sp = loopover(xob, ob);
 					bufree(xob);
@@ -1804,7 +1962,7 @@ newmac:				if ((xob = submac(sp, 1, ib, 0)) == NULL) {
 			}
 			continue;
 		default:
-			putob(ob, c);
+			PUTOB(ob, c);
 		}
 
 		ib->cptr++;
@@ -1851,7 +2009,7 @@ kfind(struct symtab *sp)
 
 	blkidp = 1;
 	outb = NULL;
-	DPRINT(("%d:enter kfind(%s)\n",0,sp->namep));
+	DPRINT(("%d:enter kfind(%s)\n",0,symname(sp)));
 	switch ((unsigned int)sp->type) {
 	case FILLOC:
 		ob = unfname();
@@ -1891,7 +2049,7 @@ kfind(struct symtab *sp)
 				n++;
 		if (c != '(') {
 			if (inexpr == 0)
-				putstr(sp->namep);
+				putstr(symname(sp));
 			if (n == 0)
 				putch(' ');
 			else for (ifiles->lineno += n; n; n--)
@@ -1932,7 +2090,7 @@ again:		if ((ab = readargs(NULL, sp, argary)) == 0)
 			goto again;
 		}
 		cunput(c);
-		strtobuf((usch *)sp->namep, outb);
+		strtobuf(symname(sp), outb);
 	}
 	bufree(ob);
 
@@ -1957,7 +2115,7 @@ submac(struct symtab *sp, int lvl, register struct iobuf *ib, int l)
 	const usch *argary[MAXARGS+1];
 	int cn;
 
-	DPRINT(("%d:submac: trying '%s'\n", lvl, sp->namep));
+	DPRINT(("%d:submac: trying '%s'\n", lvl, symname(sp)));
 	switch ((unsigned int)sp->type) {
 	case FILLOC:
 		ob = unfname();
@@ -2083,10 +2241,10 @@ readargs(register struct iobuf *in, struct symtab *sp, const usch **args)
 				break;
 			case BLKID2:
 			case BLKID:
-				putob(ab, c);
-				putob(ab, ifiles->ib->buf[ifiles->ib->cptr++]);
+				PUTOB(ab, c);
+				PUTOB(ab, ifiles->ib->buf[ifiles->ib->cptr++]);
 				if (c == BLKID2)
-					putob(ab, ifiles->ib->buf[ifiles->ib->cptr++]);
+					PUTOB(ab, ifiles->ib->buf[ifiles->ib->cptr++]);
 				break;
 			case '/':
 				if ((c = cinput()) == '*' || c == '/')
@@ -2116,7 +2274,7 @@ readargs(register struct iobuf *in, struct symtab *sp, const usch **args)
 				if (ISID0(c)) {
 					bufid(c, ab);
 				} else
-					putob(ab, c);
+					PUTOB(ab, c);
 				break;
 			}
 			c = cinput();
@@ -2149,7 +2307,7 @@ readargs(register struct iobuf *in, struct symtab *sp, const usch **args)
 			if (c == '\"' || c == '\'') {
 				faststr(c, ab);
 			} else
-				putob(ab, c);
+				PUTOB(ab, c);
 			if ((c = cinput()) == '\n')
 				ifiles->escln++, c = ' ';
 		}
@@ -2191,20 +2349,20 @@ escstr(register const usch *bp, register struct iobuf *ob)
 		if (!instr && ISWS(*bp)) {
 			while (ISWS(*bp))
 				bp++;
-			putob(ob, ' ');
+			PUTOB(ob, ' ');
 		}
 
 		if (*bp == '\'' || *bp == '"') {
 			instr ^= 1;
 			if (*bp == '"')
-				putob(ob, '\\');
+				PUTOB(ob, '\\');
 		} 
 		if (instr && *bp == '\\') {
-			putob(ob, *bp);
+			PUTOB(ob, *bp);
 			if (bp[1] == '\"') 
-				putob(ob, *bp), putob(ob, *bp++);
+				PUTOB(ob, *bp), PUTOB(ob, *bp++);
 		}
-		putob(ob, *bp);
+		PUTOB(ob, *bp);
 		bp++;
 	}
 }
@@ -2223,7 +2381,7 @@ subarg(struct symtab *nl, const usch **args, int lvl, int l)
 	int narg, snuff, c2;
 	const usch *sp, *bp, *ap, *vp;
 
-	DPRINT(("%d:subarg '%s'\n", lvl, nl->namep));
+	DPRINT(("%d:subarg '%s'\n", lvl, symname(nl)));
 	ob = getobuf(BNORMAL);
 	vb = macrepbuf(nl->valoff);
 	vp = vb->buf;
@@ -2233,7 +2391,7 @@ subarg(struct symtab *nl, const usch **args, int lvl, int l)
 	snuff = 0;
 #ifdef PCC_DEBUG
 	if (dflag>1) {
-		printf("%d:subarg ARGlist for %s: '", lvl, nl->namep);
+		printf("%d:subarg ARGlist for %s: '", lvl, symname(nl));
 		prrep(nl->valoff);
 		printf("'\n");
 		prblocker("subarg", l);
@@ -2246,7 +2404,7 @@ subarg(struct symtab *nl, const usch **args, int lvl, int l)
 	 */
 	while (*sp) {
 		if (*sp == SNUFF)
-			putob(ob, '\"'), snuff ^= 1;
+			PUTOB(ob, '\"'), snuff ^= 1;
 		else if (*sp == CONC)
 			;
 		else if (*sp == WARN) {
@@ -2305,10 +2463,10 @@ subarg(struct symtab *nl, const usch **args, int lvl, int l)
 			if (lookup(sp, FIND))
 				storeblk(l, ob);
 			while (ISID(*sp))
-				putob(ob, *sp++);
+				PUTOB(ob, *sp++);
 			sp--;
 		} else
-			putob(ob, *sp);
+			PUTOB(ob, *sp);
 		sp++;
 	}
 	putob(ob, 0);
@@ -2343,7 +2501,7 @@ exparg(int lvl, register struct iobuf *ib, register struct iobuf *ob, int l)
 	}
 #endif
 
-	while ((c = getyp(ib->buf+ib->cptr)) != 0) {
+	while ((c = GETYP(ib->buf+ib->cptr)) != 0) {
 		switch (c) {
 
 		case CMNT:
@@ -2374,7 +2532,7 @@ exparg(int lvl, register struct iobuf *ib, register struct iobuf *ob, int l)
 					if (cp[-1] == BLKID2)
 						cp++;
 				} else
-					putob(tb, *cp);
+					PUTOB(tb, *cp);
 			}
 			tb->buf[tb->cptr] = 0;
 			ib->cptr = (int)(cp - ib->buf);
@@ -2445,7 +2603,7 @@ blkprint(int l)
 {
 	printf("<BLKID%s(", l > 255 ? "2" : "");
 	for (; l; l = blokx[BLKBUF(l)][BLKPTR(l)].nidx)
-		printf("%s ", blokx[BLKBUF(l)][BLKPTR(l)].sp->namep);
+		printf("%s ", symname(blokx[BLKBUF(l)][BLKPTR(l)].sp));
 	printf(")>");
 }
 
@@ -2536,6 +2694,27 @@ putstr(const usch *s)
 }
 
 /*
+ * The same, of the n characters at s.
+ */
+void
+putnstr(register const usch *s, register int n)
+{
+	register usch *d;
+
+	if (skpows)
+		cntline();
+	if (pb.cptr + n <= pb.bsz) {
+		d = pb.buf + pb.cptr;
+		pb.cptr += n;
+		while (n-- > 0)
+			*d++ = *s++;
+	} else {
+		for (; n > 0; n--, s++)
+			PUTOB((&pb), *s);
+	}
+}
+
+/*
  * convert a number to an ascii string. Store it on the heap.
  */
 static void
@@ -2608,62 +2787,23 @@ usage(void)
 	error("Usage: cpp [-Cdt] [-Dvar=val] [-Uvar] [-Ipath] [-Spath]");
 }
 
-#ifdef notyet
 /*
- * Symbol table stuff.
- * The data structure used is a patricia tree implementation using only
- * bytes to store offsets.
- * The information stored is (lower address to higher):
- *
- *	unsigned char bitno[2]; bit number in the string
- *	unsigned char left[3];	offset from base to left element
- *	unsigned char right[3];	offset from base to right element
+ * The table of names: for each of its places a chain of the symbols
+ * whose names hash to it.  A name is hashed a character at a time, in
+ * 16 bits, by what costs least where nothing shifts by more than one
+ * place at once, and the place is that folded; each symbol keeps the
+ * hash, so that one whose name is not the one looked for is passed
+ * over without its name, which is in the space of names, being read.
+ * Upstream's is a patricia tree, whose nodes and names took the most of
+ * cpp's memory, and as long to look a name up in as it took to read it.
  */
-#endif
+static struct symtab *symhash[NHASH];
 
 /*
- * This patricia implementation is more-or-less the same as
- * used in ccom for string matching.
- */
-struct tree {
-	int bitno;
-	struct tree *lr[2];
-};
-
-#define BITNO(x)		((x) & ~(LEFT_IS_LEAF|RIGHT_IS_LEAF))
-#if defined(pdp11) || defined(i286)	/* an int of 16 bits */
-#define LEFT_IS_LEAF		0x8000
-#define RIGHT_IS_LEAF		0x4000
-#else
-#define LEFT_IS_LEAF		0x80000000
-#define RIGHT_IS_LEAF		0x40000000
-#endif
-#define IS_LEFT_LEAF(x)		(((x) & LEFT_IS_LEAF) != 0)
-#define IS_RIGHT_LEAF(x)	(((x) & RIGHT_IS_LEAF) != 0)
-#define P_BIT(key, bit)		(key[bit >> 3] >> (bit & 7)) & 1
-#define CHECKBITS		8
-
-static struct tree *sympole;
-static int numsyms;
-
-static struct tree *
-gtree(void)
-{
-	static int ntrees;
-	static struct tree *tp;
-
-	if (ntrees == 0) {
-		tp = xmalloc(CPPBUF);
-		ntrees = CPPBUF/sizeof(*tp);
-	}
-	return &tp[--ntrees];
-}
-
-/*
- * Allocate a symtab struct and store the string.
+ * Allocate a symtab struct.
  */
 static struct symtab *
-getsymtab(const usch *str)
+getsymtab(void)
 {
 	static int nsyms;
 	static struct symtab *spp;
@@ -2674,117 +2814,54 @@ getsymtab(const usch *str)
 		nsyms = CPPBUF/sizeof(*sp);
 	}
 	sp = &spp[--nsyms];
-
-	sp->namep = str;
 	sp->valoff = 0;
+	sp->type = sp->wraps = 0;
+	sp->narg = 0;
 	sp->file = ifiles ? ifiles->orgfn : (const usch *)"<initial>";
 	sp->line = ifiles ? ifiles->lineno : 0;
 	return sp;
 }
 
 /*
- * Do symbol lookup in a patricia tree.
+ * Look up the name at key, which ends where its characters do.
  * Only do full string matching, no pointer optimisations.
  */
 struct symtab *
 lookup(register const usch *key, int enterf)
 {
-	struct symtab *sp;
-	register struct tree *w, *new, *last;
-	int len, cix, bit, fbit, svbit, ix, bitno;
-	const usch *k, *m;
+	register const usch *k;
+	register unsigned h;
 
-	/* Count full string length */
-	for (k = key, len = 0; ISID(*k) & C_ID; k++, len++)
-		;
+	for (h = 0, k = key; ISID(*k); k++)
+		h = HASHC(h, *k);
+	return lookuph(key, (int)(k - key), h, enterf);
+}
 
-	switch (numsyms) {
-	case 0: /* no symbols yet */
-		if (enterf != ENTER)
-			return NULL;
-		sympole = (struct tree *)getsymtab(key);
-		numsyms++;
-		return (struct symtab *)sympole;
+/*
+ * The same, of the len characters at key, whose hash is h.
+ */
+struct symtab *
+lookuph(const usch *key, int len, unsigned h, int enterf)
+{
+	register struct symtab *sp;
 
-	case 1:
-		w = sympole;
-		svbit = 0; /* XXX gcc */
-		break;
-
-	default:
-		w = sympole;
-		bitno = len * CHECKBITS;
-		for (;;) {
-			bit = BITNO(w->bitno);
-			fbit = bit >= bitno ? 0 : P_BIT(key, bit);
-			svbit = fbit ? IS_RIGHT_LEAF(w->bitno) :
-			    IS_LEFT_LEAF(w->bitno);
-			w = w->lr[fbit];
-			if (svbit)
-				break;
+	h &= 0xffff;
+	for (sp = symhash[HASHIX(h)]; sp != NULL; sp = sp->next) {
+		if (sp->hash == h && namecmp(sp->namep, key, len) == 0) {
+			if (enterf != ENTER && sp->valoff == 0)
+				return NULL;
+			return sp;
 		}
 	}
-
-	sp = (struct symtab *)w;
-
-	m = sp->namep;
-	k = key;
-
-	/* Check for correct string and return */
-	for (cix = 0; *m && ISID(*k) && *m == *k; m++, k++, cix += CHECKBITS)
-		;
-	if (*m == 0 && ISID(*k) == 0) {
-		if (enterf != ENTER && sp->valoff == 0)
-			return NULL;
-		return sp;
-	}
-
 	if (enterf != ENTER)
 		return NULL; /* no string found and do not enter */
 
-	ix = *m ^ *k;
-	while ((ix & 1) == 0)
-		ix >>= 1, cix++;
-
-	/* Create new node */
-	new = gtree();
-	bit = P_BIT(key, cix);
-	new->bitno = cix | (bit ? RIGHT_IS_LEAF : LEFT_IS_LEAF);
-	new->lr[bit] = (struct tree *)getsymtab(key);
-
-	if (numsyms++ == 1) {
-		new->lr[!bit] = sympole;
-		new->bitno |= (bit ? LEFT_IS_LEAF : RIGHT_IS_LEAF);
-		sympole = new;
-		return (struct symtab *)new->lr[bit];
-	}
-
-	w = sympole;
-	last = NULL;
-	for (;;) {
-		fbit = w->bitno;
-		bitno = BITNO(w->bitno);
-		if (bitno == cix)
-			error("bitno == cix");
-		if (bitno > cix)
-			break;
-		svbit = P_BIT(key, bitno);
-		last = w;
-		w = w->lr[svbit];
-		if (fbit & (svbit ? RIGHT_IS_LEAF : LEFT_IS_LEAF))
-			break;
-	}
-
-	new->lr[!bit] = w;
-	if (last == NULL) {
-		sympole = new;
-	} else {
-		last->lr[svbit] = new;
-		last->bitno &= ~(svbit ? RIGHT_IS_LEAF : LEFT_IS_LEAF);
-	}
-	if (bitno < cix)
-		new->bitno |= (bit ? LEFT_IS_LEAF : RIGHT_IS_LEAF);
-	return (struct symtab *)new->lr[bit];
+	sp = getsymtab();
+	sp->hash = h;
+	sp->namep = savname(key, len);
+	sp->next = symhash[HASHIX(h)];
+	symhash[HASHIX(h)] = sp;
+	return sp;
 }
 
 void *

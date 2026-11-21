@@ -76,6 +76,8 @@ typedef	unsigned int mvtyp;
 #endif
 
 #define	CPPBUF		(1 << CPPL2)
+#define	CPPIBUF		1024	/* what is read of a file at once: a block */
+#define	CPPOBUF		2048	/* what is written at once */
 #define	VALPTR(x)	((x) & (CPPBUF-1))
 #define	VALBUF(x)	((x) >> CPPL2)
 #define	MKVAL(b, c)	(((b) << CPPL2) + (c))
@@ -177,9 +179,14 @@ struct includ {
 
 extern struct includ *ifiles;
 
-/* Symbol table entry  */
+/*
+ * Symbol table entry: one of a chain of those whose names hash alike.
+ * The name is in the space of names (cpp.c), at namep.
+ */
 struct symtab {
-	const usch *namep;
+	struct symtab *next;
+	unsigned short hash;
+	mvtyp namep;
 	mvtyp valoff;
 	const usch *file;
 	int line;
@@ -212,6 +219,15 @@ enum { NUMBER = 257, UNUMBER, LS, RS, EQ, NE, STRING, WSPACE, CMNT, IDENT,
 #define	SLO_IGNOREWS	001
 
 struct symtab *lookup(const usch *namep, int enterf);
+struct symtab *lookuph(const usch *key, int len, unsigned h, int enterf);
+
+/*
+ * The table of names (cpp.c): a name's hash, a character at a time in
+ * 16 bits, and the place in the table that it gives.
+ */
+#define	NHASH		1024
+#define	HASHC(h, c)	(((h) << 1) + (c))
+#define	HASHIX(h)	(((h) ^ ((h) >> 10)) & (NHASH-1))
 struct blocker;
 struct iobuf *submac(struct symtab *nl, int, struct iobuf *, int);
 struct iobuf *kfind(struct symtab *nl);
@@ -229,13 +245,15 @@ void cunput(int);
 int yyparse(void);
 void putch(int);
 void putstr(const usch *s);
+void putnstr(const usch *s, int n);
 usch *sheap(const char *fmt, ...);
 struct iobuf *bsheap(struct iobuf *, const char *fmt, ...);
 struct iobuf *strtobuf(const usch *str, struct iobuf *iob);
 struct iobuf *buftobuf(struct iobuf *in, struct iobuf *iob);
 void warning(const char *fmt, ...);
 void error(const char *fmt, ...);
-int cinput(void);
+int qcchar(void);
+#define	cinput()	qcchar()
 int inc2(void);
 void Ccmnt2(struct iobuf *, int);
 usch *bufid(int ch, struct iobuf *);

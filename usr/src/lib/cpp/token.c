@@ -148,6 +148,52 @@ usch spechr[256] = {
 };
 
 /*
+ * What the loops that pass over the input buffer a stretch at a time
+ * stop at (skipto()): each character that qcchar() does more with than
+ * return it (C_Q), and those that mean something where the loop is.
+ */
+#define	S_CMNT	001	/* in a comment of C's: * and \n */
+#define	S_LINE	002	/* to the end of the line */
+#define	S_SKIP	004	/* in what #if leaves out (flscan): \n ' " / */
+#define	S_ALL	(S_CMNT|S_LINE|S_SKIP)
+
+static usch stopchr[256] = {
+	S_ALL,	0,	0,	0,	0,	0,	0,	0,
+	0,	0,	S_ALL,	0,	0,	S_ALL,	0,	0,
+	0,	0,	0,	0,	0,	0,	0,	0,
+	0,	0,	0,	0,	0,	0,	0,	0,
+
+	0,	0,	S_SKIP,	0,	0,	0,	0,	S_SKIP,
+	0,	0,	S_CMNT,	0,	0,	0,	0,	S_SKIP|S_LINE,
+	0,	0,	0,	0,	0,	0,	0,	0,
+	0,	0,	0,	0,	0,	0,	0,	S_ALL,
+
+	0,	0,	0,	0,	0,	0,	0,	0,
+	0,	0,	0,	0,	0,	0,	0,	0,
+	0,	0,	0,	0,	0,	0,	0,	0,
+	0,	0,	0,	0,	S_ALL,	0,	0,	0,
+};
+
+/*
+ * Pass over what the input buffer has before the first character that
+ * is in the set m of stopchr[], which the caller then reads: each of
+ * those passed over is one that qcchar() would return as it is, and
+ * that means nothing to the caller.  What is read from a file has a 0
+ * after it in the buffer, as a string has, which stops the loops that
+ * pass over a stretch where the buffer ends (inpbuf()).
+ */
+static void
+skipto(register int m)
+{
+	register usch *p;
+	struct iobuf *ib = ifiles->ib;
+
+	for (p = ib->buf + ib->cptr; (stopchr[*p] & m) == 0; p++)
+		;
+	ib->cptr = (int)(p - ib->buf);
+}
+
+/*
  * fill up the input buffer
  * n tells how nany chars at least.  0 == standard.
  * 0 if EOF, != 0 if something could fill up buf.
@@ -168,15 +214,16 @@ inpbuf(int n)
 	if (ifiles->infil == -1)
 		return 0;
 #if LIBVMF
-	len = (int)read(ifiles->infil, ib->buf+PBMAX, BYTESPERSEG-PBMAX);
+	len = (int)read(ifiles->infil, ib->buf+PBMAX, BYTESPERSEG-PBMAX-1);
 #else
-	len = (int)read(ifiles->infil, ib->buf+PBMAX, CPPBUF-PBMAX);
+	len = (int)read(ifiles->infil, ib->buf+PBMAX, CPPIBUF);
 #endif
 	if (len == -1)
 		error("read error on file %s", ifiles->orgfn);
 	if (len > 0) {
 		ib->cptr = PBMAX - sz;
 		ib->bsz = PBMAX + len;
+		ib->buf[ib->bsz] = 0;	/* which stops skipto() */
 	}
 	return len + sz;
 }
@@ -185,7 +232,7 @@ inpbuf(int n)
  * Return a quick-cooked character.
  * If buffer empty; return 0.
  */
-static int
+int
 qcchar(void)
 {
 	register struct iobuf *ib = ifiles->ib;
@@ -308,11 +355,13 @@ fastcmnt2(register int ch)
 
 	incmnt = 1;
 	if (ch == '/') { /* C++ comment */
-		while ((ch = qcchar()) != '\n')
-			;
+		do
+			skipto(S_LINE);
+		while ((ch = qcchar()) != '\n');
 		unch(ch);
 	} else if (ch == '*') {
 		for (;;) {
+			skipto(S_CMNT);
 			if ((ch = qcchar()) == 0)
 				break;
 			if (ch == '*') {
@@ -427,13 +476,59 @@ fastspc(void)
 }
 
 /*
+ * Copy to d an identifier that begins with ch, if the input buffer has
+ * the rest of it and the character after it, which qcchar() would
+ * return as it is, and it is no longer than a name may be: d has room
+ * for MAXIDSZ characters and a NUL.  Where it ends in d; or NULL, when
+ * the caller is to read it a character at a time.
+ */
+static usch *
+idcopy(int ch, register usch *d)
+{
+	register usch *s;
+	struct iobuf *ib = ifiles->ib;
+	usch *e;
+
+	s = ib->buf + ib->cptr;
+	e = s + (MAXIDSZ - 1);
+	*d++ = ch;
+	while (s < e && ISID(*s))
+		*d++ = *s++;
+	if (ISID(*s) || s == ib->buf + ib->bsz || ISCQ(*s))
+		return NULL;
+	*d = 0;
+	ib->cptr = (int)(s - ib->buf);
+	return d;
+}
+
+/*
+ * Pass over the characters of an identifier from p, hashing them on
+ * to *hp, as far as the buffer has them.
+ */
+static usch *
+idhash(register usch *p, unsigned *hp)
+{
+	register unsigned h = *hp;
+
+	for (; ISID(*p); p++)
+		h = HASHC(h, *p);
+	*hp = h;
+	return p;
+}
+
+/*
  * readin chars and store in buf. Warn about too long names.
  */
 usch *
 bufid(int ch, register struct iobuf *ob)
 {
 	register int n = ob->cptr;
+	usch *d;
 
+	if (ob->bsz - n >= MAXIDSZ && (d = idcopy(ch, ob->buf + n)) != NULL) {
+		ob->cptr = (int)(d - ob->buf);
+		return ob->buf+n;
+	}
 	do {
 		if (ob->cptr - n == MAXIDSZ)
 			warning("identifier exceeds C99 5.2.4.1");
@@ -456,6 +551,8 @@ readid(int ch)
 {
 	register int p = 0;
 
+	if (idcopy(ch, idbuf) != NULL)
+		return idbuf;
 	do {
 		if (p == MAXIDSZ)
 			warning("identifier exceeds C99 5.2.4.1, truncating");
@@ -569,18 +666,22 @@ fastnum(register int ch, register struct iobuf *ob)
 void
 fastscan(void)
 {
-	struct iobuf rbs;	/* (not in a register: its address is taken) */
-	register struct iobuf *ob, *rb = &rbs;
-	extern struct iobuf pb;
 	register struct iobuf *ib = ifiles->ib;
+	register int ch;
+	struct iobuf rbs;	/* (not in a register: its address is taken) */
+	struct iobuf *ob, *rb = &rbs;
+	extern struct iobuf pb;
 	struct symtab *nl;
-	int ch, c2;
-	usch *dp;
+	int c2, n;
+	usch *dp, *p;
+	unsigned h;
 
 #define	IDSIZE	128
 	rb->buf = xmalloc(IDSIZE+1);
 	rb->cptr = 0;
 	rb->bsz = IDSIZE;
+	rb->ro = 0;
+	rb->type = BNORMAL;	/* which bufid() makes larger if it must */
 
 	goto run;
 
@@ -588,15 +689,31 @@ fastscan(void)
 		/* tight loop to find special chars */
 		/* should use getchar/putchar here */
 		for (;;) {
-			if (ib->cptr < ib->bsz)
+			/*
+			 * As it is, where the buffer is filled again as
+			 * well, so that a \r is kept wherever it falls,
+			 * where qcchar() left out one at the start of a
+			 * read; the rest that qcchar() does more with than
+			 * return them are those of C_SPEC, and dealt with
+			 * below as qcchar() would have.
+			 */
+			if (ib->cptr < ib->bsz || inpbuf(0) > 0)
 				ch = ib->buf[ib->cptr++];
 			else
-				ch = qcchar();
+				ch = 0;
 xloop:			if (ch < 0) ch = 0; /* XXX */
 			if ((spechr[ch] & C_SPEC) != 0)
 				break;
-			putch(ch);
+			if (skpows == 0 && pb.cptr < pb.bsz)
+				pb.buf[pb.cptr++] = ch;	/* as putch() */
+			else
+				putch(ch);
 		}
+
+		/* the most of what is special: not by way of the switch */
+		if ((spechr[ch] & C_ID0) && ch != 'L' && ch != 'U' &&
+		    ch != 'u')
+			goto ident;
 
 		switch (ch) {
 		case 0:
@@ -637,8 +754,15 @@ xloop:			if (ch < 0) ch = 0; /* XXX */
 			ifiles->lineno++;
 
 			/* search for a # */
-run:			while ((ch = qcchar()) == '\t' || ch == ' ')
+run:			for (;;) {
+				/* what putch() would leave out */
+				if (skpows)
+					while (ISWS(ib->buf[ib->cptr]))
+						ib->cptr++;
+				if ((ch = qcchar()) != '\t' && ch != ' ')
+					break;
 				putch(ch);
+			}
 			if (ch == '%') {
 				if ((c2 = qcchar()) != ':')
 					unch(c2);
@@ -704,29 +828,51 @@ run:			while ((ch = qcchar()) == '\t' || ch == ' ')
 			}
 			/* FALLTHROUGH */
 		default:
+ident:
 #ifdef PCC_DEBUG
 			if ((spechr[ch] & C_ID) == 0)
 				error("fastscan");
 #endif
 			if (flslvl)
 				error("fastscan flslvl");
-			rb->cptr = 0;
-			dp = bufid(ch, rb);
-			if ((nl = lookup(dp, FIND)) != NULL) {
-				if ((ob = kfind(nl)) != NULL) {
-					if (*ob->buf == '-' || *ob->buf == '+')
-						putch(' ');
-					if (skpows)
-						cntline();
-					buftobuf(ob, &pb);
-					if (ob->cptr > 0 &&
-					    (ob->buf[ob->cptr-1] == '-' ||
-					    ob->buf[ob->cptr-1] == '+'))
-						putch(' ');
-					bufree(ob);
+			/*
+			 * An identifier that the buffer has the whole of,
+			 * and the character after it, which qcchar() would
+			 * return as it is, and that warns of nothing, is
+			 * looked up and written from where it is, hashed as
+			 * it is passed over; any other is read by bufid().
+			 */
+			dp = ib->buf + ib->cptr;
+			h = HASHC(0, ch);
+			p = idhash(dp, &h);
+			n = (int)(p - dp) + 1;
+			if (p < ib->buf + ib->bsz && !ISCQ(*p) &&
+			    n <= MAXIDSZ && ib->cptr > 0 && dp[-1] == ch) {
+				dp--;
+				ib->cptr = (int)(p - ib->buf);
+				if ((nl = lookuph(dp, n, h, FIND)) == NULL) {
+					putnstr(dp, n);
+					break;
 				}
 			} else {
-				putstr(dp);
+				rb->cptr = 0;
+				dp = bufid(ch, rb);
+				if ((nl = lookup(dp, FIND)) == NULL) {
+					putstr(dp);
+					break;
+				}
+			}
+			if ((ob = kfind(nl)) != NULL) {
+				if (*ob->buf == '-' || *ob->buf == '+')
+					putch(' ');
+				if (skpows)
+					cntline();
+				buftobuf(ob, &pb);
+				if (ob->cptr > 0 &&
+				    (ob->buf[ob->cptr-1] == '-' ||
+				    ob->buf[ob->cptr-1] == '+'))
+					putch(' ');
+				bufree(ob);
 			}
 			break;
 
@@ -928,6 +1074,7 @@ pushfile(const usch *file, const usch *fn, int idx, void *incs)
 	ic->lineno = 1;
 	ic->escln = 0;
 	ic->maxread = ic->curptr;
+	ic->ib->buf[ic->curptr] = 0;	/* as inpbuf() leaves it */
 	ic->idx = idx;
 	ic->incs = incs;
 	ic->fn = fn;
@@ -1296,16 +1443,9 @@ pragmastmt(void)
 	prtline(1);
 }
 
-int
-cinput(void)
-{
-
-	return qcchar();
-}
-
 #define	DIR_FLSLVL	001
 #define	DIR_FLSINC	002
-static struct {
+static struct ppd {
 	const char *name;
 	void (*fun)(void);
 	int flags;
@@ -1354,6 +1494,7 @@ flscan(void)
 	register int ch;
 
 	for (;;) {
+		skipto(S_SKIP);
 		ch = qcchar();
 again:		switch (ch) {
 		case 0:
@@ -1411,7 +1552,8 @@ again:		switch (ch) {
 void
 ppdir(void)
 {
-	register int ch, i, oldC;
+	register int ch, oldC;
+	register struct ppd *pp;
 	usch *bp;
 
 	oldC = Cflag;
@@ -1441,19 +1583,19 @@ redo:	Cflag = 0;
 	bp = readid(ch);
 
 	/* got some keyword */
-	for (i = 0; i < NPPD; i++) {
-		if (bp[0] == ppd[i].name[0] &&
-		    strcmp((char *)bp, ppd[i].name) == 0) {
+	for (pp = ppd; pp < &ppd[NPPD]; pp++) {
+		if (bp[0] == pp->name[0] &&
+		    strcmp((char *)bp, pp->name) == 0) {
 			if (flslvl == 0) {
-				(*ppd[i].fun)();
+				(*pp->fun)();
 				if (flslvl == 0)
 					return;
 			} else {
-				if (ppd[i].flags & DIR_FLSLVL) {
-					(*ppd[i].fun)();
+				if (pp->flags & DIR_FLSLVL) {
+					(*pp->fun)();
 					if (flslvl == 0)
 						return;
-				} else if (ppd[i].flags & DIR_FLSINC)
+				} else if (pp->flags & DIR_FLSINC)
 					flslvl++;
 			}
 			flscan();

@@ -2101,18 +2101,24 @@ each is and where it is from. `cc`, `/lib/cpp`, `ar`, `ranlib`, `nm`,
   its length. And it reads the lines it writes to say where it is,
   `# 12 "file"`, as `#line`, which hack's Makefile needs: it compiles
   what `cc -E` wrote.
-- `/lib/cpp` is of the large model. In the small one it ran out of
-  memory on eight of tcsh's files, the kernel's `machdep.c`, and
-  `top`'s, `ntpd`'s and `rwhod`'s: tcsh's headers and the system's give
-  it 1,221 macros, each with its name, its text and its place in the
-  table of names, more than the 50K or so the small model leaves it.
-  For the large model a page of its list of the macros that are not to
-  be expanded again holds as many as it does where a pointer is two
-  bytes, a power of two, which 256 bytes of them are not where it is
-  four; and more than 64K of macros' text is an error, where it would
-  have begun again over the first. Given on the 286 each of the 2,236
-  files, with its flags, that it is given where the system is built,
-  it writes what it writes there, to the byte.
+- `/lib/cpp` is of the small model, and keeps the text of its macros and
+  their names in two segments it asks the system for (`segalloc`), each
+  grown 4K at a time to 64K, more than which is an error; its own data
+  has the table of names, its buffers and its list of the macros not to
+  be expanded again. Upstream's kept all of it in that data, its table a
+  patricia tree, and ran out of memory on eight of tcsh's files, the
+  kernel's `machdep.c`, and `top`'s, `ntpd`'s and `rwhod`'s: tcsh's
+  headers and the system's give it 1,221 macros, whose names, text and
+  nodes took 57K where the small model leaves about 52K. The table is a
+  hash table now, 14 bytes a name in the program's data; the worst of
+  those files takes some 30K of the 47K there is. It reads a file 1K at
+  a time and writes 2K, where it was 246 bytes and 256, and passes over
+  comments, what `#if` leaves out and identifiers a stretch of the
+  buffer at a time, where it took each character from a function; a
+  `\r` in the text is kept wherever it falls, where one at the start of a
+  read was left out. Given on the 286 the files that it is given where
+  the system is built, with their flags, it writes what it writes
+  there, to the byte.
 - `size` adds up the segments: the text is those of code, the data what
   the last has in the file, and the bss the rest of it. For a program
   of the medium model it gives each segment of text as well, as it
