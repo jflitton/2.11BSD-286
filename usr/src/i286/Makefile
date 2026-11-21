@@ -1241,12 +1241,14 @@ syslibs:
 
 # The compiler's passes want the C library of those tools before the
 # file system does: if it is not there it is made, and it is made again
-# with the rest when the file system is.
+# with the rest when the file system is.  crt0.o is made with it, before
+# it, and so is older: were it to depend on it, it would be out of date
+# always, and every program with it.
 $(NLIB)/s/libc.a:
 	@$(MAKE) --no-print-directory -C $(SRC)/lib/ccom/i286 host
 	@$(MAKE) --no-print-directory -C $(SRC)/lib/libc/i286 CCOM=1 \
 	    MODEL=s O=$(NLIB)/s
-$(NLIB)/s/crt0.o: $(NLIB)/s/libc.a ;
+$(NLIB)/s/crt0.o: | $(NLIB)/s/libc.a ;
 
 $(R)/cc.proto: $(SYSLIBS) $(TOP)/tools/ccproto.py \
 		$(wildcard $(TOP)/usr/include/*.h $(TOP)/usr/include/*/*.h) | $(R)

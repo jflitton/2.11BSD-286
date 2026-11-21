@@ -11,13 +11,16 @@ cc -mm -o big big.c                 # medium model: far code
 cc -ml -o bigger bigger.c           # large model: far data as well
 ```
 
-The system itself is still built with the cross compiler, Open Watcom
-([building](development.md)). The same tools, compiled for the machine
-the system is built on, make it too: the programs (`tools/cc -ccom`),
-and `tests/ccom/programs.sh` boots a system that is all their work;
-the kernel ([below](#the-kernel)); and the programs that load it
-([booting](boot.md)). And the system makes them of
-their sources itself ([below](#the-system-makes-its-own-compiler)).
+The system is built either of two ways: by the cross compiler, Open
+Watcom ([building](development.md)), or by these same tools, compiled
+for the machine the system is built on: the programs (`tools/cc
+-ccom`), the kernel ([below](#the-kernel)) and the programs that load
+it ([booting](boot.md)). The tests boot either, `NATIVE=0` or
+`NATIVE=1`, the second all their work
+([tests](development.md#tests)), and what one's system writes
+the other's reads ([structures](unported.md#the-compiler-and-object-files)).
+And the system makes them of their
+sources itself ([below](#the-system-makes-its-own-compiler)).
 
 ## What runs what
 
@@ -417,8 +420,8 @@ rest) are in line by both compilers ([above](#in-line-functions)), and
 `tools/netcheck.py` reads its objects as it reads the cross compiler's,
 with what the compiler said of the network's pointers into SS
 ([the network](network.md#what-the-compiler-does-not-see-netcheck)).
-With `NATIVE_KERNEL=1`, `tests/system` and `tests/network` boot the
-system with this kernel.
+With `NATIVE_KERNEL=1`, or `NATIVE=1`, the tests that boot the system
+boot it with this kernel ([tests](development.md#tests)).
 
 What the kernel took of the compiler was far variables, the two kinds
 of based pointer and `-nd` ([above](#far-variables-and-pointers-into-a-segment));

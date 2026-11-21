@@ -26,30 +26,18 @@
 # them.
 #
 # The Ethernet card is 86Box's NETCARD, ne2k8 if it is not set, as in
-# tests/system.  Run from the top of the repository after
-# `. tools/env.sh`.
+# tests/system.  NATIVE, NATIVE_KERNEL and NATIVE_PROGRAMS are as there
+# too.  Run from the top of the repository after `. tools/env.sh`.
 set -e
 if [ "$EMU" = qemu ]; then
     echo "tests/network needs 86Box: the kernel is for a 286" >&2
     exit 2
 fi
 top=$(cd "$(dirname "$0")/../.." && pwd)
-out=$top/obj/tests/network
+. "$top/tests/harness/system.sh"
+out=$top/obj/tests/network$case
 mkdir -p "$out"
-
-quiet() { grep -v '^cc \|^as \|^wlib \|^ar \|Warning!\|Note!\|^unix:' || true; }
-make -s -C "$top/usr/src/sys/PC" | quiet
-# With NATIVE_KERNEL=1 the kernel is the one the system's own compiler,
-# assembler and linker make (usr/src/sys/PC CCOM=1).
-kernel=
-if [ -n "$NATIVE_KERNEL" ]; then
-    make -s -C "$top/usr/src/sys/PC" CCOM=1 | quiet
-    kernel=KERNEL=$top/obj/nPC/unix
-fi
-make -s -C "$top/usr/src/sys/i286stand" | quiet
-make -s -C "$top/usr/src/lib/libc/i286" | quiet
-make -s -C "$top/usr/src/i286" all | quiet
-make -s -C "$top/usr/src/i286" root $kernel | quiet
+buildsys
 
 # The file system of checks, with ntp's own test, which its Makefile
 # runs when it has built the rest, and what a client of rexecd sends: a
@@ -58,7 +46,7 @@ cd "$out"
 cp "$top/obj/root/root.fs" root.fs
 rm -rf checks
 python3 -I "$top/tests/harness/checks.py" "$top/tests/network/checks" checks
-python3 -I "$top/tools/strip.py" "$top/obj/bin/ntest" checks/d/ntest
+python3 -I "$top/tools/strip.py" "$bin/ntest" checks/d/ntest
 printf '0\0guest\0Gu3st-pw\0echo rexec-$USER; echo err >&2\0' > checks/d/rexec.in
 {
     echo "d /t 755"; echo "d /x 755"; echo "d /d 755"
@@ -70,7 +58,6 @@ printf '0\0guest\0Gu3st-pw\0echo rexec-$USER; echo err >&2\0' > checks/d/rexec.i
 } > checks.proto
 python3 -I "$top/tools/mkfs.py" -s 400 checks.proto checks.fs >/dev/null
 
-stand=$top/obj/stand
 geometry=$(python3 -I "$top/tools/mkdisk.py" -p -g 977,5,17 \
     -b "$stand/hdboot.bin" -m "$stand/mbr.bin" network.img a=root.fs b=swap:4000 d=checks.fs | tail -1)
 
@@ -78,7 +65,10 @@ geometry=$(python3 -I "$top/tools/mkdisk.py" -p -g 977,5,17 \
 # tests/system.  A program that sets the terminal as it starts, as
 # rlogin does, throws away what was typed before, so what is typed to
 # the far side waits for that side's greeting.  rlogin's escape is
-# taken by the first rlogin, which the second is inside, and ends both.
+# taken by the first rlogin, which the second is inside, and ends both;
+# the telnet from the host waits until both sessions, their rlogind and
+# guest's processes, are gone, which free their pseudo-terminals some
+# time after the escape, or telnetd may find the first two still taken.
 # talk draws with the cursor: its last line, "[Connection closing.
 # Exiting]", is written over the one before from where they differ.
 CTRLC=$(printf '\003')
@@ -117,10 +107,12 @@ TIMEOUT=${TIMEOUT:-1200} python3 -I "$top/tests/harness/runtest.py" \
     --type "rsh-equiv" 'rlogin localhost' \
     --type "Last login" 'echo "rl""-two" `tty`' \
     --type "rl-two" '~.' \
+    --type "Closed connection." 'while ps ax | grep "[r]logind" >/dev/null || ps axu | grep "^guest " >/dev/null; do sleep 1; done; echo "rl""-gone"' \
+    --type "rl-gone" 'who' \
     --telnet "login: " 'guest' \
     --telnet "Password:" 'Gu3st-pw' \
     --telnet "$ " 'echo "tel""-in" $TERM; mesg; biff y; biff; who' \
-    --type "Closed connection." 'sleep 20; echo comsat-body | mail guest' \
+    --type "# " 'sleep 20; echo comsat-body | mail guest' \
     --telnet "comsat-body" '' \
     --type "# " 'talk guest' \
     --telnet "respond with" 'talk root@pc286' \
@@ -130,7 +122,7 @@ TIMEOUT=${TIMEOUT:-1200} python3 -I "$top/tests/harness/runtest.py" \
     --type "Exiting]" 'echo "after""-talk"' \
     --telnet "$ " "${CTRLD}" \
     --type "after-talk" 'sleep 2; who; echo "@ex""it 00"; sync; reboot -h' \
-    --boot network
+    --boot network$case
 
 serial=$out/serial.txt
 if grep -q "^BAD " "$serial"; then

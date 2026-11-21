@@ -118,6 +118,9 @@ struct you {
 	unsigned uswallow:1;		/* set if swallowed by a monster */
 	unsigned uswldtim:4;		/* time you have been swallowed */
 	unsigned uhs:3;			/* hunger state - see hack.eat.c */
+	unsigned :8;			/* the rest of the word, so that both
+					   compilers put ustr after it, as
+					   the save file has it */
 	schar ustr,ustrmax;
 	schar udaminc;
 	schar uac;

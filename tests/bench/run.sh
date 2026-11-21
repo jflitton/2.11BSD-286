@@ -19,15 +19,18 @@
 # compare with: copy the results.txt somewhere before a change, and give
 # it here after.
 #
-# The system is the cross compiler's unless it is said otherwise:
-# NATIVE_KERNEL=1 boots the kernel the system's own compiler, assembler
-# and linker make (usr/src/sys/PC CCOM=1), as tests/system has it, and
-# NATIVE_PROGRAMS=1 a root of the programs those make, with the C
-# library and the others as they make them (usr/src/i286 CCOM=1, in
-# obj/nbin), as tests/ccom/programs.sh has it.  The profile is read with
-# the kernel and the programs that ran.  Each case has a directory of its
-# own, so that one may be compared with another: obj/tests/bench, with
-# -nk after it for the native kernel and -np for the native programs.
+# The system is built as in tests/system (tests/harness/system.sh):
+# NATIVE=0 boots the cross compiler's, NATIVE=1 one that is the work of
+# the system's own compiler, assembler and linker throughout, and
+# NATIVE_KERNEL, NATIVE_PROGRAMS or NATIVE_BOOT choose for the kernel
+# (usr/src/sys/PC CCOM=1), the programs, with the C library and the
+# others (usr/src/i286 CCOM=1, in obj/nbin), or the boot programs,
+# alone; without any it is the default build.  The profile is read with
+# the kernel and the programs that ran.  Each case has a directory of
+# its own, so that one may be compared with another: obj/tests/bench
+# for the cross compiler's, with -n after it for the system's own
+# tools', and -nk, -np or -nkp for their kernel, their programs or both
+# without the boot programs.
 #
 # Run from the top of the repository after `. tools/env.sh`.
 set -e
@@ -36,28 +39,9 @@ if [ "$EMU" = qemu ]; then
     exit 2
 fi
 top=$(cd "$(dirname "$0")/../.." && pwd)
-
-quiet() { grep -v '^cc \|^as \|^wlib \|^ar \|Warning!\|Note!\|^unix:' || true; }
-name=bench
-make -s -C "$top/usr/src/sys/PC" | quiet
-kernel=$top/obj/PC/unix
-if [ -n "$NATIVE_KERNEL" ]; then
-    make -s -C "$top/usr/src/sys/PC" CCOM=1 | quiet
-    kernel=$top/obj/nPC/unix
-    name=$name-nk
-fi
-make -s -C "$top/usr/src/sys/i286stand" | quiet
-make -s -C "$top/usr/src/lib/libc/i286" | quiet
-bin=$top/obj/bin
-if [ -n "$NATIVE_PROGRAMS" ]; then
-    make -s -C "$top/usr/src/lib/libc/i286" CCOM=1 | quiet
-    make -s -C "$top/usr/src/i286" CCOM=1 all | quiet
-    bin=$top/obj/nbin
-    name=$name-np
-else
-    make -s -C "$top/usr/src/i286" all | quiet
-fi
-make -s -C "$top/usr/src/i286" O="$bin" root KERNEL="$kernel" | quiet
+. "$top/tests/harness/system.sh"
+name=bench$case
+buildsys
 for f in "$kernel" "$bin/bench"; do
     if [ ! -f "$f" ]; then
         echo "bench: no $f" >&2
@@ -69,7 +53,6 @@ out=$top/obj/tests/$name
 mkdir -p "$out"
 cd "$out"
 cp "$top/obj/root/root.fs" root.fs
-stand=$top/obj/stand
 geometry=$(python3 -I "$top/tools/mkdisk.py" -p -g 977,5,17 \
     -b "$stand/hdboot.bin" -m "$stand/mbr.bin" bench.img a=root.fs b=swap:4000 | tail -1)
 

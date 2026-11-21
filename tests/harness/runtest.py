@@ -86,7 +86,7 @@ the automation socket only.
 
 A program given is put on a diskette image by tools/mkfd.py, behind the
 boot sector, usr/src/sys/i286stand/fdboot.s, and the emulator boots it.
-The boot sector is NASM's work, or with NATIVE_BOOT set in the
+The boot sector is NASM's work, or with NATIVE_BOOT=1 in the
 environment the system's own assembler's, as -b (obj/host/ccom/as).
 What the program writes to the serial port is printed.  The program ends by
 writing a line "@exit NN", two hex digits, which become the exit status;
@@ -180,7 +180,7 @@ def mkfd(exe, img, out, *options):
     """Make the diskette image IMG that boots the executable EXE."""
     bootbin = os.path.join(out, "fdboot.bin")
     src = os.path.join(TOP, "usr", "src", "sys", "i286stand", "fdboot.s")
-    if os.environ.get("NATIVE_BOOT"):
+    if os.environ.get("NATIVE_BOOT", "0") not in ("", "0"):
         run(os.path.join(TOP, "obj", "host", "ccom", "as"), "-b", "-o",
             bootbin, src)
     else:

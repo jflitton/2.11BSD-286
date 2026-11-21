@@ -85,7 +85,7 @@ python3 -I "$top/tests/harness/runtest.py" --until halting \
 # compiler, assembler and linker make (usr/src/sys/i286stand CCOM=1).
 make -s -C "$top/usr/src/sys/i286stand" > /dev/null
 stand=$top/obj/stand
-if [ -n "$NATIVE_BOOT" ]; then
+if [ "${NATIVE_BOOT:-0}" = 1 ]; then
     make -s -C "$top/usr/src/sys/i286stand" CCOM=1 > /dev/null
     stand=$top/obj/nstand
 fi

@@ -88,8 +88,7 @@ tests/bench/run.sh pipe pty             # those tests
 MS=1 tests/bench/run.sh tcp             # with a sample every millisecond
 BASE=before.txt tests/bench/run.sh      # compared with an earlier run
 NATIVE_KERNEL=1 tests/bench/run.sh      # the system's own compiler's kernel
-NATIVE_KERNEL=1 NATIVE_PROGRAMS=1 tests/bench/run.sh
-                                        # and its programs and libraries
+NATIVE=1 tests/bench/run.sh             # and its programs and libraries
 ```
 
 It builds the system, boots it in the emulator to multi-user, logs in
@@ -105,15 +104,16 @@ as root on the serial port and runs `bench -m`. The harness
 - `--profile KERNEL[:MS]` takes a sample of where the processor is
   every MS milliseconds on average (below).
 
-The system is the cross compiler's unless it is said otherwise.
+The system is the cross compiler's unless it is said otherwise, as in
+the other tests that boot it ([tests](development.md#tests)).
 `NATIVE_KERNEL=1` boots the kernel that the system's own compiler,
-assembler and linker make (`obj/nPC/unix`), and `NATIVE_PROGRAMS=1` a
+assembler and linker make (`obj/nPC/unix`), `NATIVE_PROGRAMS=1` a
 root of the programs and libraries they make (`obj/nbin`, `obj/nlib`),
-as `tests/system` and `tests/ccom/programs.sh` have them; the profile
-is read with that kernel and those programs.
+and `NATIVE=1` both, and the boot programs; the profile is read with
+that kernel and those programs.
 
-What comes out, in `obj/tests/bench`, or `bench-nk`, `bench-np` or
-`bench-nk-np` for the other cases: `results.txt`, the table, which is
+What comes out, in `obj/tests/bench`, or `bench-nk`, `bench-np`,
+`bench-nkp` or `bench-n` for the other cases: `results.txt`, the table, which is
 also printed; `kprof.txt`, where each test's time went; and
 `profile.txt` and `marks.txt`, the samples and the times of the marks,
 from which `tools/kprof.py` can make other reports.

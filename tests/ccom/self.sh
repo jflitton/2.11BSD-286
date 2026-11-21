@@ -17,6 +17,10 @@
 # is made from the top of that with the names its sources have there:
 # a file's name is in what the compiler says of it and nowhere else.
 #
+# NATIVE, NATIVE_KERNEL and NATIVE_PROGRAMS are as in tests/system
+# (tests/harness/system.sh): with NATIVE=1 the system is the system's
+# own tools' work throughout, and so are the tools it makes them with
+# the first time.
 # With ROOTFS set, that root file system is booted in place of the one
 # made here.
 #
@@ -28,20 +32,17 @@ if [ "$EMU" = qemu ]; then
 fi
 top=$(cd "$(dirname "$0")/../.." && pwd)
 src=$top/usr/src
-out=$top/obj/tests/ccom-self
+. "$top/tests/harness/system.sh"
+out=$top/obj/tests/ccom-self$case
 mkdir -p "$out"
 
-quiet() { grep -v '^cc \|^as \|^wlib \|^ar \|Warning!\|Note!\|^unix:' || true; }
-make -s -C "$src/lib/ccom/i286" host
-make -s -C "$src/sys/PC" | quiet
-make -s -C "$src/sys/i286stand" | quiet
-make -s -C "$src/lib/libc/i286" | quiet
+mk -C "$src/lib/ccom/i286" host
 if [ -z "$ROOTFS" ]; then
-    make -s -C "$src/i286" all | quiet
-    make -s -C "$src/i286" root | quiet
+    buildsys
     ROOTFS=$top/obj/root/root.fs
 else
-    make -s -C "$src/i286" syslibs | quiet
+    buildbase
+    mk -C "$src/i286" syslibs
 fi
 
 # The file system: /progs has a line for each program, its name and
@@ -117,7 +118,6 @@ echo "self: done"
 EOF
 python3 -I "$top/tools/mkfs.py" -s 2400 fs.proto src.fs >/dev/null
 
-stand=$top/obj/stand
 geometry=$(python3 -I "$top/tools/mkdisk.py" -p -g 977,5,17 \
     -b "$stand/hdboot.bin" -m "$stand/mbr.bin" self.img a=root.fs b=swap:4000 d=src.fs | tail -1)
 TIMEOUT=${TIMEOUT:-3600} python3 -I "$top/tests/harness/runtest.py" \
@@ -125,7 +125,7 @@ TIMEOUT=${TIMEOUT:-3600} python3 -I "$top/tests/harness/runtest.py" \
     --type "login: " "root" \
     --type "# " 'mount /dev/wd0d /mnt; sh /mnt/self.sh; umount /mnt' \
     --type "self: done" 'echo "@ex""it 00"; shutdown -h now going down' \
-    --boot ccom-self
+    --boot ccom-self$case
 
 serial=$out/serial.txt
 if grep -q "^DIFFERS " "$serial"; then

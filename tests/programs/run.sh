@@ -13,9 +13,10 @@
 # are built as they would be for a real machine, as tests/system has
 # them.
 #
-# With ROOTFS set, that root file system is booted in place of the one
-# made here: tests/ccom/programs.sh makes one of programs that the
-# system's own compiler compiled.
+# NATIVE, NATIVE_KERNEL and NATIVE_PROGRAMS are as in tests/system
+# (tests/harness/system.sh).  With ROOTFS set, that root file system is
+# booted in place of the one made here, with the kernel that is /unix
+# in it given as KERNEL, or the one the switches choose.
 #
 # Run from the top of the repository after `. tools/env.sh`.
 set -e
@@ -24,24 +25,15 @@ if [ "$EMU" = qemu ]; then
     exit 2
 fi
 top=$(cd "$(dirname "$0")/../.." && pwd)
-out=$top/obj/tests/programs
+. "$top/tests/harness/system.sh"
+out=$top/obj/tests/programs$case
 mkdir -p "$out"
-
-quiet() { grep -v '^cc \|^as \|^wlib \|^ar \|Warning!\|Note!\|^unix:' || true; }
-make -s -C "$top/usr/src/sys/PC" | quiet
-make -s -C "$top/usr/src/sys/i286stand" | quiet
-# With NATIVE_BOOT=1 /boot and the boot blocks are the ones the system's
-# own compiler, assembler and linker make (usr/src/sys/i286stand CCOM=1).
-stand=$top/obj/stand
-if [ -n "$NATIVE_BOOT" ]; then
-    make -s -C "$top/usr/src/sys/i286stand" CCOM=1 | quiet
-    stand=$top/obj/nstand
-fi
-make -s -C "$top/usr/src/lib/libc/i286" | quiet
 if [ -z "$ROOTFS" ]; then
-    make -s -C "$top/usr/src/i286" all | quiet
-    make -s -C "$top/usr/src/i286" root STAND=$stand | quiet
+    buildsys
     ROOTFS=$top/obj/root/root.fs
+else
+    buildbase
+    kernel=${KERNEL:-$kernel}
 fi
 
 # The file system of checks: each one's lines in /t, what they must write
@@ -53,7 +45,7 @@ rm -rf checks
 python3 -I "$top/tests/harness/checks.py" "$top/tests/programs/checks" checks
 # The kernel as tools/strip.py leaves it: the system's strip must make
 # the same of /unix, which has its symbols for ps and the like.
-python3 -I "$top/tools/strip.py" "$top/obj/PC/unix" checks/d/unix.stripped
+python3 -I "$top/tools/strip.py" "$kernel" checks/d/unix.stripped
 # The sources of three of the manual's pages, of which the system's nroff
 # must make what the build's made (tools/mkman.py).
 cp "$top/usr/src/man/man1/ls.1" "$top/usr/src/bin/mkdir/mkdir.1" \
@@ -148,7 +140,7 @@ TIMEOUT=${TIMEOUT:-1800} python3 -I "$top/tests/harness/runtest.py" \
     --type "lines, " ':q' \
     --type "# " 'echo "ve""-"`tail -1 /tmp/sv`' \
     --type "# " 'echo "@ex""it 00"; shutdown -h now going down' \
-    --boot programs
+    --boot programs$case
 
 serial=$out/serial.txt
 if grep -q "^BAD " "$serial"; then

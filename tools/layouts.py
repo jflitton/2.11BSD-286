@@ -2,22 +2,26 @@
 """Compare how the two compilers lay structures out.
 
 usage: layouts.py headers DIR [HEADER ...]
+       layouts.py programs DIR [PROGRAM ...]
        layouts.py tools
 
-The system's own compiler and the cross compiler do not lay out every
-structure alike (docs/unported.md): the first fills a structure of
-characters alone out to a word and puts it at a word, and an enum is an
-int to it.  The first form finds every structure and union that the
-headers define, in usr/include and in the kernel's (usr/src/sys/h,
-i286, i286at, i286if, net, netinet), or in those HEADERs alone: in
-usr/include as a program sees them, in the small, the medium and the
-large model, and in the kernel's as the kernel does, in the medium.
-For each it has each compiler compile the size, each member's offset,
-and for a bit field the bits a store of ones to it sets, and prints
-what differs, with how many it compared.  DIR has the files made on
-the way, and results.json.
+The system is built by its own compiler or by the cross compiler, and
+what one's system writes the other's reads: a structure that is in a
+file, on the network, or between the kernel and a program is to be laid
+out alike by both.  They do not lay out every structure alike
+(docs/unported.md).  The first form finds every structure and union
+that the headers define, in usr/include and in the kernel's
+(usr/src/sys/h, i286, i286at, i286if, net, netinet), or in those
+HEADERs alone: in usr/include as a program sees them, in the small, the
+medium and the large model, and in the kernel's as the kernel does, in
+the medium.  For each it has each compiler compile the size, each
+member's offset, and for a bit field the bits a store of ones to it
+sets, and prints what differs, with how many it compared.  DIR has the
+files made on the way, and results.json.  The second does the same for
+what the programs' own sources define (usr/src/i286/Makefile's PROGS,
+or those PROGRAMs), in each program's model and with its flags.
 
-What a header defines is read from clang's syntax tree (clang -Xclang
+What a file defines is read from clang's syntax tree (clang -Xclang
 -ast-dump=json) of what the system's preprocessor makes of it, so clang
 must be on PATH, and the cross compiler (tools/env.sh).  A header is
 given first the headers the sources that include it include before it,
@@ -25,17 +29,19 @@ when it cannot be compiled alone or after <sys/types.h>, <sys/param.h>
 or that and <sys/socket.h>; and a member one compiler has and the other
 has not is left out.
 
-The second form checks the host tools that write a structure of the
+The third form checks the host tools that write a structure of the
 system's in a file, tools/mkfs.py and the rest (TOOLS, below), against
 the system's compiler's layout of it, in the model of the program that
 reads it, and against the cross compiler's if it is there: each member
 where the tool puts it, and the whole its size.  It exits 1 if a tool
-differs from the system's compiler.  Needs only tools/ncc.
+differs from either.  Needs only tools/ncc.
 """
+import concurrent.futures
 import glob
 import json
 import os
 import re
+import shlex
 import shutil
 import struct
 import subprocess
@@ -61,18 +67,38 @@ XFLAGS = ["-wcd=131", "-wcd=107", "-wcd=121", "-Uinterrupt", "-Ufar",
           "-U_try", "-U_except", "-U_finally", "-Dinline=inline_"]
 
 
+def nflags(kernel):
+    """What the system's compiler is given: the kernel's flags, none, or
+    a program's (a list)."""
+    if isinstance(kernel, list):
+        return kernel
+    return ["-k"] + KFLAGS if kernel else []
+
+
+def xflags(kernel):
+    if isinstance(kernel, list):
+        return ["-I" + INC] + kernel
+    return KFLAGS if kernel else ["-I" + INC]
+
+
 def ncc(src, model, kernel, out, pre=False):
+    """The system's compiler on src, in its directory, so that what it
+    says names the file as it is."""
     cmd = [os.path.join(TOOLS_DIR, "ncc"), "-E" if pre else "-S",
-           "-m" + model] + (["-k"] + KFLAGS if kernel else [])
-    return subprocess.run(cmd + ["-o", out, src], capture_output=True,
-                          text=True)
+           "-m" + model] + nflags(kernel)
+    return subprocess.run(cmd + ["-o", os.path.abspath(out),
+                                 os.path.basename(src)],
+                          cwd=os.path.dirname(os.path.abspath(src)),
+                          capture_output=True, text=True)
 
 
 def xcc(src, model, kernel, out):
     cmd = [os.path.join(TOOLS_DIR, "cc286"), "-m" + model] + \
-        (KFLAGS if kernel else ["-I" + INC]) + XFLAGS
-    return subprocess.run(cmd + ["-o", out, src], capture_output=True,
-                          text=True)
+        xflags(kernel) + XFLAGS
+    return subprocess.run(cmd + ["-o", os.path.abspath(out),
+                                 os.path.basename(src)],
+                          cwd=os.path.dirname(os.path.abspath(src)),
+                          capture_output=True, text=True)
 
 
 def bits(off, size, mask):
@@ -187,9 +213,10 @@ def preambles(h, kernel):
     return out
 
 
-def records(ifile, hpath):
-    """What hpath defines, from clang's tree of ifile: (name, type,
-    members), a member being (path, whether it is a bit field)."""
+def records(ifile, keep):
+    """What the files keep() takes define, from clang's tree of ifile:
+    (name, file, members), a member being (path, whether it is a bit
+    field)."""
     r = subprocess.run(
         ["clang", "-x", "c", "-std=gnu89", "-w", "-fsyntax-only",
          "-Xclang", "-ast-dump=json", "-D__far=", "-D__near=", "-D__ss=",
@@ -221,8 +248,12 @@ def records(ifile, hpath):
 
     def mine(n):
         f = n.get("_file") or ""
-        return os.path.realpath(os.path.join(TOP, f)) == hpath or \
-            os.path.realpath(f) == hpath
+        if not f:
+            return False
+        for d in (TOP, os.path.dirname(os.path.abspath(ifile))):
+            if os.path.exists(os.path.join(d, f)):
+                return keep(os.path.realpath(os.path.join(d, f)))
+        return keep(os.path.realpath(f))
 
     def members(rec, prefix):
         out, last = [], None
@@ -261,8 +292,29 @@ def records(ifile, hpath):
             continue
         if name not in seen:
             seen.add(name)
-            out.append((name, name, members(n, "")))
+            out.append((name, n["_file"], members(n, "")))
     return out
+
+
+def items_of(recs):
+    """What each compiler is to compile of recs: the lines, and what
+    each label is (name, file, member)."""
+    items, what = [], {}
+    for t, (name, f, mems) in enumerate(recs):
+        what["L%d" % len(items)] = (name, f, "sizeof")
+        items.append("int L%d = sizeof(%s);" % (len(items), name))
+        if any(b for _, b in mems):
+            items.append("%s BV%d;" % (name, t))
+        for path, b in mems:
+            k = "L%d" % len(items)
+            if b:
+                what[k] = (name, f, path + " (bits)")
+                items.append("%s() { BV%d.%s = ~0; }" % (k, t, path))
+            else:
+                what[k] = (name, f, path)
+                items.append("int %s = (int)&((%s *)0)->%s;" % (k, name,
+                                                                path))
+    return items, what
 
 
 def both(base, head, items, model, kernel):
@@ -274,17 +326,18 @@ def both(base, head, items, model, kernel):
         with open(base + ".c", "w") as f:
             f.write(head + "".join(l + "\n" for l in lines))
         first = head.count("\n") + 1
+        name = re.escape(os.path.basename(base) + ".c")
         bad = set()
         n = ncc(base + ".c", model, kernel, base + ".s")
         if n.returncode:
             for e in n.stderr.splitlines():
-                m = re.match(r"^.*?:(\d+): (?!warning)", e)
+                m = re.match(r"^%s:(\d+): (?!warning)" % name, e)
                 if m and 0 <= int(m.group(1)) - first < len(lines):
                     bad.add(lines[int(m.group(1)) - first])
         x = xcc(base + ".c", model, kernel, base + ".o")
         if x.returncode:
             for e in (x.stdout + x.stderr).splitlines():
-                m = re.match(r"^.*?\((\d+)\): Error!", e)
+                m = re.match(r"^%s\((\d+)\): Error!" % name, e)
                 if m and 0 <= int(m.group(1)) - first < len(lines):
                     bad.add(lines[int(m.group(1)) - first])
         if not n.returncode and not x.returncode:
@@ -329,26 +382,12 @@ def headers(outdir, only):
         with open(base + ".c", "w") as f:
             f.write(head)
         ncc(base + ".c", "m", kernel, base + ".i", pre=True)
-        recs = records(base + ".i", os.path.realpath(
-            os.path.join(SYS if kernel else INC, h)))
+        hpath = os.path.realpath(os.path.join(SYS if kernel else INC, h))
+        recs = records(base + ".i", lambda f: f == hpath)
         if recs is None:
             notes.append("%s %s: clang could not read it" % (mode, h))
             continue
-        items, what = [], {}
-        for t, (name, expr, mems) in enumerate(recs):
-            what["L%d" % len(items)] = (name, "sizeof")
-            items.append("int L%d = sizeof(%s);" % (len(items), expr))
-            if any(b for _, b in mems):
-                items.append("%s BV%d;" % (expr, t))
-            for path, b in mems:
-                k = "L%d" % len(items)
-                if b:
-                    what[k] = (name, path + " (bits)")
-                    items.append("%s() { BV%d.%s = ~0; }" % (k, t, path))
-                else:
-                    what[k] = (name, path)
-                    items.append("int %s = (int)&((%s *)0)->%s;" % (k, expr,
-                                                                    path))
+        items, what = items_of(recs)
         for model in (["m"] if kernel else ["s", "m", "l"]):
             r = both(base + "-" + model, head, items, model, kernel)
             if r is None:
@@ -363,20 +402,100 @@ def headers(outdir, only):
                 if k in what:
                     results.append({"mode": mode, "header": h,
                                     "model": model, "type": what[k][0],
-                                    "what": what[k][1], "native": nv,
+                                    "what": what[k][2], "native": nv,
                                     "cross": xv})
+    report(outdir, results, notes)
+
+
+def report(outdir, results, notes):
     json.dump(results, open(os.path.join(outdir, "results.json"), "w"),
               indent=0)
-    types = {(r["mode"], r["type"]) for r in results}
+    types = {(r["header"], r["type"]) for r in results}
     diff = [r for r in results if r["native"] != r["cross"]]
     for r in diff:
-        print("%-6s %-22s %s %-24s %-28s system's %s, cross %s" % (
+        print("%-9s %-22s %s %-24s %-28s system's %s, cross %s" % (
             r["mode"], r["header"], r["model"], r["type"], r["what"],
             r["native"], r["cross"]))
     for n in notes:
         print(n)
     print("layouts: %d structures and unions, %d values, %d differ" % (
         len(types), len(results), len(diff)))
+
+
+# What the programs are made of, by the Makefile: name, model, sources
+# and flags, a line each.
+PRINT = """printall:
+\t@$(foreach p,$(PROGS),echo '$(p)|$(call model,$(p))|$(call srcs,$(p))|' \\
+\t    $(foreach a,$($(p)_FLAGS),"'$(a)'");)
+"""
+
+
+def programs(outdir, only):
+    """What the programs' own sources define, each once."""
+    os.makedirs(outdir, exist_ok=True)
+    mk = os.path.join(outdir, "print.mk")
+    with open(mk, "w") as f:
+        f.write(PRINT)
+    out = subprocess.run(["make", "-s", "-f", "Makefile", "-f", mk,
+                          "printall"],
+                         cwd=os.path.join(TOP, "usr", "src", "i286"),
+                         capture_output=True, text=True, check=True).stdout
+    system = [os.path.realpath(d) for d in
+              (INC, os.path.join(SYS, "h"), os.path.join(SYS, "i286"),
+               os.path.join(SYS, "net"), os.path.join(SYS, "netinet"))]
+
+    def theirs(f):
+        return not any(f.startswith(d + "/") for d in system)
+    jobs, seen = [], set()
+    for line in out.splitlines():
+        prog, model, srcs, fl = line.split("|", 3)
+        if only and prog not in only:
+            continue
+        fl = [a for a in shlex.split(fl) if a[:2] in ("-D", "-U", "-I")]
+        for k, src in enumerate(srcs.split()):
+            # hack's are usr/src/games/hack's, encrypted
+            src = re.sub(r"/obj/games/n?hack/", "/usr/src/games/hack/", src)
+            if src.endswith(".c") and src not in seen:
+                seen.add(src)
+                jobs.append((prog, model, fl, src,
+                             os.path.join(outdir, "%s-%d" % (prog, k))))
+
+    def read(job):
+        prog, model, fl, src, base = job
+        with open(base + ".c", "w") as f:
+            f.write('#include "%s"\n' % src)
+        ncc(base + ".c", model, fl, base + ".i", pre=True)
+        return records(base + ".i", theirs)
+
+    def compare(job):
+        prog, model, fl, src, base, recs = job
+        items, what = items_of(recs)
+        return what, both(base, '#include "%s"\n' % src, items, model, fl)
+    results, notes, done, todo = [], [], set(), []
+    with concurrent.futures.ThreadPoolExecutor(8) as pool:
+        for job, recs in zip(jobs, pool.map(read, jobs)):
+            if recs is None:
+                notes.append("%s %s: clang could not read it" % job[0:4:3])
+                continue
+            recs = [r for r in recs if (r[0], r[1]) not in done]
+            done.update((r[0], r[1]) for r in recs)
+            if recs:
+                todo.append(job + (recs,))
+        for job, (what, r) in zip(todo, pool.map(compare, todo)):
+            prog, model, src = job[0], job[1], job[3]
+            if r is None:
+                notes.append("%s %s: not compiled by both" % (prog, src))
+                continue
+            vals, left = r
+            for l in left:
+                notes.append("%s %s: left out %s" % (prog, src, l))
+            for k, (nv, xv) in vals.items():
+                if k in what:
+                    results.append({"mode": prog, "header": what[k][1],
+                                    "model": model, "type": what[k][0],
+                                    "what": what[k][2], "native": nv,
+                                    "cross": xv})
+    report(outdir, results, notes)
 
 
 # The host tools' structures: what writes it, the headers, the model of
@@ -523,8 +642,10 @@ def tools():
             if cross and xcc(src, model, False,
                              os.path.join(tmp, "t.o")).returncode == 0:
                 xv = cross_values(os.path.join(tmp, "t.o"))
-                agree = ", as the cross compiler has it" if xv == nv else \
-                    ", where the cross compiler has it otherwise"
+                if xv == nv:
+                    agree = ", as the cross compiler has it"
+                else:
+                    wrong.append("the cross compiler has it otherwise")
             print("layouts: %s: %s, %d bytes in the %s model%s%s" % (
                 what, expr, nv["L0"], {"s": "small", "m": "medium",
                                        "l": "large"}[model],
@@ -538,6 +659,8 @@ def tools():
 def main():
     if len(sys.argv) >= 3 and sys.argv[1] == "headers":
         headers(sys.argv[2], sys.argv[3:])
+    elif len(sys.argv) >= 3 and sys.argv[1] == "programs":
+        programs(sys.argv[2], sys.argv[3:])
     elif sys.argv[1:] == ["tools"]:
         tools()
     else:

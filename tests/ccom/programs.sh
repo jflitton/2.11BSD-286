@@ -15,6 +15,12 @@
 # own work, and obj/nbin/cross the others, which there are to be none
 # of.
 #
+# The kernel is the one NATIVE and NATIVE_KERNEL choose
+# (tests/harness/system.sh); tests/programs is run as NATIVE_PROGRAMS=1
+# has it, with the root made here, in obj/tests/programs-np, or -n.
+# NATIVE_PROGRAMS=1 tests/programs/run.sh does the same but that it does
+# not go on past a program the system's compiler cannot make.
+#
 # Run from the top of the repository after `. tools/env.sh`.
 set -e
 if [ "$EMU" = qemu ]; then
@@ -22,26 +28,19 @@ if [ "$EMU" = qemu ]; then
     exit 2
 fi
 top=$(cd "$(dirname "$0")/../.." && pwd)
-bin=$top/obj/nbin
+NATIVE_PROGRAMS=1
+. "$top/tests/harness/system.sh"
 
-quiet() { grep -v '^cc \|^as \|^wlib \|^ar \|Warning!\|Note!\|^unix:' || true; }
-make -s -C "$top/usr/src/lib/ccom/i286" host
-make -s -C "$top/usr/src/sys/PC" | quiet
-make -s -C "$top/usr/src/sys/i286stand" | quiet
-make -s -C "$top/usr/src/lib/libc/i286" | quiet
-make -s -C "$top/usr/src/lib/libc/i286" CCOM=1 | quiet
+buildbase
+mk -C "$top/usr/src/lib/libc/i286"
 
 # Each program that the system's compiler can make; make goes on past
 # those it cannot.  What the cross compiler made the last time is tried
-# again.
+# again: nothing else puts the cross compiler's work in obj/nbin.
 names() { ls "$bin" | grep -v -e '^log$' -e '^native$' -e '^cross$'; }
 mkdir -p "$bin/log"
 if [ -f "$bin/cross" ]; then
     (cd "$bin" && rm -f $(cat cross))
-elif [ -n "$(names)" ]; then
-    echo "tests/ccom/programs.sh: $bin has no list of whose programs" \
-        "they are: remove it" >&2
-    exit 1
 fi
 : > "$bin/cross"
 make -s -k -C "$top/usr/src/i286" CCOM=1 all > "$bin/log/ccom" 2>&1 || true
@@ -52,7 +51,7 @@ for p in $(make -s -C "$top/usr/src/i286" list); do
     [ -f "$bin/$p" ] || rest="$rest $bin/$p"
 done
 if [ -n "$rest" ]; then
-    make -s -C "$top/usr/src/i286" O="$bin" $rest | quiet
+    mk -C "$top/usr/src/i286" O="$bin" $rest
 fi
 names | comm -13 "$bin/native" - > "$bin/cross"
 echo "ccom: $(wc -l < "$bin/native" | tr -d ' ') programs compiled by" \
@@ -61,5 +60,8 @@ echo "ccom: $(wc -l < "$bin/native" | tr -d ' ') programs compiled by" \
 
 # The root file system is made where it always is, obj/root: the
 # Makefile makes it again when the programs are from somewhere else.
-make -s -C "$top/usr/src/i286" O="$bin" root | quiet
-ROOTFS=$top/obj/root/root.fs "$top/tests/programs/run.sh"
+# CCOM=1 has it take those of obj/nbin as the system's compiler made
+# them, and make again none that the cross compiler did.
+mk -C "$top/usr/src/i286" CCOM=1 root KERNEL="$kernel" STAND="$stand"
+NATIVE_KERNEL=$NATIVE_KERNEL NATIVE_PROGRAMS=1 ROOTFS=$top/obj/root/root.fs \
+    KERNEL=$kernel "$top/tests/programs/run.sh"

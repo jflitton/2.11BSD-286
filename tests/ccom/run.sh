@@ -34,7 +34,9 @@
 #				and then init.c
 #
 # With REF=1 the tests are compiled by the cross compiler instead, which
-# says whether a test is itself right.
+# says whether a test is itself right.  init.c is booted with the
+# kernel that NATIVE and NATIVE_KERNEL choose (tests/harness/system.sh),
+# in obj/tests/ccom-init-n or -nk if it is the system's own tools'.
 # Run from the top of the repository after `. tools/env.sh`.
 set -e
 top=$(cd "$(dirname "$0")/../.." && pwd)
@@ -104,9 +106,14 @@ if [ "$EMU" = qemu ]; then
     echo "tests/ccom: init.c needs 86Box: the kernel is for a 286" >&2
     exit 2
 fi
-make -s -C "$top/usr/src/sys/PC" | grep -v '^cc \|^as ' || true
-make -s -C "$top/usr/src/lib/libc/i286" CCOM=1 |
-    grep -v '^cc \|^as \|^wlib \|^ar ' || true
+. "$top/tests/harness/system.sh"
+if [ "$NATIVE_KERNEL" = 1 ]; then
+    mk -C "$top/usr/src/sys/PC" CCOM=1
+else
+    mk -C "$top/usr/src/sys/PC"
+    case=
+fi
+mk -C "$top/usr/src/lib/libc/i286" CCOM=1
 cd "$out/boot"
 "$top/tools/cc" -ccom -o init "$here/init.c"
 "$top/tools/cc" -ccom -DMEDIUM=0 -o small "$here/prog.c"
@@ -130,4 +137,4 @@ c0=$top/usr/src/lib/ccom
 cp "$here/proto" proto
 python3 -I "$top/tools/mkfs.py" -s 800 proto root.fs
 python3 -I "$top/tests/harness/runtest.py" --until halting \
-    --boot ccom-init "$top/obj/PC/unix" root.fs
+    --boot ccom-init$case "$kernel" root.fs

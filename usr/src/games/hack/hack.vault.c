@@ -17,6 +17,7 @@ extern struct monst *makemon();
 #define	FCSIZ	(ROWNO+COLNO)
 struct fakecorridor {
 	xchar fx,fy,ftyp;
+	xchar fpad;		/* that both compilers make it 4 bytes */
 };
 
 struct egd {

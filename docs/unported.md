@@ -89,30 +89,49 @@ does not have of the cross compiler's:
   compiler had five: the far pointer took the room. Nothing in the
   tree has five.
 
-The two compilers do not lay every structure out alike, and what one
-compiles cannot yet share these with what the other does:
+The two compilers do not lay every structure out alike, and either
+builds the system, so what one's system writes the other's is to read:
 
 - A structure of characters alone is filled out to a word by the
-  tree's compiler, as on the PDP-11, and not by the cross compiler:
-  `struct { char c[3]; }` is 4 bytes to one and 3 to the other.
+  tree's compiler, as on the PDP-11, and put at a word, and not by the
+  cross compiler: `struct { char c[3]; }` is 4 bytes to one and 3 to
+  the other.
 - An `enum` is an `int` to the tree's compiler, and to the cross
   compiler the smallest type that holds its values.
+- Bit fields of an `int` that leave its second byte unused leave that
+  byte to a `char` after them to the tree's compiler, and the whole
+  word to the cross compiler.
 - A member that is a structure or union with no name is the cross
   compiler's; the tree's compiler has instead the old use of a
   member's name with any structure. `sed.h` has its union both ways,
   chosen by `__WATCOMC__`, which `tools/ncc` does not define.
 
-Every structure and union of `usr/include` and of the kernel's headers
-has been given to both, in each model, and its size, each member's
-offset and each bit field's bits compared (`tools/layouts.py`): of 225,
-two differ. `struct uio`, which only the kernel uses, by its two
-`enum`s; and `struct tty`, whose `t_chars`, a structure of characters
-alone, is at 50 to the tree's compiler and at 49 to the cross compiler,
-its size and what follows the same: `pstat`, which reads the structure
-through `/dev/kmem`, does not read that. Nothing in a file or on the
-network differs, and the host tools that write a structure for the
-root file system and the disks lay it out as both compilers do
-(`tests/layouts`).
+`tools/layouts.py` has both compile every structure and union of
+`usr/include` and of the kernel's headers, in each model, 225 of them,
+and of the programs' own sources, in each one's model, 516, and
+compares their sizes, their members' offsets and their bit fields'
+bits. What differed and is in a file or passes between the kernel and
+a program is the same to both now:
+
+- `struct tty`, which `pstat` reads through `/dev/kmem`: a byte before
+  `t_chars` puts it at 50 to the cross compiler as to the other, where
+  it was at 49.
+- `hack`'s `struct you`, in its save files: the rest of the word of its
+  bit fields is said, which leaves it as the cross compiler had it.
+- `hack`'s fake corridors, in the vault guard's part of a monster in
+  its save and bones files: 4 bytes to both, where they were 3 to the
+  cross compiler, whose `hack` now writes a guard so, and does not read
+  one it wrote before.
+
+What still differs is in one program's memory alone: `struct uio`, the
+kernel's, by its `enum`s; `popper`'s state, by an `enum`; `tar`'s
+`struct header`, whose members are where they were in the 512 bytes of
+`union hblock` that go on the tape; `addbib`'s skeleton; `monop`'s
+`struct rr_st`, whose save files are its data as they are in memory,
+which only the same program reads; and `hack`'s table of what a
+character starts with. Nothing on the network differs, and the host
+tools that write a structure for the root file system and the disks lay
+it out as both compilers do (`tests/layouts`).
 
 
 ## Typesetting and text

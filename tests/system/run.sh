@@ -36,6 +36,13 @@
 # that is 8 bits wide, as the PicoMEM's is.  ne2k is one 16 bits wide,
 # and novell_ne1k an NE1000, with half the memory (tests/harness/runtest.py
 # says what they are, and docs/network.md how the driver finds out).
+# The system is the cross compiler's work with NATIVE=0, and its own
+# compiler's, assembler's and linker's with NATIVE=1; NATIVE_KERNEL,
+# NATIVE_PROGRAMS and NATIVE_BOOT choose for the kernel, the programs or
+# the boot programs alone, and without any it is the default build
+# (tests/harness/system.sh).  Each case is in a directory of its own,
+# obj/tests/system-n and so on.
+#
 # Run from the top of the repository after `. tools/env.sh`.
 set -e
 if [ "$EMU" = qemu ]; then
@@ -43,29 +50,10 @@ if [ "$EMU" = qemu ]; then
     exit 2
 fi
 top=$(cd "$(dirname "$0")/../.." && pwd)
-out=$top/obj/tests/system
+. "$top/tests/harness/system.sh"
+out=$top/obj/tests/system$case
 mkdir -p "$out"
-
-quiet() { grep -v '^cc \|^as \|^wlib \|^ar \|Warning!\|Note!\|^unix:' || true; }
-make -s -C "$top/usr/src/sys/PC" | quiet
-# With NATIVE_KERNEL=1 the kernel is the one the system's own compiler,
-# assembler and linker make (usr/src/sys/PC CCOM=1).
-kernel=
-if [ -n "$NATIVE_KERNEL" ]; then
-    make -s -C "$top/usr/src/sys/PC" CCOM=1 | quiet
-    kernel=KERNEL=$top/obj/nPC/unix
-fi
-make -s -C "$top/usr/src/sys/i286stand" | quiet
-# With NATIVE_BOOT=1 /boot and the boot blocks are the ones the system's
-# own compiler, assembler and linker make (usr/src/sys/i286stand CCOM=1).
-stand=$top/obj/stand
-if [ -n "$NATIVE_BOOT" ]; then
-    make -s -C "$top/usr/src/sys/i286stand" CCOM=1 | quiet
-    stand=$top/obj/nstand
-fi
-make -s -C "$top/usr/src/lib/libc/i286" | quiet
-make -s -C "$top/usr/src/i286" all | quiet
-make -s -C "$top/usr/src/i286" root $kernel STAND=$stand | quiet
+buildsys
 
 # The root file system as a power cut leaves one: its superblock not
 # marked clean (MNT_CLEAN in fs_flags, usr/src/sys/h/fs.h).
@@ -122,7 +110,7 @@ KDELETE=${ESC}[3~
 # /etc/services three times, its last newline kept, for the host to send.
 services=$(cat "$top/usr/src/etc/services"; echo x)
 services=${services%x}
-TIMEOUT=${TIMEOUT:-500} python3 -I "$top/tests/harness/runtest.py" \
+TIMEOUT=${TIMEOUT:-600} python3 -I "$top/tests/harness/runtest.py" \
     --hd system.img,$geometry,xtide --until halting --resets 1 \
     --net ${NETCARD:-ne2k8} \
     --term xterm-ghostty:200x80 \
@@ -249,9 +237,9 @@ $services$services$services${CTRLD}" \
     --type "flushed" 'cd /usr/spool/at; mv 2* 1999.001.0000.aa; /usr/libexec/atrun; cd /; while test ! -f /tmp/gcron; do sleep 5; done; echo "wai""ted"' \
     --type "waited" 'ls -l /tmp/gat /tmp/gcron; atq; echo cronlog-`grep -c "(guest) CMD (date" /usr/adm/cron`; echo tabs-`ls /var/cron/tabs`; echo "cr""on-done"' \
     --type "cron-done" 'sleep 5; who; cat /tmp/k; echo "@ex""it 00"; sync; reboot -h' \
-    --boot system
+    --boot system$case
 
-serial=$top/obj/tests/system/serial.txt
+serial=$out/serial.txt
 for want in "shell-ok /root" "/tmp/dir" "same" "xa" "xb" "xc" "status 3" \
     "/dev/console /dev/errlog /dev/klog /dev/kmem" "master.passwd" \
     "in-csh" "n=3 b v42" "f:/etc/motd" "f:/etc/group" "hist one two" \

@@ -120,7 +120,8 @@ The last makes a bootable image of a 40 MB IDE disk with the root and
 `make root ROOTSIZE=` makes it larger, and `ROOTDISK=sd0` makes it for a
 SCSI disk, whose image `mkdisk.py -t scsi` makes; `make root
 KERNEL=$PWD/obj/nPC/unix` makes it with the kernel the system's own
-tools made ([the compiler](toolchain.md#the-kernel)), and
+tools made ([the compiler](toolchain.md#the-kernel)), `make root CCOM=1`
+with the programs they made, in `obj/nbin`, and
 `STAND=$PWD/obj/nstand` with their `/boot` and boot block. [Booting](boot.md) and
 [disks](disks.md) say more, and [the root file
 system](userland.md#the-root-file-system) what is in it.
@@ -196,7 +197,7 @@ driver talks to.
 | `tools/lmlint.py` | looks a program over before it is made large-model: a `0` for a pointer or a pointer for an `int` where no prototype says which, a function that returns a pointer called undeclared, and arguments that differ in number from the definition |
 | `tools/preflight.py` | looks a program over before it is built: what the compiler rejects, calls that disagree with a definition in another file or in the library, lines that match what has gone wrong before, and whether it links and how large it is |
 | `tools/netcheck.py` | looks in the kernel's objects, either compiler's, for calls and references between it and the network that do not switch the data segment; run at every link |
-| `tools/layouts.py` | compares how the two compilers lay out each structure and union of the headers, in each model; and the host tools' structures with the system's compiler's (`tests/layouts`) |
+| `tools/layouts.py` | compares how the two compilers lay out each structure and union of the headers and of the programs' sources, in each model; and the host tools' structures with both compilers' (`tests/layouts`) |
 | `tools/untap.py` | splits a SimH `.tap` tape image into its files |
 | `tools/tar2git.py` | commits tar archives to a branch without unpacking them |
 | `tools/import-upstream.sh` | rebuilds the `upstream` import from the tape, to check it |
@@ -222,13 +223,10 @@ tests/user/run.sh       # a process in ring 3: 58 checks
 tests/kernel/run.sh     # the kernel, with a test program as init, booted
                         # six times: 82 checks, then 98 on each of five
                         # disks; with NATIVE_BOOT=1, by the boot
-                        # programs the system's own tools made, as
-                        # tests/system and tests/programs can be too
+                        # programs the system's own tools made
 tests/libc/run.sh       # the C library, with a test program as init: 74
                         # checks in the small model, 74 in the medium
-                        # and 84 in the large; with CCOM=1, the same
-                        # of the library and the program as the
-                        # system's own compiler makes them
+                        # and 84 in the large
 tests/ccom/run.sh       # the system's own C compiler, run here: 1781
                         # checks of the code it generates, as it is and
                         # again as c2 improves it; 59 by a program it
@@ -254,21 +252,17 @@ tests/preflight/run.sh  # tools/preflight.py, on two files with one of each
                         # thing it looks for (no emulator)
 tests/layouts/run.sh    # the host tools that write the system's
                         # structures in files, mkfs.py and the rest:
-                        # each laid out as the system's own compiler
-                        # lays it out (no emulator)
+                        # each laid out as both compilers lay it out
+                        # (no emulator)
 tests/bench/run.sh      # how fast the system is: its benchmark, each
                         # of 18 tests timed by the system's clock and by
                         # the emulator's, and a profile of each; fails
-                        # only if the measuring does; with
-                        # NATIVE_KERNEL=1 and NATIVE_PROGRAMS=1, of the
-                        # system's own compiler's kernel and programs
+                        # only if the measuring does
 tests/network/run.sh    # the network's programs, on the system booted to
                         # multi-user with an emulated NE2000: 34 checks,
                         # of ftp, rsh, rcp, tftp, finger, tcpd, nc, the
                         # daemons, hunt and mail, and rlogin, biff and
-                        # talk at terminals; with NATIVE_KERNEL=1, on
-                        # the kernel the system's own tools made, as
-                        # tests/system is too
+                        # talk at terminals
 tests/programs/run.sh   # the programs that work on text and files, on the
                         # system booted to multi-user, nroff and man,
                         # tbl, eqn, refer, spell and their kind, zic
@@ -298,6 +292,23 @@ tests/ve/run.sh         # the editor ve, built for that machine too: 115
                         # checks, of what it makes of a file and of
                         # the screen it draws (no emulator)
 ```
+
+The tests that boot the system as a machine has it, `tests/system`,
+`tests/network`, `tests/programs`, `tests/bench`, `tests/libc` and
+`tests/ccom` with `self.sh` and `programs.sh`, boot either build of it:
+with `NATIVE=0` the cross compiler's, and with `NATIVE=1` the system's
+own compiler's, assembler's and linker's throughout, the kernel, the
+libraries, every program on the disk and the boot programs
+(`tests/harness/system.sh`). Without it they boot the default build,
+the cross compiler's, which is one line of that file. `NATIVE_KERNEL`,
+`NATIVE_PROGRAMS` and `NATIVE_BOOT` choose for the kernel, the
+programs and the libraries, or `/boot` and the boot blocks, alone (and
+`CCOM=1` is `NATIVE_PROGRAMS=1` to `tests/libc`). Each case is in a
+directory of its own in `obj/tests`, the suite's name for the cross
+compiler's and with `-n` after it for the system's own tools', or
+`-n` and `k`, `p` and `b` for the parts that are theirs when not all
+are (`-nk`, `-np`, `-nkp`), so that one can be compared with
+another, as `tests/bench`'s `BASE` does.
 
 - `tests/crt` is a small-model program in real mode, built through the
   normal path (`cc286`, `wlink`, `ne2aout.py`) behind the start-up code in
@@ -369,7 +380,7 @@ tests/ve/run.sh         # the editor ve, built for that machine too: 115
   for each of the three models; the small one runs the medium one and
   then the large one when it is done, and the large one has checks of
   its own, of `malloc` over many segments and of `__huge` pointers.
-  `CCOM=1 tests/libc/run.sh` does the same with the library and the
+  With `NATIVE_PROGRAMS=1`, or `CCOM=1`, it does the same with the library and the
   program compiled by the system's own compiler, whose large-model one
   goes through its piece of more than 64K with `SEGADDR`, having no
   `__huge`.

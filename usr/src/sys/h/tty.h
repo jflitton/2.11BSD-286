@@ -72,6 +72,9 @@ struct tty {
 	char	t_col;			/* tty */
 	char	t_ispeed, t_ospeed;	/* device */
 	char	t_rocount, t_rocol;	/* tty */
+	char	t_spare;		/* so that t_chars is at a word to
+					   both compilers, as the system's
+					   own puts it */
 	struct	ttychars t_chars;	/* tty */
 	struct	winsize t_winsize;	/* window size */
 /* be careful of tchars & co. */
