@@ -102,10 +102,17 @@ compiles cannot yet share these with what the other does:
   member's name with any structure. `sed.h` has its union both ways,
   chosen by `__WATCOMC__`, which `tools/ncc` does not define.
 
-Of 124 structures in the headers of `usr/include` that both compilers
-were given, one differs in size: `struct uio`, which only the kernel
-uses, by its two `enum`s. About a quarter of the headers were not
-compared.
+Every structure and union of `usr/include` and of the kernel's headers
+has been given to both, in each model, and its size, each member's
+offset and each bit field's bits compared (`tools/layouts.py`): of 225,
+two differ. `struct uio`, which only the kernel uses, by its two
+`enum`s; and `struct tty`, whose `t_chars`, a structure of characters
+alone, is at 50 to the tree's compiler and at 49 to the cross compiler,
+its size and what follows the same: `pstat`, which reads the structure
+through `/dev/kmem`, does not read that. Nothing in a file or on the
+network differs, and the host tools that write a structure for the
+root file system and the disks lay it out as both compilers do
+(`tests/layouts`).
 
 
 ## Typesetting and text

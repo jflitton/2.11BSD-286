@@ -196,6 +196,7 @@ driver talks to.
 | `tools/lmlint.py` | looks a program over before it is made large-model: a `0` for a pointer or a pointer for an `int` where no prototype says which, a function that returns a pointer called undeclared, and arguments that differ in number from the definition |
 | `tools/preflight.py` | looks a program over before it is built: what the compiler rejects, calls that disagree with a definition in another file or in the library, lines that match what has gone wrong before, and whether it links and how large it is |
 | `tools/netcheck.py` | looks in the kernel's objects, either compiler's, for calls and references between it and the network that do not switch the data segment; run at every link |
+| `tools/layouts.py` | compares how the two compilers lay out each structure and union of the headers, in each model; and the host tools' structures with the system's compiler's (`tests/layouts`) |
 | `tools/untap.py` | splits a SimH `.tap` tape image into its files |
 | `tools/tar2git.py` | commits tar archives to a branch without unpacking them |
 | `tools/import-upstream.sh` | rebuilds the `upstream` import from the tape, to check it |
@@ -251,6 +252,10 @@ tests/as/run.sh         # the system's assembler against NASM: 455
                         # them (no emulator)
 tests/preflight/run.sh  # tools/preflight.py, on two files with one of each
                         # thing it looks for (no emulator)
+tests/layouts/run.sh    # the host tools that write the system's
+                        # structures in files, mkfs.py and the rest:
+                        # each laid out as the system's own compiler
+                        # lays it out (no emulator)
 tests/bench/run.sh      # how fast the system is: its benchmark, each
                         # of 18 tests timed by the system's clock and by
                         # the emulator's, and a profile of each; fails
