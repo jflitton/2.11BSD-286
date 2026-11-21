@@ -64,6 +64,11 @@ build(op)
 		t2 = UNSIGN;
 	pcvn = 0;
 	t = INT;
+#ifdef	i286
+	if ((op==CAST || op==ASSIGN) && (t2&XTYPE)==SPTR
+	 && (t1&XTYPE)!=SPTR && !ISFAR(t1) && t1!=VOID)
+		ssnear();
+#endif
 	switch (op) {
 
 	case CAST:
@@ -148,6 +153,10 @@ build(op)
 			error("Call of non-function");
 		if (p1->t.subsp)
 			p2 = protochk(p1->t.subsp[0], p2);
+#ifdef	i286
+		else if (p2->t.op!=NULLOP)
+			ssargs(p2);
+#endif
 		*cp++ = block(CALL,decref(t1),p1->t.subsp+1,p1->t.strp,p1,p2);
 		return;
 
@@ -853,6 +862,40 @@ lintyp(t)
 		return(3);
 	}
 }
+
+#ifdef	i286
+/*
+ * A pointer into SS, as the address of what is in the frame is where SS
+ * is not DS (-S), made an ordinary one, which is taken to be into DS:
+ * by a cast, an assignment, a return, or an argument that a prototype
+ * says is of another kind.  Or passed where no prototype says what it
+ * is to be, which the function called takes as it takes it.  Either is
+ * wrong unless the pointer is for code whose DS is SS, as the kernel's
+ * is to the network's, or is followed where SS is reached, and nothing
+ * shows it in the code; so where SS is not DS each is said, with the
+ * function it is in, and tools/netcheck.py counts them in the kernel's
+ * network.
+ */
+ssnear()
+{
+	if (ssflag)
+		werror("pointer into SS made near, in %s",
+		    funcsym? funcsym->name: "?");
+}
+
+/*
+ * The arguments of a call that no prototype checks.
+ */
+ssargs(p)
+register union tree *p;
+{
+	if (p->t.op==COMMA) {
+		ssargs(p->t.tr1);
+		ssargs(p->t.tr2);
+	} else if ((p->t.type&XTYPE)==SPTR)
+		ssnear();
+}
+#endif
 
 /*
  * Report an error.

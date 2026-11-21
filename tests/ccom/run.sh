@@ -14,6 +14,9 @@
 # compiled with -nd=ND, so that its DS is not SS, as the kernel's
 # network's is not, and is entered by way of nd.s, which sets its DS.
 #
+# ssnear.c is not run: it is compiled with -nd=ND for what the compiler
+# says of a pointer into SS made near, on the lines marked so.
+#
 # Then prog.c, a program that uses the C library and the system, is
 # compiled with it for the small model, the medium and the large, assembled by
 # the system's assembler and linked by its linker (tools/cc -ccom) with
@@ -41,6 +44,20 @@ crt=$top/usr/src/lib/libc/i286/crt
 mkdir -p "$out/src" "$out/boot"
 make -s -C "$top/usr/src/lib/ccom/i286" host
 
+# What the compiler says where SS is not DS of a pointer into SS made
+# near, which is not run: each line of ssnear.c that ends with NEAR is
+# to draw it once, and no other line.
+(cd "$here" && "$top/tools/ncc" -S -nd=ND -o "$out/src/ssnear.s" ssnear.c) \
+    2> "$out/src/ssnear.log"
+got=$(sed -n 's/^ssnear.c:\([0-9]*\): warning: pointer into SS made near.*/\1/p' \
+    "$out/src/ssnear.log" | tr '\n' ' ')
+want=$(grep -n 'NEAR \*/$' "$here/ssnear.c" | cut -d: -f1 | tr '\n' ' ')
+if [ "$got" != "$want" ]; then
+    echo "ccom: ssnear.c: pointers into SS made near on lines $got," \
+        "not $want" >&2
+    exit 1
+fi
+
 all=
 if [ $# -eq 0 ]; then
     all=yes
@@ -61,8 +78,13 @@ for o in "" -O; do
             cp "$here/t_$t.c" "$out/src/t_$t.c"
             srcs="$srcs $out/src/t_$t.c"
         elif [ $t = nd ]; then
+            # (Its pointers into SS made near are on purpose: ssnear.c
+            # is for what the compiler says of them.)
             "$top/tools/ncc" -S $o -nd=ND -DND -I"$here" \
-                -o "$out/src/t_$t.s" "$here/t_$t.c"
+                -o "$out/src/t_$t.s" "$here/t_$t.c" 2> "$out/src/t_nd.log" ||
+                { cat "$out/src/t_nd.log" >&2; exit 1; }
+            grep -v 'pointer into SS made near' "$out/src/t_nd.log" >&2 ||
+                true
             srcs="$srcs $out/src/t_$t.s $here/nd.s"
         else
             "$top/tools/ncc" -S $o -o "$out/src/t_$t.s" "$here/t_$t.c"

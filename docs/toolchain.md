@@ -128,7 +128,11 @@ no value is defined there, not common. The address of what is in the
 frame is an `__ss` pointer, a structure is copied with the far
 addresses of both, and what is on the stack is reached through SS. A
 structure of more than two words is not returned there, since the
-place for it may be in either segment.
+place for it may be in either segment. An `__ss` pointer made an
+ordinary one, by a cast, an assignment or an argument, or passed to a
+function with no prototype, is said with the function it is in
+("pointer into SS made near, in FUNC"), since the code shows nothing
+of it ([netcheck](network.md#what-the-compiler-does-not-see-netcheck)).
 
 These are what the cross compiler has as `__far` on a variable,
 `__based(__segname(...))` and `-nd -zu`; the kernel's headers say each
@@ -410,9 +414,11 @@ are the cross compiler's kernel's, in the same order:
 
 The spl routines and the byte swaps of the network (`htons` and the
 rest) are in line by both compilers ([above](#in-line-functions)), and
-`tools/netcheck.py`, which reads the cross compiler's objects, is not
-run on it. With `NATIVE_KERNEL=1`,
-`tests/system` and `tests/network` boot the system with this kernel.
+`tools/netcheck.py` reads its objects as it reads the cross compiler's,
+with what the compiler said of the network's pointers into SS
+([the network](network.md#what-the-compiler-does-not-see-netcheck)).
+With `NATIVE_KERNEL=1`, `tests/system` and `tests/network` boot the
+system with this kernel.
 
 What the kernel took of the compiler was far variables, the two kinds
 of based pointer and `-nd` ([above](#far-variables-and-pointers-into-a-segment));

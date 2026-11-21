@@ -148,8 +148,10 @@ drops below it, as it runs `softclock` ([processes](processes.md)).
 
 ## What the compiler does not see: netcheck
 
-`tools/netcheck.py` runs at every link of the kernel, on its objects by
-way of `wdis`, and fails the build if it finds:
+`tools/netcheck.py` runs at every link of the kernel, by either
+compiler, on its objects: the cross compiler's by way of `wdis`, the
+system's own by their symbols and relocation. It fails the build if it
+finds:
 
 - the network calling a kernel routine directly that is not on its list
   of those that do not depend on DS, or naming a kernel variable;
@@ -160,6 +162,18 @@ way of `wdis`, and fails the build if it finds:
   count in the script's `BARE` table. Those left are `KSPACE` pointers on
   purpose, and near pointers handed to the kernel, each read and found
   right; a change is to be read again before the table is.
+
+The last is the cross compiler's. The system's own makes the address of
+a local an `__ss` pointer, near, which is what `KSPACE` is there, so it
+is formed the same way whether it stays one or a cast makes it an
+ordinary pointer, and only the compiler knows which. Where SS is not DS
+it says of each such pointer made near, by a cast, an assignment or an
+argument, or passed to a function with no prototype, "pointer into SS
+made near, in FUNC"; the kernel's Makefile keeps what it says of a file
+beside the object, and netcheck counts those by function against its
+`SSNEAR` table, which has the casts above and the `KSPACE` pointers that
+go to a function through a pointer of upstream's, with no prototype, as
+the hash routine and the protocols' option and sysctl routines.
 
 Its first run found three protocols calling the kernel's `sysctl_int`,
 whose arguments would have been in the wrong segment, and the count found

@@ -164,11 +164,18 @@ cktypep(p)
 	register t, u;
 	int e;
 
-	if (prv)
+	if (prv) {
+#ifdef	i286
+		ssargs(p);
+#endif
 		return p;
+	}
 
 	if ((t = protoget()) == ELLIPSIS) {
 		prv = 1;	/* anything is accepted, check no more */
+#ifdef	i286
+		ssargs(p);
+#endif
 		return p;
 	}
 	if (t == (u = p->t.type))
@@ -231,8 +238,13 @@ protochk(poff, p)
 {
 	register i;
 
-	if (poff == 0)
+	if (poff == 0) {
+#ifdef	i286
+		if (p->t.op != NULLOP)
+			ssargs(p);
+#endif
 		return p; /* no prototype */
+	}
 	protopos(poff);
 	if (p->t.op == NULLOP) { /* x(); */
 		if (protoget() != PNULL)

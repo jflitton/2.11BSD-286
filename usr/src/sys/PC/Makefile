@@ -94,10 +94,15 @@ HOST=	$(TOP)/obj/host/ccom
 NCFLAGS= -k -O -mm $(DEFS)
 $(addprefix $(O)/,$(NET)): NCFLAGS += -DSUPERVISOR -nd=NET
 
+# What the compiler says of a file is kept in NAME.log, as the cross
+# compiler's is: netcheck counts, in the network's, the pointers into SS
+# it says it made near, which are not shown.
 $(O)/%.o: %.c $(HDRS) $(HOST)/cpp $(HOST)/c0 $(HOST)/c1 $(HOST)/c2 \
 		$(HOST)/as
 	@echo cc $*.c
-	@$(TOP)/tools/ncc $(NCFLAGS) -o $@ $<
+	@$(TOP)/tools/ncc $(NCFLAGS) -o $@ $< > $(O)/$*.log 2>&1 || \
+	    { cat $(O)/$*.log; rm -f $@; exit 1; }
+	@grep -v 'pointer into SS made near' $(O)/$*.log || true
 
 $(O)/%.o: %.s $(M)/mch_defs.inc $(HOST)/as
 	@echo as $*.s
@@ -107,12 +112,15 @@ $(O)/vers.o: $(O)/vers.c
 	@cd $(O) && $(TOP)/tools/ncc -O -mm -o vers.o vers.c
 
 # The kernel's selectors are the GDT's from slot 16 (docs/boot.md), and
-# its stacks are in its data (uslot, param.c).  tools/netcheck.py reads
-# the cross compiler's objects, and is not run on these.
-$(O)/unix: $(addprefix $(O)/,$(OBJS)) $(HOST)/ld
+# its stacks are in its data (uslot, param.c).  netcheck is run as on
+# the cross compiler's (below), and the kernel is not left if it fails.
+$(O)/unix: $(addprefix $(O)/,$(OBJS)) $(HOST)/ld $(TOP)/tools/netcheck.py
 	@echo ld unix
 	@cd $(O) && $(HOST)/ld -mm -gdt 16 -stack 0 -M -o unix $(OBJS) \
 	    > unix.map || { rm -f unix; exit 1; }
+	@echo netcheck
+	@cd $(O) && python3 -I $(TOP)/tools/netcheck.py --net $(NET) \
+	    --kernel $(filter-out $(NET),$(OBJS)) || { rm -f unix; exit 1; }
 
 $(HOST)/cpp $(HOST)/c0 $(HOST)/c1 $(HOST)/c2 $(HOST)/as $(HOST)/ld:
 	$(MAKE) -C $(TOP)/usr/src/lib/ccom/i286 host

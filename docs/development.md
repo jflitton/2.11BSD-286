@@ -195,7 +195,7 @@ driver talks to.
 | `tools/farlint.py` | looks for far pointers that kernel code truncates without the compiler noticing |
 | `tools/lmlint.py` | looks a program over before it is made large-model: a `0` for a pointer or a pointer for an `int` where no prototype says which, a function that returns a pointer called undeclared, and arguments that differ in number from the definition |
 | `tools/preflight.py` | looks a program over before it is built: what the compiler rejects, calls that disagree with a definition in another file or in the library, lines that match what has gone wrong before, and whether it links and how large it is |
-| `tools/netcheck.py` | looks in the kernel's objects for calls and references between it and the network that do not switch the data segment; run at every link |
+| `tools/netcheck.py` | looks in the kernel's objects, either compiler's, for calls and references between it and the network that do not switch the data segment; run at every link |
 | `tools/untap.py` | splits a SimH `.tap` tape image into its files |
 | `tools/tar2git.py` | commits tar archives to a branch without unpacking them |
 | `tools/import-upstream.sh` | rebuilds the `upstream` import from the tape, to check it |
