@@ -932,6 +932,8 @@ char *name;
 	register struct sym *sp;
 	register char *p;
 	register unsigned h;
+	unsigned num;
+	int f;
 
 	/*
 	 * The symbols are written in the table's order, so the sum is
@@ -942,30 +944,83 @@ char *name;
 	for (p = name; *p; p++)
 		h = (h * 31 + *p) & 0177777;
 	h %= NHASH;
+	f = labnum(name, &num);
 	for (sp = hashtab[h]; sp; sp = sp->s_next)
-		if (strcmp(sp->s_name, name) == 0)
+		if (f ? (sp->s_flags & (FNUM|FLL)) == f && sp->s_num == num :
+		    (sp->s_flags & FNUM) == 0 && strcmp(sp->s_name, name) == 0)
 			return(sp);
 	sp = (struct sym *)alloc(sizeof *sp);
-	sp->s_name = save(name);
+	if (f)
+		sp->s_num = num;
+	else
+		sp->s_name = save(name);
 	sp->s_link = NULL;
 	sp->s_value = 0;
 	sp->s_stmt = 0;
 	sp->s_index = -1;
 	sp->s_sect = SUNDEF;
-	sp->s_flags = 0;
+	sp->s_flags = f;
 	p = name;
 	if (*p == 'L' && p[1] == 'L')
 		p++;
 	if (*p == 'L' && p[1] >= '0' && p[1] <= '9')
-		sp->s_flags = FLOCAL;
+		sp->s_flags |= FLOCAL;
 	for (p = name; *p; p++)
 		if (*p == '.')
-			sp->s_flags = FLOCAL;
+			sp->s_flags |= FLOCAL;
 	if (strcmp(name, "..start") == 0)
 		sp->s_flags = FGLOBAL;
 	sp->s_next = hashtab[h];
 	hashtab[h] = sp;
 	return(sp);
+}
+
+/*
+ * Is the name one of the compiler's labels, L or LL and a number as it
+ * writes one?  Of those a file has hundreds, and each keeps its number
+ * and not its name, which is 14 bytes in place of 20.  FNUM, and FLL
+ * for LL, if so, with the number in *np; else 0.
+ */
+labnum(name, np)
+register char *name;
+unsigned *np;
+{
+	register unsigned n;
+	register c, f;
+
+	if (*name++ != 'L')
+		return(0);
+	f = FNUM;
+	if (*name == 'L') {
+		name++;
+		f |= FLL;
+	}
+	if (*name < '0' || *name > '9' || *name == '0' && name[1])
+		return(0);
+	for (n = 0; (c = *name) >= '0' && c <= '9'; name++) {
+		if (n > 6553 || n == 6553 && c > '5')
+			return(0);
+		n = n * 10 + c - '0';
+	}
+	if (c)
+		return(0);
+	*np = n;
+	return(f);
+}
+
+/*
+ * A symbol's name.
+ */
+char *
+symname(sp)
+register struct sym *sp;
+{
+	static char buf[8];
+
+	if ((sp->s_flags & FNUM) == 0)
+		return(sp->s_name);
+	sprintf(buf, "%s%u", sp->s_flags & FLL ? "LL" : "L", sp->s_num);
+	return(buf);
 }
 
 /*
@@ -979,7 +1034,7 @@ char *name;
 	char full[2*NAMESZ];
 
 	if (name[0] == '.' && name[1] != '.' && lastlab) {
-		strcpy(full, lastlab->s_name);
+		strcpy(full, symname(lastlab));
 		strcat(full, name);
 		return(lookup(full));
 	}
@@ -996,7 +1051,7 @@ unsigned v;
 {
 	if (pass == 1) {
 		if (sp->s_stmt || sp->s_flags & (FEXTERN|FCOMMON)) {
-			error("%s is defined twice", sp->s_name);
+			error("%s is defined twice", symname(sp));
 			return;
 		}
 		sp->s_stmt = stmt;
@@ -1014,7 +1069,7 @@ unsigned v;
 	if (s == SABS)
 		sp->s_value = v;
 	else if (sp->s_sect != s || sp->s_value != v)
-		fatal("%s is not where it was (phase error)", sp->s_name);
+		fatal("%s is not where it was (phase error)", symname(sp));
 }
 
 /*
@@ -1090,7 +1145,7 @@ statement()
 	register struct insn *ip;
 	register struct sym *sp;
 	struct expr e;
-	struct jump *jp;
+	struct jump __far *jp;
 	char *p;
 	long n;
 	int c;

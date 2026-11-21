@@ -621,6 +621,14 @@ here:	dd	0, 1, 0x12345678, -1
 	align	4,db 0
 	dw	(1+2)*3, 100/7, 100 % 7, 1<<4, 0x100>>4, 0xF0|0x0F, 0xFF&0x3C, 5^1, ~0
 	dw	0x10, 10h, 0FFh, 0xabcd
+; the compiler's labels, which are kept by their numbers, and names like
+; them that are not its
+L7:	dw	L7, L007, LL7, L65536, L0, L65535
+L007:	dw	1
+LL7:	dw	2
+L65536:	dw	3
+L0:	dw	4
+L65535:	dw	5
 
 	segment	_BSS
 _buf:	resb	10

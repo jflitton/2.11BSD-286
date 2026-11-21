@@ -3,6 +3,11 @@
  * length is found between the passes.
  */
 #include "as.h"
+#ifdef i286
+#include <segment.h>
+#else
+char	*malloc();
+#endif
 
 struct	opnd op[3];
 int	nop;
@@ -67,7 +72,7 @@ register struct sym *sp;
 	if (sp->s_stmt == 0) {
 		if ((sp->s_flags & (FEXTERN|FCOMMON|FGLOBAL)) == 0) {
 			if (pass == 2)
-				error("%s is not defined", sp->s_name);
+				error("%s is not defined", symname(sp));
 			e->e_fwd = 1;
 		}
 		e->e_sym = sp;
@@ -643,9 +648,9 @@ getops()
  * The jumps.  The first pass makes a list of them, which the second
  * goes through again.
  */
-struct	jblk *jblk0, *jblkn;
+struct	jblk __far *jblk0, __far *jblkn;
 int	njump;			/* in the last block */
-struct	jblk *jblkp;		/* the second pass's place */
+struct	jblk __far *jblkp;		/* the second pass's place */
 int	jnext;
 
 jumpstart()
@@ -654,14 +659,20 @@ jumpstart()
 	jnext = 0;
 }
 
-struct jump *
+struct jump __far *
 newjump()
 {
-	register struct jblk *bp;
-	register struct jump *jp;
+	register struct jblk __far *bp;
+	register struct jump __far *jp;
 
 	if (jblkn == NULL || njump >= JBLK) {
-		bp = (struct jblk *)alloc(sizeof *bp);
+#ifdef i286
+		bp = (struct jblk __far *)segalloc((long)sizeof *bp);
+#else
+		bp = (struct jblk *)malloc(sizeof *bp);
+#endif
+		if (bp == NULL)
+			fatal("out of memory", "");
 		bp->jb_next = NULL;
 		if (jblkn)
 			jblkn->jb_next = bp;
@@ -680,7 +691,7 @@ newjump()
 	return(jp);
 }
 
-struct jump *
+struct jump __far *
 nextjump()
 {
 	if (jblkp && jnext >= JBLK) {
@@ -703,8 +714,8 @@ nextjump()
  */
 relax()
 {
-	register struct jblk *bp;
-	register struct jump *jp;
+	register struct jblk __far *bp;
+	register struct jump __far *jp;
 	register struct sym *sp;
 	struct sym *sp2;
 	int i, n, grow, pad, changed;

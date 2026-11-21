@@ -837,7 +837,7 @@ jump(ip)
 register struct insn *ip;
 {
 	register struct opnd *o;
-	register struct jump *jp;
+	register struct jump __far *jp;
 
 	o = &op[0];
 	if (ip->i_class == C_JMP) {
@@ -1112,7 +1112,7 @@ register struct insn *ip;
 	char name[NAMESZ];
 	struct expr e;
 	register struct sym *sp;
-	register struct jump *jp;
+	register struct jump __far *jp;
 	register c;
 	int fill;
 	long n;

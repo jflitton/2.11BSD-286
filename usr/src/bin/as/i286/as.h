@@ -11,8 +11,18 @@
  * everything is, taking each jump to be a short one, and remembers the
  * jumps; between the two the jumps that do not reach are made long ones
  * and the labels moved to suit (relax); the second writes the object.
+ *
+ * On the 286 what it remembers has the 64K of its data segment, which
+ * its own variables, its stack and its files' buffers have some 27K
+ * of.  The compiler's labels, of which a file may have a thousand or
+ * two, are kept by their numbers and not their names, and the jumps
+ * are in segments of their own (segalloc), out of that 64K.
  */
 #include <stdio.h>
+
+#ifndef i286
+#define	__far			/* where it is built, if not on the 286 */
+#endif
 
 #define	LINESZ	512		/* a line of the source, with its macros */
 #define	NAMESZ	64		/* a name */
@@ -39,7 +49,10 @@
 struct sym {
 	struct	sym *s_next;	/* the next with the same hash */
 	struct	sym *s_link;	/* the text's next label, by address */
-	char	*s_name;
+	union {
+		char	*u_name;
+		unsigned u_num;	/* FNUM: the number after L or LL */
+	} s_u;
 	unsigned s_value;
 	unsigned s_stmt;	/* the line that defined it; 0 for none yet */
 	int	s_index;	/* its number in the object, or -1 */
@@ -53,6 +66,12 @@ struct sym {
 #define	FUSED	010		/* something refers to it */
 #define	FLOCAL	020		/* a label of the compiler's, or one with
 				   a dot: not for the symbol table */
+#define	FNUM	040		/* a label of the compiler's, L12 or LL12:
+				   its number is kept and not its name */
+#define	FLL	0100		/*	LL12 */
+
+#define	s_name	s_u.u_name
+#define	s_num	s_u.u_num
 
 /*
  * A value.  It is a number, or a place in one of this file's segments
@@ -175,9 +194,13 @@ struct jump {
 #define	J_ALIGN	2		/* j_off is the boundary */
 #define	J_FILL	3
 
-#define	JBLK	128
+/*
+ * The jumps, in the order they are come upon: 1024 of them, 12K, a
+ * segment of their own.  A file of the compiler's has one or two.
+ */
+#define	JBLK	1024
 struct jblk {
-	struct	jblk *jb_next;
+	struct	jblk __far *jb_next;
 	struct	jump jb_j[JBLK];
 };
 
@@ -210,6 +233,6 @@ extern	int	usedhere;
 
 struct	sym *lookup(), *symbol();
 struct	insn *findinsn();
-struct	jump *newjump(), *nextjump();
-char	*alloc(), *save();
+struct	jump __far *newjump(), __far *nextjump();
+char	*alloc(), *save(), *symname();
 long	number();

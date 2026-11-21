@@ -357,7 +357,7 @@ outfinish()
 					t |= N_EXT;
 			}
 			putsym(f, strx, t, c, sp->s_value);
-			strx += strlen(sp->s_name) + 1;
+			strx += strlen(symname(sp)) + 1;
 		}
 	put4(strx, f);
 	for (i = SNAMED; i < nsect; i++) {
@@ -371,7 +371,7 @@ outfinish()
 	for (i = 0; i < NHASH; i++)
 		for (sp = hashtab[i]; sp; sp = sp->s_next)
 			if (sp->s_index >= 0) {
-				fputs(sp->s_name, f);
+				fputs(symname(sp), f);
 				putc(0, f);
 			}
 	fseek(f, 0L, 0);

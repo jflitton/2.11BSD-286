@@ -224,6 +224,16 @@ assembler, as the PDP-11's does. It is worked out between the two
 passes, starting from every jump short and lengthening those that do
 not reach until none is left, so the code is as short as it can be.
 
+What it remembers between the passes has, on the 286, what is left of
+a small-model program's 64K when its own variables, its stack and its
+files' buffers have some 27K. A symbol there is 14 bytes and its name;
+the compiler's labels, `L12` and `LL12`, of which a file has hundreds,
+are kept by their numbers and have no name; and a jump is 12 bytes,
+1024 of them to a segment of their own (`segalloc`), outside the 64K.
+The file of the system that asks most of it, the scanner `lex` makes
+for `style`, with 1,691 labels, takes the break to 55,296 bytes of the
+63,488 it can have.
+
 With `-b` it writes an image, the bytes and nothing else, as NASM's
 `-f bin` does: a boot block. Its addresses are those of where it is to
 be, which `org` says, and it is all text, with nothing from another
