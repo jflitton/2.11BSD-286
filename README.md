@@ -12,10 +12,10 @@ manual and a C compiler. It runs in 86Box and on real machines.
 
 ## Lineage
 
-2.11BSD is the last of Berkeley's releases for the PDP-11, the 2BSD line
-that ran beside 4BSD on the VAX. It brought 4.3BSD, with its TCP/IP,
-the C shell, `vi` and `sendmail`, to a 16-bit machine. It first came out
-in 1991 and is maintained still: patch level 500, from 2026, is what
+2.11BSD is the last of Berkeley's releases for the PDP-11. It brought
+parts of 4.3BSD (which ran on 32-bit VAX), with its TCP/IP, the C shell,
+`vi` and `sendmail`, to a 16-bit machine. It first came out in 1991 and
+is still maintained: patch level 500, from 2026, is what
 this port starts from.
 
 The PDP-11 and the 286 are close enough that the tree carries over:
