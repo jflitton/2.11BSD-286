@@ -55,13 +55,13 @@ script is what the system has.
 The second pass, `usr/src/lib/ccom/i286`, is upstream's reader of the
 first pass's trees and its optimizer of expressions, with a generator
 of its own where upstream has its tables of PDP-11 code. It does the
-small model and the medium, with floating point on the 287 and far
-pointers. `usr/src/lib/c2/i286` is `c2` for what it writes, on
+small model, the medium and the large, with floating point on the 287
+and far pointers. `usr/src/lib/c2/i286` is `c2` for what it writes, on
 upstream's plan: what upstream's does to jumps it does, and what
 upstream's knows of the PDP-11's instructions is written again for the
-286's. The compiler's code is nearly a tenth larger than the cross
-compiler's: the 312 programs have 5,730,134 bytes of it as the system's
-own tools make them, and 5,234,990 as the cross compiler does.
+286's. The compiler's code is a fifteenth larger than the cross
+compiler's: the 317 programs have 5,691,494 bytes of it as the system's
+own tools make them, and 5,344,192 as the cross compiler does.
 
 A far pointer is declared as the cross compiler has it, with `__far`
 before the `*`, and is the same four bytes: `char __far *p`, `int

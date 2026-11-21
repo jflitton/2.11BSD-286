@@ -41,6 +41,16 @@
  * The output is for NASM.  Data is near.  Functions are near in the
  * small model, and with -M, the medium model, far: each file's are
  * then in a segment of its own, named by what follows the -M.
+ *
+ * With -L in place of -M it is the large model, whose functions are
+ * the medium's and whose pointers are all far (../c0.h).  The first
+ * pass has seen to the pointers; what is left here is that DS is not
+ * the program's data there.  It is loaded with whatever segment is
+ * being pointed at, by the C library's assembly as by anything else,
+ * and a function need not put it back (lib/libc/i286/crt/DEFS.inc).
+ * The program's own data is the stack's segment, so its variables, and
+ * whatever a near pointer points at, are reached through SS (pname),
+ * and the address of one is made far with SS for its segment.
  */
 
 #include "c1.h"
@@ -73,8 +83,16 @@ char	*argv[];
 		exit(1);
 	}
 	textseg = "_TEXT";
-	if (argc>4 && argv[4][0]=='-' && argv[4][1]=='M') {
+	dseg = "ds";
+	ovr = "";
+	if (argc>4 && argv[4][0]=='-'
+	 && (argv[4][1]=='M' || argv[4][1]=='L')) {
 		mflag++;
+		if (argv[4][1]=='L') {
+			lflag++;
+			dseg = "ss";
+			ovr = "ss:";
+		}
 		textseg = argv[4]+2;
 	}
 	if (freopen(argv[1], "r", stdin)==NULL) {
@@ -321,7 +339,7 @@ register union tree *tree;
 	case NTOF:
 	case CTOF:
 		rcexpr(l, FORREG);
-		printf("\tmov\tdx,%s\n", op==NTOF? "ds": "cs");
+		printf("\tmov\tdx,%s\n", op==NTOF? dseg: "cs");
 		return(INREG);
 
 	/*
@@ -1786,12 +1804,12 @@ register union tree *tree;
 		radr = adrble(r);
 		rcexpr(bxform(l), FORSP);
 		if (radr)
-			printf("\tmov\tbx,sp\n\t%s\tbx,[bx]\n",
-			    far? "les": "mov");
+			printf("\tmov\tbx,sp\n\t%s\tbx,[%sbx]\n",
+			    far? "les": "mov", ovr);
 		else {
 			rcexpr(r, FORSP);
-			printf("\tmov\tbx,sp\n\t%s\tbx,[bx+4]\n",
-			    far? "les": "mov");
+			printf("\tmov\tbx,sp\n\t%s\tbx,[%sbx+4]\n",
+			    far? "les": "mov", ovr);
 		}
 		load(l, AX);
 		if (radr)
@@ -1979,7 +1997,7 @@ register union tree *tree;
 		if (tree->t.op==FSTAR) {
 			rcexpr(tree->t.tr1, FORREG);
 			printf("\tsub\tsp,%d\n", size);
-			printf("\tmov\tbx,sp\n\tmov\tcx,ds\n");
+			printf("\tmov\tbx,sp\n\tmov\tcx,%s\n", dseg);
 			fmovs(size/2);
 			return(size);
 		}
@@ -2179,10 +2197,12 @@ register union tree *tree;
 	case UNLONG:
 	case LONG:
 		/*
-		 * A far pointer to a function: its address and its
-		 * segment, which is for whatever loads the program to
-		 * put there.
+		 * A far pointer to a function, or in the large model to
+		 * a variable: its address and its segment, which is for
+		 * whatever loads the program to put there.
 		 */
+		if (tree->t.op==NTOF && lflag)
+			tree = tree->t.tr1;
 		if (tree->t.op==AMPER && adrble(tree)) {
 			printf("\tdw\t");
 			pname(tree, 0);
@@ -2277,6 +2297,13 @@ loop:
 		i = p->n.offset;
 		if (flag&HI)
 			i += 2;
+		/*
+		 * In the large model what is in the program's own data
+		 * is reached through SS, but where BP is the base, which
+		 * is so anyway.
+		 */
+		if (p->n.class!=FOFFS && (p->n.class!=OFFS || p->n.regno!=BP))
+			printf("%s", ovr);
 		switch(p->n.class) {
 
 		case OFFS:

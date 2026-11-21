@@ -125,6 +125,10 @@ char	*argv[];
 		case 'M':		/* the medium model */
 			mflag++;
 			break;
+		case 'L':		/* the large model */
+			mflag++;
+			lflag++;
+			break;
 #endif
 		case 'w':
 		case 'W':		/* don't print warning messages */

@@ -115,7 +115,7 @@ struct insn insns[] = {
 	"fyl2x",	C_NONE2,	0,	0xD9F1,
 	"fyl2xp1",	C_NONE2,	0,	0xD9F9,
 	"global",	C_DIR,		0,	D_GLOBAL,
-	"group",	C_DIR,		0,	D_IGNORE,
+	"group",	C_DIR,		0,	D_GROUP,
 	"hlt",		C_NONE,		0,	0xF4,
 	"idiv",		C_UN,		0,	7,
 	"imul",		C_IMUL,		0,	5,
@@ -251,6 +251,15 @@ struct insn insns[] = {
 char	*segname[NSEGN];
 char	segsect[NSEGN];
 int	nsegn;
+
+/*
+ * The names of groups.  What a group is made of is not asked: in a
+ * program the data and the bss are one segment, which is the only
+ * group there is (DGROUP), and its name stands for that segment's
+ * selector, as `seg' of anything in it does.
+ */
+char	*grpname[NSEGN];
+int	ngrpn;
 
 tabcheck()
 {
@@ -1191,11 +1200,34 @@ register struct insn *ip;
 		segment();
 		return;
 
+	case D_GROUP:
+		skipb();
+		getname(name);
+		if (name[0] == 0)
+			error("group what?", "");
+		else if (!isgroup(name)) {
+			if (ngrpn >= NSEGN)
+				fatal("too many groups", "");
+			grpname[ngrpn++] = save(name);
+		}
+		/* and what it is made of is not asked */
+
 	case D_IGNORE:
 		while (!eol())
 			lp++;
 		return;
 	}
+}
+
+isgroup(name)
+char *name;
+{
+	register i;
+
+	for (i = 0; i < ngrpn; i++)
+		if (strcmp(grpname[i], name) == 0)
+			return(1);
+	return(0);
 }
 
 /*

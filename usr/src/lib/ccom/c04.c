@@ -49,7 +49,8 @@ fincref(t)
 
 /*
  * The modifier m is to go on a type whose modifiers so far are in
- * type: in the medium model a pointer to a function is a far one.
+ * type: in the medium and large models a pointer to a function is a
+ * far one.
  */
 ptrto(type, m)
 {
@@ -60,13 +61,19 @@ ptrto(type, m)
 
 /*
  * The type of the address of p.  It is far if p is reached through a
- * far pointer, or is a function in the medium model.
+ * far pointer, or is a function in the medium model; and in the large
+ * model if p is not reached through a near pointer.
  */
 adrtype(p)
 register union tree *p;
 {
-	if (p->t.op==STAR && ISFAR(p->t.tr1->t.type)
-	 || mflag && (p->t.type&XTYPE)==FUNC)
+	register far;
+
+	if (p->t.op==STAR)
+		far = ISFAR(p->t.tr1->t.type);
+	else
+		far = lflag;
+	if (far || mflag && (p->t.type&XTYPE)==FUNC)
 		return(fincref(p->t.type));
 	return(incref(p->t.type));
 }
@@ -185,6 +192,20 @@ register union tree *tp;
 
 	case AMPER:
 		treeout(tp->t.tr1, 1);
+#ifdef	i286
+		/*
+		 * In the large model the address of a variable is far,
+		 * and is in the program's own data, whose segment the
+		 * stack's is: the second pass is given the near address
+		 * made far, which it can take apart again.
+		 */
+		if (lflag && ISFAR(tp->t.type) && tp->t.tr1->t.op!=STAR
+		 && (tp->t.tr1->t.type&XTYPE)!=FUNC) {
+			outcode("BN", AMPER, PTYPE(incref(tp->t.tr1->t.type)));
+			outcode("BN", NTOF, PTYPE(tp->t.type));
+			break;
+		}
+#endif
 		outcode("BN", tp->t.op, PTYPE(tp->t.type));
 		break;
 

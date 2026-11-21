@@ -13,10 +13,13 @@
 # them and as the object code improver does (tools/ncc -O).
 #
 # Then prog.c, a program that uses the C library and the system, is
-# compiled with it for the small model and for the medium, assembled by
+# compiled with it for the small model, the medium and the large, assembled by
 # the system's assembler and linked by its linker (tools/cc -ccom) with
 # the library as those made it (obj/nlib); and the kernel is booted
-# from a RAM disk on which /etc/init is init.c, which runs the two.  It
+# from a RAM disk on which /etc/init is init.c, which runs the three,
+# and the tests above as one program of the large model, support.c
+# compiled with them by the same compiler and printing with the C
+# library's printf, since there is no harness under them there.  It
 # runs the compiler there as well, as the compiler compiled it: the
 # two passes on prog.c as the preprocessor left it, and the object code
 # improver on the assembly for prog.c.  What each writes on the system
@@ -80,6 +83,9 @@ cd "$out/boot"
 "$top/tools/cc" -ccom -o init "$here/init.c"
 "$top/tools/cc" -ccom -DMEDIUM=0 -o small "$here/prog.c"
 "$top/tools/cc" -ccom -mm -DMEDIUM=1 -o medium "$here/prog.c"
+"$top/tools/cc" -ccom -ml -DMEDIUM=1 -DLARGE=1 -o large "$here/prog.c"
+"$top/tools/cc" -ccom -ml -Dputc=putchar -I"$here" -o tlarge \
+    "$here/support.c" "$out/src/tests.c" $(for t; do echo "$here/t_$t.c"; done)
 c2=$top/usr/src/lib/c2/i286
 "$top/tools/cc" -ccom -o c2 "$c2/c20.c" "$c2/c21.c"
 # The compiler's two passes, compiled by themselves: the first is all

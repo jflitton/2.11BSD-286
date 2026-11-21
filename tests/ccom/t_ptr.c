@@ -311,7 +311,7 @@ structs()
 	CK(r1.p.y, 8);
 	CK(r1.name[1], 'n');
 	CK(sizeof(struct pt), 4);
-	CK(sizeof(struct rec), 20);
+	CK(sizeof(struct rec), 18 + sizeof(struct rec *));
 	CK(sizeof(struct odd), 8);
 	rp = &r1;
 	rr = &r1;

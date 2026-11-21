@@ -142,6 +142,9 @@ register struct expr *e;
 			if (e->e_sect == SABS || e->e_seg)
 				error("seg of what has no segment", "");
 			e->e_seg = 1;
+		} else if (isgroup(name)) {
+			e->e_sect = SDATA;
+			e->e_seg = 1;
 		} else
 			symval(e, symbol(name));
 	} else

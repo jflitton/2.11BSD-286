@@ -17,7 +17,8 @@ The libraries are the system's own objects (a.out.h), as its own
 compiler, assembler and tools/ar.py made them in TOP/obj/nlib: for the
 small model /lib/crt0.o and /lib/libc.a, and /usr/lib/libNAME.a for
 each LIBRARY; for the medium model the same in /lib/m and /usr/lib/m,
-where the system's ld looks when it is given -mm.  lex's library,
+where the system's ld looks when it is given -mm, and for the large in
+/lib/l and /usr/lib/l.  lex's library,
 libln.a, is libl.a as well, a link, as upstream installs it: -ll.
 """
 import os
@@ -52,8 +53,9 @@ def main():
     out.append("l /usr/include/machine i286")
 
     nlib = os.path.join(top, "obj", "nlib")
-    out += ["d /lib 755", "d /lib/m 755", "d /usr/lib 755", "d /usr/lib/m 755"]
-    for m, sub in (("s", ""), ("m", "/m")):
+    out += ["d /lib 755", "d /lib/m 755", "d /lib/l 755", "d /usr/lib 755",
+            "d /usr/lib/m 755", "d /usr/lib/l 755"]
+    for m, sub in (("s", ""), ("m", "/m"), ("l", "/l")):
         out.append("f /lib%s/crt0.o 444 %s" % (sub, os.path.join(nlib, m, "crt0.o")))
         out.append("f /lib%s/libc.a 444 %s" % (sub, os.path.join(nlib, m, "libc.a")))
         for l in libs:

@@ -7,7 +7,7 @@
 int	pass;
 int	nerr;
 unsigned stmt;			/* lines read in this pass, of any file */
-int	model;			/* -ms or -mm: for the object's header */
+int	model;			/* -ms, -mm or -ml: for the object's header */
 char	*outfile = "a.out";
 char	line[LINESZ];
 char	*lp;			/* where in the line */
@@ -115,6 +115,8 @@ char **argv;
 				model = 1;
 			else if (p[2] == 'm')
 				model = 2;
+			else if (p[2] == 'l')
+				model = 3;
 			else
 				usage();
 			break;
@@ -150,7 +152,7 @@ char **argv;
 usage()
 {
 	fprintf(stderr,
-	    "usage: as [-o object] [-Dname[=text]] [-Idir] [-ms|-mm] file.s\n");
+	    "usage: as [-o object] [-Dname[=text]] [-Idir] [-ms|-mm|-ml] file.s\n");
 	exit(1);
 }
 

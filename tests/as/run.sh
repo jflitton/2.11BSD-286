@@ -7,10 +7,10 @@
 #
 # The files are all.s, which has every instruction the assembler knows
 # in each of the ways its operands may be written, and its directives;
-# the C library's own assembly, for both models, with the start-up
+# the C library's own assembly, for each model, with the start-up
 # code; the system call stubs as tools/mkstubs.py writes them, for
-# both; and what the system's C compiler writes for the programs of
-# tests/ccom, in both models, as its second pass leaves it and as the
+# each; and what the system's C compiler writes for the programs of
+# tests/ccom, in each model, as its second pass leaves it and as the
 # object code improver does.
 #
 # Where a jump is one byte too far for the short form as NASM lays the
@@ -51,11 +51,12 @@ both "$here/all.s"
 for f in $(find "$libc" -name '*.s' | sort); do
     both "$f" -I "$libc/crt/"
     both "$f" -I "$libc/crt/" -DFAR
+    both "$f" -I "$libc/crt/" -DFAR -DFARDATA
 done
 # and ve's, the one program with assembly of its own
 both "$top/usr/src/i286/ve/fmem.s" -I "$libc/crt/"
 both "$top/usr/src/i286/ve/fmem.s" -I "$libc/crt/" -DFAR
-for m in s m; do
+for m in s m l; do
     rm -rf "$out/stubs/$m"
     mkdir -p "$out/stubs/$m"
     python3 -I "$top/tools/mkstubs.py" --model $m -d "$out/stubs/$m" \
@@ -66,7 +67,7 @@ for m in s m; do
 done
 for f in "$top"/tests/ccom/t_*.c "$top/tests/ccom/prog.c"; do
     b=$(basename "$f" .c)
-    for m in s m; do
+    for m in s m l; do
         for o in "" -O; do
             "$top/tools/ncc" -S $o -m$m -DMEDIUM=0 -o "$out/$b.s" "$f"
             both "$out/$b.s"

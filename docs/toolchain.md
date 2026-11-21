@@ -8,13 +8,15 @@ program is compiled on the system as on any UNIX:
 ```sh
 cc -O -o prog prog.c sub.c -lm      # small model
 cc -mm -o big big.c                 # medium model: far code
+cc -ml -o bigger bigger.c           # large model: far data as well
 ```
 
 The system itself is still built with the cross compiler, Open Watcom
 ([building](development.md)). The same tools, compiled for the machine
 the system is built on, make it too (`tools/cc -ccom`), and
-`tests/ccom/programs.sh` boots a system that is all their work but
-`window`, which is of the large model. And the system makes them of their sources itself ([below](#the-system-makes-its-own-compiler)).
+`tests/ccom/programs.sh` boots a system that is all their work. And
+the system makes them of their sources itself
+([below](#the-system-makes-its-own-compiler)).
 
 ## What runs what
 
@@ -41,7 +43,7 @@ they write with what they wrote where the system was built.
 
 ## Models
 
-`cc` makes a small-model program unless it is given `-mm`
+`cc` makes a small-model program unless it is given `-mm` or `-ml`
 ([memory models](memory-model.md)). The flag goes to every step: the
 first pass makes pointers to functions far, the second makes calls far
 and is told the name of the segment for the file's code, the assembler
@@ -49,22 +51,45 @@ records the model in the object, and the linker refuses to mix them.
 
 The start-up code and the libraries are per model:
 
-| | small | medium |
-|---|---|---|
-| start-up | `/lib/crt0.o` | `/lib/m/crt0.o` |
-| C library | `/lib/libc.a` | `/lib/m/libc.a` |
-| others (`-lNAME`) | `/usr/lib/libNAME.a` | `/usr/lib/m/libNAME.a` |
+| | small | medium | large |
+|---|---|---|---|
+| start-up | `/lib/crt0.o` | `/lib/m/crt0.o` | `/lib/l/crt0.o` |
+| C library | `/lib/libc.a` | `/lib/m/libc.a` | `/lib/l/libc.a` |
+| others (`-lNAME`) | `/usr/lib/libNAME.a` | `/usr/lib/m/libNAME.a` | `/usr/lib/l/libNAME.a` |
 
-In either model a pointer to data is near unless it is declared
-`__far`, which is how a program reaches the segments `segalloc` gives
-it. A far pointer to `void` is assigned to and from any other pointer
-to data without a cast, as a near one is; that is what `segalloc`
-returns and `segfree` takes, and `ve` is written with it
-([ve](userland.md#ve)).
+In the small and medium models a pointer to data is near unless it is
+declared `__far`, which is how a program reaches the segments
+`segalloc` gives it. A far pointer to `void` is assigned to and from
+any other pointer to data without a cast, as a near one is; that is
+what `segalloc` returns and `segfree` takes, and `ve` is written with
+it ([ve](userland.md#ve)). In the medium and large models a function
+may be said to be `__far`, which every function there is.
 
-`ld -mm` looks in the `m` directories for `-l`. The libraries on the
-system are `libc`, `libm`, `libtermcap`, `libcurses`, `libutil`,
-`libdbm`, `libln`, `liby` and `libwrap`.
+In the large model a pointer that a `*` declares is far unless it is
+said to be `__near`, and so is the address of anything: the first pass
+does that, and the second is left to reach the program's data, which
+is the stack's segment, through SS. DS belongs to no one there: it is
+loaded with the segment of whatever is pointed at, by the library's
+assembly as by anything else, and a function need not put it back
+([the large model as it is built](memory-model.md#the-large-model-as-it-is-built)).
+So a variable is `[ss:_x]`, and where it is reached through BX, SI or
+DI, as an array is, `[ss:bx+_x]`; one in the frame is `[bp-4]` as
+always; and its address is made far with SS. The second pass is given
+the address of a variable as a near one made far, and takes what is
+added to it, and what it points at, back to the near address, so that
+`a[i]` and `s.m` are still operands of one instruction. `cc -ml` gives
+the preprocessor `__LARGE__`, which the headers know the model by, and
+`NULL` as `0L`, so that it is four bytes where it is passed to a
+function with no prototype; and the assembler `FARDATA` as well as
+`FAR`, as the library's assembly is assembled. What the cross compiler
+has and this one has not: every variable is in the program's own data,
+where the cross compiler gives one of more than 32K a segment of its
+own; and there is no `__huge`.
+
+`ld -mm` looks in the `m` directories for `-l`, and `ld -ml` in the
+`l` ones. The libraries on the system are `libc`, `libm`,
+`libtermcap`, `libcurses`, `libutil`, `libdbm`, `libln`, `liby` and
+`libwrap`, for each model.
 
 ## The assembler
 
@@ -75,7 +100,7 @@ how the assembler is tested: `tests/as` gives both the same files and
 compares what they make.
 
 ```
-as [-o object] [-Dname[=text]] [-Idir] [-ms|-mm] file.s
+as [-o object] [-Dname[=text]] [-Idir] [-ms|-mm|-ml] file.s
 ```
 
 What it has:
@@ -92,7 +117,11 @@ What it has:
 
 A file's segments are three: every `segment` of class `CODE` is the
 text, of class `BSS` the bss, and any other the data, in the order the
-file has them. `group`, `bits` and `cpu` are read and mean nothing.
+file has them. `bits` and `cpu` are read and mean nothing, and nor
+does what a `group` is made of; but its name stands for the selector of
+the program's data, which is the only group there is in a program, as
+`seg` of anything in it does. The large model's start-up code writes
+`DGROUP` so.
 
 A jump to a label takes the short form if that reaches and the long one
 if not; a conditional jump out of reach becomes the opposite condition
@@ -146,7 +175,7 @@ upstream has them.
 ## The linker
 
 ```
-ld [-o out] [-ms|-mm] [-s] [-x] [-stack n] [-packcode n] [-e sym]
+ld [-o out] [-ms|-mm|-ml] [-s] [-x] [-stack n] [-packcode n] [-e sym]
    [-u sym] [-L dir] [-M] [-t] file ... -lx ...
 ```
 
@@ -160,7 +189,9 @@ A program's data, with the bss and then the common storage after it, is
 its last segment. In the small model the text is one segment. In the
 medium model each file's text is whole in one segment and files share a
 segment, in the order they are linked, until the next would not fit;
-`-packcode n` makes the segments smaller than 64K. A near call or jump
+`-packcode n` makes the segments smaller than 64K. The large model's
+text is the medium's, and its data is the one segment too: what its
+far pointers point at beyond that, the program is given as it runs. A near call or jump
 from one file to another that has landed in a different segment is an
 error: the library's system call stubs reach their common error path
 with a far jump for that reason.
@@ -223,7 +254,5 @@ system is built.
   `__interrupt`, `__huge` and the cross compiler's pragmas are not in
   it.
 - Profiling (`cc -p`, `mcrt0.o`, `prof`), `adb` and `ld -r`.
-- The large model. `tools/cc -ml` and the libraries it links are the
-  cross compiler's ([the large model](userland.md#the-large-model)),
-  so a large-model program, of which `window` is the one, is not made
-  on the system.
+- In the large model, a variable of more than 32K in a segment of its
+  own, which the cross compiler makes, and `__huge` pointers.

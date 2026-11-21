@@ -173,7 +173,10 @@ char	*opntab[];
 char	*rname[];
 char	*bname[];
 int	ccof;			/* the overflow flag may be set */
-int	mflag;			/* the medium model: functions are far */
+int	mflag;			/* the medium or large model: functions are far */
+int	lflag;			/* the large model: DS is no one's (c10.c) */
+char	*dseg;			/* what has the program's data: ds, or ss */
+char	*ovr;			/* its override where DS is not it: "ss:" */
 char	*textseg;		/* the name of the segment the code is in */
 int	cursect;		/* PROG, DATA or BSS: the segment being filled */
 char	*funcbase;

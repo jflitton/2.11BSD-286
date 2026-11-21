@@ -121,8 +121,8 @@ again:
 		if (op!=ITOF)
 			printf("\tpush\tdx\n");
 		printf("\tpush\tax\n\tmov\tbx,sp\n");
-		printf("\tfild\t%s [bx]\n", op==ITOF? "word":
-		    op==LTOF? "dword": "qword");
+		printf("\tfild\t%s [%sbx]\n", op==ITOF? "word":
+		    op==LTOF? "dword": "qword", ovr);
 		popstk(op==ITOF? 2: op==LTOF? 4: 8);
 		return;
 
@@ -143,8 +143,8 @@ again:
 			fexpr(l);
 			fsave();
 			fexpr(r);
-			printf("\tmov\tbx,sp\n\tf%s\tqword [bx]\n",
-			    fname(op, 1));
+			printf("\tmov\tbx,sp\n\tf%s\tqword [%sbx]\n",
+			    fname(op, 1), ovr);
 			printf("\tadd\tsp,8\n");
 			return;
 		}
@@ -360,7 +360,8 @@ register union tree *tree;
 		fexpr(l);
 		fsave();
 		fexpr(r);
-		printf("\tmov\tbx,sp\n\tfcomp\tqword [bx]\n\tfstsw\tax\n");
+		printf("\tmov\tbx,sp\n\tfcomp\tqword [%sbx]\n\tfstsw\tax\n",
+		    ovr);
 		printf("\tadd\tsp,8\n\tsahf\n");
 		op = maprel[op-EQUAL];
 	} else {
@@ -427,7 +428,8 @@ register union tree *tree;
  */
 fsave()
 {
-	printf("\tsub\tsp,8\n\tmov\tbx,sp\n\tfstp\tqword [bx]\n\tfwait\n");
+	printf("\tsub\tsp,8\n\tmov\tbx,sp\n\tfstp\tqword [%sbx]\n\tfwait\n",
+	    ovr);
 }
 
 /*
@@ -442,13 +444,15 @@ register union tree *tree;
 	fexpr(tree->t.tr1);
 	callh("__CHP");
 	if (tree->t.op==FTOI) {
-		printf("\tpush\tax\n\tmov\tbx,sp\n\tfistp\tword [bx]\n");
+		printf("\tpush\tax\n\tmov\tbx,sp\n\tfistp\tword [%sbx]\n", ovr);
 		printf("\tfwait\n\tpop\tax\n");
 	} else if (tree->t.type==UNLONG) {
-		printf("\tsub\tsp,8\n\tmov\tbx,sp\n\tfistp\tqword [bx]\n");
+		printf("\tsub\tsp,8\n\tmov\tbx,sp\n\tfistp\tqword [%sbx]\n",
+		    ovr);
 		printf("\tfwait\n\tpop\tax\n\tpop\tdx\n\tpop\tcx\n\tpop\tcx\n");
 	} else {
-		printf("\tsub\tsp,4\n\tmov\tbx,sp\n\tfistp\tdword [bx]\n");
+		printf("\tsub\tsp,4\n\tmov\tbx,sp\n\tfistp\tdword [%sbx]\n",
+		    ovr);
 		printf("\tfwait\n\tpop\tax\n\tpop\tdx\n");
 	}
 }
@@ -486,7 +490,7 @@ register union tree *p;
 
 	if (p->t.op==FCON || p->t.op==SFCON) {
 		lbl = flabel(p->f.fvalue);
-		printf("\tf%s\tqword [L%d]\n", s, lbl);
+		printf("\tf%s\tqword [%sL%d]\n", s, ovr, lbl);
 		return;
 	}
 	printf("\tf%s%s\t", p->t.type==FLOAT || p->t.type==DOUBLE? "": "i", s);

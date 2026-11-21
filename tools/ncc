@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compile C with the system's own compiler, run here.
 
-usage: ncc [-E|-S] [-O] [-ms|-mm] [-o OUT] [-Dname[=val]] [-Uname] [-Idir]
+usage: ncc [-E|-S] [-O] [-ms|-mm|-ml] [-o OUT] [-Dname[=val]] [-Uname] [-Idir]
            FILE.c
 
 The tree's C compiler (usr/src/lib/ccom) is two passes: c0 reads C and
@@ -24,9 +24,10 @@ compiler's linker does not.
     -S          stop at the assembly: OUT, or FILE.s
     -O          improve the code: jumps to jumps, what is the same on
                 two paths, what a register has already
-    -ms -mm     the small model, the default, or the medium, whose
+    -ms -mm -ml the small model, the default, or the medium, whose
                 functions are far: the file's are then in a segment of
-                its own, FILE_TEXT
+                its own, FILE_TEXT; or the large, the medium with every
+                pointer far
     -D -U -I    have the file preprocessed first, as tools/cc -E does
                 it; without any of them it is, too, if it has a line
                 that begins with #
@@ -71,7 +72,7 @@ def main():
             pre_only = True
         elif a == "-O":
             improve = True
-        elif a in ("-ms", "-mm"):
+        elif a in ("-ms", "-mm", "-ml"):
             model = a[2]
         elif a == "-o":
             if i >= len(args):
@@ -133,12 +134,14 @@ def main():
         seg = re.sub(r"[^A-Za-z0-9_]", "_", base) + "_TEXT"
         if seg[0].isdigit():
             seg = "_" + seg
-        medium = model == "m"
+        # c0 and c1 are told -M for the medium model, and -L for the
+        # large.
+        flag = {"s": None, "m": "-M", "l": "-L"}[model]
         raw = os.path.join(tmp, "t3") if improve else asm
         passes = [[os.path.join(HOST, "c0"), pre, t1, t2] +
-                  (["-M"] if medium else []),
+                  ([flag] if flag else []),
                   [os.path.join(HOST, "c1"), t1, t2, raw] +
-                  (["-M" + seg] if medium else [])]
+                  ([flag + seg] if flag else [])]
         if improve:
             passes.append([os.path.join(HOST, "c2"), raw, asm])
         for cmd in passes:

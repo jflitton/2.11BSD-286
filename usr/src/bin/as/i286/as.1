@@ -17,6 +17,8 @@ objfile
 .B \-ms
 |
 .B \-mm
+|
+.B \-ml
 ] file
 .SH DESCRIPTION
 .I As
@@ -61,8 +63,11 @@ The object is for the small model, which is the default.
 .TP
 .B \-\^mm
 The object is for the medium model.
+.TP
+.B \-\^ml
+The object is for the large model.
 .I Ld
-will not link objects of the two models together.
+will not link objects of different models together.
 .SH LANGUAGE
 A line is an optional label, an instruction or a directive with its
 operands, and an optional comment, which begins with a semicolon.
@@ -178,7 +183,13 @@ in it, the bss likewise for
 .BR BSS ,
 and the data otherwise.
 .TP
-.BR group ", " bits ", " cpu
+.BR group " name ..."
+What the group is made of is not asked, but its name is the selector
+of the program's data, which is the only group a program has, as
+.B seg
+of anything in it is.
+.TP
+.BR bits ", " cpu
 These are read and ignored.
 .PP
 The entry point of a program is the label

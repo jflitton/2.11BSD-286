@@ -1,6 +1,8 @@
-; alloca (NASM): small model, or with -DFAR medium.  For what the
-; system's own compiler compiles (../../../ccom/i286); the cross
-; compiler is given alloca in line (<stdlib.h>).
+; alloca (NASM): small model, with -DFAR medium, and with -DFARDATA as
+; well large, where what it returns is far and the stack is reached
+; through SS.  For what the system's own compiler compiles
+; (../../../ccom/i286); the cross compiler is given alloca in line
+; (<stdlib.h>).
 ;
 ; char *alloca(n): n bytes on the caller's stack, which are gone when it
 ; returns: it takes its stack pointer back from its frame pointer.
@@ -29,11 +31,19 @@ ENTRY _alloca
         and     al, 0xFE
         sub     sp, ax
         mov     ax, sp
+%ifdef FARDATA
+        push    word [ss:bx+2]  ; SI, if it was saved
+        push    word [ss:bx]    ; DI
+%else
         push    word [bx+2]     ; SI, if it was saved
         push    word [bx]       ; DI
+%endif
         push    ax              ; in place of the argument
 %ifdef FAR
         push    cx
 %endif
         push    dx
+%ifdef FARDATA
+        mov     dx, ss
+%endif
         RET

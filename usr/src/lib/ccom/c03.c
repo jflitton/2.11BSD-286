@@ -475,7 +475,11 @@ struct nmlist *atptr, *absname;
 	if (tptr->hstrp)
 		dsym->hstrp = tptr->hstrp;
 #ifdef	i286
-	if (farsym)
+	/*
+	 * A function said to be far is what every function is in the
+	 * medium and large models.
+	 */
+	if (farsym && !(mflag && (type&XTYPE)==FUNC))
 		dsym->hflag |= FFAR;
 #endif
 	if (skw==TYPEDEF) {
@@ -637,10 +641,11 @@ more:	switch(o=symbol()) {
 		 * __far before a * makes the pointer a far one; before
 		 * a name, it says that what is named is not in the data
 		 * segment, or is a function called far.  __near is what
-		 * everything is without it.
+		 * everything is without it, but in the large model,
+		 * where a pointer is far unless it is said to be near.
 		 */
 		if (cval == FAR || cval == NEAR) {
-			far = cval==FAR;
+			far = cval==FAR? 1: -1;
 			mosflg = mossym;
 			mossym = 0;
 			goto more;
@@ -657,7 +662,7 @@ more:	switch(o=symbol()) {
 			type = 0;
 		}
 #ifdef	i286
-		if (far)
+		if (far>0 || far==0 && lflag)
 			return(type<<TYLEN | FPTR);
 #endif
 		return(type<<TYLEN | PTR);
@@ -681,7 +686,7 @@ more:	switch(o=symbol()) {
 	case NAME:
 		defsym = ds = csym;
 #ifdef	i286
-		if (far)
+		if (far>0)
 			farsym++;
 #endif
 	getf:

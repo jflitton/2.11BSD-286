@@ -76,7 +76,7 @@ would have overlays; its data is the small model's, near and in one
 segment. The large model's data is far too ([below](#the-large-model)).
 Each model has its own library, in `obj/lib/s`, `obj/lib/m` and
 `obj/lib/l`. The linker would take objects
-of the two models together without complaint, and the program would
+of different models together without complaint, and the program would
 fail as it ran, so `tools/cc` reads the model the compiler records in
 each object and library and refuses a mixture. The linker packs the code
 of a medium-model program into segments of nearly 64K; `-packcode N`
@@ -1674,13 +1674,15 @@ window on a pty, and leaves it with ^P `q`.
 
 A large-model program's pointers are all far, and its data may be more
 than a segment ([memory model](memory-model.md) says how it is laid
-out). `tools/cc -ml` makes one, with the cross compiler only, and the
-library for it is built beside the others (`make -C
-usr/src/lib/libc/i286`, in `obj/lib/l`): the same sources, with the
-start-up, `setjmp`, the signal trampoline, `modf`, the byte-order
-functions and the system call stubs each in the model's form, and its
-own `malloc` (`gen/lmalloc.c`) and helpers for `__huge` pointers
-(`crt/pia.s`).
+out). `tools/cc -ml` makes one, and so does the system's own compiler,
+as `cc -ml` on the system and `tools/cc -ccom -ml` where the system is
+built ([the compiler](toolchain.md#models)). The library for it is
+built beside the others (`make -C usr/src/lib/libc/i286`, in
+`obj/lib/l`, and with `CCOM=1` in `obj/nlib/l`): the same sources,
+with the start-up, `setjmp`, the signal trampoline, `modf`, `alloca`,
+the byte-order functions and the system call stubs each in the
+model's form, and its own `malloc` (`gen/lmalloc.c`) and, for the
+cross compiler, helpers for `__huge` pointers (`crt/pia.s`).
 
 `malloc` there asks the system for a segment (`segalloc(2)`) and hands
 out pieces of it, making it larger 8K at a time up to 64K and then
@@ -1705,7 +1707,12 @@ model for the same reason.
 `tests/libc` runs its checks as a large-model program too, and has more
 for it: 400K from `malloc` in blocks, a block of nearly a segment and
 one too big, `realloc` in place, and 150,000 bytes behind a `__huge`
-pointer.
+pointer, or with the system's own compiler, which has no `__huge`,
+reached with `SEGADDR`. `tests/ccom` runs a program the system's
+compiler made of the model on the system, with 200K from `malloc`, and
+its 1573 checks of the code the compiler generates, as a second
+program of the model there; and `tests/ccom/programs.sh` has it make
+`window`.
 
 ## ve
 
@@ -2065,15 +2072,16 @@ game on the Ethernet, and find none.
 ## The compiler
 
 `cc` and what it runs are on the system, with `ar`, `ranlib`, `nm`,
-`size` and `lorder`, `/usr/include`, and the libraries for both models:
+`size` and `lorder`, `/usr/include`, and the libraries for each model:
 [the compiler, the assembler and the linker](toolchain.md) has what
 each is and where it is from. `cc`, `/lib/cpp`, `ar`, `ranlib`, `nm`,
 `size` and `lorder` are upstream's. What they needed:
 
-- `cc` has `-ms` and `-mm` for the model, tells the passes, the
+- `cc` has `-ms`, `-mm` and `-ml` for the model, tells the passes, the
   assembler and the linker which it is, takes the start-up code from
-  `/lib` or `/lib/m`, and runs the assembler without the PDP-11's `-V`
-  and `-u`.
+  `/lib`, `/lib/m` or `/lib/l`, and runs the assembler without the
+  PDP-11's `-V` and `-u`. In the large model it gives the preprocessor
+  `__LARGE__`, and `NULL` as `0L`.
 - `/lib/cpp` defines `i286` and nothing else of its own, which is what
   the system's programs were compiled with; it keeps its macros in
   memory, not in a file through `libvmf` as on the PDP-11; and what
@@ -2099,8 +2107,8 @@ each is and where it is from. `cc`, `/lib/cpp`, `ar`, `ranlib`, `nm`,
 
 `tests/programs` compiles a program of two files on the system, with
 and without `-O`, through a library that `ar` and `ranlib` made there,
-by way of `cc -S` and the assembler, and for the medium model, and runs
-each. `tests/ccom/self.sh` has the system make the compiler itself, and
+by way of `cc -S` and the assembler, and for the medium model and the
+large, and runs each. `tests/ccom/self.sh` has the system make the compiler itself, and
 all that goes with it, from the sources, twice ([the system makes its
 own compiler](toolchain.md#the-system-makes-its-own-compiler)).
 
@@ -2282,10 +2290,12 @@ last exceptions the harness lists when a test fails.
 ## Tested, and not
 
 `tests/libc` boots the kernel with a test program as `/etc/init` on a
-RAM disk. The program is built for both models; the small-model one is
+RAM disk. The program is built for each model; the small-model one is
 `init`, and when it is done it runs the medium-model one, whose code is
-packed into 8K segments so that it has four of them. Each checks, 74
-times: printf and scanf with integers, strings
+packed into 8K segments so that it has four of them, and then the
+large-model one, with ten checks more ([the large
+model](#the-large-model)). Each checks, 74 times: printf and scanf
+with integers, strings
 and floating point; files through stdio, with seeks; the string
 routines; `atoi`, `strtol`, `atof`, `modf`, `ldexp`, `frexp`, `qsort`;
 `malloc`, `realloc`, `calloc` and the break; `setjmp` and `longjmp`, out
@@ -2471,10 +2481,9 @@ prints its counts, `sysctl` four values by name and the whole list, and
 
 Not done, or not tested:
 
-- `window` is the only large-model program, and the system's own
-  compiler has not the model. A program moved to it wants looking over
-  first (`tools/lmlint.py`), and so does each library it uses but the C
-  library, which has been.
+- `window` is the only large-model program. A program moved to it
+  wants looking over first (`tools/lmlint.py`), and so does each
+  library it uses but the C library, which has been.
 - `csh`, `ex`, `tcsh`, `sendmail`, `hack`, `phantasia`, `rogue` and
   `warp` are the medium-model programs so far. The others that the
   PDP-11 overlays (`named`, `uucp`, `jove`, `kermit` and the rest

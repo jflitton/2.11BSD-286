@@ -21,8 +21,8 @@
 # the assembly assembled with -DFARDATA as well.  Its malloc is
 # gen/lmalloc.c, which gets segments from the system where the others'
 # moves the break; and it has the routines compiled code calls for
-# arithmetic on __huge pointers (crt/pia.s).  The cross compiler alone
-# makes it: the system's own has no large model.
+# arithmetic on __huge pointers (crt/pia.s), which only the cross
+# compiler has.
 #
 # Each variable a file defines without a value gets common storage
 # (tools/commonize.py), as for programs (tools/cc).
@@ -79,7 +79,7 @@ ifeq ($(MODEL),)
 all clean:
 	@$(MAKE) --no-print-directory MODEL=s $@
 	@$(MAKE) --no-print-directory MODEL=m $@
-	$(if $(CCOM),,@$(MAKE) --no-print-directory MODEL=l $@)
+	@$(MAKE) --no-print-directory MODEL=l $@
 
 .PHONY:	all clean
 
@@ -87,9 +87,6 @@ else
 
 ifeq ($(filter $(MODEL),s m l),)
 $(error MODEL is s, m or l)
-endif
-ifeq ($(MODEL)$(CCOM),l1)
-$(error the system's own compiler has no large model)
 endif
 # What the assembly is told of the model (crt/DEFS.inc).
 FAR=	$(if $(filter m l,$(MODEL)),-DFAR) $(if $(filter l,$(MODEL)),-DFARDATA)

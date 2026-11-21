@@ -139,17 +139,32 @@ the directory \fB/usr/c/\fP is used.
 Debug; print what programs the compiler is calling,
 with their arguments.
 .TP
-.BR \-ms ", " \-mm
+.BR \-ms ", " \-mm ", " \-ml
 On the 80286, compile and load for the small model, which is the
-default, or for the medium model.
+default, for the medium model, or for the large.
 A program of the small model has 64K bytes of code at most.
 One of the medium model has as much as it needs, in segments of 64K;
 its functions are called far, and its code is somewhat larger and
 slower for that.
 Either has 64K bytes of data, with its stack.
+One of the large model has the medium model's code, and every pointer
+is far: its variables and its stack are 64K bytes at most, but
+.IR malloc (3)
+gives it memory in segments of its own, as much as the system gives a
+process, in blocks of up to 64K.
+A pointer that is to be near there is declared
+.BR __near ,
+as one that is to be far in the other models is declared
+.BR __far .
+.B __LARGE__
+is defined in the large model, and
+.B NULL
+is
+.BR 0L ,
+four bytes, as a pointer is.
 Every file of a program, and its libraries, must be for the same
 model: the medium model's libraries are in /lib/m and /usr/lib/m,
-where
+and the large model's in /lib/l and /usr/lib/l, where
 .IR ld (1)
 looks for them.
 .PP

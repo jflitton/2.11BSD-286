@@ -43,10 +43,15 @@ int	STAUTO;
 #ifdef	i286
 /*
  * In the medium model a function is called far, and its arguments are
- * under a return address of two words.
+ * under a return address of two words.  The large model is the medium
+ * with far data pointers as well: a pointer that a * declares is far
+ * there unless it is said to be __near, and so is the address of
+ * anything (docs/memory-model.md).
  */
-int	mflag;			/* the medium model */
+int	mflag;			/* the medium model, or the large */
+int	lflag;			/* the large model */
 #define	STARG	(mflag? 6: 4)	/* offset of first argument */
+#define	DPTR	(lflag? FPTR: PTR)	/* what a * declares */
 #else
 #define	STARG	4	/* offset of first argument */
 #endif

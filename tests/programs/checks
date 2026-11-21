@@ -2252,6 +2252,8 @@ lorder hello.o twice.o | tsort
 cc -o bad hello.o; echo status $?
 cc -mm -o medium hello.c twice.c && ./medium
 file medium | tr -s '\011' ' '
+cc -ml -o large hello.c twice.c && ./large
+file large | tr -s '\011' ' '
 cc -o mixed hello.o /lib/libc.a > msg 2>&1; sed 1q msg
 --
 hello.c:
@@ -2274,6 +2276,10 @@ hello.c:
 twice.c:
 hello from cc: 42 300000
 medium: medium model executable not stripped
+hello.c:
+twice.c:
+hello from cc: 42 300000
+large: large model executable not stripped
 ld: hello.o is for another model
 =file sum.y
 %token NUM

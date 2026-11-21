@@ -1,7 +1,8 @@
 # The root file system the compiler's test boots: tools/mkfs.py makes it.
-# /etc/init is tests/ccom/init.c, and /bin/small and /bin/medium, which
-# it runs, are tests/ccom/prog.c in the two models: all compiled by the
-# system's own compiler.  /bin/c0 and /bin/c1 are that compiler's two
+# /etc/init is tests/ccom/init.c, and /bin/small, /bin/medium and
+# /bin/large, which it runs, are tests/ccom/prog.c in the three models:
+# all compiled by the system's own compiler.  So is /bin/tlarge, the
+# tests of t_*.c in the large model.  /bin/c0 and /bin/c1 are that compiler's two
 # passes, which it compiled too: they are given /etc/prog.i, prog.c as
 # the preprocessor left it, and are to make of it /etc/prog.s.  /bin/c2
 # is the object code improver: it is run on /etc/prog.s and is to make
@@ -13,6 +14,8 @@ d /bin 755
 f /etc/init 755 init
 f /bin/small 755 small
 f /bin/medium 755 medium
+f /bin/large 755 large
+f /bin/tlarge 755 tlarge
 f /bin/c0 755 c0
 f /bin/c1 755 c1
 f /bin/c2 755 c2

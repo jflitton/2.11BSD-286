@@ -21,10 +21,8 @@
 # linker, as built for this machine (tools/cc -ccom): the programs in
 # obj/nbin and the libraries in obj/nlib/M, libNAME.a, where the C
 # library as those make it is to be (make -C ../lib/libc/i286 CCOM=1).
-# The compiler's code is nearly a tenth larger than the cross
-# compiler's, and each program is of the model it has here; one of
-# the large model, which that compiler has not, is the cross compiler's
-# still, with the libraries in obj/lib/l.  That
+# The compiler's code is a fifteenth larger than the cross
+# compiler's, and each program is of the model it has here.  That
 # linker reads a library once, so a program's libraries are named in
 # the order of what needs what, as they are for ld anywhere.
 
@@ -809,10 +807,6 @@ all:	$(addprefix $(O)/,$(PROGS))
 list:
 	@printf '%s\n' $(PROGS)
 
-# Those of the large model, which only the cross compiler makes.
-largelist:
-	@printf '%s\n' $(foreach p,$(PROGS),$(if $(filter l,$(call model,$(p))),$(p)))
-
 # The compiler's programs, a line each: the name, and what cc is given
 # to make it, its sources named from $(SRC).  tests/ccom/self.sh has
 # the system make them from that.
@@ -830,10 +824,10 @@ HDRS:=	$(wildcard $(TOP)/usr/include/*.h $(SRC)/sys/h/*.h $(SRC)/sys/i286/*.h)
 # A program's model, the directory of that model's libraries, and its
 # sources.  One with NAME_CCOM set is made by the system's own compiler,
 # assembler and linker, with the libraries those made, when the others
-# are not; and one of the large model is never made by those.
+# are not.
 XLIB=	$(TOP)/obj/lib
 model=	$(or $($(1)_MODEL),s)
-ccom=	$(if $(filter l,$(call model,$(1))),,$(or $(CCOM),$($(1)_CCOM)))
+ccom=	$(or $(CCOM),$($(1)_CCOM))
 lib=	$(if $(call ccom,$(1)),$(NLIB),$(XLIB))/$(call model,$(1))
 lx=	$(if $(call ccom,$(1)),a,lib)
 srcs=	$(foreach s,$($(1)_SRCS),$(if $(filter /%,$(s)),$(s),$(SRC)/$(s)))
@@ -1181,22 +1175,7 @@ $(LIB)/$(2)/lib$(1).$(LX): $(addprefix $(SRC)/,$($(1)_LIB)) $(HDRS) \
 $(LIB)/$(2)/$(1):
 	mkdir -p $$@
 endef
-$(foreach l,$(LIBRARIES),$(foreach m,s m,$(eval $(call library,$(l),$(m)))))
-
-# The same for the large model, which the cross compiler alone has.
-define xlibrary
-$(XLIB)/l/lib$(1).lib: $(addprefix $(SRC)/,$($(1)_LIB)) $(HDRS) \
-		| $(XLIB)/l/$(1)
-	@echo cc lib$(1), l
-	@cd $(XLIB)/l/$(1) && rm -f *.o && \
-	    $(TOP)/tools/cc -ml $($(1)_LIBFLAGS) -c \
-	    $(addprefix $(SRC)/,$($(1)_LIB)) > log 2>&1 || { cat log; exit 1; }
-	@rm -f $$@ && wlib -q -n -b $$@ \
-	    $(patsubst %.c,+$(XLIB)/l/$(1)/%.o,$(notdir $($(1)_LIB)))
-$(XLIB)/l/$(1):
-	mkdir -p $$@
-endef
-$(foreach l,$(LIBRARIES),$(eval $(call xlibrary,$(l))))
+$(foreach l,$(LIBRARIES),$(foreach m,s m l,$(eval $(call library,$(l),$(m)))))
 
 # The root file system, obj/root/root.fs, as root.proto lists it.  It
 # needs the kernel (../sys/PC) and /boot (../sys/i286stand) made first.
@@ -1223,7 +1202,7 @@ STRIP=	yes
 # The system has its compiler, and so the headers and the libraries
 # that a program is compiled and linked with there.  The libraries are
 # of the system's own objects, which the cross compiler's are not:
-# they are made, for both models, by the system's own compiler,
+# they are made, for each model, by the system's own compiler,
 # assembler and linker as built for this machine (CCOM=1, above), in
 # obj/nlib, whichever compiler the programs are made by.  That is done
 # first, by a make of its own, and then the file system is made;
@@ -1231,7 +1210,7 @@ STRIP=	yes
 # (tools/ccproto.py).  The library's Makefile is told where to put
 # each model's, since an O given to this one is given to every make it
 # runs, and that one has an O of its own.
-SYSLIBS= $(foreach m,s m,$(NLIB)/$(m)/crt0.o $(NLIB)/$(m)/libc.a \
+SYSLIBS= $(foreach m,s m l,$(NLIB)/$(m)/crt0.o $(NLIB)/$(m)/libc.a \
 	$(foreach l,$(LIBRARIES),$(NLIB)/$(m)/lib$(l).a))
 
 root:	syslibs
@@ -1243,7 +1222,9 @@ syslibs:
 	    MODEL=s O=$(NLIB)/s
 	@$(MAKE) --no-print-directory -C $(SRC)/lib/libc/i286 CCOM=1 \
 	    MODEL=m O=$(NLIB)/m
-	@$(MAKE) --no-print-directory CCOM=1 $(foreach m,s m,\
+	@$(MAKE) --no-print-directory -C $(SRC)/lib/libc/i286 CCOM=1 \
+	    MODEL=l O=$(NLIB)/l
+	@$(MAKE) --no-print-directory CCOM=1 $(foreach m,s m l,\
 	    $(foreach l,$(LIBRARIES),$(NLIB)/$(m)/lib$(l).a))
 
 # The compiler's passes want the C library of those tools before the
@@ -1409,5 +1390,4 @@ $(R)/root.fs: root.proto $(wildcard etc/* root/* skel/*) adventure/Makefile \
 
 clean:
 	rm -rf $(O) $(EXO) $(TCO) $(H) $(G) $(R) $(MANO) $(GO) $(SO) $(ZO) \
-	    $(foreach l,$(LIBRARIES),$(LIB)/[sm]/$(l) $(LIB)/[sm]/lib$(l).$(LX) \
-	    $(XLIB)/l/$(l) $(XLIB)/l/lib$(l).lib)
+	    $(foreach l,$(LIBRARIES),$(LIB)/[sml]/$(l) $(LIB)/[sml]/lib$(l).$(LX))

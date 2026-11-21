@@ -5,6 +5,10 @@
  * they have worked out and what it ought to be.  So nothing is compared
  * or printed by the compiler under test, and every call either way is
  * between the two compilers.
+ *
+ * For the large model it is compiled by the tree's compiler with them,
+ * and run on the system, where printf is the C library's and putc is
+ * putchar (-Dputc=putchar).
  */
 extern void putc();
 

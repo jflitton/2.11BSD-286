@@ -16,11 +16,13 @@
  * small model.  In the medium model, where every function is called
  * far, it is as many as it takes: each file's text is whole in one of
  * them, and files share a segment, in the order they are linked, until
- * the next would not fit.  A segment's selector is fixed by its number
+ * the next would not fit.  The large model's text is the medium's, and
+ * its data is the one segment too: its pointers are far, but what they
+ * point at outside that segment the program gets as it runs.  A segment's selector is fixed by its number
  * (LSEL, machine/seg.h), so a word that is to hold one is filled in
  * here and the program is loaded as it is.
  *
- *	ld [-o out] [-ms] [-mm] [-s] [-x] [-stack n] [-packcode n]
+ *	ld [-o out] [-ms] [-mm] [-ml] [-s] [-x] [-stack n] [-packcode n]
  *	    [-e sym] [-u sym] [-L dir] [-M] [-t] file ... -lx ...
  */
 #include <stdio.h>
@@ -125,7 +127,7 @@ main(argc, argv)
 char **argv;
 {
 	if (argc < 2) {
-		fprintf(stderr, "usage: ld [-o out] [-ms] [-mm] [-s] [-x] \
+		fprintf(stderr, "usage: ld [-o out] [-ms] [-mm] [-ml] [-s] [-x] \
 [-stack n] [-packcode n] [-e sym] [-u sym] [-L dir] [-M] file ... -lx ...\n");
 		exit(1);
 	}
@@ -215,6 +217,8 @@ char **argv;
 				model = A_SMALL;
 			else if (ap[1] == 'm')
 				model = A_MEDIUM;
+			else if (ap[1] == 'l')
+				model = A_LARGE;
 			else
 				error(1, "-%s: no such model", ap);
 			break;
@@ -249,8 +253,8 @@ char **argv;
 
 /*
  * -lx: libx.a, in the directories of -L and then the system's, which
- * have the small model's libraries, and the medium's in a directory m
- * of each.
+ * have the small model's libraries, and the medium's and the large's
+ * in directories m and l of each.
  */
 library(x)
 char *x;
@@ -264,7 +268,8 @@ char *x;
 			sprintf(path, "%s/lib%s.a", dirs[i], x);
 		else
 			sprintf(path, "%s%s/lib%s.a", sysdirs[i - ndir],
-			    model == A_MEDIUM ? "/m" : "", x);
+			    model == A_MEDIUM ? "/m" : model == A_LARGE ? "/l" : "",
+			    x);
 		if (access(path, 4) == 0) {
 			loadarg(path);
 			return;

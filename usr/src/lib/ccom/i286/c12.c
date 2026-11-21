@@ -90,6 +90,21 @@ register union tree *tree;
 	case FMINUS:
 		tree->t.tr1 = optim(tree->t.tr1);
 		tree->t.tr2 = optim(tree->t.tr2);
+		/*
+		 * What is added to a near pointer made far is added to
+		 * the near pointer, which is then made far: so the
+		 * address of a variable stays one, which an operand may
+		 * be made of (FSTAR, in unoptim).
+		 */
+		if (tree->t.tr1->t.op==NTOF) {
+			t = tree->t.tr1;
+			tree->t.op += PLUS-FPLUS;
+			tree->t.tr1 = t->t.tr1;
+			tree->t.type = t->t.tr1->t.type;
+			t->t.tr1 = optim(tree);
+			t->t.degree = MAX(degree(t->t.tr1), 1);
+			return(t);
+		}
 		t = tree->t.tr2;
 		if (t->t.op==CON) {
 			if (op==FMINUS) {
@@ -498,6 +513,18 @@ register union tree *tree;
 			return(optim(p));
 		}
 		if (subtre->t.op==LOAD) {
+			tree->t.tr1 = subtre->t.tr1;
+			goto again;
+		}
+		break;
+
+	/*
+	 * What a near pointer made far points at is what the near
+	 * pointer does: the segment it is given is where those are.
+	 */
+	case FSTAR:
+		if (subtre->t.op==NTOF) {
+			tree->t.op = STAR;
 			tree->t.tr1 = subtre->t.tr1;
 			goto again;
 		}

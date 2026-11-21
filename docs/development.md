@@ -215,16 +215,18 @@ tests/kernel/run.sh     # the kernel, with a test program as init, booted
                         # six times: 82 checks, then 98 on each of five disks
 tests/libc/run.sh       # the C library, with a test program as init: 74
                         # checks in the small model, 74 in the medium
-                        # and 84 in the large; with CCOM=1, of the
-                        # library and the program as the system's own
-                        # compiler makes them, which has not the large
+                        # and 84 in the large; with CCOM=1, the same
+                        # of the library and the program as the
+                        # system's own compiler makes them
 tests/ccom/run.sh       # the system's own C compiler, run here: 1573
                         # checks of the code it generates, as it is and
-                        # again as c2 improves it; 58 by a program it
-                        # compiled, in each of two models, that the
-                        # system's assembler and linker made; and the
+                        # again as c2 improves it; 59 by a program it
+                        # compiled, in the small model and the medium,
+                        # and 62 in the large, that the system's
+                        # assembler and linker made; the 1573 again in
+                        # the large model, run on the system; and the
                         # compiler's two passes and c2 as it compiled
-                        # them, run on the system
+                        # them, run there too
 tests/ccom/self.sh      # the system making its compiler: cc, cpp, the
                         # passes, as, ld and the rest, eleven programs
                         # from their sources on the 286, twice, the
@@ -232,8 +234,8 @@ tests/ccom/self.sh      # the system making its compiler: cc, cpp, the
                         # each to be what is made of it here
 tests/ccom/programs.sh  # the same compiler, assembler and linker on
                         # the system's programs: tests/programs, with
-                        # all of them made that way but window
-tests/as/run.sh         # the system's assembler against NASM: 289
+                        # all of them made that way
+tests/as/run.sh         # the system's assembler against NASM: 432
                         # files that both are to make the same of (no
                         # emulator)
 tests/preflight/run.sh  # tools/preflight.py, on two files with one of each
@@ -294,8 +296,10 @@ tests/ve/run.sh         # the editor ve, built for that machine too: 115
   with `-O`. It ends by booting the kernel with programs that are the
   system's own tools' work throughout, compiled, assembled and linked
   by them (`tools/cc -ccom`) with the C library as they made it: an
-  `/etc/init` that runs one program built for the small model and again
-  for the medium, and then the compiler as it compiled itself, the two
+  `/etc/init` that runs one program built for the small model, again
+  for the medium and again for the large, then the tests above as one
+  program of the large model, with `support.c` compiled by the same
+  compiler, and then the compiler as it compiled itself, the two
   passes on a C file and `c2` on a file of assembly, each of which is
   to make there exactly what it made here.
   The library is in `obj/nlib`, where `make -C usr/src/lib/libc/i286
@@ -303,12 +307,12 @@ tests/ve/run.sh         # the editor ve, built for that machine too: 115
   `tests/ccom/programs.sh` has those tools make the system's programs,
   and the libraries they use, and runs `tests/programs` on a root file
   system of those; `obj/nbin/native` lists which they were, and
-  `obj/nbin/cross` any that only the cross compiler could make:
-  `window`, which is of the large model.
+  `obj/nbin/cross` any that only the cross compiler could make, which
+  is none.
 - `tests/as` has the system's assembler and NASM assemble the same
   files: one with every instruction, the C library's assembly, `ve`'s
-  and the system call stubs for both models, and what the compiler
-  writes for
+  and the system call stubs for each model, and what the compiler
+  writes in each for
   the programs of `tests/ccom`. `tests/as/objcmp.py` reads NASM's
   object and the assembler's and says where they differ.
 - `tests/pm` is a medium-model program that takes the place of the
@@ -342,7 +346,9 @@ tests/ve/run.sh         # the editor ve, built for that machine too: 115
   then the large one when it is done, and the large one has checks of
   its own, of `malloc` over many segments and of `__huge` pointers.
   `CCOM=1 tests/libc/run.sh` does the same with the library and the
-  program compiled by the system's own compiler, in its two models.
+  program compiled by the system's own compiler, whose large-model one
+  goes through its piece of more than 64K with `SEGADDR`, having no
+  `__huge`.
 - `tests/system` builds the kernel, `/boot`, the library, the programs and
   the root file system as for a real machine, and boots them from an IDE
   disk, whose root is not marked clean, so that `/etc/rc` has `fsck`

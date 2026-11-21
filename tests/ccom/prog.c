@@ -5,8 +5,10 @@
  * calls into it with arguments of every kind, is called back from it,
  * and makes system calls.
  *
- * It is there twice: as /bin/small in the small model, and as
- * /bin/medium in the medium, where its functions are far.
+ * It is there three times: as /bin/small in the small model, as
+ * /bin/medium in the medium, where its functions are far, and as
+ * /bin/large in the large, where its pointers are far as well and
+ * malloc gets more memory than one segment holds.
  */
 #include <stdio.h>
 #include <string.h>
@@ -27,6 +29,10 @@ struct item items[] = {
 	{ "zucchini", 5, 500000L },
 };
 #define	NITEMS	(sizeof(items) / sizeof(items[0]))
+
+#ifndef LARGE
+#define	LARGE	0
+#endif
 
 int	checks, failed;
 char	line[128];
@@ -159,6 +165,45 @@ onstack0(n)
 	return k == n && p[0] + p[n - 1] == 3;
 }
 
+/*
+ * In the large model the heap is not in the program's own data: what
+ * malloc gives is in segments of their own, more of them together than
+ * one segment holds.
+ */
+#define	NBIG	5
+#define	BIGSZ	40000
+
+static
+big()
+{
+	char *b[NBIG];
+	register char *p;
+	register unsigned j;
+	int i, n;
+
+	for (i = 0; i < NBIG; i++) {
+		b[i] = malloc(BIGSZ);
+		if (b[i] == 0)
+			break;
+		for (p = b[i], j = 0; j < BIGSZ; j++)
+			*p++ = i + j;
+	}
+	ok("malloc of more than 64K", i == NBIG);
+	n = i;
+	for (i = 0; i < n; i++) {
+		for (p = b[i], j = 0; j < BIGSZ; j++)
+			if (*p++ != (char)(i + j))
+				break;
+		if (j != BIGSZ)
+			break;
+	}
+	ok("what it holds", i == n);
+	ok("in segments of their own", n < 2 || ((long)b[0] >> 16) !=
+	    ((long)b[n - 1] >> 16));
+	for (i = 0; i < n; i++)
+		free(b[i]);
+}
+
 static
 library()
 {
@@ -190,6 +235,8 @@ library()
 	ok("malloc memory", i == 1000);
 	free(p);
 	free(q);
+	if (LARGE)
+		big();
 	for (i = 3; i < 6; i++)
 		if (!onstack(i * 100) || !onstack0(i * 7))
 			break;
@@ -351,6 +398,8 @@ functions()
 	f = ops[1];
 	ok("from the table", f == thrice && f(5) == 15);
 	ok("size", sizeof(f) == (MEDIUM? 4: 2) && sizeof(ops) == 3 * sizeof(f));
+	ok("data pointer", sizeof(char *) == (LARGE? 4: 2)
+	    && sizeof(items[0]) == (LARGE? 10: 8));
 	signal(SIGUSR1, catch);
 	kill(getpid(), SIGUSR1);
 	ok("signal", caught == SIGUSR1);

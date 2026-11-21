@@ -80,7 +80,11 @@ ansidecl()
 		}
 		t |= (nm.htype & TYPE);
 		if (ISARY(t))
+#ifdef	i286
+			t = t - ARRAY + DPTR;
+#else
 			t = t - ARRAY + PTR;
+#endif
 		if (pp < NCPROT)
 			prot[pp++] = t;
 		/*
@@ -190,6 +194,15 @@ cktypep(p)
 		else if (ISPTR(t) && u == INT &&
 		    p->t.op == CON && p->c.value == 0)
 			;
+#ifdef	i286
+		/*
+		 * A zero made a far pointer, or the 0L that NULL is in
+		 * the large model.
+		 */
+		else if (ISPTR(t) && (u == INT || u == LONG || u == UNLONG) &&
+		    p->t.op == LCON && p->l.lvalue == 0)
+			;
+#endif
 		else if (ISPTR(t) || ISPTR(u))
 			werror("illegal combination of pointer and integer");
 	}
@@ -285,7 +298,11 @@ protokrchk(l)
 	while (l && i < NCPROT) {
 		prot[i] = l->htype;
 		if (ISARY(prot[i]))
+#ifdef	i286
+			prot[i] = prot[i] - ARRAY + DPTR;
+#else
 			prot[i] = prot[i] - ARRAY + PTR;
+#endif
 		i++;
 		l = &l->sparent->P;
 	}

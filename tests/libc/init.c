@@ -8,9 +8,8 @@
  * pointers are all far.  The small one is /etc/init: it runs its
  * checks, then runs the medium one as /bin/libc-m and the large one as
  * /bin/libc-l, whose exit status is each its count of failures, and
- * adds those to its own.  The system's own compiler has no large model,
- * and what it makes (NOLARGE) does without.  The line "@exit NN" at the
- * end is for tests/harness/runtest.py.
+ * adds those to its own.  The line "@exit NN" at the end is for
+ * tests/harness/runtest.py.
  */
 #include <sys/param.h>
 #include <sys/file.h>
@@ -183,12 +182,18 @@ conversions()
 #ifdef __LARGE__
 /*
  * What the large model alone has: more from malloc than a segment
- * holds, and a piece of more than 64K behind a __huge pointer.
+ * holds, and a piece of more than 64K behind a __huge pointer.  The
+ * system's own compiler has no __huge, and steps through the piece
+ * with SEGADDR (<segment.h>) instead.
  */
 large()
 {
 	char *p[20], *q, *r;
+#ifdef __WATCOMC__
 	char __huge *h;
+#else
+	char *h;
+#endif
 	long l, sum;
 	int i, ok;
 
@@ -227,10 +232,15 @@ large()
 	    "realloc of what was just freed has it back");
 	free(r);
 
+#ifdef __WATCOMC__
 	h = (char __huge *)segalloc(150000L);
+#else
+	h = segalloc(150000L);
+#endif
 	check(h != NULL, "segalloc");
 	if (h == NULL)
 		return;
+#ifdef __WATCOMC__
 	for (l = 0; l < 150000L; l++)
 		h[l] = l % 13;
 	for (sum = 0, l = 0; l < 150000L; l++)
@@ -238,6 +248,15 @@ large()
 	check(sum == 11538L * 78 + 15 && &h[140000L] - h == 140000L &&
 	    &h[70000L] > &h[60000L] && h + 65536L != h,
 	    "a __huge pointer goes from one segment into the next");
+#else
+	for (l = 0; l < 150000L; l++)
+		*SEGADDR(h, l) = l % 13;
+	for (sum = 0, l = 0; l < 150000L; l++)
+		sum += *SEGADDR(h, l);
+	check(sum == 11538L * 78 + 15 && SEGADDR(h, 65536L) != h &&
+	    *SEGADDR(h, 65536L) == 65536L % 13,
+	    "SEGADDR goes from one segment into the next");
+#endif
 	check(segfree((void *)h) == 0, "segfree");
 }
 #endif
@@ -582,9 +601,7 @@ main(argc, argv)
 		exit(failed > 255 ? 255 : failed);
 	fflush(stdout);
 	other("/bin/libc-m", "medium");
-#ifndef NOLARGE
 	other("/bin/libc-l", "large");
-#endif
 	printf("@exit %02x\n", failed > 255 ? 255 : failed);
 	fflush(stdout);
 	close(0);			/* the last close of the console */

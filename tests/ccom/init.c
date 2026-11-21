@@ -1,7 +1,9 @@
 /*
  * /etc/init for the compiler's test on the system (tests/ccom/run.sh):
  * it runs each of the programs named below and says how many of them
- * failed.  The first two are prog.c compiled for the two models.  The
+ * failed.  The first three are prog.c compiled for the models, and the
+ * fourth the tests of t_*.c, which run.sh runs in real mode in the
+ * small model, compiled for the large.  The
  * line "@exit NN" at the end is for tests/harness/runtest.py.
  *
  * The rest are the compiler as it compiled itself: its two passes, and
@@ -15,6 +17,8 @@
 
 char	*a_small[] = { "/bin/small", 0 };
 char	*a_medium[] = { "/bin/medium", 0 };
+char	*a_large[] = { "/bin/large", 0 };
+char	*a_tlarge[] = { "/bin/tlarge", 0 };
 char	*a_c0[] = { "/bin/c0", "/etc/prog.i", "/tmp/t1", "/tmp/t2", 0 };
 char	*a_c1[] = { "/bin/c1", "/tmp/t1", "/tmp/t2", "/tmp/prog.s", 0 };
 char	*a_c2[] = { "/bin/c2", "/etc/prog.s", "/tmp/prog.o", 0 };
@@ -26,11 +30,13 @@ struct step {
 } steps[] = {
 	{ a_small, 0, 0 },
 	{ a_medium, 0, 0 },
+	{ a_large, 0, 0 },
+	{ a_tlarge, 0, 0 },
 	{ a_c0, 0, 0 },
 	{ a_c1, "/tmp/prog.s", "/etc/prog.s" },
 	{ a_c2, "/tmp/prog.o", "/etc/prog.want" },
 };
-#define	NSTEP	5
+#define	NSTEP	7
 
 long	samelen[NSTEP];
 long	flen;

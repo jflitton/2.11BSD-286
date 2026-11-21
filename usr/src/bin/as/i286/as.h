@@ -143,7 +143,8 @@ struct insn {
 #define	D_EXTERN 5
 #define	D_COMMON 6
 #define	D_SEGMENT 7
-#define	D_IGNORE 8		/* group, bits, cpu */
+#define	D_IGNORE 8		/* bits, cpu */
+#define	D_GROUP	9		/* its name: the selector of the data */
 
 /*
  * A jump whose length is not known until all of them are.  An `align'

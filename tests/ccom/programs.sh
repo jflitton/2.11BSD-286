@@ -6,14 +6,14 @@
 # programs write, to the byte.
 #
 # The programs are made in obj/nbin, and the C library and the others
-# they use in obj/nlib, in the small model and the medium as each is:
-# all of it the compiler's work but the assembly, which is NASM's.
+# they use in obj/nlib, in the model each is of: all of it the
+# compiler's work but the assembly, which is the system's assembler's.
 # (make CCOM=1, in the library's directory and the programs'.)
 # Whatever the compiler cannot compile is then made in obj/nbin by the
 # cross compiler, with its own libraries, so that the system is whole:
 # obj/nbin/native lists the programs that are the system's compiler's
-# own work, and obj/nbin/cross the others: those of the large model,
-# which that compiler has not.
+# own work, and obj/nbin/cross the others, which there are to be none
+# of.
 #
 # Run from the top of the repository after `. tools/env.sh`.
 set -e
@@ -45,8 +45,7 @@ elif [ -n "$(names)" ]; then
 fi
 : > "$bin/cross"
 make -s -k -C "$top/usr/src/i286" CCOM=1 all > "$bin/log/ccom" 2>&1 || true
-large=$(make -s -C "$top/usr/src/i286" largelist)
-names | grep -v -x -F -e "${large:-/}" > "$bin/native"
+names > "$bin/native"
 # And the rest: a program that could not be made is not there.
 rest=
 for p in $(make -s -C "$top/usr/src/i286" list); do

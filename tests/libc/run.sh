@@ -31,20 +31,13 @@ make -s -C "$top/usr/src/lib/libc/i286" ${CCOM:+CCOM=1} |
 cd "$out"
 # Each for the small model, and for the medium as NAME-m, its code packed
 # into segments of 8K so that there are several; and for the large as
-# NAME-l, likewise, but not by the system's own compiler, which has no
-# such model.
+# NAME-l, likewise.
 cp "$here/proto" proto
 for p in init echoargs; do
-    $cc ${CCOM:+-DNOLARGE} -o $p "$here/$p.c"
+    $cc -o $p "$here/$p.c"
     $cc -mm -packcode 8192 -o $p-m "$here/$p.c"
-    if [ -z "$CCOM" ]; then
-        $cc -ml -packcode 8192 -o $p-l "$here/$p.c"
-    fi
+    $cc -ml -packcode 8192 -o $p-l "$here/$p.c"
 done
-if [ -z "$CCOM" ]; then
-    echo "f /bin/echoargs-l 755 echoargs-l" >> proto
-    echo "f /bin/libc-l 755 init-l" >> proto
-fi
 # The library reads users from master.passwd (or its ndbm form, which
 # this has not), and error messages from syserrlst.
 cat > passwd <<'END'

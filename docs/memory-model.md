@@ -61,8 +61,11 @@ Rules:
 ### The large model as it is built
 
 `tools/cc -ml` makes a large-model program, and `obj/lib/l` has the C
-library and the others for one. Only the cross compiler has the model;
-the system's own compiler has the small and the medium.
+library and the others for one. The system's own compiler has the
+model too: `cc -ml` on the system, with the libraries in `/lib/l` and
+`/usr/lib/l`, and `tools/cc -ccom -ml` where the system is built, with
+them in `obj/nlib/l` ([the compiler](toolchain.md#models)). The two
+lay a program out alike, and their libraries' assembly is the same.
 
 - **The program's own data is one segment still**, the one that holds
   its stack, and SS always names it. DS does not: it is a scratch
@@ -72,8 +75,9 @@ the system's own compiler has the small and the medium.
   (`-DFARDATA`, `crt/DEFS.inc`); a signal handler is entered with DS
   made SS again.
 - **An object of more than 32K has a segment of its own**, which the
-  compiler gives it; the rest are in the program's own data, which is
-  limited to 64K as in the other models.
+  cross compiler gives it; the rest are in the program's own data,
+  which is limited to 64K as in the other models. The system's own
+  compiler keeps them all there.
 - **`malloc` takes its memory from `segalloc`**, a segment at a time, and
   grows each to 64K before it asks for another (`gen/lmalloc.c`). The
   largest block is 65508 bytes. `sbrk` still moves the end of the
@@ -84,7 +88,9 @@ the system's own compiler has the small and the medium.
   the stack: that is the commonest way old C fails in this model.
 - **`__huge` pointers** step from one segment to the next: `__PIA`,
   `__PIS`, `__PTS` and `__PTC` (`crt/pia.s`) do their arithmetic, and
-  what `segalloc` gives for more than 64K is laid out for them.
+  what `segalloc` gives for more than 64K is laid out for them. They
+  are the cross compiler's; with the system's own, `SEGADDR`
+  (`<segment.h>`) gives the address of a byte of such a piece.
 - Start-up, `setjmp` and `longjmp`, the signal trampoline and the system
   call stubs each have a form for the model, the stubs from the same
   table as the others (`tools/mkstubs.py --model l`).

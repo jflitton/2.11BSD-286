@@ -1168,7 +1168,7 @@ union tree *atp;
 			gcall(r, TNULL, 1);
 			faraddr(l);
 			printf("\tmov\tbx,ax\n\tmov\tcx,dx\n");
-			printf("\tmov\tax,sp\n\tmov\tdx,ds\n");
+			printf("\tmov\tax,sp\n\tmov\tdx,%s\n", dseg);
 			fmovs(nwords);
 			printf("\tadd\tsp,%d\n", nwords*2);
 			return;
@@ -1217,13 +1217,18 @@ register union tree *p;
 }
 
 /*
- * Copy n words from where BX points to where AX does.
+ * Copy n words from where BX points to where AX does.  In the large
+ * model both are in SS, and DS is made it too.
  */
 movs(n)
 register n;
 {
 	printf("\tpush\tsi\n\tpush\tdi\n");
-	printf("\tmov\tdi,ax\n\tmov\tsi,bx\n\tpush\tds\n\tpop\tes\n");
+	printf("\tmov\tdi,ax\n\tmov\tsi,bx\n");
+	if (lflag)
+		printf("\tmov\tax,ss\n\tmov\tds,ax\n\tmov\tes,ax\n");
+	else
+		printf("\tpush\tds\n\tpop\tes\n");
 	if (n<=4)
 		while (n--)
 			printf("\tmovsw\n");
@@ -1243,7 +1248,7 @@ register union tree *p;
 		return;
 	}
 	rcexpr(optim(tnode(AMPER, STRUCT+PTR, p, TNULL)), FORREG);
-	printf("\tmov\tdx,ds\n");
+	printf("\tmov\tdx,%s\n", dseg);
 }
 
 /*

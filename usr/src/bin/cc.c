@@ -5,19 +5,24 @@ static	char sccsid[] = "@(#)cc.c 5.2 (2.11BSD) 2026/8/29";
 /*
  * cc - front end for C compiler
  *
- * On the 286 (#ifdef i286) a program is of one of two models, the
- * small, which is what there is without a flag, or with -mm the
- * medium, whose functions are called far (docs/memory-model.md).  The
+ * On the 286 (#ifdef i286) a program is of one of three models, the
+ * small, which is what there is without a flag, with -mm the medium,
+ * whose functions are called far, or with -ml the large, whose
+ * pointers are all far as well (docs/memory-model.md).  The
  * compiler's passes, the assembler and the loader are each told which,
  * and the start-up code and the libraries are the model's: /lib and
- * /usr/lib have the small model's, and /lib/m and /usr/lib/m the
- * medium's, where the loader looks for them.  The second pass is told
- * the name of the segment a file's functions are to be in, which is
- * the file's.  The assembler has no -V and -u: every program has its
- * text apart from its data, and a name that is not defined has to be
- * said to be external, which the second pass does.  A file of assembly
- * is given FAR defined in the medium model, as the C library's own are
- * (lib/libc/i286/crt/DEFS.inc).
+ * /usr/lib have the small model's, /lib/m and /usr/lib/m the medium's
+ * and /lib/l and /usr/lib/l the large's, where the loader looks for
+ * them.  The second pass is told the name of the segment a file's
+ * functions are to be in, which is the file's.  The assembler has no
+ * -V and -u: every program has its text apart from its data, and a
+ * name that is not defined has to be said to be external, which the
+ * second pass does.  A file of assembly is given FAR defined in the
+ * medium and large models, and FARDATA too in the large, as the C
+ * library's own are (lib/libc/i286/crt/DEFS.inc).  In the large model
+ * the preprocessor is given __LARGE__ defined, as the headers know the
+ * model by, and NULL as 0L, which is four bytes, as a pointer is, where
+ * it is passed to a function that has no prototype.
  */
 #include <sys/param.h>
 #include <stdio.h>
@@ -34,7 +39,8 @@ char	*as = "/bin/as";
 char	*ld = "/bin/ld";
 char	*crt0 = "/lib/crt0.o";
 #ifdef i286
-int	medium;			/* -mm */
+int	medium;			/* -mm, or -ml */
+int	large;			/* -ml */
 char	*textseg();
 #endif
 
@@ -66,7 +72,7 @@ main(argc, argv)
 	av = (char **)calloc(argc+10, sizeof (char **));
 	clist = (char **)calloc(argc, sizeof (char **));
 	llist = (char **)calloc(argc, sizeof (char **));
-	plist = (char **)calloc(argc+2, sizeof (char **));
+	plist = (char **)calloc(argc+4, sizeof (char **));
 	for (i = 1; i < argc; i++) {
 		if (*argv[i] == '-') switch (argv[i][1]) {
 
@@ -144,9 +150,16 @@ main(argc, argv)
 		case 'm':
 			if (argv[i][2] == 'm' && argv[i][3] == 0) {
 				medium = 1;
+				large = 0;
 				crt0 = "/lib/m/crt0.o";
-			} else if (argv[i][2] != 's' || argv[i][3] != 0) {
-				error("%s: the models are -ms and -mm",
+			} else if (argv[i][2] == 'l' && argv[i][3] == 0) {
+				medium = large = 1;
+				crt0 = "/lib/l/crt0.o";
+			} else if (argv[i][2] == 's' && argv[i][3] == 0) {
+				medium = large = 0;
+				crt0 = "/lib/crt0.o";
+			} else {
+				error("%s: the models are -ms, -mm and -ml",
 				    argv[i]);
 				exit(8);
 			}
@@ -219,6 +232,12 @@ main(argc, argv)
 			tmp4 = setsuf(clist[i], 'i');
 		av[0] = "cpp";
 		na = 1;
+#ifdef i286
+		if (large) {
+			av[na++] = "-D__LARGE__";
+			av[na++] = "-DNULL=0L";
+		}
+#endif
 		for (j = 0; j < np; j++)
 			av[na++] = plist[j];
 		av[na++] = clist[i];
@@ -248,7 +267,7 @@ main(argc, argv)
 			av[na++] = "-w";
 #ifdef i286
 		if (medium)
-			av[na++] = "-M";
+			av[na++] = large ? "-L" : "-M";
 #endif
 		av[na] = 0;
 		if (callsys(ccom, av)) {
@@ -284,19 +303,22 @@ main(argc, argv)
 		cunlink(tmp1); cunlink(tmp2); cunlink(tmp4);
 #ifdef i286
 		av[0] = "as";
-		av[1] = medium ? "-mm" : "-ms";
+		av[1] = large ? "-ml" : medium ? "-mm" : "-ms";
 		av[2] = medium ? "-DFAR" : "-DNEAR";
-		av[3] = "-o";
+		na = 3;
+		if (large)
+			av[na++] = "-DFARDATA";
 #else
 		av[0] = "as"; av[1] = "-V";
-		av[2] = "-u"; av[3] = "-o";
+		av[2] = "-u"; na = 3;
 #endif
+		av[na++] = "-o";
 		if (cflag && nc==1 && outfile)
-			av[4] = outfile;
+			av[na++] = outfile;
 		else
-			av[4] = setsuf(clist[i], 'o');
-		av[5] = assource;
-		av[6] = 0;
+			av[na++] = setsuf(clist[i], 'o');
+		av[na++] = assource;
+		av[na] = 0;
 		if (callsys(as, av) > 1) {
 			cflag++;
 			eflag++;
@@ -307,7 +329,8 @@ nocom:
 	if (cflag==0 && nl!=0) {
 		i = 0;
 #ifdef i286
-		av[0] = "ld"; av[1] = medium ? "-mm" : "-ms"; av[2] = crt0;
+		av[0] = "ld"; av[2] = crt0;
+		av[1] = large ? "-ml" : medium ? "-mm" : "-ms";
 		na = 3;
 #else
 		av[0] = "ld"; av[1] = "-X"; av[2] = crt0; na = 3;
@@ -459,7 +482,7 @@ nodup(l, os)
  * What the second pass is told in the medium model: -M and the name
  * of the segment the file's functions go in, which is the file's own
  * name without what follows its last dot, anything in it that is no
- * letter or digit made _, and _TEXT.
+ * letter or digit made _, and _TEXT.  In the large model it is -L.
  */
 char *
 textseg(file)
@@ -473,7 +496,7 @@ textseg(file)
 			t = s;
 	s = buf;
 	*s++ = '-';
-	*s++ = 'M';
+	*s++ = large ? 'L' : 'M';
 	if (isdigit(*t))
 		*s++ = '_';
 	while (*t && s < &buf[MAXNAMLEN]) {

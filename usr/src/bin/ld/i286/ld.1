@@ -43,6 +43,8 @@ In the medium model, where every function is called far, the text is
 as many segments as it takes, 30 at most:
 the text of each file is whole in one of them, and files share a
 segment, in the order they are loaded, until the next would not fit.
+The large model's text is the medium's; its pointers are all far, and
+what they point at beyond its data the program is given as it runs.
 A reference to a segment is filled in with its selector, so that the
 program is loaded as it is written.
 All the files of a program must be for one model.
@@ -87,7 +89,7 @@ specified with
 .B \-L
 options, then in the standard directories `/lib', `/usr/lib', and
 `/usr/local/lib', or for the medium model in the directory `m' of
-each of those.
+each of those, and for the large in `l'.
 A library is searched when its name is encountered,
 so the placement of a
 .B  \-l
@@ -96,6 +98,9 @@ is significant.
 .B \-M
 produce a primitive load map: each global symbol with its segment
 and its address, and each segment with its size.
+.TP
+.B \-ml
+Make a program of the large model.
 .TP
 .B \-mm
 Make a program of the medium model.
@@ -114,7 +119,7 @@ output file, instead of
 .BR a.out .
 .TP
 .BI \-packcode " n"
-In the medium model, put no more than
+In the medium and large models, put no more than
 .I n
 bytes of text in a segment, where 65536 is the default.
 .TP

@@ -731,7 +731,11 @@ funchead()
 			cs->htype = DOUBLE;
 		cs->hoffset = pl;
 		if ((cs->htype&XTYPE) == ARRAY) {
+#ifdef	i286
+			cs->htype += DPTR-ARRAY;	/* set ptr */
+#else
 			cs->htype -= (ARRAY-PTR);	/* set ptr */
+#endif
 			cs->hsubsp++;		/* pop dims */
 		}
 		pl += rlength((union tree *)cs);

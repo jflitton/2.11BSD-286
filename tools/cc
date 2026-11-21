@@ -36,10 +36,11 @@ variable defined twice with a value is an error.
     -mm         the medium model: far code, in as many segments as it
                 takes, and the small model's data
     -ml         the large model: the medium's code, and data in as
-                many segments as it takes, every pointer far.  An
-                object of more than 32K is a segment of its own, and
+                many segments as it takes, every pointer far, and
                 malloc gets segments from the system.  The cross
-                compiler alone has it
+                compiler makes an object of more than 32K a segment
+                of its own; with -ccom every variable is in the
+                program's own data
     -packcode N in the medium and large models, put the code of several
                 files in one segment up to N bytes (the linker's
                 default is nearly 64K)
@@ -281,8 +282,6 @@ def main():
         sys.exit(__doc__)
     if packcode is not None and model == "s":
         fail("-packcode: the small model has one code segment")
-    if ccom and model == "l":
-        fail("-ml: the system's own compiler has no large model")
     # what the library's assembly is told of the model (crt/DEFS.inc)
     far = {"s": [], "m": ["-DFAR"], "l": ["-DFAR", "-DFARDATA"]}[model]
     lib = os.path.join(NLIBS if ccom else LIBS, model)
