@@ -1,21 +1,26 @@
 #!/usr/bin/env python3
 """Compile C with the system's own compiler, run here.
 
-usage: ncc [-S] [-O] [-ms|-mm] [-o OUT] [-Dname[=val]] [-Uname] [-Idir] FILE.c
+usage: ncc [-E|-S] [-O] [-ms|-mm] [-o OUT] [-Dname[=val]] [-Uname] [-Idir]
+           FILE.c
 
 The tree's C compiler (usr/src/lib/ccom) is two passes: c0 reads C and
 writes trees, and c1, which for the 286 is usr/src/lib/ccom/i286, turns
 them into assembly.  This runs the two as built for this machine
-(`make -C usr/src/lib/ccom/i286 host`) and has NASM assemble what comes
-out, so that the compiler can be worked on, and what it generates
-linked with the cross tools and run (tests/ccom), before the system has
-an assembler and a linker of its own.  With -O the assembly goes
-through c2 on the way, the object code improver (usr/src/lib/c2/i286),
-as cc -O has it do.
+(`make -C usr/src/lib/ccom/i286 host`) and then the system's assembler,
+built for it too (usr/src/bin/as/i286), on what comes out: so that the
+compiler and the assembler can be worked on, and what they make linked
+and run (tests/ccom), where the system is built.  With -O the assembly
+goes through c2 on the way, the object code improver
+(usr/src/lib/c2/i286), as cc -O has it do.
 
-The object is OUT, or FILE.o in the current directory.  It is as
-tools/cc makes them, and tools/cc links it.
+The object is OUT, or FILE.o in the current directory.  It is one of
+the system's own (a.out.h), which the system's linker links
+(usr/src/bin/ld/i286, as tools/cc -ccom runs it) and the cross
+compiler's linker does not.
 
+    -E          stop before the compiler: OUT, or FILE.i, is what its
+                first pass would be given to read
     -S          stop at the assembly: OUT, or FILE.s
     -O          improve the code: jumps to jumps, what is the same on
                 two paths, what a register has already
@@ -26,9 +31,10 @@ tools/cc makes them, and tools/cc links it.
                 it; without any of them it is, too, if it has a line
                 that begins with #
 
-NASM must be one that makes a conditional jump to somewhere out of its
-reach into a jump round a jump, which 3.0 does: the compiler leaves
-that to the assembler, as the PDP-11's does.
+The assembly is NASM's (-S), and NASM assembles it as well: one that
+makes a conditional jump to somewhere out of its reach into a jump
+round a jump, which 3.0 does and the system's assembler does.  The
+compiler leaves that to the assembler, as the PDP-11's does.
 """
 import os
 import re
@@ -49,6 +55,7 @@ def fail(msg):
 def main():
     args = sys.argv[1:]
     asm_only = False
+    pre_only = False
     improve = False
     model = "s"
     out = None
@@ -60,6 +67,8 @@ def main():
         i += 1
         if a == "-S":
             asm_only = True
+        elif a == "-E":
+            pre_only = True
         elif a == "-O":
             improve = True
         elif a in ("-ms", "-mm"):
@@ -84,11 +93,12 @@ def main():
             src = a
     if not src or not src.endswith(".c"):
         sys.exit(__doc__)
-    for p in ("c0", "c1") + (("c2",) if improve else ()):
+    for p in ("c0", "c1") + (("c2",) if improve else ()) + \
+            (() if asm_only or pre_only else ("as",)):
         if not os.path.exists(os.path.join(HOST, p)):
             fail("no obj/host/ccom/%s: make -C usr/src/lib/ccom/i286 host" % p)
     base = os.path.splitext(os.path.basename(src))[0]
-    out = out or base + (".s" if asm_only else ".o")
+    out = out or base + (".i" if pre_only else ".s" if asm_only else ".o")
 
     tmp = tempfile.mkdtemp(prefix="ncc.")
     try:
@@ -110,9 +120,11 @@ def main():
             text = re.sub(rb"^#line ", b"# ", text, flags=re.M)
             # And it has 64 characters for a file's name.
             text = text.replace(b'"' + TOP.encode() + b"/", b'"')
-        pre = os.path.join(tmp, base + ".i")
+        pre = out if pre_only else os.path.join(tmp, base + ".i")
         with open(pre, "wb") as f:
             f.write(text)
+        if pre_only:
+            return
         t1 = os.path.join(tmp, "t1")
         t2 = os.path.join(tmp, "t2")
         asm = out if asm_only else os.path.join(tmp, base + ".s")
@@ -142,10 +154,8 @@ def main():
                     os.unlink(asm)
                 sys.exit(1)
         if not asm_only:
-            # (from there, for the object to have the file's name in
-            # it and not that directory's)
-            r = subprocess.run(["nasm", "-f", "obj", "-o",
-                                os.path.abspath(out), base + ".s"], cwd=tmp)
+            r = subprocess.run([os.path.join(HOST, "as"), "-m" + model,
+                                "-o", out, asm])
             if r.returncode != 0:
                 sys.exit(1)
     finally:

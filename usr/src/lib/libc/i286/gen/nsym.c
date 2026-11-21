@@ -16,8 +16,11 @@ n_symoff(ep)
 	off_t l;
 
 	l = N_TXTOFF(ep->e);
-	for (i = 0; i < ep->e.a_nseg && i < NXSEG; i++)
+	for (i = 0; i < ep->e.a_nseg && i < NXSEG; i++) {
 		l += (ep->x[i].xs_filesz + 1) & ~1L;
+		/* (an object file's relocation) */
+		l += (long)ep->x[i].xs_nrel * sizeof(struct reloc);
+	}
 	return (l);
 }
 

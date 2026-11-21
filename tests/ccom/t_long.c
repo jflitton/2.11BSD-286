@@ -205,6 +205,14 @@ muldiv()
 	LK(*p / b, -156L);
 	LK(b / *p, 0L);
 	LK(b % *p, -789L);
+	/* The second operand's address is in BX, which its low half
+	   is then put in: the high half has to be had first. */
+	q = &b;
+	LK(i * *p, 12345600L);
+	LK(*q * *p, -97406784L);
+	LK(i / *q, 0L);
+	LK(12345600L / *p, 100L);
+	LK(i * 1000L % *p, 100000L);
 	LK(a / 65536L, 1L);
 	LK(a % 65536L, 57920L);
 	LK(ua / ub, 57142L);

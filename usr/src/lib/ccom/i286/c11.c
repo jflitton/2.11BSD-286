@@ -83,6 +83,13 @@ arlength(t)
  * "int x = 1;", or the first in a header; the first pass asks for
  * common storage at the one and defines x at the other, which is what
  * x then is.
+ *
+ * The names are kept where the trees are, since both are had from the
+ * break and nothing else may be: malloc would take for itself what
+ * getblk is about to (c12.c).  A name first met in the middle of an
+ * expression is among that expression's trees, and before those are
+ * given up it is moved down to where they began, after which they
+ * begin above it (xsettle).
  */
 struct	xsym {
 	struct	xsym *xnext;
@@ -97,22 +104,54 @@ xlook(s)
 register char *s;
 {
 	register struct xsym *xp;
-	char *malloc();
 
 	for (xp = xsyms; xp; xp = xp->xnext)
 		if (strcmp(xp->xname, s)==0)
 			return(xp);
-	xp = (struct xsym *)malloc(sizeof(*xp) + strlen(s));
-	if (xp==NULL) {
-		error("Out of space-- c1");
-		exit(1);
-	}
+	xp = (struct xsym *)getblk(sizeof(*xp) + strlen(s));
 	strcpy(xp->xname, s);
 	xp->xdefd = 0;
 	xp->xsize = 0;
 	xp->xnext = xsyms;
 	xsyms = xp;
 	return(xp);
+}
+
+/*
+ * Give up the trees, and keep the names that are among them.  Those
+ * are the first of the list, the newest and so the highest first; the
+ * lowest is moved first, so that none is put where another still is.
+ */
+xsettle()
+{
+	register struct xsym *xp, *next, *old;
+	register char *to, *from;
+	int n;
+
+	old = NULL;
+	for (xp = xsyms; xp && (char *)xp >= funcbase; xp = next) {
+		next = xp->xnext;
+		xp->xnext = old;
+		old = xp;
+	}
+	next = old;
+	old = xp;
+	for (xp = next; xp; xp = next) {
+		next = xp->xnext;
+		n = sizeof(*xp) + strlen(xp->xname);
+		if (n&01)
+			n++;
+		to = funcbase;
+		funcbase += n;
+		xp->xnext = old;
+		old = (struct xsym *)to;
+		from = (char *)xp;
+		if (to != from)
+			while (--n >= 0)
+				*to++ = *from++;
+	}
+	xsyms = old;
+	curbase = funcbase;
 }
 
 xref(s)
@@ -737,7 +776,7 @@ getree()
 	int lbl, cond, jump;
 	double atof();
 
-	curbase = funcbase;
+	xsettle();
 	sp = expstack;
 	jump = 0;
 	for (;;) {
@@ -869,7 +908,7 @@ getree()
 	case SWIT:
 		t = geti();
 		line = geti();
-		curbase = funcbase;
+		xsettle();
 		while(swp=(struct swtab *)getblk(sizeof(*swp)), swp->swlab = geti())
 			swp->swval = geti();
 		pswitch((struct swtab *)funcbase, swp, t);
@@ -900,7 +939,7 @@ getree()
 			rcexpr(tp, FOREFF);
 		else
 			error("The arithmetic IF is not done yet");
-		curbase = funcbase;
+		xsettle();
 		break;
 
 	case NAME:

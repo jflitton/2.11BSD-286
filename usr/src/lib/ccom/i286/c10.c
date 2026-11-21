@@ -1464,8 +1464,9 @@ register union tree *r;
 	register char *s;
 
 	if (r) {
-		lhalf(r, BX, 0);
+		/* (the high half first: r may be at [bx]) */
 		lhalf(r, CX, HI);
+		lhalf(r, BX, 0);
 	}
 	switch (op) {
 

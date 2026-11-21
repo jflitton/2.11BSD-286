@@ -114,6 +114,25 @@ def load(reg, w, base, n):
 
 
 def stub(name, number, args, result, model):
+    """A stub.  Where its code is far, so is its jump to cerror: the
+    system's linker puts files' code in segments in the order they are
+    linked, and a stub may not be in the one cerror is in."""
+    out = near_stub(name, number, args, result, model)
+    if not model.farcode:
+        return out
+    far = []
+    for line in out:
+        if line.split() == ["jc", "cerror"]:
+            far += ["        jnc     .ok%d" % len(far),
+                    "        jmp     far cerror", ".ok%d:" % len(far)]
+        elif line.split() == ["jmp", "cerror"]:
+            far.append("        jmp     far cerror")
+        else:
+            far.append(line)
+    return far
+
+
+def near_stub(name, number, args, result, model):
     out = ["", "        global  _%s" % name, "_%s:" % name]
     ra = model.ra
     if result == "vfork":
@@ -194,8 +213,8 @@ def stub(name, number, args, result, model):
 
 
 def cerror(model):
-    """errno, and the path every stub takes with an error.  The stubs
-    reach it with a near jump: it and they are in one segment, _TEXT."""
+    """errno, and the path every stub takes with an error: reached by
+    a jump, near or far as the stub's own return is."""
     return ["        segment _BSS public align=2 class=BSS",
             "        group   DGROUP _BSS",
             "        global  _errno, cerror", "",

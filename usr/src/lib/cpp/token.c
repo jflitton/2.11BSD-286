@@ -569,7 +569,8 @@ fastnum(register int ch, register struct iobuf *ob)
 void
 fastscan(void)
 {
-	register struct iobuf *ob, rbs, *rb = &rbs;
+	struct iobuf rbs;	/* (not in a register: its address is taken) */
+	register struct iobuf *ob, *rb = &rbs;
 	extern struct iobuf pb;
 	register struct iobuf *ib = ifiles->ib;
 	struct symtab *nl;
@@ -1012,8 +1013,8 @@ dig2num(register int c)
 static void
 cvtdig(usch **yyp)
 {
-	unsigned long long rv = 0;
-	unsigned long long rv2 = 0;
+	ucpplong rv = 0;
+	ucpplong rv2 = 0;
 	register usch *y = *yyp;
 	register int rad;
 

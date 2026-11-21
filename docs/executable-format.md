@@ -1,10 +1,14 @@
 # Executable format
 
-The format of programs and of the kernel image. `tools/ne2aout.py` writes
-it. The kernel's `execve` reads it (`sys/h/exec.h`,
-`sys/sys/kern_exec.c`), and `tools/mkfd.py` does, to make a diskette the
-boot sector can load ([booting](boot.md)). Nothing outside this tree
-depends on it, so the layout can still change.
+The format of programs and of the kernel image. The system's linker
+writes it (`usr/src/bin/ld/i286`), and for what the cross compiler
+compiles `tools/ne2aout.py` does. The kernel's `execve` reads it
+(`sys/h/exec.h`, `sys/sys/kern_exec.c`), and `tools/mkfd.py` does, to
+make a diskette the boot sector can load ([booting](boot.md)). Nothing
+outside this tree depends on it, so the layout can still change.
+
+An object file is the same format with relocation added: [the compiler,
+the assembler and the linker](toolchain.md#object-files) describes it.
 
 ## How an executable is made
 
@@ -19,8 +23,10 @@ tools/ne2aout.py --dump prog
 
 wlink writes a segmented "new executable", the format of OS/2 1.x. The
 converter reads its segment table and fixups and writes the system's own
-format. A linker of our own can replace both steps later without the
-kernel noticing.
+format. That is how the cross compiler's objects become programs. The
+system's own linker takes the system's own objects and writes the same
+format directly ([toolchain](toolchain.md#the-linker)); the kernel
+cannot tell which made a program.
 
 Why not load wlink's output directly, as ELKS does: it has no a.out symbol
 table, and 21 programs in the tree (`ps`, `pstat`, `netstat`, `dmesg` and
@@ -69,7 +75,7 @@ Then one 12-byte entry per segment:
 | offset | size | |
 |--------|------|---|
 | 0 | 2 | 1 code, 2 data |
-| 2 | 2 | reserved, zero |
+| 2 | 2 | zero; in an object file, the number of the segment's relocation entries |
 | 4 | 4 | bytes present in the file |
 | 8 | 4 | bytes in memory; the excess over the file is zero-filled |
 

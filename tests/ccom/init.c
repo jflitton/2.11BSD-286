@@ -1,33 +1,49 @@
 /*
  * /etc/init for the compiler's test on the system (tests/ccom/run.sh):
- * it runs each of the programs named below, which are prog.c compiled
- * for the two models, and says how many of them failed.  The line
- * "@exit NN" at the end is for tests/harness/runtest.py.
+ * it runs each of the programs named below and says how many of them
+ * failed.  The first two are prog.c compiled for the two models.  The
+ * line "@exit NN" at the end is for tests/harness/runtest.py.
  *
- * The last is the object code improver, c2, as the compiler compiled
- * it and as it then improved itself.  It is given the assembly that
- * the compiler wrote for prog.c, and what it makes of that here is to
- * be what it made of it where the system was built, to the byte.
+ * The rest are the compiler as it compiled itself: its two passes, and
+ * the object code improver, which improved all three.  The passes are
+ * given prog.c as the preprocessor left it, and the improver the
+ * assembly they wrote for it where the system was built; what each
+ * makes here is to be what was made there, to the byte.
  */
 #include <stdio.h>
 #include <sys/reboot.h>
 
-char	*progs[] = { "/bin/small", "/bin/medium", "/bin/c2", 0 };
-char	c2in[] = "/etc/prog.s";
-char	c2out[] = "/tmp/prog.s";
-char	c2want[] = "/etc/prog.want";
+char	*a_small[] = { "/bin/small", 0 };
+char	*a_medium[] = { "/bin/medium", 0 };
+char	*a_c0[] = { "/bin/c0", "/etc/prog.i", "/tmp/t1", "/tmp/t2", 0 };
+char	*a_c1[] = { "/bin/c1", "/tmp/t1", "/tmp/t2", "/tmp/prog.s", 0 };
+char	*a_c2[] = { "/bin/c2", "/etc/prog.s", "/tmp/prog.o", 0 };
 
-run(name)
-char *name;
+struct step {
+	char	**s_argv;
+	char	*s_out;		/* what it writes, which is to be */
+	char	*s_want;	/*	the same as this */
+} steps[] = {
+	{ a_small, 0, 0 },
+	{ a_medium, 0, 0 },
+	{ a_c0, 0, 0 },
+	{ a_c1, "/tmp/prog.s", "/etc/prog.s" },
+	{ a_c2, "/tmp/prog.o", "/etc/prog.want" },
+};
+#define	NSTEP	5
+
+long	samelen[NSTEP];
+long	flen;
+
+run(n)
 {
+	register struct step *sp;
 	int pid, status;
 
+	sp = &steps[n];
 	pid = fork();
 	if (pid == 0) {
-		if (name == progs[2])
-			execl(name, name + 5, c2in, c2out, (char *)0);
-		else
-			execl(name, name + 5, (char *)0);
+		execv(sp->s_argv[0], sp->s_argv);
 		_exit(126);
 	}
 	if (pid < 0)
@@ -35,8 +51,10 @@ char *name;
 	status = -1;
 	while (wait(&status) != pid)
 		;
-	if (status == 0 && name == progs[2])
-		status = differ(c2out, c2want);
+	if (status == 0 && sp->s_out) {
+		status = differ(sp->s_out, sp->s_want);
+		samelen[n] = flen;
+	}
 	return(status);
 }
 
@@ -44,8 +62,6 @@ char *name;
  * Are two files not the same?  And how long the first is, for what is
  * printed to say that something was compared.
  */
-long	c2len;
-
 differ(a, b)
 char *a, *b;
 {
@@ -56,7 +72,7 @@ char *a, *b;
 	fb = open(b, 0);
 	if (fa < 0 || fb < 0)
 		return(1);
-	c2len = 0;
+	flen = 0;
 	for (;;) {
 		n = read(fa, abuf, sizeof abuf);
 		if (n < 0 || read(fb, bbuf, sizeof bbuf) != n)
@@ -66,32 +82,34 @@ char *a, *b;
 		for (i = 0; i < n; i++)
 			if (abuf[i] != bbuf[i])
 				return(1);
-		c2len += n;
+		flen += n;
 	}
 	close(fa);
 	close(fb);
-	return(c2len == 0);
+	return(flen == 0);
 }
 
 main()
 {
-	register char **p;
-	int status[4], failed, n;
+	register struct step *sp;
+	int status[NSTEP], failed, n;
 
 	/* As init nothing is open yet: the console becomes 0, 1 and 2. */
 	open("/dev/console", 2);
 	dup(0);
 	dup(0);
 	failed = 0;
-	for (p = progs, n = 0; *p; p++, n++)
-		if (status[n] = run(*p))
+	for (n = 0; n < NSTEP; n++)
+		if (status[n] = run(n))
 			failed++;
-	for (p = progs, n = 0; *p; p++, n++)
+	for (sp = steps, n = 0; n < NSTEP; sp++, n++) {
 		if (status[n])
-			printf("ccom: %s: status %04x\n", *p, status[n]);
-	if (status[n-1] == 0)
-		printf("ccom: c2: %ld bytes, as it makes them anywhere\n",
-		    c2len);
+			printf("ccom: %s: status %04x\n", sp->s_argv[0],
+			    status[n]);
+		else if (sp->s_out)
+			printf("ccom: %s: %ld bytes, as it makes them anywhere\n",
+			    sp->s_argv[0] + 5, samelen[n]);
+	}
 	printf("ccom: %d programs, %d failed\n", n, failed);
 	printf("@exit %02x\n", failed);
 	fflush(stdout);

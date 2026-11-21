@@ -16,18 +16,23 @@
 # and linked in one run of tools/cc; what the compiler says goes to
 # obj/bin/log/NAME, and is shown only if it fails.
 #
-# With CCOM=1 the C is compiled by the system's own compiler (tools/cc
-# -ccom): the programs are made in obj/nbin and the libraries in
-# obj/nlib/M, where the C library as that compiler makes it is to be
-# (make -C ../lib/libc/i286 CCOM=1).  Its code is nearly a tenth larger
-# than the cross compiler's, and each program is of the model it has
-# here.
+# With CCOM=1 they are made by the system's own compiler, assembler and
+# linker, as built for this machine (tools/cc -ccom): the programs in
+# obj/nbin and the libraries in obj/nlib/M, libNAME.a, where the C
+# library as those make it is to be (make -C ../lib/libc/i286 CCOM=1).
+# The compiler's code is nearly a tenth larger than the cross
+# compiler's, and each program is of the model it has here.  That
+# linker reads a library once, so a program's libraries are named in
+# the order of what needs what, as they are for ld anywhere.
 
 TOP:=	$(abspath ../../..)
 SRC:=	$(TOP)/usr/src
 O=	$(TOP)/obj/$(if $(CCOM),nbin,bin)
-LIB=	$(TOP)/obj/$(if $(CCOM),nlib,lib)
+NLIB=	$(TOP)/obj/nlib
+LIB=	$(if $(CCOM),$(NLIB),$(TOP)/obj/lib)
 CC=	$(TOP)/tools/cc $(if $(CCOM),-ccom)
+# what a library's name ends with
+LX=	$(if $(CCOM),a,lib)
 
 # Programs of one file, bin/NAME.c.
 BINSTD=	cat chgrp chmod cmp cp date dd df du echo ed grep hostid kill ln \
@@ -691,11 +696,47 @@ adduser_SRCS=	i286/adduser/adduser.c
 bench_SRCS=	i286/bench/bench.c
 OWNPROGS=	adduser bench
 
+# What a program is made with on the system (docs/toolchain.md): cc,
+# which runs the rest; /lib/cpp; the compiler's two passes and its
+# object code improver, /lib/c0, c1 and c2, the second pass and the
+# improver being the 286's own (lib/ccom/i286, lib/c2/i286); as and ld,
+# which are the 286's own too (bin/as/i286, bin/ld/i286); and ar,
+# ranlib, nm and size.  cpp is given the size of a pointer, and keeps
+# what it has in memory and not in a file (LIBVMF).  nm and ranlib read
+# libraries with ar's header.  The compiler's passes and the improver
+# are compiled by the compiler, whichever one compiles the rest
+# (NAME_CCOM, below): they are written for it, and the passes are more
+# than the cross compiler will take, a function being called there with
+# as many arguments as the call has use for.
+cc_SRCS=	bin/cc.c
+cpp_SRCS=	$(addprefix lib/cpp/,cpp.c cpc.c token.c)
+cpp_FLAGS=	-DLIBVMF=0 -DSIZEOF_INT_P=2 -I$(SRC)/lib/cpp
+c0_SRCS=	$(addprefix lib/ccom/,c00.c c01.c c02.c c03.c c04.c c05.c \
+		ansi.c)
+c1_SRCS=	$(addprefix lib/ccom/i286/,c10.c c11.c c12.c c13.c c14.c)
+c2_SRCS=	lib/c2/i286/c20.c lib/c2/i286/c21.c
+c0_CCOM=	1
+c1_CCOM=	1
+c2_CCOM=	1
+as_SRCS=	$(addprefix bin/as/i286/,as0.c as1.c as2.c as3.c)
+ld_SRCS=	bin/ld/i286/ld.c
+ar_SRCS=	$(addprefix bin/ar/,append.c ar.c archive.c contents.c \
+		delete.c extract.c misc.c move.c print.c replace.c strmode.c)
+ar_FLAGS=	-I$(SRC)/bin/ar
+ranlib_SRCS=	$(addprefix usr.bin/ranlib/,build.c misc.c ranlib.c touch.c) \
+		bin/ar/archive.c
+ranlib_FLAGS=	-I$(SRC)/bin/ar
+nm_SRCS=	bin/nm/nm.c
+nm_FLAGS=	-I$(SRC)/bin/ar
+size_SRCS=	bin/size.c
+CCPROGS=	cc cpp c0 c1 c2 as ld ar ranlib nm size
+
 PROGS=	init getty login sh csh ls mkdir stty test hostname mknod mount \
 	umount reboot sleep ex exrecover expreserve tcsh $(BINSTD) \
 	$(NETPROGS) $(SYSPROGS) $(DISKPROGS) $(KMEMPROGS) $(LOGPROGS) \
 	$(ADMPROGS) $(BACKPROGS) $(YACCPROGS) $(TEXTPROGS) $(NET2PROGS) \
-	$(MAILPROGS) $(DOCPROGS) $(WRITERPROGS) $(GAMEPROGS) $(OWNPROGS)
+	$(MAILPROGS) $(DOCPROGS) $(WRITERPROGS) $(GAMEPROGS) $(OWNPROGS) \
+	$(CCPROGS)
 
 # The libraries the programs use besides the C library: NAME_LIB lists a
 # library's sources, and NAME_LIBFLAGS what it is compiled with.  Each is
@@ -737,7 +778,7 @@ all:	$(addprefix $(O)/,$(PROGS))
 list:
 	@printf '%s\n' $(PROGS)
 
-.PHONY:	all list root clean FORCE
+.PHONY:	all list root syslibs clean FORCE
 
 $(O) $(O)/log $(EXO) $(TCO) $(H) $(G) $(AWKG):
 	mkdir -p $@
@@ -745,17 +786,22 @@ $(O) $(O)/log $(EXO) $(TCO) $(H) $(G) $(AWKG):
 HDRS:=	$(wildcard $(TOP)/usr/include/*.h $(SRC)/sys/h/*.h $(SRC)/sys/i286/*.h)
 
 # A program's model, the directory of that model's libraries, and its
-# sources.
+# sources.  One with NAME_CCOM set is made by the system's own compiler,
+# assembler and linker, with the libraries those made, when the others
+# are not.
 model=	$(or $($(1)_MODEL),s)
-lib=	$(LIB)/$(call model,$(1))
+ccom=	$(or $(CCOM),$($(1)_CCOM))
+lib=	$(if $(call ccom,$(1)),$(NLIB),$(LIB))/$(call model,$(1))
+lx=	$(if $(call ccom,$(1)),a,lib)
 srcs=	$(foreach s,$($(1)_SRCS),$(if $(filter /%,$(s)),$(s),$(SRC)/$(s)))
 
 define prog
 $(O)/$(1): $$(call srcs,$(1)) $(HDRS) \
-		$(call lib,$(1))/crt0.o $(call lib,$(1))/libc.lib \
-		$$(patsubst -l%,$(call lib,$(1))/lib%.lib,$$($(1)_LIBS)) | $(O)/log
+		$(call lib,$(1))/crt0.o $(call lib,$(1))/libc.$(call lx,$(1)) \
+		$$(patsubst -l%,$(call lib,$(1))/lib%.$(call lx,$(1)),$$($(1)_LIBS)) | $(O)/log
 	@echo cc $(1)
-	@$(CC) -m$(call model,$(1)) $$($(1)_FLAGS) -o $$@ \
+	@$(TOP)/tools/cc $(if $(call ccom,$(1)),-ccom) \
+	    -m$(call model,$(1)) $$($(1)_FLAGS) -o $$@ \
 	    $$(call srcs,$(1)) $$($(1)_LIBS) \
 	    > $(O)/log/$(1) 2>&1 || { cat $(O)/log/$(1); rm -f $$@; exit 1; }
 endef
@@ -1079,14 +1125,16 @@ $(TCO)/tc.const.h: $(T)/tc.const.c | $(TCO)
 	    sed 's/Char \([a-zA-Z0-9_]*\).*/extern Char \1[];/' | sort > $@
 
 define library
-$(LIB)/$(2)/lib$(1).lib: $(addprefix $(SRC)/,$($(1)_LIB)) $(HDRS) \
+$(LIB)/$(2)/lib$(1).$(LX): $(addprefix $(SRC)/,$($(1)_LIB)) $(HDRS) \
 		| $(LIB)/$(2)/$(1)
 	@echo cc lib$(1), $(2)
 	@cd $(LIB)/$(2)/$(1) && rm -f *.o && \
 	    $(CC) -m$(2) $($(1)_LIBFLAGS) -c \
 	    $(addprefix $(SRC)/,$($(1)_LIB)) > log 2>&1 || { cat log; exit 1; }
-	@rm -f $$@ && wlib -q -n -b $$@ \
-	    $(patsubst %.c,+$(LIB)/$(2)/$(1)/%.o,$(notdir $($(1)_LIB)))
+	@rm -f $$@ && $(if $(CCOM),python3 -I $(TOP)/tools/ar.py $$@ \
+	    $(patsubst %.c,$(LIB)/$(2)/$(1)/%.o,$(notdir $($(1)_LIB))),\
+	    wlib -q -n -b $$@ \
+	    $(patsubst %.c,+$(LIB)/$(2)/$(1)/%.o,$(notdir $($(1)_LIB))))
 $(LIB)/$(2)/$(1):
 	mkdir -p $$@
 endef
@@ -1105,11 +1153,48 @@ $(foreach l,$(LIBRARIES),$(foreach m,s m,$(eval $(call library,$(l),$(m)))))
 # same and are an eighth smaller.  make root STRIP=no copies the programs
 # as they are, for when the symbols are wanted on the system itself.
 R=	$(TOP)/obj/root
-ROOTSIZE= 15000
+ROOTSIZE= 16400
 ROOTDISK= wd0
 STRIP=	yes
 
-root:	$(R)/strip $(R)/root.fs
+# The system has its compiler, and so the headers and the libraries
+# that a program is compiled and linked with there.  The libraries are
+# of the system's own objects, which the cross compiler's are not:
+# they are made, for both models, by the system's own compiler,
+# assembler and linker as built for this machine (CCOM=1, above), in
+# obj/nlib, whichever compiler the programs are made by.  That is done
+# first, by a make of its own, and then the file system is made;
+# cc.proto lists them and /usr/include for root.proto
+# (tools/ccproto.py).  The library's Makefile is told where to put
+# each model's, since an O given to this one is given to every make it
+# runs, and that one has an O of its own.
+SYSLIBS= $(foreach m,s m,$(NLIB)/$(m)/crt0.o $(NLIB)/$(m)/libc.a \
+	$(foreach l,$(LIBRARIES),$(NLIB)/$(m)/lib$(l).a))
+
+root:	syslibs
+	@$(MAKE) --no-print-directory $(R)/strip $(R)/root.fs
+
+syslibs:
+	@$(MAKE) --no-print-directory -C $(SRC)/lib/ccom/i286 host
+	@$(MAKE) --no-print-directory -C $(SRC)/lib/libc/i286 CCOM=1 \
+	    MODEL=s O=$(NLIB)/s
+	@$(MAKE) --no-print-directory -C $(SRC)/lib/libc/i286 CCOM=1 \
+	    MODEL=m O=$(NLIB)/m
+	@$(MAKE) --no-print-directory CCOM=1 $(foreach m,s m,\
+	    $(foreach l,$(LIBRARIES),$(NLIB)/$(m)/lib$(l).a))
+
+# The compiler's passes want the C library of those tools before the
+# file system does: if it is not there it is made, and it is made again
+# with the rest when the file system is.
+$(NLIB)/s/libc.a:
+	@$(MAKE) --no-print-directory -C $(SRC)/lib/ccom/i286 host
+	@$(MAKE) --no-print-directory -C $(SRC)/lib/libc/i286 CCOM=1 \
+	    MODEL=s O=$(NLIB)/s
+$(NLIB)/s/crt0.o: $(NLIB)/s/libc.a ;
+
+$(R)/cc.proto: $(SYSLIBS) $(TOP)/tools/ccproto.py \
+		$(wildcard $(TOP)/usr/include/*.h $(TOP)/usr/include/*/*.h) | $(R)
+	python3 -I $(TOP)/tools/ccproto.py $(TOP) $(LIBRARIES) > $@
 
 $(R) $(R)/bin:
 	mkdir -p $@
@@ -1226,10 +1311,10 @@ $(R)/root.fs: root.proto $(wildcard etc/* root/* skel/*) adventure/Makefile \
 		$(addprefix $(R)/me/,$(MEFILES)) \
 		$(patsubst %,$(R)/term/tab%.tab,$(TERMS)) $(MANO)/man.proto \
 		$(GAMEDATA) $(addprefix $(SO)/,hlista hlistb hstop) \
-		$(ZO)/zone.proto \
+		$(ZO)/zone.proto $(R)/cc.proto $(SRC)/usr.bin/lorder.sh \
 		$(TOP)/obj/PC/unix $(TOP)/obj/stand/boot $(TOP)/obj/stand/hdboot.bin
 	python3 -I $(TOP)/tools/mkfs.py -s $(ROOTSIZE) root.proto $@
 
 clean:
 	rm -rf $(O) $(EXO) $(TCO) $(H) $(G) $(R) $(MANO) $(GO) $(SO) $(ZO) \
-	    $(foreach l,$(LIBRARIES),$(LIB)/[sm]/$(l) $(LIB)/[sm]/lib$(l).lib)
+	    $(foreach l,$(LIBRARIES),$(LIB)/[sm]/$(l) $(LIB)/[sm]/lib$(l).$(LX))

@@ -327,6 +327,21 @@ f /bin/su 4755 ../../../obj/root/bin/su
 f /bin/tar 755 ../../../obj/root/bin/tar
 f /bin/sed 755 ../../../obj/root/bin/sed
 f /bin/strip 755 ../../../obj/root/bin/strip
+# The C compiler and what goes with it, where upstream has each; the
+# headers and the libraries are in cc.proto, which the Makefile makes.
+f /bin/cc 755 ../../../obj/root/bin/cc
+f /bin/as 755 ../../../obj/root/bin/as
+f /bin/ld 755 ../../../obj/root/bin/ld
+f /bin/ar 755 ../../../obj/root/bin/ar
+f /bin/nm 755 ../../../obj/root/bin/nm
+f /bin/size 755 ../../../obj/root/bin/size
+f /usr/bin/ranlib 755 ../../../obj/root/bin/ranlib
+f /usr/bin/lorder 755 ../usr.bin/lorder.sh
+i ../../../obj/root/cc.proto
+f /lib/cpp 755 ../../../obj/root/bin/cpp
+f /lib/c0 755 ../../../obj/root/bin/c0
+f /lib/c1 755 ../../../obj/root/bin/c1
+f /lib/c2 755 ../../../obj/root/bin/c2
 f /bin/diff 755 ../../../obj/root/bin/diff
 f /usr/libexec/diffh 755 ../../../obj/root/bin/diffh
 f /bin/true 755 ../bin/true.sh

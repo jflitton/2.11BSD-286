@@ -13,12 +13,14 @@
 # them and as the object code improver does (tools/ncc -O).
 #
 # Then prog.c, a program that uses the C library and the system, is
-# compiled with it for the small model and for the medium, and linked
-# with the library as that compiler made it (obj/nlib); and the kernel
-# is booted from a RAM disk on which /etc/init is init.c, which runs
-# the two.  It runs the object code improver there as well, which the
-# compiler has compiled, on the assembly for prog.c: what it writes on
-# the system is to be what it wrote here.
+# compiled with it for the small model and for the medium, assembled by
+# the system's assembler and linked by its linker (tools/cc -ccom) with
+# the library as those made it (obj/nlib); and the kernel is booted
+# from a RAM disk on which /etc/init is init.c, which runs the two.  It
+# runs the compiler there as well, as the compiler compiled it: the
+# two passes on prog.c as the preprocessor left it, and the object code
+# improver on the assembly for prog.c.  What each writes on the system
+# is to be what it wrote here.
 #
 # usage: run.sh [NAME ...]	those tests alone; without, all of them
 #				and then init.c
@@ -73,16 +75,24 @@ if [ "$EMU" = qemu ]; then
 fi
 make -s -C "$top/usr/src/sys/PC" | grep -v '^cc \|^as ' || true
 make -s -C "$top/usr/src/lib/libc/i286" CCOM=1 |
-    grep -v '^cc \|^as \|^wlib ' || true
+    grep -v '^cc \|^as \|^wlib \|^ar ' || true
 cd "$out/boot"
 "$top/tools/cc" -ccom -o init "$here/init.c"
 "$top/tools/cc" -ccom -DMEDIUM=0 -o small "$here/prog.c"
 "$top/tools/cc" -ccom -mm -DMEDIUM=1 -o medium "$here/prog.c"
 c2=$top/usr/src/lib/c2/i286
 "$top/tools/cc" -ccom -o c2 "$c2/c20.c" "$c2/c21.c"
+# The compiler's two passes, compiled by themselves: the first is all
+# upstream's here, its own outcode and error with it.
+c0=$top/usr/src/lib/ccom
+"$top/tools/cc" -ccom -Di286 -I"$c0" -o c0 "$c0/c00.c" "$c0/c01.c" \
+    "$c0/c02.c" "$c0/c03.c" "$c0/c04.c" "$c0/c05.c" "$c0/ansi.c"
+"$top/tools/cc" -ccom -Di286 -I"$c0/i286" -o c1 "$c0/i286/c10.c" \
+    "$c0/i286/c11.c" "$c0/i286/c12.c" "$c0/i286/c13.c" "$c0/i286/c14.c"
+"$top/tools/ncc" -E -DMEDIUM=0 -o prog.i "$here/prog.c"
 "$top/tools/ncc" -S -DMEDIUM=0 -o prog.s "$here/prog.c"
 "$top/obj/host/ccom/c2" prog.s prog.want
 cp "$here/proto" proto
-python3 -I "$top/tools/mkfs.py" -s 400 proto root.fs
+python3 -I "$top/tools/mkfs.py" -s 800 proto root.fs
 python3 -I "$top/tests/harness/runtest.py" --until halting \
     --boot ccom-init "$top/obj/PC/unix" root.fs

@@ -26,7 +26,7 @@ mkdir -p "$out"
 
 make -s -C "$top/usr/src/sys/PC" | grep -v '^cc \|^as ' || true
 make -s -C "$top/usr/src/lib/libc/i286" ${CCOM:+CCOM=1} |
-    grep -v '^cc \|^as \|^wlib ' || true
+    grep -v '^cc \|^as \|^wlib \|^ar ' || true
 
 cd "$out"
 # Each for the small model, and for the medium as NAME-m, its code packed

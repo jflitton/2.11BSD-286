@@ -13,9 +13,11 @@
 # makes obj/host/ccom/c0 and obj/host/ccom/c1: both passes compiled by
 # and for the machine the system is built on, where tools/ncc runs
 # them.  They are for working on the compiler, whose output goes
-# through the cross tools from there and is run by tests/ccom.  It
-# makes obj/host/ccom/c2 with them, the object code improver
-# (../../c2/i286), which is run on what c1 writes.  GNU make.
+# through the system's assembler and linker from there and is run by
+# tests/ccom.  It makes the rest of what compiles a program with them,
+# each by its own Makefile: obj/host/ccom/c2, the object code improver
+# (../../c2/i286), which is run on what c1 writes, and as and ld
+# (../../../bin/as/i286, ../../../bin/ld/i286).  GNU make.
 #
 # The passes are written for a machine whose int is 16 bits, whose long
 # is 32 and whose arguments are all on the stack.  Both are given a
@@ -40,6 +42,8 @@ C1=	c10.c c11.c c12.c c13.c c14.c
 
 host:	$(H)/c0 $(H)/c1
 	@$(MAKE) --no-print-directory -C $(SRC)/../c2/i286 host
+	@$(MAKE) --no-print-directory -C $(SRC)/../../bin/as/i286 host
+	@$(MAKE) --no-print-directory -C $(SRC)/../../bin/ld/i286 host
 
 $(H):
 	@mkdir -p $@

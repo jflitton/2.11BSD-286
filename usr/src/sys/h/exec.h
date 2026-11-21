@@ -17,6 +17,12 @@
  * Segments are numbered from 1, and a running program addresses segment
  * N with a selector that is fixed when the file is made (LSEL(N),
  * machine/seg.h).
+ *
+ * An object file, which the assembler writes and the linker reads, is
+ * the same with A_OBJECT for its magic number and three segments: the
+ * text, the data, and the bss, of which nothing is in the file.  It has
+ * relocation between the segments' contents and the symbol table
+ * (a.out.h).
  */
 struct	exec {
 unsigned short	a_magic;	/* magic number */
@@ -34,7 +40,8 @@ unsigned long	a_strs;		/* size of string table */
 
 struct	exseg {
 unsigned short	xs_type;	/* XS_CODE or XS_DATA */
-unsigned short	xs_unused;	/* not used */
+unsigned short	xs_nrel;	/* in an object, how many entries of
+				   relocation it has; else 0 */
 unsigned long	xs_filesz;	/* bytes of it in the file */
 unsigned long	xs_memsz;	/* bytes in memory: the rest are zero */
 };
@@ -51,7 +58,8 @@ struct	xexec {
 	struct	exseg	x[NXSEG];
 };
 
-#define	A_MAGIC		0x0286
+#define	A_MAGIC		0x0286	/* a program */
+#define	A_OBJECT	0x0186	/* an object file */
 
 #define	A_SMALL		1	/* one code segment, near data */
 #define	A_MEDIUM	2	/* many code segments, near data */

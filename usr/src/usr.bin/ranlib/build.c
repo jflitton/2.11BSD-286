@@ -126,7 +126,16 @@ rexec(rfd, wfd)
 	long nsyms;
 	register int nr, symlen;
 	char sym[512];		/* XXX - more than enough (we hope) */
+#ifdef i286
+	/*
+	 * Where the 286's symbols are depends on the table of segments
+	 * after the header (a.out.h), which is read with it.
+	 */
+	struct xexec xbuf;
+#define	ebuf	xbuf.e
+#else
 	struct exec ebuf;
+#endif
 	struct nlist nl;
 	off_t r_off, w_off, sympos;
 	void *emalloc();
@@ -144,12 +153,25 @@ rexec(rfd, wfd)
 	if (N_BADMAG(ebuf) || ebuf.a_syms == 0)
 		goto bad1;
 
+#ifdef i286
+	nr = ebuf.a_nseg * sizeof(struct exseg);
+	if (ebuf.a_nseg > NXSEG || read(rfd, (char *)xbuf.x, nr) != nr)
+		goto bad1;
+
+	/* First four bytes are the table size. */
+	sympos = N_STROFF(xbuf) + r_off;
+
+	/* Seek to symbol table. */
+	if (fseek(fp, (off_t)N_SYMOFF(xbuf) + r_off, L_SET) == (off_t)-1)
+		goto bad1;
+#else
 	/* First four bytes are the table size. */
 	sympos = N_STROFF(ebuf) + r_off;
 
 	/* Seek to symbol table. */
 	if (fseek(fp, (off_t)N_SYMOFF(ebuf) + r_off, L_SET) == (off_t)-1)
 		goto bad1;
+#endif
 
 	/* Save starting point in symbol chain */
 	savnext = pnext;

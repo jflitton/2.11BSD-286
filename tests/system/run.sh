@@ -46,7 +46,7 @@ top=$(cd "$(dirname "$0")/../.." && pwd)
 out=$top/obj/tests/system
 mkdir -p "$out"
 
-quiet() { grep -v '^cc \|^as \|^wlib \|Warning!\|Note!\|^unix:' || true; }
+quiet() { grep -v '^cc \|^as \|^wlib \|^ar \|Warning!\|Note!\|^unix:' || true; }
 make -s -C "$top/usr/src/sys/PC" | quiet
 make -s -C "$top/usr/src/sys/i286stand" | quiet
 make -s -C "$top/usr/src/lib/libc/i286" | quiet

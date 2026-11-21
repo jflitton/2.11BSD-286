@@ -1937,6 +1937,40 @@ draw its field with its help beside it, and `hangman` its board, and
 each leave when it is interrupted. `tests/network` has `hunt` look for a
 game on the Ethernet, and find none.
 
+## The compiler
+
+`cc` and what it runs are on the system, with `ar`, `ranlib`, `nm`,
+`size` and `lorder`, `/usr/include`, and the libraries for both models:
+[the compiler, the assembler and the linker](toolchain.md) has what
+each is and where it is from. `cc`, `/lib/cpp`, `ar`, `ranlib`, `nm`,
+`size` and `lorder` are upstream's. What they needed:
+
+- `cc` has `-ms` and `-mm` for the model, tells the passes, the
+  assembler and the linker which it is, takes the start-up code from
+  `/lib` or `/lib/m`, and runs the assembler without the PDP-11's `-V`
+  and `-u`.
+- `/lib/cpp` defines `i286` and nothing else of its own, which is what
+  the system's programs were compiled with; it keeps its macros in
+  memory, not in a file through `libvmf` as on the PDP-11; and what
+  `#if` reckons in is a `long`, as it is when the PDP-11's compiler
+  compiles it, where the cross compiler would make it 64 bits and call
+  for routines the library has not got.
+- `size` adds up the segments: the text is those of code, the data what
+  the last has in the file, and the bss the rest of it. For a program
+  of the medium model it gives each segment of text as well, as it
+  gives the PDP-11's overlays.
+- `ranlib` reads the table of segments with the header to find an
+  object's symbols.
+- `nm` needed nothing more than the headers ([programs that read the
+  kernel](#programs-that-read-the-kernel)), and is given `ar`'s for a
+  library. It shows a symbol's segment after its name in a program, as
+  it shows the PDP-11's overlay.
+
+`tests/programs` compiles a program of two files on the system, with
+and without `-O`, through a library that `ar` and `ranlib` made there,
+by way of `cc -S` and the assembler, and for the medium model, and runs
+each.
+
 ## The root file system
 
 `usr/src/i286/root.proto` lists it: the kernel and `/boot`, `/etc/init`,
@@ -2055,14 +2089,16 @@ kernel](#programs-that-read-the-kernel)). The system's own `strip` makes
 of a file what `tools/strip.py` does, which `tests/programs` checks on
 the kernel.
 
-The file system is 15000 blocks of 1K, of which the system takes 12704.
-The 301 programs are 5.9 MB of that, and 6.7 MB with their symbols; the
+The file system is 16400 blocks of 1K, of which the system takes 14121.
+The 312 programs are 6.1 MB of that, and 7.0 MB with their symbols; the
 manual's pages are 2.4 MB in about 2700 blocks; the games and their
-files take about 3300 blocks, 1600 of them `fortune`'s; and
-`/usr/dict/words` takes 206. It was 8000 blocks until the manual came,
-and 12000 until the games did. The tests' disks are of 20 MB, and the
-one of `tests/system`, which has 2 MB of swap and three other file
-systems on it as well, has room for a root of 16400 blocks. A machine's
+files take about 3300 blocks, 1600 of them `fortune`'s;
+`/usr/include` and the libraries take 1074; and `/usr/dict/words`
+takes 206. It was 8000 blocks until the manual came, 12000 until the
+games did, and 15000 until the compiler. The tests' disks are of 20 MB,
+and the one of `tests/system`, which has 2 MB of swap and three other
+file systems on it as well, has room for a root of 16400 blocks and no
+more. A machine's
 own disk is made with as many as it has room for (`make root
 ROOTSIZE=...`, or `tools/mkfs.py -s`).
 
@@ -2198,7 +2234,7 @@ copied files.
 `tests/programs` boots the same system from a disk with the root, a
 swap area and a small file system of checks, logs in as root on the
 first serial port, mounts that file system and runs its `check.sh`. For
-each of the 157 checks in `tests/programs/checks` it runs the check's
+each of the 158 checks in `tests/programs/checks` it runs the check's
 lines with the shell in an empty directory and compares what they wrote
 with what the check says they must, and says `ok` or shows what was
 written. A check is of one program, by its name, or of one use of it:

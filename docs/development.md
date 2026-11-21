@@ -112,7 +112,7 @@ python3 tools/mkdisk.py -p -b obj/stand/hdboot.bin -m obj/stand/mbr.bin \
 ```
 
 The last makes a bootable image of a 20 MB IDE disk with the root and
-2 MB of swap. The root file system is 15 MB, with 11 MB in it;
+2 MB of swap. The root file system is 16 MB, with 14 MB in it;
 `make root ROOTSIZE=` makes it larger, and `ROOTDISK=sd0` makes it for a
 SCSI disk, whose image `mkdisk.py -t scsi` makes. [Booting](boot.md) and
 [disks](disks.md) say more, and [the root file
@@ -165,7 +165,10 @@ driver talks to.
 | `tools/install-watcom.sh` | installs the cross-compiler for this host into `toolchain/` |
 | `tools/env.sh` | sourced, puts the toolchain on `PATH` |
 | `tools/cc286`, `tools/cc286.h` | compile one C file with the system's memory model and calling convention |
-| `tools/cc` | compiles and links programs against the C library, as `cc` would |
+| `tools/cc` | compiles and links programs against the C library, as `cc` would; with `-ccom`, by the system's own compiler, assembler and linker ([toolchain](toolchain.md)) |
+| `tools/ncc` | compiles one file with the system's own compiler and assembler, as built for this machine |
+| `tools/ar.py` | makes a library of the system's objects with its table of contents, as `ar` and `ranlib` do |
+| `tools/ccproto.py` | lists `/usr/include` and the libraries for the root file system |
 | `tools/commonize.py` | gives an object's uninitialized variables common storage, as the tree's C expects |
 | `tools/mkerrlst.py` | makes `/etc/syserrlst`, the system's error messages |
 | `tools/strfile.py` | makes `fortune`'s table of fortunes, as `strfile -r` does |
@@ -213,13 +216,19 @@ tests/libc/run.sh       # the C library, with a test program as init: 74
                         # checks in the small model, 74 in the medium;
                         # with CCOM=1, of the library and the program
                         # as the system's own compiler makes them
-tests/ccom/run.sh       # the system's own C compiler, run here: 1568
+tests/ccom/run.sh       # the system's own C compiler, run here: 1573
                         # checks of the code it generates, as it is and
                         # again as c2 improves it; 58 by a program it
-                        # compiled, in each of two models; and c2 as it
-                        # compiled that, run on the system
-tests/ccom/programs.sh  # the same compiler on the system's programs:
-                        # tests/programs, with those it compiled
+                        # compiled, in each of two models, that the
+                        # system's assembler and linker made; and the
+                        # compiler's two passes and c2 as it compiled
+                        # them, run on the system
+tests/ccom/programs.sh  # the same compiler, assembler and linker on
+                        # the system's programs: tests/programs, with
+                        # all of them made that way
+tests/as/run.sh         # the system's assembler against NASM: 279
+                        # files that both are to make the same of (no
+                        # emulator)
 tests/preflight/run.sh  # tools/preflight.py, on two files with one of each
                         # thing it looks for (no emulator)
 tests/bench/run.sh      # how fast the system is: its benchmark, each
@@ -236,7 +245,8 @@ tests/programs/run.sh   # the programs that work on text and files, on the
                         # tbl, eqn, refer, spell and their kind, zic
                         # and /usr/adm's scripts, disklabel, fsck and
                         # the other checkers, dump and restor on a second
-                        # disk, and the games: 157 checks, each a few
+                        # disk, cc and what goes with it compiling a
+                        # program there, and the games: 158 checks, each a few
                         # lines for the shell and what they must write,
                         # and more, man, script, lock, tset, five games,
                         # window and shutdown at a terminal
@@ -259,28 +269,35 @@ tests/vt/run.sh         # the console's terminal emulator, on the machine
   normal path (`cc286`, `wlink`, `ne2aout.py`) behind the start-up code in
   `tests/harness/start.s`.
 - `tests/ccom` is another, whose tests are compiled by the tree's own
-  compiler, `usr/src/lib/ccom`, with the second pass that is being
-  written for the 286, `usr/src/lib/ccom/i286`. Both passes are built
-  for the machine the system is built on and run there by `tools/ncc`,
-  NASM assembles what they write, and the cross tools link it. The
-  tests call the cross compiler's code to have each value checked, so
-  the two compilers' calling conventions are tested against each other.
+  compiler, `usr/src/lib/ccom`, with the second pass for the 286,
+  `usr/src/lib/ccom/i286`. Both passes are built for the machine the
+  system is built on and run there by `tools/ncc`; for these tests NASM
+  assembles what they write and the cross tools link it, since the
+  tests call the cross compiler's code to have each value checked: the
+  two compilers' calling conventions are tested against each other.
   `REF=1` compiles the tests with the cross compiler instead, to check
   a test. The tests are run twice: as the two passes leave them, and
   with `tools/ncc -O`, which has `c2` improve the code
   (`usr/src/lib/c2/i286`); everything else the compiler makes is made
-  with `-O`. It ends by booting the kernel with programs the compiler
-  compiled, and the C library as it compiled that: an `/etc/init` that
-  runs one program built for the small model and again for the medium,
-  and then `c2` itself, which is to make of a file of assembly there
-  exactly what it made of it here.
+  with `-O`. It ends by booting the kernel with programs that are the
+  system's own tools' work throughout, compiled, assembled and linked
+  by them (`tools/cc -ccom`) with the C library as they made it: an
+  `/etc/init` that runs one program built for the small model and again
+  for the medium, and then the compiler as it compiled itself, the two
+  passes on a C file and `c2` on a file of assembly, each of which is
+  to make there exactly what it made here.
   The library is in `obj/nlib`, where `make -C usr/src/lib/libc/i286
-  CCOM=1` puts it and `tools/cc -ccom` looks for it; its assembly is
-  NASM's, as in the cross compiler's library, `obj/lib`.
-  `tests/ccom/programs.sh` has the compiler make the system's programs
-  (`tools/cc -ccom`), all that it can, and the libraries they use, and
-  runs `tests/programs` on a root file system of those;
-  `obj/nbin/native` lists which they were.
+  CCOM=1` puts it and `tools/cc -ccom` looks for it.
+  `tests/ccom/programs.sh` has those tools make the system's programs,
+  and the libraries they use, and runs `tests/programs` on a root file
+  system of those; `obj/nbin/native` lists which they were, and
+  `obj/nbin/cross` any that only the cross compiler could make, of
+  which there are none.
+- `tests/as` has the system's assembler and NASM assemble the same
+  files: one with every instruction, the C library's assembly and the
+  system call stubs for both models, and what the compiler writes for
+  the programs of `tests/ccom`. `tests/as/objcmp.py` reads NASM's
+  object and the assembler's and says where they differ.
 - `tests/pm` is a medium-model program that takes the place of the
   kernel's `main` and `trap`, linked with the kernel's own start-up
   (`usr/src/sys/i286`). It checks the descriptor tables, far calls between

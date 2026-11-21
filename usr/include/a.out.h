@@ -39,12 +39,40 @@
 #include <sys/exec.h>
 
 /*
- * The 286's format (sys/exec.h).  The PDP-11's magic numbers, its
- * overlays and its relocation are not in it.  The contents of the
- * segments start after the table of them, and the symbol table follows
- * the last; each segment is made up to an even length in the file.
+ * The 286's format (sys/exec.h).  The PDP-11's magic numbers and its
+ * overlays are not in it.  The contents of the segments start after the
+ * table of them, and the symbol table follows the last; each segment is
+ * made up to an even length in the file.
  */
-#define	N_BADMAG(x)	((x).a_magic != A_MAGIC)
+#define	N_BADMAG(x)	((x).a_magic != A_MAGIC && (x).a_magic != A_OBJECT)
+
+/*
+ * An object file's relocation: after the segments' contents, the
+ * entries for the first segment (xs_nrel of them, sys/exec.h), then
+ * those for the second, each in the order of r_addr.  An entry is for
+ * a word of the segment, which is to have something done to it that
+ * depends on where a symbol, or one of the file's own three segments,
+ * is put when the program is linked.
+ *
+ * The PDP-11 has a word of relocation for each word of the text and
+ * the data.  An instruction of the 286's has its addresses at any
+ * byte, and few of its words are addresses.
+ */
+struct reloc {
+	unsigned short	r_addr;	/* where the word is in its segment */
+	unsigned short	r_sym;	/* with R_EXT a symbol, by its place in
+				   the symbol table from 0; else which of
+				   this file's segments, from 1 */
+	unsigned short	r_type;
+};
+
+#define	R_OFF	1	/* add where that is in its segment: an address */
+#define	R_SEG	2	/* the selector of the segment it is in */
+#define	R_PCREL	3	/* add how far it is from where this file's part
+			   of the word's segment begins: the word has
+			   what is to be added, less where the word ends */
+#define	R_TYPE	0x0f
+#define	R_EXT	0x10	/* r_sym is a symbol */
 
 #define	N_TXTOFF(x) \
 	((off_t)sizeof(struct exec) + (x).a_nseg * (off_t)sizeof(struct exseg))

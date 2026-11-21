@@ -23,7 +23,7 @@ fi
 top=$(cd "$(dirname "$0")/../.." && pwd)
 bin=$top/obj/nbin
 
-quiet() { grep -v '^cc \|^as \|^wlib \|Warning!\|Note!\|^unix:' || true; }
+quiet() { grep -v '^cc \|^as \|^wlib \|^ar \|Warning!\|Note!\|^unix:' || true; }
 make -s -C "$top/usr/src/lib/ccom/i286" host
 make -s -C "$top/usr/src/sys/PC" | quiet
 make -s -C "$top/usr/src/sys/i286stand" | quiet

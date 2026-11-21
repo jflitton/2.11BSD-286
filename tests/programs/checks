@@ -1352,10 +1352,10 @@ drivedata: 0
 
 4 partitions:
 #        size   offset    fstype   [fsize bsize]
-  a:    30000        0   2.11BSD     1024  1024         # (Cyl.    0 - 441*)
-  b:     4000    30000      swap                        # (Cyl.  441*- 499*)
+  a:    32800        0   2.11BSD     1024  1024         # (Cyl.    0 - 482*)
+  b:     4000    32800      swap                        # (Cyl.  482*- 541*)
   c:    41803        0    unused        0     0         # (Cyl.    0 - 614*)
-  d:     1600    34000   2.11BSD     1024  1024         # (Cyl.  500 - 523*)
+  d:     1600    36800   2.11BSD     1024  1024         # (Cyl.  541*- 564*)
 == disklabel-r
 disklabel -r wd0 | sed 1d > r
 disklabel wd0 | sed 1d | cmp - r && echo same
@@ -2215,3 +2215,61 @@ To achieve the next higher rating, you need 4 more points.
 That should do it.  Gis revido.
 This adventure was suspended a mere N minutes ago.
 Even wizards have to wait longer than that!
+=file hello.c
+#include <stdio.h>
+
+long	big = 100000L;
+int	counter;
+
+main(argc, argv)
+char **argv;
+{
+	counter = twice(21);
+	printf("hello from %s: %d %ld\n", "cc", counter, big * 3);
+	return(0);
+}
+=file twice.c
+int	calls;
+
+twice(n)
+{
+	calls++;
+	return(n + n);
+}
+== cc
+cp /mnt/d/hello.c /mnt/d/twice.c .
+cc -O hello.c twice.c && ./a.out
+file a.out | tr -s '\011' ' '
+size a.out | awk 'NR == 2 { if ($1 > 3000 && $1 < 9000 && $2 > 100 && $4 == $1 + $2 + $3) print "sizes add up" }'
+nm -g twice.o
+ar rc libtw.a twice.o && ranlib libtw.a
+ar t libtw.a
+cc -o viaar hello.o libtw.a && ./viaar
+cc -S twice.c && cc -c twice.s && cc -o vias hello.o twice.o && ./vias
+lorder hello.o twice.o | tsort
+cc -o bad hello.o; echo status $?
+cc -mm -o medium hello.c twice.c && ./medium
+file medium | tr -s '\011' ' '
+cc -o mixed hello.o /lib/libc.a > msg 2>&1; sed 1q msg
+--
+hello.c:
+twice.c:
+hello from cc: 42 300000
+a.out: small model executable not stripped
+sizes add up
+000002 C _calls
+000000 T _twice
+__.SYMDEF
+twice.o
+hello from cc: 42 300000
+hello from cc: 42 300000
+hello.o
+twice.o
+Undefined:
+_twice
+status 1
+hello.c:
+twice.c:
+hello from cc: 42 300000
+medium: medium model executable not stripped
+ld: hello.o is for another model

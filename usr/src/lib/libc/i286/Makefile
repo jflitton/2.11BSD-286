@@ -18,14 +18,17 @@
 # Each variable a file defines without a value gets common storage
 # (tools/commonize.py), as for programs (tools/cc).
 #
-# With CCOM=1 the C is compiled by the system's own compiler, as built
-# for this machine (tools/ncc -O, ../../ccom/i286 and ../../c2/i286),
-# and what is made goes to obj/nlib/M: the library that tools/cc -ccom
-# links a program with.
-# The assembly is the same, and NASM's.  That compiler gives such
-# variables common storage itself.  The library is made again when the
-# compiler is.  It has alloca (gen/alloca.s), which the cross compiler
-# has in line and its library has not.
+# With CCOM=1 the library is made by the system's own tools, as built
+# for this machine: the C compiled by its compiler (tools/ncc -O,
+# ../../ccom/i286 and ../../c2/i286) and the assembly, which is the
+# same, assembled by its assembler (../../../bin/as/i286).  What is
+# made goes to obj/nlib/M, crt0.o and libc.a: objects of the system's
+# own kind (a.out.h) in a library of its kind, with ranlib's table
+# (tools/ar.py), which tools/cc -ccom has the system's linker link a
+# program with.  That compiler gives such variables common storage
+# itself.  The library is made again when any of the tools is.  It has
+# alloca (gen/alloca.s), which the cross compiler has in line and its
+# library has not.
 #
 # The library is the tree's portable C, as ../Makefile and the Makefiles
 # of its directories list it, with this directory in place of ../pdp:
@@ -88,9 +91,18 @@ CFLAGS=	-m$(MODEL) -I$(TOP)/usr/include -wcd=131 -wcd=107 -wcd=121
 else
 CC=	$(TOP)/tools/ncc
 CFLAGS=	-O -m$(MODEL) -I$(TOP)/usr/include
-NCC:=	$(TOP)/tools/ncc $(addprefix $(TOP)/obj/host/ccom/,c0 c1 c2)
+NCC:=	$(TOP)/tools/ncc $(addprefix $(TOP)/obj/host/ccom/,c0 c1 c2 as)
 endif
+ifeq ($(CCOM),)
 AS=	nasm -f obj -I$(MD)/crt/ $(if $(filter m,$(MODEL)),-DFAR)
+SAS=	nasm -f obj
+LIBC_A=	$(O)/libc.lib
+else
+AS=	$(TOP)/obj/host/ccom/as -m$(MODEL) -I$(MD)/crt \
+	$(if $(filter m,$(MODEL)),-DFAR)
+SAS=	$(TOP)/obj/host/ccom/as -m$(MODEL)
+LIBC_A=	$(O)/libc.a
+endif
 
 GEN=	abort alarm atoi atol calloc closedir crypt ctime ctype_ daemon \
 	devname disklabel err execvp fstab gcvt getenv getgrent \
@@ -140,7 +152,7 @@ COBJS=	$(GEN) $(GENC) $(PDPGEN) $(STDIO) $(STDLIB) $(STRING) $(COMPAT41) \
 SOBJS=	$(MDSYSS) $(MDGEN) $(MDNET) $(CRT)
 OBJS=	$(addprefix $(OBJ)/,$(addsuffix .o,$(COBJS) $(SOBJS)))
 
-all:	$(O)/crt0.o $(O)/libc.lib
+all:	$(O)/crt0.o $(LIBC_A)
 
 $(OBJ) $(OBJ)/sys:
 	mkdir -p $@
@@ -189,33 +201,33 @@ $(OBJ)/%.o: $(LIBC)/ns/%.c $(HDRS) | $(OBJ)
 $(OBJ)/%.o: $(MD)/sys/%.c $(HDRS) | $(OBJ)
 	$(call compile)
 
-$(OBJ)/%.o: $(MD)/sys/%.s $(MD)/crt/DEFS.inc | $(OBJ)
+$(OBJ)/%.o: $(MD)/sys/%.s $(MD)/crt/DEFS.inc $(NCC) | $(OBJ)
 	@echo as $(notdir $<)
 	@$(AS) -o $@ $<
-$(OBJ)/%.o: $(MD)/gen/%.s $(MD)/crt/DEFS.inc | $(OBJ)
+$(OBJ)/%.o: $(MD)/gen/%.s $(MD)/crt/DEFS.inc $(NCC) | $(OBJ)
 	@echo as $(notdir $<)
 	@$(AS) -o $@ $<
-$(OBJ)/%.o: $(MD)/net/%.s $(MD)/crt/DEFS.inc | $(OBJ)
+$(OBJ)/%.o: $(MD)/net/%.s $(MD)/crt/DEFS.inc $(NCC) | $(OBJ)
 	@echo as $(notdir $<)
 	@$(AS) -o $@ $<
-$(OBJ)/%.o: $(MD)/crt/%.s $(MD)/crt/DEFS.inc | $(OBJ)
+$(OBJ)/%.o: $(MD)/crt/%.s $(MD)/crt/DEFS.inc $(NCC) | $(OBJ)
 	@echo as $(notdir $<)
 	@$(AS) -o $@ $<
 
-$(O)/crt0.o: $(MD)/csu/crt0.s $(MD)/crt/DEFS.inc | $(OBJ)
+$(O)/crt0.o: $(MD)/csu/crt0.s $(MD)/crt/DEFS.inc $(NCC) | $(OBJ)
 	$(AS) -o $@ $<
 
 # The stubs: one file each, so that a program gets only the calls it
 # makes.  Each is checked against the kernel's table of calls.
 $(OBJ)/sys/made: $(MD)/sys/syscalls.tab $(TOP)/tools/mkstubs.py \
 		$(TOP)/usr/include/syscall.h $(TOP)/usr/src/sys/sys/init_sysent.c \
-		| $(OBJ)/sys
+		$(NCC) | $(OBJ)/sys
 	rm -f $(OBJ)/sys/*.s $(OBJ)/sys/*.o
 	python3 -I $(TOP)/tools/mkstubs.py --model $(MODEL) \
 	    --sysent $(TOP)/usr/src/sys/sys/init_sysent.c -d $(OBJ)/sys \
 	    $(MD)/sys/syscalls.tab $(TOP)/usr/include/syscall.h
 	cd $(OBJ)/sys && for f in *.s; do \
-	    nasm -f obj -o $${f%.s}.o $$f || exit 1; done
+	    $(SAS) -o $${f%.s}.o $$f || exit 1; done
 	touch $@
 
 $(O)/libc.lib: $(OBJS) $(OBJ)/sys/made $(MD)/Makefile
@@ -223,6 +235,11 @@ $(O)/libc.lib: $(OBJS) $(OBJ)/sys/made $(MD)/Makefile
 	@rm -f $@ $(OBJ)/libc.rsp
 	@for f in $(OBJS) $(OBJ)/sys/*.o; do echo "+$$f"; done > $(OBJ)/libc.rsp
 	@wlib -q -n -b $@ @$(OBJ)/libc.rsp
+
+$(O)/libc.a: $(OBJS) $(OBJ)/sys/made $(MD)/Makefile $(TOP)/tools/ar.py
+	@echo ar libc.a
+	@rm -f $@ $(O)/libc.lib
+	@python3 -I $(TOP)/tools/ar.py $@ $(OBJS) $(OBJ)/sys/*.o
 
 clean:
 	rm -rf $(O)

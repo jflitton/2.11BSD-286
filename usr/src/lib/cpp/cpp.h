@@ -34,6 +34,20 @@ static	char	sccsid[] = "@(#)cpp.h	1.1 (2.11BSD) 2025/8/29";
 
 typedef unsigned char usch;
 
+/*
+ * What #if reckons in.  The compiler this is the preprocessor of takes
+ * long long for long, on the PDP-11 and on the 286; a compiler that
+ * has more for it would call routines to do sums in it that the C
+ * library of a 16-bit machine has not got.
+ */
+#if defined(pdp11) || defined(i286)
+typedef	long cpplong;
+typedef	unsigned long ucpplong;
+#else
+typedef	long long cpplong;
+typedef	unsigned long long ucpplong;
+#endif
+
 extern	int	trulvl;
 extern	int	flslvl;
 extern	int	elflvl;
@@ -179,8 +193,8 @@ struct symtab {
 struct nd {
 	int op;
 	union {
-		long long val;
-		unsigned long long uval;
+		cpplong val;
+		ucpplong uval;
 	} n;
 };
 extern struct nd yynode;

@@ -345,6 +345,15 @@ main(int argc, char **argv)
 	bsheap(fb, "#define unix 1\n"); /* XXX go away */
 	addidir("/usr/include", &incdir[SYSINC]);
 #endif
+#ifdef i286
+	/*
+	 * The 286: what the tree's code asks which machine it is by,
+	 * and no more, which is what the system's own programs were
+	 * compiled with (tools/cc286).
+	 */
+	bsheap(fb, "#define i286 1\n");
+	addidir("/usr/include", &incdir[SYSINC]);
+#endif
 
 	if	(tflag == 0)
 		{
@@ -2608,7 +2617,7 @@ struct tree {
 };
 
 #define BITNO(x)		((x) & ~(LEFT_IS_LEAF|RIGHT_IS_LEAF))
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)	/* an int of 16 bits */
 #define LEFT_IS_LEAF		0x8000
 #define RIGHT_IS_LEAF		0x4000
 #else

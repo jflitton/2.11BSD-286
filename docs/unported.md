@@ -27,40 +27,40 @@ Some programs wait on more than themselves:
 
 ## The compiler and object files
 
-Upstream's `cc` is the PDP-11's compiler, so a compiler on the system is
-a new code generator for the 286 and its own linker and object format,
-not a port. Everything here waits on that.
+Upstream's `cc` is the PDP-11's compiler, so a compiler on the system
+took a new code generator for the 286, and an assembler, a linker and a
+format for objects of its own. Those are there now: [the compiler, the
+assembler and the linker](toolchain.md) describes them, and what of
+upstream's goes with them is ported. What is left:
 
-The code generator is begun. `usr/src/lib/ccom/i286` is a second pass
-for the 286: upstream's reader of the first pass's trees and its
-optimizer of expressions, and a generator of its own where upstream has
-its tables of PDP-11 code. The first pass is upstream's, with what
-differs for the 286 under `#ifdef i286`. So far it does the small
-model and the medium, with floating point on the 287 and far pointers,
-and not profiling. It compiles every one of the system's programs and
-the C library (`tests/ccom/programs.sh`), and a system of those runs;
-the kernel it cannot compile yet.
+| what | why |
+|---|---|
+| Compiling the kernel | the compiler has no far variables or functions, `__interrupt` or `__huge`, and none of the cross compiler's pragmas, all of which the kernel uses |
+| Profiling: `cc -p`, `mcrt0.o`, `prof` | the second pass does not do it for the 286, and the start-up code for it is not written |
+| `ld -r`, and so objects joined into one | not written |
+| Manual pages for `as` and `ld` | upstream's are of the PDP-11's |
 
-`usr/src/lib/c2/i286` is `c2` for what it writes, the object code
-improver that `cc -O` runs after the two passes. What upstream's does
-to jumps it does as upstream's does: a jump to a jump, code nothing
-comes to, the same instructions on two paths, a loop's test moved to
-its end. What upstream's knows of the PDP-11's instructions is written
-again for the 286's: a register is not loaded with what it has, one
-that has a value stands in for the memory or the constant that is that
-value, and, which the PDP-11's tables had no need of, a value moved to
-a register only to be used once is used where it was. With it, and
-with `enter` where a function begins, the 269 programs have 4,991,554
-bytes of code where they had 5,411,314; as the cross compiler makes
-them they have 4,568,754.
+And these of upstream's programs that work on programs, which are not
+ported yet:
 
-Neither is on the system yet. They are built for the machine the
-system is built on (`tools/ncc`, and `-O` for `c2`), write assembly for
-NASM, and their objects are linked by the cross tools (`tests/ccom`).
-`c2` as the compiler compiles it does run on the system: the
-compiler's test has it make of a file there what it makes of it here.
-An assembler, a linker and a format for objects are still to come, and
-`/lib/cpp`, which needs `libvmf`.
+| program | where |
+|---|---|
+| `adb` and its scripts | `bin/adb`, `share/adb` |
+| `lint`, `mkdep`, `error` | `usr.bin`, `ucb/error` |
+| `f77` (*medium*), `efl` (*medium*), `ratfor`, `struct`, `pascal` | `usr.bin`, `ucb/pascal` |
+| `liby`, `libF77`, `libI77`, `libU77` | `usr.lib` |
+| `calendar`, which runs `/lib/cpp` | `usr.bin/calendar` |
+
+The second pass, `usr/src/lib/ccom/i286`, is upstream's reader of the
+first pass's trees and its optimizer of expressions, with a generator
+of its own where upstream has its tables of PDP-11 code. It does the
+small model and the medium, with floating point on the 287 and far
+pointers. `usr/src/lib/c2/i286` is `c2` for what it writes, on
+upstream's plan: what upstream's does to jumps it does, and what
+upstream's knows of the PDP-11's instructions is written again for the
+286's. The compiler's code is nearly a tenth larger than the cross
+compiler's: the 312 programs have 5,730,134 bytes of it as the system's
+own tools make them, and 5,234,990 as the cross compiler does.
 
 A far pointer is declared as the cross compiler has it, with `__far`
 before the `*`, and is the same four bytes: `char __far *p`, `int
@@ -102,15 +102,6 @@ were given, one differs in size: `struct uio`, which only the kernel
 uses, by its two `enum`s. About a quarter of the headers were not
 compared.
 
-| program | where |
-|---|---|
-| `cc`, `/lib/cpp`, `c2`, `ccom` | `bin/cc`, `lib/cpp`, `lib/c2`, `lib/ccom` |
-| `as`, `ld`, `ar`, `nm`, `size`, `ranlib`, `lorder` | `bin`, `usr.bin` |
-| `adb` and its scripts | `bin/adb`, `share/adb` |
-| `lint`, `prof`, `mkdep`, `error` | `usr.bin`, `ucb/error` |
-| `f77` (*medium*), `efl` (*medium*), `ratfor`, `struct`, `pascal` | `usr.bin`, `ucb/pascal` |
-| `liby`, `libF77`, `libI77`, `libU77` | `usr.lib` |
-| `calendar`, which runs `/lib/cpp` | `usr.bin/calendar` |
 
 ## Typesetting and text
 
