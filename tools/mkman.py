@@ -20,7 +20,9 @@ SRCS1 and so on list, as usr/src/man/man2/Makefile does all of section
 2.  A page's name is its source's less the source's suffix, `.1`, `.3f`,
 `.man` or the like: bin/ar/ar.5.5 would be ar.0.  A source followed by a
 colon and a name is installed under that name, as its Makefile installs
-it: games/phantasia/phant.nr:phantasia is phantasia.0.  Blank lines and
+it: games/phantasia/phant.nr:phantasia is phantasia.0.  A page that is
+named takes the place of one of its name that a Makefile stood for: the
+system's a.out(5) is the 286's and not upstream's.  Blank lines and
 what follows a # are ignored.
 
 A page's `.so FILE` is put in its place before nroff reads the page, as
@@ -57,6 +59,7 @@ def fail(msg):
 def pages(src, listing):
     """What LISTING asks for: (directory, page name, source) for each."""
     out = []
+    named = set()
     for n, line in enumerate(open(listing), 1):
         w = line.split("#")[0].split()
         if not w:
@@ -74,9 +77,13 @@ def pages(src, listing):
                 if not os.path.exists(path):
                     fail("%s:%d: no %s" % (listing, n, path))
                 base = os.path.basename(path)
-                out.append((w[0], (called or SUFFIX.sub("", base)) + ".0",
-                            path))
-    return out
+                page = (called or SUFFIX.sub("", base)) + ".0"
+                stood = os.path.basename(name) == "Makefile"
+                if not stood:
+                    named.add((w[0], page))
+                out.append((w[0], page, path, stood))
+    return [(d, page, path) for d, page, path, stood in out
+            if not (stood and (d, page) in named)]
 
 
 def sources(makefile):

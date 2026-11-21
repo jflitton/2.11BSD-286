@@ -69,8 +69,8 @@ cp "$top/usr/src/usr.bin/spell/stop" checks/d
 python3 -I "$top/tools/mkfs.py" -s 800 checks.proto checks.fs >/dev/null
 
 stand=$top/obj/stand
-geometry=$(python3 -I "$top/tools/mkdisk.py" -p -b "$stand/hdboot.bin" \
-    -m "$stand/mbr.bin" programs.img a=root.fs b=swap:4000 d=checks.fs | tail -1)
+geometry=$(python3 -I "$top/tools/mkdisk.py" -p -g 977,5,17 \
+    -b "$stand/hdboot.bin" -m "$stand/mbr.bin" programs.img a=root.fs b=swap:4000 d=checks.fs | tail -1)
 # A second disk, of 3.4 MB, the AT disk controller's second drive, for
 # disklabel to write the label of: in multi-user the kernel will not let
 # it write the first disk's, whose partition a is the root.  Its label

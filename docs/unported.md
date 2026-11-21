@@ -38,7 +38,6 @@ upstream's goes with them is ported. What is left:
 | Compiling the kernel | the compiler has no far variables or functions, `__interrupt` or `__huge`, and none of the cross compiler's pragmas, all of which the kernel uses |
 | Profiling: `cc -p`, `mcrt0.o`, `prof` | the second pass does not do it for the 286, and the start-up code for it is not written |
 | `ld -r`, and so objects joined into one | not written |
-| Manual pages for `as` and `ld` | upstream's are of the PDP-11's |
 
 And these of upstream's programs that work on programs, which are not
 ported yet:
@@ -46,10 +45,13 @@ ported yet:
 | program | where |
 |---|---|
 | `adb` and its scripts | `bin/adb`, `share/adb` |
-| `lint`, `mkdep`, `error` | `usr.bin`, `ucb/error` |
+| `error` | `ucb/error` |
 | `f77` (*medium*), `efl` (*medium*), `ratfor`, `struct`, `pascal` | `usr.bin`, `ucb/pascal` |
-| `liby`, `libF77`, `libI77`, `libU77` | `usr.lib` |
-| `calendar`, which runs `/lib/cpp` | `usr.bin/calendar` |
+| `libF77`, `libI77`, `libU77` | `usr.lib` |
+
+Upstream has no `lint`: its `lint` is a script that says the old one
+did not understand prototypes and that another is to come, and that
+script is what the system has.
 
 The second pass, `usr/src/lib/ccom/i286`, is upstream's reader of the
 first pass's trees and its optimizer of expressions, with a generator
@@ -112,7 +114,6 @@ These are the rest of the writer's tools.
 | program | where | notes |
 |---|---|---|
 | `vgrind`, `vfontedpr` | `ucb/vgrind` | its output is for `troff` |
-| `learn` and its lessons | `usr.bin/learn`, `share/learn` | most lessons want `cc` |
 | `troff`, and `tc`, which shows its output on a Tektronix 4015 | `usr.bin/roff/troff`, `usr.bin` | `troff` drives a C/A/T phototypesetter |
 | `tk` | `usr.bin` | pages `nroff`'s output on a Tektronix 4014 |
 | `graph`, `plot` and its filters, `libplot` | `usr.bin`, `usr.lib/libplot` | for plotters and graphics terminals |
@@ -176,7 +177,7 @@ out.
 ## Libraries
 
 Built: `libc`, `libm`, `libutil`, `libtermcap`, `libcurses`, `libdbm`,
-`libwrap` and `libln`; `liberrlst`'s messages are made into
+`libwrap`, `libln` and `liby`; `liberrlst`'s messages are made into
 `/etc/syserrlst` at build time, by `tools/mkerrlst.py` in the place of
 `mkerrlst`. Not built, besides those above: `libmp` (numbers of any
 size) and `libvmf` (virtual memory in a file).

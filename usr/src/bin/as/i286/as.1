@@ -1,0 +1,244 @@
+.TH AS 1
+.UC
+.SH NAME
+as \- assembler for the 80286
+.SH SYNOPSIS
+.B as
+[
+.B \-o
+objfile
+] [
+.BI \-D name\c
+[\c
+.BI = text\c
+] ] [
+.BI \-I dir
+] [
+.B \-ms
+|
+.B \-mm
+] file
+.SH DESCRIPTION
+.I As
+assembles the named file, which is 80286 and 80287 assembly in the
+syntax of NASM, and writes an object file for
+.IR ld (1).
+It is what
+.IR cc (1)
+runs on the compiler's output, and what the C library's own assembly
+is written for; it has as much of NASM's language as those two use,
+and where an instruction may be encoded in more than one way it
+writes the bytes that NASM does.
+The options are:
+.TP
+.B \-\^o
+Use
+.I objfile
+for the name of the object.
+If this is omitted,
+.I a.out
+is used.
+.TP
+.BI \-\^D name
+Define
+.I name
+as if by
+.BR %define ,
+to be
+.I text
+if that is given and nothing if not.
+.TP
+.BI \-\^I dir
+Look in
+.I dir
+for a file named in an
+.B %include
+that is not found as it is named.
+There may be four, which are tried in the order given.
+.TP
+.B \-\^ms
+The object is for the small model, which is the default.
+.TP
+.B \-\^mm
+The object is for the medium model.
+.I Ld
+will not link objects of the two models together.
+.SH LANGUAGE
+A line is an optional label, an instruction or a directive with its
+operands, and an optional comment, which begins with a semicolon.
+A label is a name, with or without a colon after it.
+A name that begins with a period is local to the last label that did
+not, so that
+.B .loop
+may be used in each of several functions.
+Names differ by the case of their letters; the names of instructions,
+registers and directives do not.
+.PP
+The destination is the first operand.
+An operand is a register, a number or an address, which are immediate,
+or the contents of memory, whose address is in square brackets:
+.B [bp+4]
+or
+.BR [es:bx+si+table] .
+Where neither operand is a register the size is said with
+.B byte
+or
+.B word
+(and
+.B dword
+or
+.B far
+for a far pointer, and
+.BR dword ,
+.B qword
+and
+.B tword
+for the 80287's numbers).
+.B "seg name"
+is the selector of the segment that
+.I name
+is in, which
+.I ld
+fills in.
+A number is decimal,
+or hexadecimal with
+.B 0x
+before it or
+.B h
+after,
+or a character in quotes; and numbers are reckoned with
+.BR "+ \- * / %" ,
+.BR "& | ^ ~" ,
+.B "<< >>"
+and parentheses.
+.B $
+is the address of the line it is on.
+.PP
+A jump is assembled short if it reaches.
+A jump that does not is made long:
+.B jmp
+becomes the three-byte jump, and a conditional jump becomes the
+opposite condition round one.
+A jump said to be
+.B short
+is left so, and is an error if it does not reach.
+.PP
+The directives are:
+.TP 18
+.BR db ", " dw ", " dd
+Bytes, words and long words: numbers, and for
+.B db
+strings in quotes.
+A word may be an address or a
+.BR seg .
+.TP
+.BR resb ", " resw ", " resd " n"
+Room for
+.I n
+of them.
+.TP
+.BR times " n"
+The instruction or directive that follows,
+.I n
+times.
+.TP
+.BR align " n"
+Advance to a multiple of
+.IR n ,
+with no-operation instructions in the text and zeros elsewhere.
+.TP
+.RB name " equ " value
+Define
+.I name
+to be the value.
+.TP
+.BR global " name, ..."
+The names are defined here for other files to use.
+.TP
+.BR extern " name, ..."
+The names are defined in another file.
+.TP
+.BR common " name size"
+.I Name
+is common storage of that many bytes, which
+.I ld
+puts after the bss unless some file defines it.
+.TP
+.BR segment " name"
+What follows is in that segment; also spelled
+.BR section .
+An object has three, the text, the data and the bss, and every
+segment named is one of them: the text if it is given
+.B class=CODE
+or if its name has
+.B text
+or
+.B code
+in it, the bss likewise for
+.BR BSS ,
+and the data otherwise.
+.TP
+.BR group ", " bits ", " cpu
+These are read and ignored.
+.PP
+The entry point of a program is the label
+.BR ..start ,
+which is global without being said to be.
+.PP
+Before a line is assembled these are obeyed:
+.TP 18
+.B %include \&"file\&"
+Read
+.I file
+here.
+.TP
+.BR %define " name text"
+Replace
+.I name
+with
+.I text
+wherever it is found from here on.
+A definition has no arguments.
+.TP
+.B "%ifdef, %ifndef, %else, %endif"
+Assemble the lines between only if the name is, or is not, defined
+by
+.B %define
+or
+.BR \-D .
+.TP
+.BR %macro " name n"
+The lines up to
+.B %endmacro
+are assembled wherever
+.I name
+is used as an instruction, with
+.B %1
+to
+.BI % n
+replaced by its operands.
+.SH FILES
+.ta \w'/tmp/as*\ \ \ 'u
+a.out	object
+.br
+/tmp/as*	temporary
+.SH "SEE ALSO"
+cc(1), ld(1), nm(1), a.out(5)
+.SH DIAGNOSTICS
+Each is a line with the name of the file, the number of the line, and
+what is wrong with it.
+After any, no object is left.
+.SH BUGS
+Only one file is assembled.
+.PP
+The language is NASM's only so far as described here:
+macros take no more than nine operands, and there are no local labels
+in them, no
+.B %if
+with an expression, no structures and no listing.
+.PP
+NASM keeps a jump long in some programs where it would reach if
+it and others were made short together;
+.I as
+makes them short, and its object is then a few bytes smaller than
+NASM's.

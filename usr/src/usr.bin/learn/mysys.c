@@ -142,7 +142,7 @@ char *s;
  */
 
 system(s)
-char *s;
+const char *s;
 {
 	int status, pid, w;
 	register sig_t istat, qstat;

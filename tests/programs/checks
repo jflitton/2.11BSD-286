@@ -1272,6 +1272,8 @@ Subject: daily run output
 
 Rotating accounting records:
 
+Running calendar:
+
 Rotating mail syslog:
 
 Rotating daemonlog:
@@ -1339,9 +1341,9 @@ label:
 flags:
 bytes/sector: 512
 sectors/track: 17
-tracks/cylinder: 4
-sectors/cylinder: 68
-cylinders: 615
+tracks/cylinder: 5
+sectors/cylinder: 85
+cylinders: 977
 rpm: 3600
 interleave: 1
 trackskew: 0
@@ -1352,10 +1354,10 @@ drivedata: 0
 
 4 partitions:
 #        size   offset    fstype   [fsize bsize]
-  a:    32800        0   2.11BSD     1024  1024         # (Cyl.    0 - 482*)
-  b:     4000    32800      swap                        # (Cyl.  482*- 541*)
-  c:    41803        0    unused        0     0         # (Cyl.    0 - 614*)
-  d:     1600    36800   2.11BSD     1024  1024         # (Cyl.  541*- 564*)
+  a:    48000        0   2.11BSD     1024  1024         # (Cyl.    0 - 564*)
+  b:     4000    48000      swap                        # (Cyl.  564*- 611*)
+  c:    83028        0    unused        0     0         # (Cyl.    0 - 976*)
+  d:     1600    52000   2.11BSD     1024  1024         # (Cyl.  611*- 630*)
 == disklabel-r
 disklabel -r wd0 | sed 1d > r
 disklabel wd0 | sed 1d | cmp - r && echo same
@@ -2273,3 +2275,98 @@ twice.c:
 hello from cc: 42 300000
 medium: medium model executable not stripped
 ld: hello.o is for another model
+=file sum.y
+%token NUM
+%%
+list:	/* nothing */
+	| list sum '\n'	{ printf("%d\n", $2); }
+	;
+sum:	NUM
+	| sum '+' NUM	{ $$ = $1 + $3; }
+	;
+%%
+#include <stdio.h>
+
+yylex()
+{
+	register c;
+
+	while ((c = getchar()) == ' ')
+		;
+	if (c >= '0' && c <= '9') {
+		yylval = 0;
+		do {
+			yylval = yylval * 10 + c - '0';
+			c = getchar();
+		} while (c >= '0' && c <= '9');
+		ungetc(c, stdin);
+		return(NUM);
+	}
+	return(c == EOF ? 0 : c);
+}
+=file upper.l
+%%
+[a-z]	putchar(yytext[0] - 'a' + 'A');
+%%
+== liby
+cp /mnt/d/sum.y /mnt/d/upper.l .
+yacc sum.y && cc -O -o sum y.tab.c -ly
+(echo 1 + 2; echo 40 + 2 + 300) | ./sum
+echo '1 +' | ./sum
+cc -mm -o summ y.tab.c -ly && echo 7 + 8 | ./summ
+lex upper.l && cc -o upper lex.yy.c -ll && echo 'yacc and lex, 286' | ./upper
+--
+3
+342
+syntax error
+15
+YACC AND LEX, 286
+=file dep.h
+#define	DEPTH	3
+== mkdep
+cp /mnt/d/hello.c /mnt/d/dep.h .
+(echo '#include "dep.h"'; echo 'int depth = DEPTH;') > dep.c
+(echo 'hello: hello.o dep.o'; echo '	cc -o hello hello.o dep.o') > Makefile
+mkdep hello.c dep.c
+cat Makefile
+cc -E dep.c | grep depth
+--
+hello: hello.o dep.o
+	cc -o hello hello.o dep.o
+# DO NOT DELETE THIS LINE -- mkdep uses it.
+# DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
+
+hello.o: hello.c /usr/include/stdio.h /usr/include/sys/types.h
+hello.o: /usr/include/sys/select.h /usr/include/sys/types.h
+hello.o: /usr/include/stdarg.h hello.c
+dep.o: dep.c dep.h dep.c
+
+# IF YOU PUT ANYTHING HERE IT WILL GO AWAY
+int depth = 3;
+== calendar
+date | awk '{ print $2, $3 "	pay the rent" }' > calendar
+echo 'Jan 0	never' >> calendar
+calendar | sed 's/^[A-Z][a-z]* [0-9]*/today/'
+lint | sed 1q
+--
+today	pay the rent
+lint does not understand C prototypes.  When the ANSI compliant stdio package
+=file octal.c
+main()
+{
+	printf("%o\n", getnum());
+}
+== learn
+PATH=$PATH:.; export PATH
+(echo 'cp /mnt/d/octal.c .'; echo 'cc octal.c getnum.o'; echo ready
+echo bye) | learn C 11.2a 2>&1 | sed -n '/One way/,/^Good/p'
+ls /tmp | grep -c '^pl'
+--
+% % % /*	One way: */
+
+main() {
+	printf("%o\n", getnum());
+}
+
+Good.  That was lesson 11.2a.
+0

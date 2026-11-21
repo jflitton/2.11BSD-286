@@ -1,0 +1,188 @@
+.TH LD 1
+.UC 2
+.SH NAME
+ld \- link editor for the 80286
+.SH SYNOPSIS
+.B ld
+[ option ] ... file ...
+.SH DESCRIPTION
+.I Ld
+combines several object files into one program, resolves external
+references, and searches libraries.
+The output of
+.I ld
+is left on
+.BR a.out ,
+which is made executable if no errors occurred during the load.
+.PP
+The files are loaded in the order specified.
+The entry point of the program is the label
+.BR ..start ,
+which the C library's
+.I crt0.o
+has (unless the \fB\-e\fP option is specified).
+.PP
+If any argument is a library, it is searched exactly once
+at the point it is encountered in the argument list.
+Only those members defining an unresolved external
+reference are loaded.
+The first member of a library must be a file named `\_\^\_.SYMDEF',
+the dictionary for the library that
+.IR ranlib (1)
+makes;
+the dictionary is searched iteratively to satisfy as many references as
+possible, so the order of the members is not important.
+.PP
+A program is segments (see
+.IR a.out (5)).
+Its data is one: what the files initialize, then their bss, then the
+common storage, which may be 64K bytes together with the stack.
+In the small model its text is one segment as well, of 64K bytes at
+most.
+In the medium model, where every function is called far, the text is
+as many segments as it takes, 30 at most:
+the text of each file is whole in one of them, and files share a
+segment, in the order they are loaded, until the next would not fit.
+A reference to a segment is filled in with its selector, so that the
+program is loaded as it is written.
+All the files of a program must be for one model.
+.PP
+The symbols `\_etext', `\_edata' and `\_end'
+(`etext', `edata' and `end' in C)
+are reserved, and if referred to,
+are set to the first location above the last segment of text,
+the first location above initialized data,
+and the first location above all data respectively.
+It is erroneous to define these symbols.
+.PP
+.I Ld
+understands several options.
+Except for
+.BR \-l ,
+they may appear anywhere among the file names.
+.TP
+.B \-e
+The following argument is taken to be the
+name of the entry point of the loaded
+program.
+.TP
+.BI \-L dir
+Add
+.I dir
+to the list of directories in which libraries are searched for.
+Directories specified with
+.B \-L
+are searched before the standard directories.
+.TP
+.BI \-l x
+This
+option is an abbreviation for the library name
+.RI `lib x .a',
+where
+.I x
+is a string.
+.I Ld
+searches for libraries first in any directories
+specified with
+.B \-L
+options, then in the standard directories `/lib', `/usr/lib', and
+`/usr/local/lib', or for the medium model in the directory `m' of
+each of those.
+A library is searched when its name is encountered,
+so the placement of a
+.B  \-l
+is significant.
+.TP
+.B \-M
+produce a primitive load map: each global symbol with its segment
+and its address, and each segment with its size.
+.TP
+.B \-mm
+Make a program of the medium model.
+.TP
+.B \-ms
+Make a program of the small model, which is the default.
+.TP
+.B \-o
+The
+.I name
+argument after
+.B \-o
+is used as the name of the
+.I ld
+output file, instead of
+.BR a.out .
+.TP
+.BI \-packcode " n"
+In the medium model, put no more than
+.I n
+bytes of text in a segment, where 65536 is the default.
+.TP
+.B  \-s
+`strip' the output, that is, remove the symbol table
+to save space (but impair the
+usefulness of the debuggers).
+This information can also be removed by
+.IR  strip (1).
+.TP
+.BI \-stack " n"
+The program is to have a stack of
+.I n
+bytes, where 8192 is the default.
+.TP
+.B \-t
+("trace")  Print the name of each file as it is processed.
+.TP
+.B  \-u
+Take the following argument as a symbol and enter
+it as undefined in the symbol table.  This is useful
+for loading wholly from a library, since initially the symbol
+table is empty and an unresolved reference is needed
+to force the loading of the first routine.
+.TP
+.B  \-x
+Do not preserve local
+(non-global) symbols in the output symbol table; only enter
+external symbols.
+This option saves some space in the output file.
+.B \-X
+is the same: the assembler leaves the compiler's own labels out of
+an object.
+.PP
+The PDP-11's
+.BR \-i ,
+.B \-n
+and
+.B \-z
+are accepted and do nothing: every program here has its text apart
+from its data, and shares it.
+.SH FILES
+.ta \w'/usr/local/lib/lib*.a\ \ 'u
+/lib/lib*.a	libraries
+.br
+/usr/lib/lib*.a	more libraries
+.br
+/usr/local/lib/lib*.a	still more libraries
+.br
+/lib/m/lib*.a	the same for the medium model, and so on
+.br
+/lib/crt0.o	what a C program starts with
+.br
+a.out	output file
+.SH "SEE ALSO"
+ar(1), as(1), cc(1), file(1), nm(1), ranlib(1),
+size(1), strip(1), a.out(5)
+.SH DIAGNOSTICS
+`Undefined:' and the names of the symbols that no file defines.
+`\fIname\fP is called near from another segment':
+in the medium model, a file refers to a function in another file's
+text other than by a far call or a far pointer.
+.SH BUGS
+There is no
+.BR \-r :
+the output cannot be the input of another
+.I ld
+run.
+.PP
+A file's text is never divided between segments, so one file of the
+medium model can have no more than 64K bytes of it.

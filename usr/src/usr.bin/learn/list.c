@@ -28,6 +28,7 @@ char *r;
 	signal(SIGINT, intrpt);
 }
 
+void
 stop()
 {
 	istop=0;

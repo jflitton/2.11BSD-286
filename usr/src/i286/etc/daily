@@ -1,9 +1,9 @@
 #! /bin/sh -
 # /usr/adm/daily, which cron runs each night, mailing root what it
 # prints (/etc/crontab).  Upstream's ../../../../usr/adm/daily, without
-# calendar and UUCP, which are not on the system; and it moves a log's
-# older copies along only if they are there, so that a new system does
-# not mail root an error for each it has not had time to make.
+# UUCP, which is not on the system; and it moves a log's older copies
+# along only if they are there, so that a new system does not mail root
+# an error for each it has not had time to make.
 #
 PATH=/usr/sbin:/usr/ucb:/bin:/usr/bin
 echo "Subject: daily run output"
@@ -23,6 +23,10 @@ chmod 644 /usr/adm/acct
 accton /usr/adm/acct
 sa -s -f -v 10 /usr/adm/acct.0 > /dev/null
 compress -f /usr/adm/acct.0
+
+echo ""
+echo "Running calendar:"
+calendar -
 
 echo ""
 echo "Rotating mail syslog:"

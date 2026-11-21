@@ -51,7 +51,7 @@ FILE *fin;
 		p = action(t);		/* p = token class */
 		if (*p == ONCE) {	/* some actions done only once per script */
 			if (wrong && !review) {	/* we are on 2nd time */
-				scopy(fin, NULL);
+				scopy(fin, (FILE *)NULL);
 				continue;
 			}
 			strcpy(s, r);
@@ -83,7 +83,7 @@ FILE *fin;
 			return;
 		case PRINT:
 			if (wrong)
-				scopy(fin, NULL);	/* don't repeat message */
+				scopy(fin, (FILE *)NULL);	/* don't repeat message */
 			else if (r)
 				list(r);
 			else
@@ -102,18 +102,18 @@ FILE *fin;
 			break;
 		case MATCH:
 			if (nmatch > 0)	/* we have already passed */
-				scopy(fin, NULL);
+				scopy(fin, (FILE *)NULL);
 			else if ((status = strcmp(r, last)) == 0) {	/* did we pass this time? */
 				nmatch++;
 				scopy(fin, stdout);
 			} else
-				scopy(fin, NULL);
+				scopy(fin, (FILE *)NULL);
 			break;
 		case BAD:
 			if (strcmp(r, last) == 0) {
 				scopy(fin, stdout);
 			} else
-				scopy(fin, NULL);
+				scopy(fin, (FILE *)NULL);
 			break;
 		case SUCCEED:
 			scopy(fin, (status == 0) ? stdout : NULL);

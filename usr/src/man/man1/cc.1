@@ -138,6 +138,20 @@ the directory \fB/usr/c/\fP is used.
 .BR \-d
 Debug; print what programs the compiler is calling,
 with their arguments.
+.TP
+.BR \-ms ", " \-mm
+On the 80286, compile and load for the small model, which is the
+default, or for the medium model.
+A program of the small model has 64K bytes of code at most.
+One of the medium model has as much as it needs, in segments of 64K;
+its functions are called far, and its code is somewhat larger and
+slower for that.
+Either has 64K bytes of data, with its stack.
+Every file of a program, and its libraries, must be for the same
+model: the medium model's libraries are in /lib/m and /usr/lib/m,
+where
+.IR ld (1)
+looks for them.
 .PP
 Other arguments
 are taken

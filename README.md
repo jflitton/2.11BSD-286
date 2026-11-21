@@ -7,7 +7,7 @@ This is 2.11BSD, at its current patch level, ported to the 286 in
 protected mode. It boots from a hard disk to multi-user. Users can log
 In via the local consoles (4 total), at a serial terminal, or over the
 network with `telnet` or `rlogin`.  Shells include `sh`, `csh`, and `tcsh`.
-Most programs have been ported (312 to date), among them `vi`, mail, the
+Most programs have been ported (316 to date), among them `vi`, mail, the
 manual and a C compiler. It runs in 86Box and on real machines.
 
 ## Lineage
@@ -48,8 +48,8 @@ The PDP-11 and the 286 are close enough that the tree carries over:
   still to come.
 - `cc` is on the system, with an assembler and a linker of its own
   ([the compiler](docs/toolchain.md)). They can build every program and
-  library, though not yet the kernel, and the system is still built
-  with the cross compiler.
+  library, themselves included, on the 286, though not yet the kernel,
+  and the system is still built with the cross compiler.
 - Not there yet: `named` and `identd`; `troff`; the line printer's
   programs and UUCP; quotas in the kernel. [What is not
   ported](docs/unported.md) has the whole list.

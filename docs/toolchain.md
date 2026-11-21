@@ -13,7 +13,8 @@ cc -mm -o big big.c                 # medium model: far code
 The system itself is still built with the cross compiler, Open Watcom
 ([building](development.md)). The same tools, compiled for the machine
 the system is built on, make it too (`tools/cc -ccom`), and
-`tests/ccom/programs.sh` boots a system that is all their work.
+`tests/ccom/programs.sh` boots a system that is all their work. And
+the system makes them of their sources itself ([below](#the-system-makes-its-own-compiler)).
 
 ## What runs what
 
@@ -56,7 +57,7 @@ The start-up code and the libraries are per model:
 
 `ld -mm` looks in the `m` directories for `-l`. The libraries on the
 system are `libc`, `libm`, `libtermcap`, `libcurses`, `libutil`,
-`libdbm`, `libln` and `libwrap`.
+`libdbm`, `libln`, `liby` and `libwrap`.
 
 ## The assembler
 
@@ -95,7 +96,10 @@ not reach until none is left, so the code is as short as it can be.
 
 A name that is not defined in the file must be declared `extern`, which
 the compiler does. Labels the compiler made (`L12`) and local ones are
-not put in the object's symbol table.
+not put in the object's symbol table. The others are written in the
+order of the assembler's table of them, which is reckoned in 16 bits
+whatever an `int` is where the assembler runs, so that an object is the
+same to the byte wherever it is assembled.
 
 ## Object files
 
@@ -186,12 +190,30 @@ pointer of 16; the host's copies of them are made with the types put
 right (`obj/host/ccom/include`). The host has to keep a number's low
 byte first.
 
+## The system makes its own compiler
+
+`tests/ccom/self.sh` boots the system from a disk that has, on a file
+system of their own, the sources of the eleven programs above that are
+C: `cc`, `cpp`, `c0`, `c1`, `c2`, `as`, `ld`, `ar`, `ranlib`, `nm` and
+`size` (`make -C usr/src/i286 ccprogs` lists what each is made of). The
+system compiles, assembles and links each one, and each must be, to the
+byte, what `tools/cc -ccom` makes of it where the system is built. Then
+it puts them where the ones it booted with were, and does it again with
+those: the second time the compiler is the one the system made.
+
+All 22 are the same.
+
+Two things came of the first time it was tried, neither of which a
+program of two small files had shown ([what the programs
+needed](userland.md#the-compiler)): `/lib/cpp` as the cross compiler
+compiled it knew no macro that had no arguments, and the assembler's
+objects had their symbols in another order on the 286 than where the
+system is built.
+
 ## What is not there
 
 - The compiler cannot compile the kernel: far variables and functions,
   `__interrupt`, `__huge` and the cross compiler's pragmas are not in
   it.
-- Profiling (`cc -p`, `mcrt0.o`, `prof`), `lint`, `adb` and `ld -r`.
+- Profiling (`cc -p`, `mcrt0.o`, `prof`), `adb` and `ld -r`.
 - The large model.
-- Manual pages for `as` and `ld` as they are here: upstream's describe
-  the PDP-11's.

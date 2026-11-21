@@ -64,8 +64,8 @@ printf '0\0guest\0Gu3st-pw\0echo rexec-$USER; echo err >&2\0' > checks/d/rexec.i
 python3 -I "$top/tools/mkfs.py" -s 400 checks.proto checks.fs >/dev/null
 
 stand=$top/obj/stand
-geometry=$(python3 -I "$top/tools/mkdisk.py" -p -b "$stand/hdboot.bin" \
-    -m "$stand/mbr.bin" network.img a=root.fs b=swap:4000 d=checks.fs | tail -1)
+geometry=$(python3 -I "$top/tools/mkdisk.py" -p -g 977,5,17 \
+    -b "$stand/hdboot.bin" -m "$stand/mbr.bin" network.img a=root.fs b=swap:4000 d=checks.fs | tail -1)
 
 # What is typed waits for something only the system writes, as in
 # tests/system.  A program that sets the terminal as it starts, as

@@ -60,6 +60,12 @@ cat1	usr.bin/xargs/xargs.1 usr.bin/xinstall/install.1 usr.sbin/cron/crontab.1
 cat1	usr.sbin/nc/nc.1 usr.sbin/tracebuf/tracebuf.1 bin/chflags/chflags.1
 cat1	new/la/la.1 man/man1/gcore.1 man/man1/window.1
 
+# The compiler and what goes with it: as and ld are the 286's own, and
+# so are their pages.
+cat1	man/man1/cc.1 lib/cpp/cpp.1 bin/as/i286/as.1 bin/ld/i286/ld.1
+cat1	bin/ar/ar.1 usr.bin/ranlib/ranlib.1 man/man1/nm.1 man/man1/size.1
+cat1	man/man1/lorder.1 man/man1/calendar.1 man/man1/learn.1 man/man1/mkdep.1
+
 cat2	man/man2/Makefile
 cat3	man/man3/Makefile libexec/tcpd/hosts_access.3
 cat4	man/man4/arp.4 man/man4/icmp.4 man/man4/inet.4 man/man4/ip.4
@@ -67,6 +73,7 @@ cat4	man/man4/lo.4 man/man4/networking.4 man/man4/null.4 man/man4/pty.4
 cat4	man/man4/tcp.4 man/man4/tty.4 man/man4/udp.4
 cat5	man/man5/Makefile usr.sbin/cron/crontab.5 libexec/tcpd/hosts_access.5
 cat5	libexec/tcpd/hosts_options.5 bin/disklabel/disklabel.5.5
+cat5	bin/ar/ar.5.5 usr.bin/ranlib/ranlib.5.5 bin/ld/i286/a.out.5
 cat6	man/man6/adventure.6 man/man6/arithmetic.6 man/man6/backgammon.6
 cat6	man/man6/banner.6
 cat6	man/man6/bcd.6 man/man6/boggle.6 man/man6/canfield.6

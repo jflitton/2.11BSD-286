@@ -83,8 +83,8 @@ python3 -I "$top/tools/mkfs.py" -s 400 gram.proto gram.fs >/dev/null
 # that in partition a, a swap area in b, room for a file system in d,
 # for one in e that the kernel is too big a file for, and that one in f.
 stand=$top/obj/stand
-geometry=$(python3 -I "$top/tools/mkdisk.py" -p -b "$stand/hdboot.bin" \
-    -m "$stand/mbr.bin" system.img a=root.fs b=swap:4000 d=fs:4000 e=fs:200 f=gram.fs | tail -1)
+geometry=$(python3 -I "$top/tools/mkdisk.py" -p -g 977,5,17 \
+    -b "$stand/hdboot.bin" -m "$stand/mbr.bin" system.img a=root.fs b=swap:4000 d=fs:4000 e=fs:200 f=gram.fs | tail -1)
 
 # Each text to type waits for something only the system writes: a typed
 # line is echoed, so what it waits for is split by quotes when typed.

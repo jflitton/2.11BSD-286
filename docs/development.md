@@ -107,12 +107,12 @@ make -C usr/src/sys/i286stand       # the boot sectors and /boot, obj/stand
 make -C usr/src/lib/libc/i286       # the C library, obj/lib
 make -C usr/src/i286 all root       # the programs, obj/bin, and the root
                                     # file system, obj/root/root.fs
-python3 tools/mkdisk.py -p -b obj/stand/hdboot.bin -m obj/stand/mbr.bin \
-    disk.img a=obj/root/root.fs b=swap:4000
+python3 tools/mkdisk.py -p -g 977,5,17 -b obj/stand/hdboot.bin \
+    -m obj/stand/mbr.bin disk.img a=obj/root/root.fs b=swap:4000
 ```
 
-The last makes a bootable image of a 20 MB IDE disk with the root and
-2 MB of swap. The root file system is 16 MB, with 14 MB in it;
+The last makes a bootable image of a 40 MB IDE disk with the root and
+2 MB of swap. The root file system is 24 MB, with 15 MB in it;
 `make root ROOTSIZE=` makes it larger, and `ROOTDISK=sd0` makes it for a
 SCSI disk, whose image `mkdisk.py -t scsi` makes. [Booting](boot.md) and
 [disks](disks.md) say more, and [the root file
@@ -223,6 +223,11 @@ tests/ccom/run.sh       # the system's own C compiler, run here: 1573
                         # system's assembler and linker made; and the
                         # compiler's two passes and c2 as it compiled
                         # them, run on the system
+tests/ccom/self.sh      # the system making its compiler: cc, cpp, the
+                        # passes, as, ld and the rest, eleven programs
+                        # from their sources on the 286, twice, the
+                        # second time with the ones it had just made,
+                        # each to be what is made of it here
 tests/ccom/programs.sh  # the same compiler, assembler and linker on
                         # the system's programs: tests/programs, with
                         # all of them made that way
@@ -246,7 +251,8 @@ tests/programs/run.sh   # the programs that work on text and files, on the
                         # and /usr/adm's scripts, disklabel, fsck and
                         # the other checkers, dump and restor on a second
                         # disk, cc and what goes with it compiling a
-                        # program there, and the games: 158 checks, each a few
+                        # program there, yacc and lex with their libraries, mkdep,
+                        # calendar and learn, and the games: 162 checks, each a few
                         # lines for the shell and what they must write,
                         # and more, man, script, lock, tset, five games,
                         # window and shutdown at a terminal

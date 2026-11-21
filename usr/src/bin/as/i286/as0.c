@@ -611,9 +611,14 @@ char *name;
 	register char *p;
 	register unsigned h;
 
+	/*
+	 * The symbols are written in the table's order, so the sum is
+	 * kept to the 16 bits an int has on the 286: an object is then
+	 * the same wherever it is assembled.
+	 */
 	h = 0;
 	for (p = name; *p; p++)
-		h = h * 31 + *p;
+		h = (h * 31 + *p) & 0177777;
 	h %= NHASH;
 	for (sp = hashtab[h]; sp; sp = sp->s_next)
 		if (strcmp(sp->s_name, name) == 0)

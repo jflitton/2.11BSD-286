@@ -598,9 +598,8 @@ totals each user's time logged in with `ac -p` and keeps six months of
 
 The scripts are the port's, in `usr/src/i286/etc`, made from
 upstream's (`usr/adm` in the tree, from the tape). Upstream's `daily`
-also runs `calendar` and cleans up after UUCP, and `weekly` UUCP too,
-neither of which is on the system ([what is not
-ported](unported.md)). And upstream's move each log's older copies
+also cleans up after UUCP, and `weekly` too, which is not on the system
+([what is not ported](unported.md)). And upstream's move each log's older copies
 along with a fixed list of `mv` commands, which on a new system mail
 root an error for each copy not made yet, 27 the first night. The
 port's move only the copies there are.
@@ -745,9 +744,10 @@ The system has `yacc` and `lex` themselves too, in `/usr/bin`, with
 `/usr/libdata/lex`. `tests/system` has each make C of `awk`'s grammar
 and scanner, which must be byte for byte what the build's made: so the
 programs on the 286 and the ones compiled for the build's machine, from
-the same source, agree. There is no C compiler on the system to give
-their output to, so `liby`, the library that goes with `yacc`, is not
-built; `lex`'s, `libln`, is, for `atc`'s scanner ([games](#games)).
+the same source, agree. `liby`, the library that goes with `yacc`, and
+`lex`'s, `libln`, which `atc`'s scanner uses too ([games](#games)), are
+on the system for what its [compiler](#the-compiler) makes of their
+output.
 
 `awk` uses floating point throughout, and the mathematical library for
 `sqrt`, `exp` and `log`. `libm` is `usr.lib/libom`, the older of
@@ -871,7 +871,8 @@ Left out of this batch: `tc` and `tk`, which are for a Tektronix
 4014; `from`, `biff` and `msgs`, which came with
 [mail](#mail), and `calendar`, which runs `/lib/cpp`; `tcopy`, `mt` and `tp`, for tapes; the scripts
 `lorder`, `mkdep` and `lint`, which run `nm`, the compiler and the
-passes of `lint`; `spell` and `indent`, which came [with what documents
+passes of `lint`, and came with [the compiler](#the-compiler), as
+`calendar` did; `spell` and `indent`, which came [with what documents
 go through](#what-documents-go-through); the programs that read the kernel, `fstat`, `top` and `gcore`; those
 for object files, `nm`, `ar`, `ranlib`, `size` and `ld`; and
 the network's, which came next. `look` searches `/usr/dict/words` by
@@ -1156,8 +1157,8 @@ not name it, and its `services` has no `pop3`. This system's
 `inetd.conf` has the line, commented out, and says what `services`
 needs. `comsat` is started by `inetd` as upstream's has it.
 
-Left out: `calendar`, which runs the C preprocessor, `/lib/cpp`, that
-comes with the compiler; `rmail`, for mail by UUCP; and
+Left out: `calendar`, which runs the C preprocessor, `/lib/cpp`, and
+came with [the compiler](#the-compiler); `rmail`, for mail by UUCP; and
 `sendmail.MX`, which asks a name server for a domain's mail exchanger.
 
 `tests/network` has the system run 12 checks of mail after the others:
@@ -1954,7 +1955,13 @@ each is and where it is from. `cc`, `/lib/cpp`, `ar`, `ranlib`, `nm`,
   memory, not in a file through `libvmf` as on the PDP-11; and what
   `#if` reckons in is a `long`, as it is when the PDP-11's compiler
   compiles it, where the cross compiler would make it 64 bits and call
-  for routines the library has not got.
+  for routines the library has not got. The kind of a macro, a number
+  up to 9, is in a field of four bits that is now said to be unsigned.
+  A field is unsigned to the PDP-11's compiler and to the system's own,
+  whatever it is declared; to the cross compiler a `char` or an `int`
+  of four bits is signed, 8 was -8, and a macro without arguments was
+  never found again. No other field in the tree holds more than a
+  signed one can.
 - `size` adds up the segments: the text is those of code, the data what
   the last has in the file, and the bss the rest of it. For a program
   of the medium model it gives each segment of text as well, as it
@@ -1969,7 +1976,39 @@ each is and where it is from. `cc`, `/lib/cpp`, `ar`, `ranlib`, `nm`,
 `tests/programs` compiles a program of two files on the system, with
 and without `-O`, through a library that `ar` and `ranlib` made there,
 by way of `cc -S` and the assembler, and for the medium model, and runs
-each.
+each. `tests/ccom/self.sh` has the system make the compiler itself, and
+all that goes with it, from the sources, twice ([the system makes its
+own compiler](toolchain.md#the-system-makes-its-own-compiler)).
+
+With the compiler came what waited for it:
+
+- `liby`, for a parser with no `main` or `yyerror` of its own, in both
+  models with the other libraries; and `libl.a`, a link to `lex`'s
+  `libln.a` as upstream installs it, so that `-ll` finds it.
+- `mkdep`, a script that has `cc -M` write a Makefile's dependencies,
+  and `lint`, which is upstream's script that says why there is no
+  `lint`.
+- `calendar`: a program in `/usr/libexec` that writes patterns for
+  today's date and tomorrow's, and a script that gives the user's
+  `calendar` file to `/lib/cpp` and `egrep`. `/usr/adm/daily` runs it
+  for everyone each night, as upstream's does.
+- `learn`, with the lessons of `share/learn` in `/usr/share/learn`:
+  files, the editor, `vi`, more about files, the `-ms` macros, `eqn`
+  and C. A lesson in C has what is typed compiled by `cc` and run, and
+  two of them link it with `getline.o` or `getnum.o`, which upstream
+  compiles when the lessons are installed and the build here has the
+  system's compiler make (`tools/ncc`). For the cross compiler `learn`
+  needed three declarations put right: a `FILE *` that was given as
+  `NULL`, a signal's function that returned nothing and was not `void`,
+  and its own `system`, whose argument is `const` in `stdlib.h`.
+
+The manual has `cc`, `cpp`, `ar`, `ranlib`, `nm`, `size`, `lorder`,
+`mkdep`, `calendar` and `learn` as upstream wrote them, `cc` with a
+paragraph for `-ms` and `-mm`. `as(1)`, `ld(1)` and `a.out(5)` are
+written for the 286 (`bin/as/i286`, `bin/ld/i286`), upstream's being
+of the PDP-11's assembler, its overlays and its format;
+`usr/src/i286/man.list` names the page that takes the place of
+upstream's `a.out(5)`.
 
 ## The root file system
 
@@ -2089,16 +2128,17 @@ kernel](#programs-that-read-the-kernel)). The system's own `strip` makes
 of a file what `tools/strip.py` does, which `tests/programs` checks on
 the kernel.
 
-The file system is 16400 blocks of 1K, of which the system takes 14121.
-The 312 programs are 6.1 MB of that, and 7.0 MB with their symbols; the
-manual's pages are 2.4 MB in about 2700 blocks; the games and their
+The file system is 24000 blocks of 1K, of which the system takes 15158.
+The 316 programs are 6.2 MB of that, and 7.0 MB with their symbols; the
+manual's pages are 2.5 MB in about 2750 blocks; the games and their
 files take about 3300 blocks, 1600 of them `fortune`'s;
-`/usr/include` and the libraries take 1074; and `/usr/dict/words`
-takes 206. It was 8000 blocks until the manual came, 12000 until the
-games did, and 15000 until the compiler. The tests' disks are of 20 MB,
-and the one of `tests/system`, which has 2 MB of swap and three other
-file systems on it as well, has room for a root of 16400 blocks and no
-more. A machine's
+`/usr/include` and the libraries take about 1080; `learn`'s lessons
+830; and `/usr/dict/words` takes 206. It was 8000 blocks until the manual came, 12000 until the
+games did, 15000 until the compiler, and 16400, which was all that the
+tests' disks of 20 MB had room for, until `learn`'s lessons came: what
+was left free was then less than the system writes in a night, the
+accounts that `/usr/adm/daily` keeps being 832 blocks by themselves
+(`tests/programs`). The tests' disks are of 40 MB now. A machine's
 own disk is made with as many as it has room for (`make root
 ROOTSIZE=...`, or `tools/mkfs.py -s`).
 
@@ -2234,7 +2274,7 @@ copied files.
 `tests/programs` boots the same system from a disk with the root, a
 swap area and a small file system of checks, logs in as root on the
 first serial port, mounts that file system and runs its `check.sh`. For
-each of the 158 checks in `tests/programs/checks` it runs the check's
+each of the 162 checks in `tests/programs/checks` it runs the check's
 lines with the shell in an empty directory and compares what they wrote
 with what the check says they must, and says `ok` or shows what was
 written. A check is of one program, by its name, or of one use of it:
@@ -2338,8 +2378,7 @@ Not done, or not tested:
   not with the user's password; `shutdown` only at once and to halt.
   `more` is not asked to search or to start `vi`, and `tar` reads and
   writes files, not a tape or a diskette.
-- `yacc` and `lex` are on a system with no C compiler to give their
-  output to, and `liby` is not built. `lex -r`, for Ratfor, `awk`'s
+- `lex -r`, for Ratfor, `awk`'s
   saving and restoring of itself (`-S` and `-R`), and `make` with
   archives, with its built-in rules or with anything but the simplest
   description file, have not been tried. Of the tree's other grammars,

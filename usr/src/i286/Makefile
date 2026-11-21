@@ -731,12 +731,29 @@ nm_FLAGS=	-I$(SRC)/bin/ar
 size_SRCS=	bin/size.c
 CCPROGS=	cc cpp c0 c1 c2 as ld ar ranlib nm size
 
+# What waited for the compiler: calendar's program, which writes the
+# dates that its script has /lib/cpp and egrep look for; and learn,
+# whose lessons in C have cc compile what is typed (share/learn, below),
+# with the two programs its lessons run.  lint and mkdep are scripts,
+# and liby is with the libraries.
+calendar_SRCS=	usr.bin/calendar/calendar.c
+LEARNFLAGS=	-DBSD4_2 '-DLOGDIR="/var/log/learn"'
+learn_SRCS=	$(addprefix usr.bin/learn/,copy.c dounit.c getlesson.c \
+		learn.c list.c mem.c makpipe.c maktee.c mysys.c selsub.c \
+		selunit.c start.c whatnow.c wrapup.c)
+learn_FLAGS=	$(LEARNFLAGS)
+lrntee_SRCS=	usr.bin/learn/lrntee.c
+lrntee_FLAGS=	$(LEARNFLAGS)
+lcount_SRCS=	usr.bin/learn/lcount.c
+lcount_FLAGS=	$(LEARNFLAGS)
+CCUSEPROGS=	calendar learn lrntee lcount
+
 PROGS=	init getty login sh csh ls mkdir stty test hostname mknod mount \
 	umount reboot sleep ex exrecover expreserve tcsh $(BINSTD) \
 	$(NETPROGS) $(SYSPROGS) $(DISKPROGS) $(KMEMPROGS) $(LOGPROGS) \
 	$(ADMPROGS) $(BACKPROGS) $(YACCPROGS) $(TEXTPROGS) $(NET2PROGS) \
 	$(MAILPROGS) $(DOCPROGS) $(WRITERPROGS) $(GAMEPROGS) $(OWNPROGS) \
-	$(CCPROGS)
+	$(CCPROGS) $(CCUSEPROGS)
 
 # The libraries the programs use besides the C library: NAME_LIB lists a
 # library's sources, and NAME_LIBFLAGS what it is compiled with.  Each is
@@ -770,7 +787,8 @@ dbm_LIBFLAGS=	-DNOSCCS
 # atc's scanner.
 ln_LIB=		$(addprefix usr.lib/libln/,allprint.c main.c reject.c yyless.c \
 		yywrap.c)
-LIBRARIES=	util termcap m curses wrap dbm ln
+y_LIB=		usr.lib/liby/libmai.c usr.lib/liby/libzer.c
+LIBRARIES=	util termcap m curses wrap dbm ln y
 
 all:	$(addprefix $(O)/,$(PROGS))
 
@@ -778,7 +796,14 @@ all:	$(addprefix $(O)/,$(PROGS))
 list:
 	@printf '%s\n' $(PROGS)
 
-.PHONY:	all list root syslibs clean FORCE
+# The compiler's programs, a line each: the name, and what cc is given
+# to make it, its sources named from $(SRC).  tests/ccom/self.sh has
+# the system make them from that.
+ccprogs:
+	@$(foreach p,$(CCPROGS),echo $(p) \
+	    $(subst $(SRC)/,,$($(p)_FLAGS) $($(p)_SRCS));)
+
+.PHONY:	all list ccprogs root syslibs clean FORCE
 
 $(O) $(O)/log $(EXO) $(TCO) $(H) $(G) $(AWKG):
 	mkdir -p $@
@@ -1152,8 +1177,13 @@ $(foreach l,$(LIBRARIES),$(foreach m,s m,$(eval $(call library,$(l),$(m)))))
 # kernel loads neither the symbols nor their names, so the copies run the
 # same and are an eighth smaller.  make root STRIP=no copies the programs
 # as they are, for when the symbols are wanted on the system itself.
+#
+# ROOTSIZE is its size in blocks of 1K, with room for what a system
+# that is used writes there: the tests' disks are of 40 MB
+# (tools/mkdisk.py -g 977,5,17), and a machine's own disk is given a
+# root as big as it has room for.
 R=	$(TOP)/obj/root
-ROOTSIZE= 16400
+ROOTSIZE= 24000
 ROOTDISK= wd0
 STRIP=	yes
 
@@ -1198,6 +1228,33 @@ $(R)/cc.proto: $(SYSLIBS) $(TOP)/tools/ccproto.py \
 
 $(R) $(R)/bin:
 	mkdir -p $@
+
+# learn's lessons, as share/learn's Makefile installs them: a directory
+# for each subject in /usr/share/learn, with its Init to be run; the
+# two objects that the lessons in C have a program linked with, which
+# the system's compiler makes here (tools/ncc); and for each subject a
+# file in /var/log/learn that anyone may write.  learn.proto lists them
+# for root.proto.
+LEARN=	$(SRC)/share/learn
+LESSONS= C editor eqn files macros morefiles vi
+$(R)/getline.o $(R)/getnum.o: $(R)/%.o: $(LEARN)/C/%.c $(HDRS) | $(R)
+	python3 -I $(TOP)/tools/ncc -O -o $@ $<
+$(R)/learn.proto: $(wildcard $(LEARN)/*/*) $(R)/getline.o $(R)/getnum.o
+	@{ echo "d /usr/share/learn 755"; echo "d /var/log/learn 755"; \
+	  for f in Linfo Xinfo; do \
+	    echo "f /usr/share/learn/$$f 644 $(LEARN)/$$f"; \
+	  done; \
+	  for d in $(LESSONS); do \
+	    echo "d /usr/share/learn/$$d 755"; \
+	    echo "f /var/log/learn/$$d 666 $(R)/empty"; \
+	    for f in $(LEARN)/$$d/*; do \
+	      case $$f in */Init) m=555;; *) m=644;; esac; \
+	      echo "f /usr/share/learn/$$d/$${f##*/} $$m $$f"; \
+	    done; \
+	  done; \
+	  for f in getline getnum; do \
+	    echo "f /usr/share/learn/C/$$f.o 644 $(R)/$$f.o"; \
+	  done; } > $@
 
 # Whether they are stripped, and where they are from.  When STRIP is
 # other than it was, or O is, as when tests/ccom/programs.sh has the
@@ -1312,6 +1369,8 @@ $(R)/root.fs: root.proto $(wildcard etc/* root/* skel/*) adventure/Makefile \
 		$(patsubst %,$(R)/term/tab%.tab,$(TERMS)) $(MANO)/man.proto \
 		$(GAMEDATA) $(addprefix $(SO)/,hlista hlistb hstop) \
 		$(ZO)/zone.proto $(R)/cc.proto $(SRC)/usr.bin/lorder.sh \
+		$(R)/learn.proto $(SRC)/usr.bin/calendar/calendar.sh \
+		$(SRC)/usr.bin/lint.sh $(SRC)/usr.bin/mkdep.sh \
 		$(TOP)/obj/PC/unix $(TOP)/obj/stand/boot $(TOP)/obj/stand/hdboot.bin
 	python3 -I $(TOP)/tools/mkfs.py -s $(ROOTSIZE) root.proto $@
 

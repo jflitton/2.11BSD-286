@@ -179,7 +179,7 @@ struct symtab {
 	mvtyp valoff;
 	const usch *file;
 	int line;
-	char type:4,	/* macro type */
+	unsigned char type:4,	/* macro type: to 9, so not a signed field */
 	      wraps:1;	/* macro wraps in buffer */
 	unsigned char narg;	/* # of args (if feasible) */
 };
