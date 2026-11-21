@@ -58,6 +58,7 @@ struct optab optab[] = {
 	"div",	MUL | 3<<8,
 	"call",	JSR,
 	"leave",LEAVE,
+	"les",	LES,
 	0,	0};
 
 char revbr[] = {JNE, JEQ, JGT, JLT, JGE, JLE, JHIS, JLOS, JHI, JLO, JMI, JPL};

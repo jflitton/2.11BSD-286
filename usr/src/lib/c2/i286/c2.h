@@ -55,6 +55,7 @@
 #define	JSR	32
 #define	LEAVE	33
 #define	END	34
+#define	LES	35		/* ES and a register from a far pointer */
 
 #define	JEQ	0
 #define	JNE	1
@@ -117,7 +118,9 @@ extern	char revbr[];
 /*
  * What each register is known to hold: an operand as the compiler
  * writes it, "word [bp-4]" or "12" or "si", or "&[bp-4]" for an
- * address that lea made.
+ * address that lea made; SS, which is the same throughout, as "ss".
+ * And in regs[ESBX], the far pointer that les gave ES and BX, "far
+ * [bp+6]", while they have it still.
  */
 #define	AX	0
 #define	BX	1
@@ -126,7 +129,8 @@ extern	char revbr[];
 #define	SI	4
 #define	DI	5
 #define	NREG	6
-char	regs[NREG][MAXCPS + 1];
+#define	ESBX	6
+char	regs[NREG + 1][MAXCPS + 1];
 char	rt1[LSIZE];
 char	rt2[LSIZE];
 extern	char *rname[];

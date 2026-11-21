@@ -178,6 +178,31 @@ rmove()
 		savereg(d, lbuf);
 		continue;
 
+	case LES:
+		/*
+		 * ES and BX from a far pointer, which they may have
+		 * already.  BX then has the word where its offset is.
+		 */
+		dualop(p);
+		d = isreg(rt1);
+		if (d==BX && equstr(regs[ESBX], rt2) && rt2[0]) {
+			delete(p);
+			redunm++;
+			nchange++;
+			continue;
+		}
+		dest(rt1);
+		dest("es");
+		if (d==BX && strlen(rt2) <= MAXCPS && rt2[0]=='f'
+		 && rt2[1]=='a' && rt2[2]=='r' && rt2[3]==' '
+		 && !mention(rt2, BX) && !segpre(rt2)) {
+			strcpy(regs[ESBX], rt2);
+			strcpy(lbuf, "word");
+			strcat(lbuf, rt2+3);
+			savereg(BX, lbuf);
+		}
+		continue;
+
 	case PUSH:
 		singop(p);
 		if ((wordmem(rt1) || !ismem(rt1)) && isreg(rt1) < 0
@@ -341,7 +366,7 @@ register struct node *lp;
 	sp = (struct snap *)lp->code;
 	if (sp && sp->sgen==rgen) {
 		sp->scnt++;
-		for (p = sp->sregs, i = 0; i<NREG; i++) {
+		for (p = sp->sregs, i = 0; i<=ESBX; i++) {
 			n = *p++;
 			if (!equstr(p, regs[i]))
 				*p = 0;
@@ -350,7 +375,7 @@ register struct node *lp;
 		return;
 	}
 	n = 0;
-	for (i = 0; i<NREG; i++)
+	for (i = 0; i<=ESBX; i++)
 		n += strlen(regs[i]) + 2;
 	if (sp==0 || sp->ssize < n) {
 		sp = (struct snap *)alloc(sizeof(struct snap) + n);
@@ -359,7 +384,7 @@ register struct node *lp;
 	}
 	sp->sgen = rgen;
 	sp->scnt = 1;
-	for (p = sp->sregs, i = 0; i<NREG; i++) {
+	for (p = sp->sregs, i = 0; i<=ESBX; i++) {
 		q = regs[i];
 		*p++ = strlen(q) + 1;
 		while (*p++ = *q++)
@@ -394,7 +419,7 @@ register struct node *lp;
 	case EROU:
 		fall = 0;
 	}
-	for (p = sp->sregs, i = 0; i<NREG; i++) {
+	for (p = sp->sregs, i = 0; i<=ESBX; i++) {
 		n = *p++;
 		if (fall==0)
 			strcpy(regs[i], p);
@@ -430,6 +455,7 @@ register struct node *p;
 
 	case MOV:
 	case LEA:
+	case LES:
 	case CMP:
 	case TEST:
 	case ADD:
@@ -581,14 +607,15 @@ register struct node *p;
 	register struct node *q;
 	register char *a;
 	static char src[LSIZE];
-	int sreg, smem;
+	int sreg, smem, sseg;
 
 	q = p->forw;
 	a = rname[d];
 	strcpy(src, rt2);
 	sreg = isreg(src) >= 0;
 	smem = ismem(src);
-	if (smem && !wordmem(src) || !sreg && !smem && !immed(src))
+	sseg = segreg(src);
+	if (smem && !wordmem(src) || !sreg && !smem && !sseg && !immed(src))
 		return(0);
 	switch (q->op) {
 
@@ -608,6 +635,8 @@ register struct node *p;
 	case SBB:
 	case CMP:
 	case TEST:
+		if (sseg)
+			return(0);
 		dualop(q);
 		if (equstr(rt2, a) && !mention(rt1, d)) {
 			/*
@@ -793,6 +822,7 @@ register struct node *p;
 
 	case MOV:
 	case LEA:
+	case LES:
 	case POP:
 		split(p->code, u1, u2);
 		if (mention(u2, r))
@@ -829,6 +859,7 @@ register struct node *p;
 	case LABEL:
 	case MOV:
 	case LEA:
+	case LES:
 	case PUSH:
 	case POP:
 	case XCHG:
@@ -945,7 +976,7 @@ clearreg()
 {
 	register int i;
 
-	for (i=0; i<NREG; i++)
+	for (i=0; i<=ESBX; i++)
 		regs[i][0] = '\0';
 }
 
@@ -963,9 +994,9 @@ register char *s;
 	if (strlen(s) > MAXCPS || mention(s, r))
 		return;
 	if (ismem(s)) {
-		if (!wordmem(s) && *s!='&' || index(s, ':'))
+		if (!wordmem(s) && *s!='&' || segpre(s))
 			return;
-	} else if (isreg(s) < 0 && !immed(s))
+	} else if (isreg(s) < 0 && !immed(s) && !equstr(s, "ss"))
 		return;
 	strcpy(p, s);
 }
@@ -981,12 +1012,18 @@ register char *s;
 
 	if ((r = anyreg(s)) >= 0) {
 		regs[r][0] = 0;
-		for (i = 0; i<NREG; i++)
+		for (i = 0; i<=ESBX; i++)
 			if (mention(regs[i], r))
 				regs[i][0] = 0;
+		if (r==BX)
+			regs[ESBX][0] = 0;
 		return;
 	}
 	if (!ismem(s)) {
+		if (equstr(s, "es")) {
+			regs[ESBX][0] = 0;
+			return;
+		}
 		if (!equstr(s, "sp")) {
 			clearreg();
 			return;
@@ -994,12 +1031,12 @@ register char *s;
 		/*
 		 * What was above the stack is not now.
 		 */
-		for (i = 0; i<NREG; i++)
+		for (i = 0; i<=ESBX; i++)
 			if (indirect(regs[i]))
 				regs[i][0] = 0;
 		return;
 	}
-	for (i = 0; i<NREG; i++)
+	for (i = 0; i<=ESBX; i++)
 		if (regs[i][0] && regs[i][0]!='&' && ismem(regs[i])
 		 && alias(regs[i], s))
 			regs[i][0] = 0;
@@ -1086,7 +1123,32 @@ register char *s;
 	for (i = 0; i<NREG; i++)
 		if (mention(s, i))
 			return(1);
+	return(segpre(s));
+}
+
+/*
+ * Is the memory operand s by way of a segment register other than SS?
+ * SS is the program's data's in every model, and in the large one the
+ * compiler names it where the others name none (../../ccom/i286), so
+ * what is there is as much known as what is at a name or in the frame.
+ */
+segpre(s)
+register char *s;
+{
+	if ((s = index(s, '[')) == 0)
+		return(0);
+	if (s[1]=='s' && s[2]=='s' && s[3]==':')
+		return(0);
 	return(index(s, ':') != 0);
+}
+
+/*
+ * Is s a segment register?
+ */
+segreg(s)
+register char *s;
+{
+	return(s[0] && index("cdes", s[0]) && s[1]=='s' && s[2]==0);
 }
 
 ismem(s)

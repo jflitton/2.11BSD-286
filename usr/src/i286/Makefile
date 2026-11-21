@@ -21,7 +21,7 @@
 # linker, as built for this machine (tools/cc -ccom): the programs in
 # obj/nbin and the libraries in obj/nlib/M, libNAME.a, where the C
 # library as those make it is to be (make -C ../lib/libc/i286 CCOM=1).
-# The compiler's code is a fifteenth larger than the cross
+# The compiler's code is nearly a tenth larger than the cross
 # compiler's, and each program is of the model it has here.  That
 # linker reads a library once, so a program's libraries are named in
 # the order of what needs what, as they are for ld anywhere.
@@ -768,8 +768,7 @@ PROGS=	init getty login sh csh ls mkdir stty test hostname mknod mount \
 
 # The libraries the programs use besides the C library: NAME_LIB lists a
 # library's sources, and NAME_LIBFLAGS what it is compiled with.  Each is
-# made, in obj/lib/M/libNAME.lib, for whichever models the programs that
-# use it are.
+# made, in obj/lib/M/libNAME.lib, for each of the three models.
 util_LIB=	$(addprefix usr.lib/libutil/,login.c logout.c logwtmp.c \
 		dkcksum.c)
 termcap_LIB=	$(addprefix usr.lib/libtermlib/,termcap.c tgoto.c tputs.c)

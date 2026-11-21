@@ -633,6 +633,59 @@ calls()
 	CK(add2(scramble(1) & 0, s), -4321);
 }
 
+/*
+ * Near pointers: in the large model a pointer of two bytes to the
+ * program's own data, its variables or its stack, which is reached by
+ * way of SS; in the others the same as any.
+ */
+static
+nearsum(p, n)
+register int __near *p;
+{
+	register int s;
+
+	for (s = 0; --n >= 0; p++)
+		s += *p;
+	return(s);
+}
+
+static int __near *
+nearat(i)
+{
+	return((int __near *)&ia[i]);
+}
+
+static
+nears()
+{
+	int __near *np;
+	struct pt __near *pp;
+	int loc[3];
+	struct pt pl;
+
+	CK(sizeof(np), 2);
+	np = (int __near *)ia;
+	CK(*np, 10);
+	CK(np[3], 13);
+	np[9] = 90;
+	CK(ia[9], 90);
+	ia[9] = 19;
+	CK(nearsum(np + 1, 3), 11 + 12 + 13);
+	loc[0] = 1;
+	loc[1] = 2;
+	loc[2] = 4;
+	CK(nearsum((int __near *)loc, 3), 7);
+	np = (int __near *)&loc[1];
+	*np += 10;
+	CK(loc[1], 12);
+	CK(*nearat(5), 15);
+	CK(nearat(5) - nearat(2), 3);
+	pp = (struct pt __near *)&pl;
+	pp->x = 3;
+	pp->y = 4;
+	CK(pl.x * pl.y, 12);
+}
+
 t_ptr()
 {
 	casts();
@@ -641,4 +694,5 @@ t_ptr()
 	structs();
 	fields();
 	calls();
+	nears();
 }

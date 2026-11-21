@@ -59,9 +59,13 @@ small model, the medium and the large, with floating point on the 287
 and far pointers. `usr/src/lib/c2/i286` is `c2` for what it writes, on
 upstream's plan: what upstream's does to jumps it does, and what
 upstream's knows of the PDP-11's instructions is written again for the
-286's. The compiler's code is a fifteenth larger than the cross
-compiler's: the 317 programs have 5,691,494 bytes of it as the system's
-own tools make them, and 5,344,192 as the cross compiler does.
+286's. It knows too what `les` gave ES and BX, so that a far pointer
+gone through again is not fetched again while nothing can have changed
+it, and that what is by way of SS is the program's data, which the
+large model names so. The compiler's code is nearly a tenth larger
+than the cross compiler's: the 317 programs have 5,858,994 bytes of it
+as the system's own tools make them, and 5,344,626 as the cross
+compiler does.
 
 A far pointer is declared as the cross compiler has it, with `__far`
 before the `*`, and is the same four bytes: `char __far *p`, `int

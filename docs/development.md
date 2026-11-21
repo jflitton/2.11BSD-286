@@ -218,12 +218,12 @@ tests/libc/run.sh       # the C library, with a test program as init: 74
                         # and 84 in the large; with CCOM=1, the same
                         # of the library and the program as the
                         # system's own compiler makes them
-tests/ccom/run.sh       # the system's own C compiler, run here: 1573
+tests/ccom/run.sh       # the system's own C compiler, run here: 1589
                         # checks of the code it generates, as it is and
                         # again as c2 improves it; 59 by a program it
                         # compiled, in the small model and the medium,
                         # and 62 in the large, that the system's
-                        # assembler and linker made; the 1573 again in
+                        # assembler and linker made; the 1589 again in
                         # the large model, run on the system; and the
                         # compiler's two passes and c2 as it compiled
                         # them, run there too

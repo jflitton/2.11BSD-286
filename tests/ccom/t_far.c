@@ -486,6 +486,49 @@ structs()
 	CK(take4(1, *p4, 2), 1 + 6 + 120 + 8);
 }
 
+/*
+ * A far pointer that is written by way of what it points at, being
+ * there itself, and so is to be fetched again: the object code improver
+ * keeps what les gave ES and BX only while nothing can have changed it.
+ */
+struct fself {
+	struct fself __far *p;
+	int	v;
+};
+struct fself fself1, fself2;
+
+static
+selfarg(q)
+struct fself __far *q;
+{
+	q = (struct fself __far *)&q;
+	q->p = &fself2;
+	q->v = 6;
+}
+
+static
+reload()
+{
+	struct fself __far *q;
+
+	fself1.p = &fself1;
+	fself2.p = &fself2;
+	fself1.v = 1;
+	fself2.v = 2;
+	fself1.p->p = &fself2;
+	fself1.p->v = 5;
+	CK(fself1.v, 1);
+	CK(fself2.v, 5);
+	selfarg(&fself1);
+	CK(fself2.v, 6);
+	CK(fself1.v, 1);
+	q = (struct fself __far *)&q;
+	q->p = &fself1;
+	q->v = 7;
+	CK(fself1.v, 7);
+	CK(fself2.v, 6);
+}
+
 t_far()
 {
 	sizes();
@@ -496,4 +539,5 @@ t_far()
 	compare();
 	calls();
 	structs();
+	reload();
 }
