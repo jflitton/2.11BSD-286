@@ -49,8 +49,9 @@ The PDP-11 and the 286 are close enough that the tree carries over:
   at work on ([memory model](docs/memory-model.md)).
 - `cc` is on the system, with an assembler and a linker of its own
   ([the compiler](docs/toolchain.md)). They can build every program and
-  library, themselves included, on the 286, though not yet the kernel,
-  and the system is still built with the cross compiler.
+  library, themselves included, on the 286, and the kernel where the
+  system is built ([the kernel](docs/toolchain.md#the-kernel)), though
+  the system is still built with the cross compiler.
 - Not there yet: `named` and `identd`; `troff`; the line printer's
   programs and UUCP; quotas in the kernel. [What is not
   ported](docs/unported.md) has the whole list.

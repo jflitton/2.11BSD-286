@@ -72,6 +72,10 @@ struct	nlist {
 #define	N_DATA	0x03		/* data segment */
 #define	N_BSS	0x04		/* bss segment */
 #define	N_REG	0x14		/* register symbol */
+#define	N_GRPNAME 0x1d		/* an object's: the group of its segment
+				   n_ovly (a.out.h) */
+#define	N_SEGNAME 0x1e		/* an object's: the name of its segment
+				   n_ovly */
 #define	N_FN	0x1f		/* file name */
 
 #define	N_EXT	0x20		/* external (global) bit, OR'ed in */

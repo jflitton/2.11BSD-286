@@ -10,7 +10,9 @@
 # known by the line it is on.  They run in real mode, with nothing
 # under them, and as one program: a name that is not static is one
 # test's alone.  They are run twice, as the compiler's two passes leave
-# them and as the object code improver does (tools/ncc -O).
+# them and as the object code improver does (tools/ncc -O).  t_nd.c is
+# compiled with -nd=ND, so that its DS is not SS, as the kernel's
+# network's is not, and is entered by way of nd.s, which sets its DS.
 #
 # Then prog.c, a program that uses the C library and the system, is
 # compiled with it for the small model, the medium and the large, assembled by
@@ -58,6 +60,10 @@ for o in "" -O; do
             cp "$here"/*.h "$out/src"
             cp "$here/t_$t.c" "$out/src/t_$t.c"
             srcs="$srcs $out/src/t_$t.c"
+        elif [ $t = nd ]; then
+            "$top/tools/ncc" -S $o -nd=ND -DND -I"$here" \
+                -o "$out/src/t_$t.s" "$here/t_$t.c"
+            srcs="$srcs $out/src/t_$t.s $here/nd.s"
         else
             "$top/tools/ncc" -S $o -o "$out/src/t_$t.s" "$here/t_$t.c"
             srcs="$srcs $out/src/t_$t.s"

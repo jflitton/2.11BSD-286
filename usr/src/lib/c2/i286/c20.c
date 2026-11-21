@@ -339,27 +339,30 @@ register char *p;
 		;
 	if (*np) {
 		/*
-		 * With what the segment is: its definition.
+		 * With what the segment is: its definition.  One of
+		 * class CODE is the code's, and any other is data: the
+		 * data, the bss, a far variable's or the network's.
 		 */
 		printf("%s\n", line);
 		intext = 0;
+		indata = 1;
 		for (np = line; np = index(np, '='); np++)
 			if (np[1]=='C' && np[2]=='O' && np[3]=='D' && np[4]=='E') {
 				for (np = textseg; *p!=' ' && *p!='\t';)
 					*np++ = *p++;
 				*np = 0;
+				indata = 0;
 				break;
 			}
 		return(1);
 	}
-	if (p[0]=='_' && (equstr(p, "_DATA") || equstr(p, "_BSS"))) {
+	if (!equstr(p, textseg)) {
 		indata = 1;
 		intext = 0;
 		printf("%s\n", line);
 		return(1);
 	}
 	indata = 0;
-	strcpy(textseg, p);
 	return(1);
 }
 

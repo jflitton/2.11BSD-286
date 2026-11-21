@@ -41,6 +41,25 @@ nodata: db      "cksum: out of data", 10, 0
 
         TEXT
 
+; htons(x), ntohs(x), htonl(x), ntohl(x): the bytes of a short or a long
+; the other way round.  The cross compiler has them in line (machparam.h)
+; and the system's own compiler calls these.
+ENTRY htons
+ENTRY ntohs
+        mov     bx, sp
+        mov     ax, [ss:bx+4]
+        xchg    al, ah
+        retf
+
+ENTRY htonl
+ENTRY ntohl
+        mov     bx, sp
+        mov     ax, [ss:bx+6]   ; the high word is the low one now
+        mov     dx, [ss:bx+4]
+        xchg    al, ah
+        xchg    dl, dh
+        retf
+
 ENTRY in_cksum
         push    bp
         mov     bp, sp

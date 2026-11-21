@@ -96,7 +96,8 @@ register union tree *tree;
 		 * address of a variable stays one, which an operand may
 		 * be made of (FSTAR, in unoptim).
 		 */
-		if (tree->t.tr1->t.op==NTOF) {
+		if (tree->t.tr1->t.op==NTOF || tree->t.tr1->t.op==XTOF
+		 || tree->t.tr1->t.op==STOF || tree->t.tr1->t.op==BTOF) {
 			t = tree->t.tr1;
 			tree->t.op += PLUS-FPLUS;
 			tree->t.tr1 = t->t.tr1;
@@ -455,6 +456,9 @@ register union tree *tree;
 		 */
 		case NTOF:
 		case CTOF:
+		case XTOF:
+		case STOF:
+		case BTOF:
 			return(paint(subtre->t.tr1, tree->t.type));
 
 		case FPLUS:
@@ -526,6 +530,19 @@ register union tree *tree;
 		if (subtre->t.op==NTOF) {
 			tree->t.op = STAR;
 			tree->t.tr1 = subtre->t.tr1;
+			goto again;
+		}
+		/*
+		 * What a pointer into SS points at, where that pointer is
+		 * a place in the frame, is [bp+n], which is through SS.
+		 * A structure is left far, as it is copied so.
+		 */
+		if (subtre->t.op==STOF && tree->t.type!=STRUCT
+		 && (p = subtre->t.tr1)->t.op==PLUS && p->t.tr2->t.op==CON
+		 && p->t.tr1->t.op==NAME && p->t.tr1->n.class==REG
+		 && p->t.tr1->n.nloc==BP) {
+			tree->t.op = STAR;
+			tree->t.tr1 = p;
 			goto again;
 		}
 		break;

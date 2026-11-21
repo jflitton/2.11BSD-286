@@ -11,19 +11,27 @@
  * the PDP-11's alone is not here: its overlays, its text and data in
  * one address space or two, a word of relocation for each word.
  *
- * A program here is segments.  Its data, with the bss and the common
- * storage after it, is one, the last.  Its text is one segment in the
- * small model.  In the medium model, where every function is called
- * far, it is as many as it takes: each file's text is whole in one of
- * them, and files share a segment, in the order they are linked, until
- * the next would not fit.  The large model's text is the medium's, and
- * its data is the one segment too: its pointers are far, but what they
- * point at outside that segment the program gets as it runs.  A segment's selector is fixed by its number
- * (LSEL, machine/seg.h), so a word that is to hold one is filled in
- * here and the program is loaded as it is.
+ * A program here is segments.  Its text is one segment in the small
+ * model.  In the medium model, where every function is called far, it
+ * is as many as it takes: each file's text is whole in one of them,
+ * and files share a segment, in the order they are linked, until the
+ * next would not fit.  The large model's text is the medium's.  The
+ * program's data, with the bss and the common storage after it, is the
+ * segment after the text.  The large model's pointers are far, but what
+ * they point at outside that segment the program gets as it runs.
+ *
+ * The segments after those are the files' named segments (a.out.h):
+ * what every file has of one name is put together, in the order they
+ * are linked; the segments of a group are one segment of the program,
+ * and the others share segments as they fit, as files share the text.
+ *
+ * A segment's selector is fixed by its number (LSEL, machine/seg.h), so
+ * a word that is to hold one is filled in here and the program is
+ * loaded as it is.  The kernel is linked with -gdt n: its selectors
+ * are of the global descriptor table, from slot n on (docs/boot.md).
  *
  *	ld [-o out] [-ms] [-mm] [-ml] [-s] [-x] [-stack n] [-packcode n]
- *	    [-e sym] [-u sym] [-L dir] [-M] [-t] file ... -lx ...
+ *	    [-gdt n] [-e sym] [-u sym] [-L dir] [-M] [-t] file ... -lx ...
  */
 #include <stdio.h>
 #include <a.out.h>
@@ -37,8 +45,28 @@
 
 #define	N_COMM	05		/* common: for here only (a.out.h) */
 
-#define	SELECTOR(n)	((n) << 3 | 7)	/* of segment n: LSEL */
 #define	even(n)		(((n) + 1) & ~1L)
+
+/*
+ * A named segment, which is what every file has of one name, and a
+ * group of them.
+ */
+struct nseg {
+	struct	nseg *ns_next;	/* in the order they were come upon */
+	char	*ns_name;
+	struct	grp *ns_grp;
+	long	ns_size;	/* how much the files so far have */
+	long	ns_fsize;	/*	and of that what is in the file */
+	int	ns_seg;		/* the program's segment it is in */
+	unsigned ns_base;	/*	and where it starts there */
+};
+struct grp {
+	struct	grp *g_next;
+	char	*g_name;
+	int	g_seg;
+};
+struct	nseg *nseg0, *nsegn;
+struct	grp *grp0, *grpn;
 
 struct sym {
 	struct	sym *s_next;	/* the next with the same hash */
@@ -46,7 +74,8 @@ struct sym {
 	char	*s_name;
 	unsigned s_value;	/* N_COMM: its size */
 	char	s_type;
-	char	s_seg;		/* N_TEXT: which segment */
+	char	s_seg;		/* which segment, when that is known */
+	struct	nseg *s_nseg;	/* a named one's, until then */
 };
 
 struct	sym *hashtab[NHASH];
@@ -66,6 +95,7 @@ int	Mflag;			/* say where everything is */
 int	trace;
 unsigned stack = 8192;
 long	limit = 65536L;		/* the most text in a segment */
+int	gdt;			/* -gdt: the kernel's first slot, or 0 */
 char	*entry = "..start";
 char	*ofilename = "a.out";
 char	*dirs[NDIRS];
@@ -88,6 +118,10 @@ long	dsize;			/* the data that has contents */
 long	bssorg;			/* where the bss starts in the segment */
 long	comorg;			/* and the common storage */
 long	memsize;		/* all of it */
+int	nseg;			/* the program's segments */
+long	nfsize[NXSEG+1];	/* those after the data's: in the file, */
+long	nmsize[NXSEG+1];	/*	and in memory */
+long	noff[NXSEG+1];		/*	and where in the file */
 
 /*
  * The members that are wanted of each library, by where each is in
@@ -105,20 +139,25 @@ int	libnext;
 char	*filname;
 FILE	*fa, *fb, *fc;
 struct	exec filhdr;
-struct	exseg filseg[3];
+struct	exseg filseg[NXSEG];
+long	filoff[NXSEG];		/* where each segment's contents are, */
+long	filroff[NXSEG];		/*	and its relocation */
+struct	nseg *filnseg[NXSEG+1];	/* its named segments, from 4 */
+unsigned filpart[NXSEG+1];	/*	and where its part of each is */
 long	symoff, stroff;		/* its symbol table, and its names */
 unsigned nsyms;
 
 struct	sym **symmap;		/* the second pass: its symbols, by number */
 unsigned mapsize;
 
-FILE	*tout, *dout, *sout, *strout;
+FILE	*tout, *dout, *nout, *sout, *strout;
 long	strx;			/* how long the string table is so far */
 
 int	errlev;
 int	pass;
 
 struct	sym *lookup(), *enter();
+struct	nseg *findnseg();
 char	*alloc(), *save();
 long	get4(), atol(), member();
 extern	char *malloc(), *realloc();
@@ -126,9 +165,12 @@ extern	char *malloc(), *realloc();
 main(argc, argv)
 char **argv;
 {
+	register struct nseg *np;
+
 	if (argc < 2) {
 		fprintf(stderr, "usage: ld [-o out] [-ms] [-mm] [-ml] [-s] [-x] \
-[-stack n] [-packcode n] [-e sym] [-u sym] [-L dir] [-M] file ... -lx ...\n");
+[-stack n] [-packcode n] [-gdt n] [-e sym] [-u sym] [-L dir] [-M] file ... \
+-lx ...\n");
 		exit(1);
 	}
 	args(argc, argv);
@@ -140,6 +182,8 @@ char **argv;
 	pass = 2;
 	curseg = 1;
 	tpos = dpos = bpos = 0;
+	for (np = nseg0; np; np = np->ns_next)
+		np->ns_size = 0;
 	libnext = 0;
 	args(argc, argv);
 	finishout();
@@ -164,15 +208,20 @@ char **argv;
 			continue;
 		}
 		ap++;
-		if (strcmp(ap, "stack") == 0 || strcmp(ap, "packcode") == 0) {
+		if (strcmp(ap, "stack") == 0 || strcmp(ap, "packcode") == 0 ||
+		    strcmp(ap, "gdt") == 0) {
 			if (++i >= argc)
 				error(1, "-%s: no number", ap);
 			if (*ap == 's')
 				stack = (unsigned)atol(argv[i]);
+			else if (*ap == 'g')
+				gdt = (int)atol(argv[i]);
 			else
 				limit = atol(argv[i]);
 			if (limit < 2 || limit > 65536L)
 				error(1, "-packcode: not a segment's size", "");
+			if (*ap == 'g' && (gdt < 1 || gdt > 8191))
+				error(1, "-gdt: not a slot", "");
 			continue;
 		}
 		switch (*ap) {
@@ -400,20 +449,136 @@ long off;
 {
 	register i;
 
+	register n;
+	long pos;
+
 	fseek(fa, off, 0);
 	if (fread((char *)&filhdr, sizeof filhdr, 1, fa) != 1 ||
-	    filhdr.a_magic != A_OBJECT || filhdr.a_nseg != 3 ||
-	    fread((char *)filseg, sizeof filseg[0], 3, fa) != 3)
+	    filhdr.a_magic != A_OBJECT || (n = filhdr.a_nseg) < 3 ||
+	    n > NXSEG || fread((char *)filseg, sizeof filseg[0], n, fa) != n)
 		return(0);
 	if (pass == 1 && filhdr.a_model && filhdr.a_model != model)
 		error(0, "%s is for another model", filname);
-	symoff = off + sizeof filhdr + sizeof filseg;
-	for (i = 0; i < 3; i++)
-		symoff += even(filseg[i].xs_filesz) +
-		    (long)filseg[i].xs_nrel * sizeof(struct reloc);
+	pos = off + sizeof filhdr + n * sizeof filseg[0];
+	for (i = 0; i < n; i++) {
+		filoff[i] = pos;
+		pos += even(filseg[i].xs_filesz);
+	}
+	for (i = 0; i < n; i++) {
+		filroff[i] = pos;
+		pos += (long)filseg[i].xs_nrel * sizeof(struct reloc);
+	}
+	symoff = pos;
 	stroff = symoff + filhdr.a_syms;
 	nsyms = filhdr.a_syms / sizeof(struct nlist);
+	if (n > 3)
+		getnamed();
 	return(1);
+}
+
+/*
+ * The named segments of the object in hand, from the symbols that name
+ * them and their groups: first the segments, then the groups.
+ */
+getnamed()
+{
+	struct nlist n;
+	char name[NAMESZ];
+	register struct nseg *np;
+	register struct grp *gp;
+	register unsigned i;
+	long pos;
+	int k, grp;
+
+	for (k = 4; k <= filhdr.a_nseg; k++)
+		filnseg[k] = NULL;
+	for (grp = 0; grp < 2; grp++) {
+		fseek(fb, symoff, 0);
+		pos = -1;
+		for (i = 0; i < nsyms; i++) {
+			if (fread((char *)&n, sizeof n, 1, fb) != 1)
+				error(1, "%s: bad symbol table", filname);
+			if (n.n_type != (grp ? N_GRPNAME : N_SEGNAME))
+				continue;
+			k = n.n_ovly;
+			if (k < 4 || k > filhdr.a_nseg ||
+			    grp && filnseg[k] == NULL)
+				error(1, "%s: bad symbol table", filname);
+			if (n.n_un.n_strx != pos) {
+				pos = n.n_un.n_strx;
+				fseek(fc, stroff + pos, 0);
+			}
+			pos += getstr(fc, name);
+			if (grp)
+				putgroup(filnseg[k], name);
+			else
+				filnseg[k] = findnseg(name);
+		}
+	}
+	for (k = 4; k <= filhdr.a_nseg; k++)
+		if (filnseg[k] == NULL)
+			error(1, "%s: a segment with no name", filname);
+}
+
+/*
+ * The named segment of that name, made if it is the first.
+ */
+struct nseg *
+findnseg(name)
+char *name;
+{
+	register struct nseg *np;
+
+	for (np = nseg0; np; np = np->ns_next)
+		if (strcmp(np->ns_name, name) == 0)
+			return(np);
+	np = (struct nseg *)alloc(sizeof *np);
+	np->ns_name = save(name);
+	np->ns_grp = NULL;
+	np->ns_size = np->ns_fsize = 0;
+	np->ns_seg = 0;
+	np->ns_base = 0;
+	np->ns_next = NULL;
+	if (nsegn)
+		nsegn->ns_next = np;
+	else
+		nseg0 = np;
+	nsegn = np;
+	return(np);
+}
+
+/*
+ * A file says that the segment is in the group of that name.  It
+ * cannot be in two, nor in one only from some file on.
+ */
+putgroup(np, name)
+register struct nseg *np;
+char *name;
+{
+	register struct grp *gp;
+
+	for (gp = grp0; gp; gp = gp->g_next)
+		if (strcmp(gp->g_name, name) == 0)
+			break;
+	if (gp == NULL) {
+		if (strcmp(name, "DGROUP") == 0)
+			error(1, "%s: a segment of DGROUP that is not the \
+data or the bss", filname);
+		gp = (struct grp *)alloc(sizeof *gp);
+		gp->g_name = save(name);
+		gp->g_seg = 0;
+		gp->g_next = NULL;
+		if (grpn)
+			grpn->g_next = gp;
+		else
+			grp0 = gp;
+		grpn = gp;
+	}
+	if (np->ns_grp == gp)
+		return;
+	if (np->ns_grp || np->ns_size)
+		error(1, "segment %s is in two groups", np->ns_name);
+	np->ns_grp = gp;
 }
 
 /*
@@ -421,7 +586,9 @@ long off;
  */
 place()
 {
+	register struct nseg *np;
 	long t;
+	int k;
 
 	t = filseg[0].xs_memsz;
 	tpos = even(tpos);
@@ -450,6 +617,17 @@ place()
 	bpos += filseg[2].xs_memsz;
 	if (pass == 1 && dpos + bpos > 65536L)
 		error(1, "%s: more than 64K of data", filname);
+	for (k = 4; k <= filhdr.a_nseg; k++) {
+		np = filnseg[k];
+		np->ns_size = even(np->ns_size);
+		filpart[k] = np->ns_size;
+		if (filseg[k-1].xs_filesz &&
+		    np->ns_size + filseg[k-1].xs_filesz > np->ns_fsize)
+			np->ns_fsize = np->ns_size + filseg[k-1].xs_filesz;
+		np->ns_size += filseg[k-1].xs_memsz;
+		if (pass == 1 && np->ns_size > 65536L)
+			error(1, "segment %s is more than 64K", np->ns_name);
+	}
 }
 
 /*
@@ -483,6 +661,8 @@ long off;
 		pos += getstr(fc, name);
 		type = n.n_type & N_TYPE;
 		v = n.n_value;
+		if (type == N_SEGNAME || type == N_GRPNAME)
+			continue;
 		if ((n.n_type & N_EXT) == 0) {
 			if (!xflag) {
 				nlocal++;
@@ -509,6 +689,16 @@ long off;
 		}
 		sp->s_type = type;
 		sp->s_seg = 0;
+		sp->s_nseg = NULL;
+		if (n.n_ovly >= 4 && n.n_ovly <= filhdr.a_nseg &&
+		    type != N_ABS) {
+			/* in a named segment, which is put somewhere
+			   when they all have been */
+			sp->s_type = N_DATA;
+			sp->s_nseg = filnseg[n.n_ovly];
+			sp->s_value = v + filpart[n.n_ovly];
+			continue;
+		}
 		switch (type) {
 
 		case N_TEXT:
@@ -563,6 +753,7 @@ middle()
 		}
 	}
 	memsize = comorg + even(c);
+	named();
 	/* The ends of things, for whatever asks where they are. */
 	if ((sp = lookup("_etext")) != NULL && sp->s_type == N_UNDF) {
 		sp->s_type = N_TEXT;
@@ -600,8 +791,113 @@ middle()
 }
 
 /*
+ * Where the named segments go: each group in a segment of its own,
+ * and the others as many as fit in each, in the order they were come
+ * upon.  The symbols in them are put there too.
+ */
+named()
+{
+	register struct nseg *np;
+	register struct grp *gp;
+	register struct sym *sp;
+	long size;
+	int cur;
+
+	/*
+	 * A segment of nothing is one no program may have: what is
+	 * empty goes in the segment before it, the data's if none.
+	 */
+	nseg = dseg;
+	for (gp = grp0; gp; gp = gp->g_next) {
+		size = 0;
+		for (np = nseg0; np; np = np->ns_next)
+			if (np->ns_grp == gp)
+				size += np->ns_size;
+		if (size == 0) {
+			gp->g_seg = nseg;
+			for (np = nseg0; np; np = np->ns_next)
+				if (np->ns_grp == gp) {
+					np->ns_seg = nseg;
+					np->ns_base = 0;
+				}
+			continue;
+		}
+		gp->g_seg = ++nseg;
+		size = 0;
+		for (np = nseg0; np; np = np->ns_next) {
+			if (np->ns_grp != gp)
+				continue;
+			size = even(size);
+			np->ns_seg = nseg;
+			np->ns_base = (unsigned)size;
+			size += np->ns_size;
+			if (size > 65536L)
+				error(1, "group %s is more than 64K",
+				    gp->g_name);
+		}
+	}
+	cur = 0;
+	size = 0;
+	for (np = nseg0; np; np = np->ns_next) {
+		if (np->ns_grp)
+			continue;
+		if (np->ns_size == 0) {
+			np->ns_seg = cur ? cur : nseg;
+			np->ns_base = 0;
+			continue;
+		}
+		size = even(size);
+		if (cur == 0 || size + np->ns_size > 65536L) {
+			cur = ++nseg;
+			size = 0;
+		}
+		np->ns_seg = cur;
+		np->ns_base = (unsigned)size;
+		size += np->ns_size;
+	}
+	if (nseg > NXSEG)
+		error(1, "more than %d segments", (char *)NXSEG);
+	for (np = nseg0; np; np = np->ns_next) {
+		size = np->ns_base + np->ns_size;
+		if (size > nmsize[np->ns_seg])
+			nmsize[np->ns_seg] = size;
+		if (np->ns_fsize) {
+			size = np->ns_base + np->ns_fsize;
+			if (size > nfsize[np->ns_seg])
+				nfsize[np->ns_seg] = size;
+		}
+	}
+	for (sp = sym0; sp; sp = sp->s_link)
+		if (sp->s_nseg) {
+			sp->s_value += sp->s_nseg->ns_base;
+			sp->s_seg = sp->s_nseg->ns_seg;
+		}
+}
+
+/*
+ * The selector of segment n: of the process's own table (LSEL), or of
+ * the kernel's slots in the global table.
+ */
+selector(n)
+{
+	return(gdt ? (gdt + n - 1) << 3 : n << 3 | 7);
+}
+
+/*
+ * Which of the program's segments a symbol is in: 0 for none.
+ */
+segof(sp)
+register struct sym *sp;
+{
+	if (sp->s_nseg || sp->s_type == N_TEXT)
+		return(sp->s_seg);
+	return(sp->s_type == N_ABS ? 0 : dseg);
+}
+
+/*
  * Open the output, once for each part of it that is written as the
- * second pass goes: the text, the data, the symbol table and the names.
+ * second pass goes: the text, the data, the named segments, the symbol
+ * table and the names.
  */
 setupout()
 {
@@ -611,18 +907,25 @@ setupout()
 	if ((tout = fopen(ofilename, "w")) == NULL)
 		error(1, "cannot create %s", ofilename);
 	dout = fopen(ofilename, "r+");
+	nout = fopen(ofilename, "r+");
 	if (!sflag) {
 		sout = fopen(ofilename, "r+");
 		strout = fopen(ofilename, "r+");
 	}
-	if (dout == NULL || !sflag && (sout == NULL || strout == NULL))
+	if (dout == NULL || nout == NULL ||
+	    !sflag && (sout == NULL || strout == NULL))
 		error(1, "cannot open %s again", ofilename);
-	off = sizeof(struct exec) + (long)dseg * sizeof(struct exseg);
+	off = sizeof(struct exec) + (long)nseg * sizeof(struct exseg);
 	fseek(tout, off, 0);
 	for (i = 1; i <= ncode; i++)
 		off += seglen[i];
 	fseek(dout, off, 0);
 	off += dsize;
+	for (i = dseg + 1; i <= nseg; i++) {
+		nfsize[i] = even(nfsize[i]);
+		noff[i] = off;
+		off += nfsize[i];
+	}
 	if (!sflag) {
 		fseek(sout, off, 0);
 		off += (long)(nlocal + nglobal) * sizeof(struct nlist);
@@ -662,7 +965,9 @@ long off;
 	register struct sym *sp;
 	register unsigned i;
 	register type;
+	struct nseg *np;
 	long pos;
+	int k;
 
 	if (!gethdr(off))
 		error(1, "%s: not what it was", filname);
@@ -689,9 +994,16 @@ long off;
 			continue;
 		}
 		symmap[i] = NULL;
-		if (xflag)
-			continue;
 		type = n.n_type & N_TYPE;
+		if (xflag || type == N_SEGNAME || type == N_GRPNAME)
+			continue;
+		if (n.n_ovly >= 4 && n.n_ovly <= filhdr.a_nseg &&
+		    type != N_ABS) {
+			np = filnseg[n.n_ovly];
+			putsym(name, N_DATA, np->ns_seg, n.n_value +
+			    np->ns_base + filpart[n.n_ovly]);
+			continue;
+		}
 		switch (type) {
 
 		case N_TEXT:
@@ -711,21 +1023,23 @@ long off;
 			putsym(name, type, 0, n.n_value);
 		}
 	}
-	pos = off + sizeof filhdr + sizeof filseg;
-	copy(pos, pos + even(filseg[0].xs_filesz) + even(filseg[1].xs_filesz),
-	    0, tout);
-	copy(pos + even(filseg[0].xs_filesz),
-	    pos + even(filseg[0].xs_filesz) + even(filseg[1].xs_filesz) +
-	    (long)filseg[0].xs_nrel * sizeof(struct reloc), 1, dout);
+	copy(0, tout, 1);
+	copy(1, dout, 1);
+	for (k = 4; k <= filhdr.a_nseg; k++) {
+		np = filnseg[k];
+		if (filseg[k-1].xs_filesz == 0)
+			continue;
+		fseek(nout, noff[np->ns_seg] + np->ns_base + filpart[k], 0);
+		copy(k - 1, nout, 0);
+	}
 }
 
 /*
- * Copy the text or the data of the object in hand, which is at off
- * and has its relocation at roff, to where it goes, made up to an even
- * length: each word that is to be relocated is, on its way.
+ * Copy segment s of the object in hand (from 0) to where it goes, made
+ * up to an even length, and with all that it has in memory if all is
+ * to be written: each word that is to be relocated is, on its way.
  */
-copy(off, roff, s, out)
-long off, roff;
+copy(s, out, all)
 register FILE *out;
 {
 	struct reloc r;
@@ -733,8 +1047,8 @@ register FILE *out;
 	unsigned w, size;
 
 	size = (unsigned)filseg[s].xs_filesz;
-	fseek(fa, off, 0);
-	fseek(fb, roff, 0);
+	fseek(fa, filoff[s], 0);
+	fseek(fb, filroff[s], 0);
 	pos = 0;
 	for (n = filseg[s].xs_nrel; n > 0; n--) {
 		if (fread((char *)&r, sizeof r, 1, fb) != 1 ||
@@ -756,8 +1070,9 @@ register FILE *out;
 		pos++;
 	}
 	/* what is not in the file is zero: none of the text, and only
-	   the bss after the data */
-	size = (unsigned)filseg[s].xs_memsz;
+	   the bss after the data; and a named segment's is left out */
+	if (all)
+		size = (unsigned)filseg[s].xs_memsz;
 	if (size & 1)
 		size++;
 	while (pos < size) {
@@ -784,8 +1099,10 @@ unsigned w;
 			error(1, "%s: bad relocation", filname);
 		name = sp->s_name;
 		v = sp->s_value;
-		seg = sp->s_type == N_TEXT ? sp->s_seg :
-		    sp->s_type == N_ABS ? 0 : dseg;
+		seg = segof(sp);
+	} else if (r->r_sym >= 4 && r->r_sym <= filhdr.a_nseg) {
+		seg = filnseg[r->r_sym]->ns_seg;
+		v = filnseg[r->r_sym]->ns_base + filpart[r->r_sym];
 	} else switch (r->r_sym) {
 
 	case 1:
@@ -814,9 +1131,12 @@ unsigned w;
 	case R_SEG:
 		if (seg == 0)
 			error(0, "%s has no segment", name);
-		return(SELECTOR(seg));
+		return(selector(seg));
 
 	case R_PCREL:
+		if (s > 1)
+			error(1, "%s: a near call or jump from a named segment",
+			    filname);
 		if (seg != (s ? dseg : tseg)) {
 			fprintf(stderr, "ld: %s: ", filname);
 			error(0, "%s is called near from another segment",
@@ -838,10 +1158,11 @@ finishout()
 	register i;
 	struct exec hdr;
 	struct exseg seg;
+	struct nseg *np;
 
 	hdr.a_magic = A_MAGIC;
 	hdr.a_model = model;
-	hdr.a_nseg = dseg;
+	hdr.a_nseg = nseg;
 	hdr.a_eseg = 1;
 	hdr.a_entry = 0;
 	hdr.a_dseg = dseg;
@@ -850,8 +1171,7 @@ finishout()
 	hdr.a_syms = 0;
 	hdr.a_strs = 0;
 	for (sp = sym0; sp; sp = sp->s_link) {
-		i = sp->s_type == N_TEXT ? sp->s_seg :
-		    sp->s_type == N_ABS ? 0 : dseg;
+		i = segof(sp);
 		if (strcmp(sp->s_name, entry) == 0) {
 			if (sp->s_type == N_TEXT) {
 				hdr.a_eseg = i;
@@ -877,21 +1197,38 @@ finishout()
 		fclose(sout);
 		fclose(strout);
 	}
-	if (ferror(dout))
+	if (ferror(dout) || ferror(nout))
 		error(1, "error writing %s", ofilename);
 	fclose(dout);
+	/* the last named segment's even byte, which is in no part */
+	if (nseg > dseg && nfsize[nseg]) {
+		fseek(nout, noff[nseg] + nfsize[nseg] - 1, 0);
+		if (getc(nout) == EOF) {
+			fseek(nout, noff[nseg] + nfsize[nseg] - 1, 0);
+			putc(0, nout);
+		}
+	}
+	fclose(nout);
 	fseek(tout, 0L, 0);
 	fwrite((char *)&hdr, sizeof hdr, 1, tout);
 	seg.xs_nrel = 0;
-	for (i = 1; i <= dseg; i++) {
-		seg.xs_type = i == dseg ? XS_DATA : XS_CODE;
-		seg.xs_filesz = i == dseg ? dsize : seglen[i];
-		seg.xs_memsz = i == dseg ? memsize : seglen[i];
+	for (i = 1; i <= nseg; i++) {
+		seg.xs_type = i >= dseg ? XS_DATA : XS_CODE;
+		seg.xs_filesz = i == dseg ? dsize : i > dseg ? nfsize[i] :
+		    seglen[i];
+		seg.xs_memsz = i == dseg ? memsize : i > dseg ? nmsize[i] :
+		    seglen[i];
 		fwrite((char *)&seg, sizeof seg, 1, tout);
 		if (Mflag)
 			printf("segment %d: %s, %ld bytes\n", i,
-			    i == dseg ? "data" : "text", (long)seg.xs_memsz);
+			    i >= dseg ? "data" : "text", (long)seg.xs_memsz);
 	}
+	if (Mflag)
+		for (np = nseg0; np; np = np->ns_next)
+			printf("%s%s%s: segment %d at %04x, %ld bytes\n",
+			    np->ns_name, np->ns_grp ? " in " : "",
+			    np->ns_grp ? np->ns_grp->g_name : "", np->ns_seg,
+			    np->ns_base, np->ns_size);
 	if (ferror(tout))
 		error(1, "error writing %s", ofilename);
 	fclose(tout);
@@ -938,6 +1275,7 @@ char *name;
 	sp->s_value = 0;
 	sp->s_type = N_UNDF;
 	sp->s_seg = 0;
+	sp->s_nseg = NULL;
 	sp->s_link = NULL;
 	if (symn)
 		symn->s_link = sp;

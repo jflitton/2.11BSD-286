@@ -16,10 +16,13 @@ places, and NASM lists every name it was told is external where the
 system's assembler lists those that are used; both are allowed for.
 Each of NASM's segments is part of the text, the data or the bss, by
 its class, and those of one class follow each other in the order the
-file names them, as the system's assembler has them.  The data and the
-bss are one segment when a program runs, DGROUP to NASM.  Where a program
-starts (..start) is a symbol to the one and not to the other, and is
-not compared.
+file names them, as the system's assembler has them; a segment of any
+other class is a named segment, to both, and is compared by its name,
+with the group it is in.  The data and the bss are one segment when a
+program runs, DGROUP to NASM, and so are the segments of any other
+group: the selector of one is the selector of the group.  Where a
+program starts (..start) is a symbol to the one and not to the other,
+and is not compared.
 
 Exit status 0 if they are the same; else what differs is printed.
 """
@@ -28,23 +31,42 @@ import sys
 
 SECT = {"CODE": 1, "DATA": 2, "BEGDATA": 2, "BSS": 3}
 R_OFF, R_SEG, R_PCREL, R_EXT = 1, 2, 3, 0x10
-N_EXT = 0x20
+N_EXT, N_GRPNAME, N_SEGNAME = 0x20, 0x1D, 0x1E
 
 
 class Obj:
+    """A segment is 1, 2 or 3 for the text, the data and the bss, or
+    the name of a named one."""
     def __init__(self):
         self.data = {1: bytearray(), 2: bytearray(), 3: bytearray()}
         self.size = {1: 0, 2: 0, 3: 0}
+        self.group = {}         # a named segment's group
         self.relocs = set()     # (sect, addr, kind, target, addend)
         self.globals = set()    # (name, sect, value)
         self.commons = set()    # (name, size)
+
+    def normalize(self):
+        """What a selector is of: the program's data segment for the
+        data, the bss and DGROUP; a group's name for its segments."""
+        rel = set()
+        for sect, addr, kind, target, field in self.relocs:
+            if kind == R_SEG:
+                if target == 3:
+                    target = 2
+                elif isinstance(target, str) and target in self.group:
+                    target = "group " + self.group[target]
+                if target == "group DGROUP":
+                    target = 2
+            rel.add((sect, addr, kind, target, field))
+        self.relocs = rel
 
 
 def read_omf(path):
     b = open(path, "rb").read()
     o = Obj()
     lnames = [None]
-    segs = [None]               # (sect, length)
+    segs = [None]               # (sect, base)
+    grps = [None]
     exts = [None]
     last = None                 # (sect, offset) of the last LEDATA
     i = 0
@@ -63,8 +85,16 @@ def read_omf(path):
         n = struct.unpack_from("<H", b, i + 1)[0]
         body = b[i + 3:i + 3 + n - 1]
         i += 3 + n
-        if t in (0x80, 0x88, 0x9A):             # THEADR COMENT GRPDEF
+        if t in (0x80, 0x88):                   # THEADR COMENT
             pass
+        elif t == 0x9A:                         # GRPDEF
+            g, p = index(body, 0)
+            grps.append(lnames[g])
+            while p < len(body):
+                p += 1                          # 0xFF: a segment
+                k, p = index(body, p)
+                if isinstance(segs[k][0], str):
+                    o.group[segs[k][0]] = lnames[g]
         elif t == 0x96:                         # LNAMES
             p = 0
             while p < len(body):
@@ -77,13 +107,14 @@ def read_omf(path):
                 p += 3
             length = struct.unpack_from("<H", body, p)[0]
             p += 2
-            _, p = index(body, p)
+            segname, p = index(body, p)
             cls, p = index(body, p)
-            sect = SECT.get(lnames[cls])
-            if sect is None:
-                sys.exit("%s: a segment of class %s" % (path, lnames[cls]))
+            sect = SECT.get(lnames[cls], lnames[segname])
             if acbp & 2:
                 length = 0x10000
+            if sect not in o.size:
+                o.size[sect] = 0
+                o.data[sect] = bytearray()
             base = o.size[sect]
             segs.append((sect, base))
             o.size[sect] = base + length
@@ -163,14 +194,12 @@ def read_omf(path):
                 elif method == 2:
                     target = exts[datum]
                 elif loctype == 2:
-                    target = 2          # the group: the data's segment
+                    target = "group " + grps[datum]
                 else:
                     sys.exit("%s: a FIXUPP against a group" % path)
                 if loctype == 2:
                     kind = R_SEG
                     field = 0
-                    if target == 3:
-                        target = 2
                 elif loctype in (1, 5):
                     kind = R_OFF if segrel else R_PCREL
                 else:
@@ -188,36 +217,49 @@ def read_obj(path):
     b = open(path, "rb").read()
     (magic, model, nseg, _e, _o, _d, _s, _u,
      nsyms, nstrs) = struct.unpack_from("<HHHHHHHHLL", b, 0)
-    if magic != 0x0186 or nseg != 3:
+    if magic != 0x0186 or nseg < 3:
         sys.exit("%s: not an object" % path)
     o = Obj()
-    off = 24 + 36
+    off = 24 + 12 * nseg
     nrel = {}
-    for s in (1, 2, 3):
+    data = {}
+    for s in range(1, nseg + 1):
         _t, n, filesz, memsz = struct.unpack_from("<HHLL", b, 24 + 12 * (s - 1))
         nrel[s] = n
-        o.size[s] = memsz
-        o.data[s] = bytearray(b[off:off + filesz])
+        data[s] = (bytearray(b[off:off + filesz]), memsz)
         off += filesz + (filesz & 1)
     rels = {}
-    for s in (1, 2, 3):
+    for s in range(1, nseg + 1):
         rels[s] = [struct.unpack_from("<HHH", b, off + 6 * k)
                    for k in range(nrel[s])]
         off += 6 * nrel[s]
     strs = b[off + nsyms:off + nsyms + nstrs]
     syms = []
+    key = {1: 1, 2: 2, 3: 3}
     for k in range(nsyms // 8):
         strx, ntype, seg, val = struct.unpack_from("<LBbH", b, off + 8 * k)
         nm = strs[strx:strs.index(b"\0", strx)].decode("latin-1")
         syms.append((nm, ntype, seg, val))
-        if ntype == N_EXT and val:
+        if ntype == N_SEGNAME:
+            key[seg] = nm
+    for nm, ntype, seg, val in syms:
+        if ntype == N_GRPNAME:
+            o.group[key[seg]] = nm
+        elif ntype == N_EXT and val:
             o.commons.add((nm, val))
         elif ntype & N_EXT and ntype != N_EXT and nm[:2] != "..":
             # its type is its segment: N_TEXT is 2, and the text 1
             t = ntype & 0x1F
-            o.globals.add((nm, t - 1 if 2 <= t <= 4 else 0, val))
-    for s in (1, 2, 3):
-        d = o.data[s]
+            o.globals.add((nm, key[seg] if seg else
+                           t - 1 if 2 <= t <= 4 else 0, val))
+    for s in range(1, nseg + 1):
+        d, memsz = data[s]
+        if s != 3:
+            d += bytearray(memsz - len(d))
+        o.data[key[s]] = d
+        o.size[key[s]] = memsz
+    for s in range(1, nseg + 1):
+        d = o.data[key[s]]
         prev = -1
         for addr, sym, rtype in rels[s]:
             if addr <= prev:
@@ -228,13 +270,11 @@ def read_obj(path):
             if rtype & R_EXT:
                 target = syms[sym][0]
             else:
-                target = sym
+                target = key[sym]
             if kind == R_PCREL:
                 field = (field + addr + 2) & 0xFFFF
-            if kind == R_SEG and target == 3:
-                target = 2              # the bss is in the data's segment
             struct.pack_into("<H", d, addr, 0)
-            o.relocs.add((s, addr, kind, target, field))
+            o.relocs.add((key[s], addr, kind, target, field))
     return o
 
 
@@ -243,20 +283,30 @@ def main():
         sys.exit(__doc__)
     a = read_omf(sys.argv[1])
     b = read_obj(sys.argv[2])
+    a.normalize()
+    b.normalize()
     bad = 0
     names = {1: "text", 2: "data", 3: "bss"}
-    for s in (1, 2, 3):
-        if a.size[s] != b.size[s]:
-            print("%s: %d bytes and %d" % (names[s], a.size[s], b.size[s]))
+    for s in sorted(set(a.size) | set(b.size), key=str):
+        if s not in a.size or s not in b.size:
+            print("segment %s is %s's only" % (s, "NASM" if s in a.size
+                                               else "as"))
+            bad = 1
+        elif a.size[s] != b.size[s]:
+            print("%s: %d bytes and %d" % (names.get(s, s), a.size[s],
+                                           b.size[s]))
             bad = 1
         elif a.data[s] != b.data[s]:
             for k in range(len(a.data[s])):
                 if a.data[s][k] != b.data[s][k]:
                     break
             print("%s: differ at %#x: %s and %s" %
-                  (names[s], k, a.data[s][k:k + 8].hex(),
+                  (names.get(s, s), k, a.data[s][k:k + 8].hex(),
                    b.data[s][k:k + 8].hex()))
             bad = 1
+    if a.group != b.group:
+        print("groups: %s and %s" % (a.group, b.group))
+        bad = 1
     for what, x, y in (("relocation", a.relocs, b.relocs),
                        ("global", a.globals, b.globals),
                        ("common", a.commons, b.commons)):

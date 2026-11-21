@@ -65,7 +65,26 @@ extdef()
 				error("Inappropriate parameters");
 		} else if ((o=symbol())==COMMA || o==SEMI) {
 			peeksym = o;
-			o = (length((union tree *)ds)+ALIGN) & ~ALIGN;
+			/*
+			 * Only what is defined here has its size asked: an
+			 * extern may be of a structure not yet declared.
+			 */
+			if (sclass==STATIC || scflag)
+				o = (length((union tree *)ds)+ALIGN) & ~ALIGN;
+#ifdef	i286
+			/*
+			 * A far variable is in a segment of the file's
+			 * own, and is defined there, not common.
+			 */
+			if (ds->hflag&(FFAR|FBASED)
+			 && (sclass==STATIC || scflag)) {
+				setinit(ds);
+				outcode("BSBBSBN", SYMDEF,
+				    sclass==STATIC? "": ds->name,
+				    ds->hflag&FBASED? BASEDSEG: FARSEG,
+				    NLABEL, ds->name, SSPACE, o);
+			} else
+#endif
 			if (sclass==STATIC) {
 				setinit(ds);
 				outcode("BSBBSBN", SYMDEF, "", BSS, NLABEL, ds->name, SSPACE, o);
@@ -79,7 +98,12 @@ extdef()
 			setinit(ds);
 			if (sclass==EXTERN)
 				outcode("BS", SYMDEF, ds->name);
+#ifdef	i286
+			outcode("BBS", ds->hflag&FBASED? BASEDSEG:
+			    ds->hflag&FFAR? FARSEG: DATA, NLABEL, ds->name);
+#else
 			outcode("BBS", DATA, NLABEL, ds->name);
+#endif
 			if (cinit(ds, 1, sclass) & ALIGN)
 				outcode("B", EVEN);
 		}

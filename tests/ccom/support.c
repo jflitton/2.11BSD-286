@@ -348,6 +348,19 @@ fr_peek(p, i)
 	return p[i];
 }
 
+/*
+ * A far variable of this compiler's, which is in a segment of its own,
+ * for the tests of far variables to reach.
+ */
+int __far fr_ftab[4] = { 1, 2, 3, 4 };
+
+int
+fr_fpeek(i)
+	int i;
+{
+	return fr_ftab[i];
+}
+
 int
 fr_sum(p, n)
 	int __far *p;

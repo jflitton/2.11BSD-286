@@ -529,6 +529,81 @@ reload()
 	CK(fself2.v, 6);
 }
 
+/*
+ * Far variables, which are in a segment of their own and are reached
+ * through it; and one of the other compiler's.
+ */
+struct fvs {
+	int	a;
+	long	b;
+	char	c[5];
+};
+int __far fvi = 11;
+long __far fvl;
+char __far fvc[3][4] = { "ab", "cd" };
+struct fvs __far fvst[3];
+struct fvs __far fvone = { 1, 2L, "xyz" };
+int __far *fvp = &fvi;
+extern int __far fr_ftab[];
+int fr_fpeek();
+
+static
+farvars()
+{
+	static int __far fvloc[4];
+	register i;
+	struct fvs s;
+	int __far *ip;
+
+	CK(fvi, 11);
+	CK(*fvp, 11);
+	CK(fvp == &fvi, 1);
+	CK((long)fvp >> 16 == fr_seg(), 0);
+	fvi = 12;
+	fvi += 3;
+	fvi++;
+	CK(fvi, 16);
+	CK(*fvp, 16);
+	LK(fvl, 0L);
+	fvl = 100000L;
+	fvl *= 3;
+	LK(fvl, 300000L);
+	CK(fvc[1][1], 'd');
+	CK(fvc[2][0], 0);
+	CK(sizeof fvc, 12);
+	CK(sizeof fvst, 36);
+	CK(fr_peek((char __far *)fvc, 1), 'b');
+	CK(fr_peek(fvc[1], 0), 'c');
+	for (i = 0; i < 3; i++) {
+		fvst[i].a = i * 10;
+		fvst[i].b = i * 100000L;
+		fvst[i].c[i] = 'p' + i;
+	}
+	CK(fvst[2].a, 20);
+	LK(fvst[1].b, 100000L);
+	CK(fvst[2].c[2], 'r');
+	CK(fvst[i - 2].c[1], 'q');
+	CK(&fvst[2] - &fvst[0], 2);
+	CK(fvone.a, 1);
+	LK(fvone.b, 2L);
+	CK(fvone.c[2], 'z');
+	s = fvone;
+	CK(s.c[1], 'y');
+	fvst[0] = s;
+	CK(fvst[0].c[0], 'x');
+	LK(fvst[0].b, 2L);
+	fvloc[i - 1] = 7;
+	CK(fvloc[2], 7);
+	CK(fvloc[0], 0);
+	ip = fvloc;
+	ip[3] = fvloc[2] * 2;
+	CK(fvloc[3], 14);
+	CK(fr_ftab[2], 3);
+	fr_ftab[1] = 20;
+	CK(fr_fpeek(1), 20);
+	CK(fr_ftab[i - 2] + fr_ftab[3], 24);
+}
+
 t_far()
 {
 	sizes();
@@ -540,4 +615,5 @@ t_far()
 	calls();
 	structs();
 	reload();
+	farvars();
 }

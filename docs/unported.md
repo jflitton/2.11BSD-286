@@ -34,7 +34,7 @@ upstream's goes with them is ported. What is left:
 
 | what | why |
 |---|---|
-| Compiling the kernel | the compiler has no far variables or functions, `__interrupt` or `__huge`, and none of the cross compiler's pragmas, all of which the kernel uses |
+| Compiling the kernel on the system | the tools make the kernel where the system is built ([the kernel](toolchain.md#the-kernel)); on the 286, its `make` and `cc` are not given the kernel's Makefile and flags |
 | Profiling: `cc -p`, `mcrt0.o`, `prof` | the second pass does not do it for the 286, and the start-up code for it is not written |
 | `ld -r`, and so objects joined into one | not written |
 

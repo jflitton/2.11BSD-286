@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Compile C with the system's own compiler, run here.
 
-usage: ncc [-E|-S] [-O] [-ms|-mm|-ml] [-o OUT] [-Dname[=val]] [-Uname] [-Idir]
-           FILE.c
+usage: ncc [-E|-S] [-O] [-k] [-ms|-mm|-ml] [-nd=NAME] [-o OUT] [-Dname[=val]]
+           [-Uname] [-Idir] FILE.c
 
 The tree's C compiler (usr/src/lib/ccom) is two passes: c0 reads C and
 writes trees, and c1, which for the 286 is usr/src/lib/ccom/i286, turns
@@ -28,6 +28,14 @@ compiler's linker does not.
                 functions are far: the file's are then in a segment of
                 its own, FILE_TEXT; or the large, the medium with every
                 pointer far
+    -nd=NAME    the data is in NAME_DATA and NAME_BSS, of the group
+                NAME_GROUP, and not the program's data segment, which is
+                SS: so what is in the frame is reached through SS, as
+                in the kernel's network (docs/network.md); as the cross
+                compiler's -nd and -zu have it
+    -k          the kernel's way: preprocessed as tools/cc286 does it
+                for the kernel's Makefile, with the -I directories alone
+                and in their order, and not the system's first
     -D -U -I    have the file preprocessed first, as tools/cc -E does
                 it; without any of them it is, too, if it has a line
                 that begins with #
@@ -62,6 +70,8 @@ def main():
     out = None
     cpp = []
     src = None
+    nd = None
+    kernel = False
     i = 0
     while i < len(args):
         a = args[i]
@@ -74,6 +84,10 @@ def main():
             improve = True
         elif a in ("-ms", "-mm", "-ml"):
             model = a[2]
+        elif a.startswith("-nd="):
+            nd = a[4:]
+        elif a == "-k":
+            kernel = True
         elif a == "-o":
             if i >= len(args):
                 fail("-o needs an argument")
@@ -104,15 +118,30 @@ def main():
     tmp = tempfile.mkdtemp(prefix="ncc.")
     try:
         text = open(src, "rb").read()
-        if cpp or re.search(rb"^[ \t]*#", text, re.M):
-            # The preprocessor is the cross compiler's, but what it
-            # says of whose it is is not for this compiler's files.
-            r = subprocess.run([os.path.join(TOOLS, "cc"), "-E", "-m" + model,
-                                "-U__WATCOMC__"] + cpp + [src],
-                               capture_output=True)
-            sys.stderr.write(r.stderr.decode("latin-1"))
-            if r.returncode != 0:
+        if kernel:
+            # cc286 as the kernel's Makefile runs it, but for its
+            # preprocessor alone; 121 is a name after #endif, which
+            # the kernel has, and the Makefile does not hear of.
+            i = os.path.join(tmp, base + ".p")
+            r = subprocess.run([os.path.join(TOOLS, "cc286"), "-m" + model,
+                                "-wcd=121", "-U__WATCOMC__"] + cpp +
+                               ["-pl", "-o", i, src], capture_output=True)
+            msg = (r.stdout + r.stderr).decode("latin-1")
+            sys.stderr.write(msg)
+            if r.returncode != 0 or "Error!" in msg:
                 sys.exit(1)
+            r.stdout = open(i, "rb").read()
+        if kernel or cpp or re.search(rb"^[ \t]*#", text, re.M):
+            if not kernel:
+                # The preprocessor is the cross compiler's, but what
+                # it says of whose it is is not for this compiler's
+                # files.
+                r = subprocess.run([os.path.join(TOOLS, "cc"), "-E",
+                                    "-m" + model, "-U__WATCOMC__"] + cpp +
+                                   [src], capture_output=True)
+                sys.stderr.write(r.stderr.decode("latin-1"))
+                if r.returncode != 0:
+                    sys.exit(1)
             # c0 takes the preprocessor's lines as "# 12 "file"", and
             # knows nothing of the cross compiler's pragmas, which are
             # how that one is told the calling convention this one has.
@@ -139,9 +168,10 @@ def main():
         flag = {"s": None, "m": "-M", "l": "-L"}[model]
         raw = os.path.join(tmp, "t3") if improve else asm
         passes = [[os.path.join(HOST, "c0"), pre, t1, t2] +
-                  ([flag] if flag else []),
+                  ([flag] if flag else []) + (["-S"] if nd else []),
                   [os.path.join(HOST, "c1"), t1, t2, raw] +
-                  ([flag + seg] if flag else [])]
+                  ([flag + seg] if flag else []) +
+                  (["-N" + nd] if nd else [])]
         if improve:
             passes.append([os.path.join(HOST, "c2"), raw, asm])
         for cmd in passes:

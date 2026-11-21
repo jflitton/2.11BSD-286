@@ -103,6 +103,8 @@ negative numbers in them, and nothing fails to compile either way.
 ```sh
 . tools/env.sh
 make -C usr/src/sys/PC              # the kernel, obj/PC/unix
+make -C usr/src/sys/PC CCOM=1       # the same by the system's own
+                                    # tools, obj/nPC/unix
 make -C usr/src/sys/i286stand       # the boot sectors and /boot, obj/stand
 make -C usr/src/lib/libc/i286       # the C library, obj/lib
 make -C usr/src/i286 all root       # the programs, obj/bin, and the root
@@ -114,7 +116,9 @@ python3 tools/mkdisk.py -p -g 977,5,17 -b obj/stand/hdboot.bin \
 The last makes a bootable image of a 40 MB IDE disk with the root and
 2 MB of swap. The root file system is 24 MB, with 15 MB in it;
 `make root ROOTSIZE=` makes it larger, and `ROOTDISK=sd0` makes it for a
-SCSI disk, whose image `mkdisk.py -t scsi` makes. [Booting](boot.md) and
+SCSI disk, whose image `mkdisk.py -t scsi` makes; `make root
+KERNEL=$PWD/obj/nPC/unix` makes it with the kernel the system's own
+tools made ([the compiler](toolchain.md#the-kernel)). [Booting](boot.md) and
 [disks](disks.md) say more, and [the root file
 system](userland.md#the-root-file-system) what is in it.
 
@@ -218,12 +222,12 @@ tests/libc/run.sh       # the C library, with a test program as init: 74
                         # and 84 in the large; with CCOM=1, the same
                         # of the library and the program as the
                         # system's own compiler makes them
-tests/ccom/run.sh       # the system's own C compiler, run here: 1589
+tests/ccom/run.sh       # the system's own C compiler, run here: 1645
                         # checks of the code it generates, as it is and
                         # again as c2 improves it; 59 by a program it
                         # compiled, in the small model and the medium,
                         # and 62 in the large, that the system's
-                        # assembler and linker made; the 1589 again in
+                        # assembler and linker made; the 1645 again in
                         # the large model, run on the system; and the
                         # compiler's two passes and c2 as it compiled
                         # them, run there too
@@ -235,9 +239,9 @@ tests/ccom/self.sh      # the system making its compiler: cc, cpp, the
 tests/ccom/programs.sh  # the same compiler, assembler and linker on
                         # the system's programs: tests/programs, with
                         # all of them made that way
-tests/as/run.sh         # the system's assembler against NASM: 432
-                        # files that both are to make the same of (no
-                        # emulator)
+tests/as/run.sh         # the system's assembler against NASM: 445
+                        # files that both are to make the same of, the
+                        # kernel's assembly among them (no emulator)
 tests/preflight/run.sh  # tools/preflight.py, on two files with one of each
                         # thing it looks for (no emulator)
 tests/bench/run.sh      # how fast the system is: its benchmark, each
@@ -248,7 +252,9 @@ tests/network/run.sh    # the network's programs, on the system booted to
                         # multi-user with an emulated NE2000: 34 checks,
                         # of ftp, rsh, rcp, tftp, finger, tcpd, nc, the
                         # daemons, hunt and mail, and rlogin, biff and
-                        # talk at terminals
+                        # talk at terminals; with NATIVE_KERNEL=1, on
+                        # the kernel the system's own tools made, as
+                        # tests/system is too
 tests/programs/run.sh   # the programs that work on text and files, on the
                         # system booted to multi-user, nroff and man,
                         # tbl, eqn, refer, spell and their kind, zic
@@ -290,7 +296,9 @@ tests/ve/run.sh         # the editor ve, built for that machine too: 115
   tests call the cross compiler's code to have each value checked: the
   two compilers' calling conventions are tested against each other.
   `REF=1` compiles the tests with the cross compiler instead, to check
-  a test. The tests are run twice: as the two passes leave them, and
+  a test. `t_nd.c` is compiled with `-nd=ND`, so that its DS is not SS,
+  as the kernel's network's is not, and `nd.s` sets its DS as it is
+  entered and gives the checks theirs back. The tests are run twice: as the two passes leave them, and
   with `tools/ncc -O`, which has `c2` improve the code
   (`usr/src/lib/c2/i286`); everything else the compiler makes is made
   with `-O`. It ends by booting the kernel with programs that are the

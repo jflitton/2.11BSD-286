@@ -2,8 +2,10 @@
  * The assembler for the 80286: the object file (a.out.h).
  *
  * The second pass writes the text and the data each where it goes in
- * the file, and the text's relocation after them; the data's is kept
- * in a file of its own until how much the text has is known.
+ * the file, and the text's relocation after them; the relocation of
+ * the data, and of the named segments, is kept in a file of its own
+ * until how much the text has is known.  What a named segment has in
+ * it, which is not much, is written where it goes as it comes.
  */
 #include "as.h"
 #include <a.out.h>
@@ -11,28 +13,50 @@
 int	sect;			/* the segment being assembled */
 unsigned loc[NSECT];		/* and where in each */
 
-static	FILE	*sfp[NSECT];	/* the contents */
-static	FILE	*rfp[NSECT];	/* the relocation */
+static	FILE	*sfp[NSECT];	/* the contents of the text and the data */
+static	FILE	*nfp;		/*	and of the named segments */
+static	int	nfpsect;	/* which one nfp is at */
+static	FILE	*rfp;		/* the text's relocation */
+static	FILE	*xfp;		/* everyone else's */
 static	unsigned nrel[NSECT];
 static	unsigned size[NSECT];	/* as the first pass found them */
+static	unsigned fsize[NSECT];	/* a named one's that has contents */
+static	unsigned wpos[NSECT];	/* and how much of that is written */
+static	long	noff[NSECT];	/* where in the file that goes */
 static	char	tmpname[] = "/tmp/asXXXXXX";
 static	unsigned nsym;
 
 #define	even(n)	(((long)(n) + 1) & ~1L)
 
 /*
- * A byte of the segment.
+ * A byte of the segment.  A named segment has in the file only as much
+ * as goes up to its last byte that is put there; room made for what is
+ * zero before that is written as zeros when that byte comes.
  */
 ob(b)
 {
+	register s;
+
+	s = sect;
 	if (pass == 2) {
-		if (sect != SBSS)
-			putc(b, sfp[sect]);
+		if (s >= SNAMED) {
+			if (nfpsect != s) {
+				fseek(nfp, noff[s] + wpos[s], 0);
+				nfpsect = s;
+			}
+			for (; wpos[s] < loc[s]; wpos[s]++)
+				putc(0, nfp);
+			putc(b, nfp);
+			wpos[s]++;
+		} else if (s != SBSS)
+			putc(b, sfp[s]);
 		else if (b)
 			error("the bss cannot have anything in it", "");
 	}
-	if (loc[sect]++ == 0177777)
+	if (loc[s]++ == 0177777)
 		fatal("more than 64K in a segment", "");
+	if (s >= SNAMED && loc[s] > fsize[s])
+		fsize[s] = loc[s];
 }
 
 ow(w)
@@ -49,7 +73,7 @@ long n;
 {
 	if (n + loc[sect] > 0177777L)
 		fatal("more than 64K in a segment", "");
-	if (sect == SBSS)
+	if (sect == SBSS || sect >= SNAMED)
 		loc[sect] += (unsigned)n;
 	else
 		while (--n >= 0)
@@ -65,6 +89,7 @@ reloc(type, e)
 register struct expr *e;
 {
 	struct reloc r;
+	short s;
 
 	if (sect == SBSS)
 		return;
@@ -77,7 +102,13 @@ register struct expr *e;
 	} else
 		r.r_sym = e->e_sect;
 	r.r_type = type;
-	fwrite((char *)&r, sizeof r, 1, rfp[sect]);
+	if (sect == STEXT)
+		fwrite((char *)&r, sizeof r, 1, rfp);
+	else {
+		s = sect;
+		fwrite((char *)&s, sizeof s, 1, xfp);
+		fwrite((char *)&r, sizeof r, 1, xfp);
+	}
 	nrel[sect]++;
 }
 
@@ -156,7 +187,9 @@ register struct sym *sp;
 
 /*
  * Before the second pass: number the symbols, and open the object as
- * many times as there are parts of it being written at once.
+ * many times as there are parts of it being written at once.  The
+ * names of the named segments, and of their groups, are the first
+ * symbols.
  */
 outstart()
 {
@@ -164,27 +197,36 @@ outstart()
 	register i;
 	long off;
 
-	for (i = 0; i < NSECT; i++)
+	for (i = 0; i < nsect; i++)
 		size[i] = loc[i];
 	nsym = 0;
+	for (i = SNAMED; i < nsect; i++)
+		nsym += sectgrp[i] ? 2 : 1;
 	for (i = 0; i < NHASH; i++)
 		for (sp = hashtab[i]; sp; sp = sp->s_next)
 			if (wanted(sp))
 				sp->s_index = nsym++;
 	if ((sfp[STEXT] = fopen(outfile, "w")) == NULL ||
 	    (sfp[SDATA] = fopen(outfile, "r+")) == NULL ||
-	    (rfp[STEXT] = fopen(outfile, "r+")) == NULL)
+	    (nfp = fopen(outfile, "r+")) == NULL ||
+	    (rfp = fopen(outfile, "r+")) == NULL)
 		fatal("cannot create %s", outfile);
 	mktemp(tmpname);
-	if ((rfp[SDATA] = fopen(tmpname, "w+")) == NULL)
+	if ((xfp = fopen(tmpname, "w+")) == NULL)
 		fatal("cannot create %s", tmpname);
 	unlink(tmpname);
-	off = sizeof(struct exec) + 3 * sizeof(struct exseg);
+	off = sizeof(struct exec) + (nsect - 1) * sizeof(struct exseg);
 	fseek(sfp[STEXT], off, 0);
 	off += even(size[STEXT]);
 	fseek(sfp[SDATA], off, 0);
 	off += even(size[SDATA]);
-	fseek(rfp[STEXT], off, 0);
+	nfpsect = 0;
+	for (i = SNAMED; i < nsect; i++) {
+		noff[i] = off;
+		off += even(fsize[i]);
+		wpos[i] = 0;
+	}
+	fseek(rfp, off, 0);
 }
 
 static
@@ -199,6 +241,24 @@ register FILE *f;
 }
 
 /*
+ * A symbol for the table.
+ */
+static
+putsym(f, strx, type, ovly, value)
+FILE *f;
+long strx;
+unsigned value;
+{
+	struct nlist n;
+
+	n.n_un.n_strx = strx;
+	n.n_type = type;
+	n.n_ovly = ovly;
+	n.n_value = value;
+	fwrite((char *)&n, sizeof n, 1, f);
+}
+
+/*
  * After it: the rest of the object, and last its header.
  */
 outfinish()
@@ -206,15 +266,16 @@ outfinish()
 	register struct sym *sp;
 	register FILE *f;
 	register i;
-	struct nlist n;
 	struct exec hdr;
-	struct exseg seg[3];
+	struct exseg seg;
+	struct reloc r;
 	long strx;
-	int c;
+	int c, t;
+	short s;
 
 	if (nerr)
 		return;
-	for (i = STEXT; i <= SBSS; i++)
+	for (i = STEXT; i < nsect; i++)
 		if (loc[i] != size[i])
 			fatal("the passes do not agree (phase error)", "");
 	for (i = STEXT; i <= SDATA; i++) {
@@ -224,37 +285,66 @@ outfinish()
 			fatal("error writing %s", outfile);
 		fclose(sfp[i]);
 	}
-	f = rfp[STEXT];
-	rewind(rfp[SDATA]);
-	while ((c = getc(rfp[SDATA])) != EOF)
-		putc(c, f);
-	fclose(rfp[SDATA]);
+	for (i = SNAMED; i < nsect; i++)
+		if (fsize[i] & 1) {
+			fseek(nfp, noff[i] + fsize[i], 0);
+			putc(0, nfp);
+		}
+	if (ferror(nfp))
+		fatal("error writing %s", outfile);
+	fclose(nfp);
+	f = rfp;
+	for (t = SDATA; t < nsect; t++) {
+		rewind(xfp);
+		while (fread((char *)&s, sizeof s, 1, xfp) == 1 &&
+		    fread((char *)&r, sizeof r, 1, xfp) == 1)
+			if (s == t)
+				fwrite((char *)&r, sizeof r, 1, f);
+	}
+	fclose(xfp);
 	strx = 4;
+	for (i = SNAMED; i < nsect; i++) {
+		putsym(f, strx, N_SEGNAME, i, 0);
+		strx += strlen(sectname[i]) + 1;
+		if (sectgrp[i]) {
+			putsym(f, strx, N_GRPNAME, i, 0);
+			strx += strlen(sectgrp[i]) + 1;
+		}
+	}
 	for (i = 0; i < NHASH; i++)
 		for (sp = hashtab[i]; sp; sp = sp->s_next) {
 			if (sp->s_index < 0)
 				continue;
-			n.n_un.n_strx = strx;
-			strx += strlen(sp->s_name) + 1;
-			/* (its type says which segment: nm takes n_ovly
-			   for an overlay, as a program has them) */
-			n.n_ovly = 0;
-			n.n_value = sp->s_value;
+			/* its type says which of the three segments it
+			   is in, and n_ovly which named one */
+			c = 0;
 			if (sp->s_stmt == 0) {
-				n.n_type = N_UNDF | N_EXT;
+				t = N_UNDF | N_EXT;
 				if ((sp->s_flags & FCOMMON) == 0)
-					n.n_value = 0;
+					sp->s_value = 0;
 			} else {
 				if (sp->s_sect == SABS)
-					n.n_type = N_ABS;
-				else
-					n.n_type = N_TEXT + sp->s_sect - STEXT;
+					t = N_ABS;
+				else if (sp->s_sect >= SNAMED) {
+					t = N_DATA;
+					c = sp->s_sect;
+				} else
+					t = N_TEXT + sp->s_sect - STEXT;
 				if (sp->s_flags & FGLOBAL)
-					n.n_type |= N_EXT;
+					t |= N_EXT;
 			}
-			fwrite((char *)&n, sizeof n, 1, f);
+			putsym(f, strx, t, c, sp->s_value);
+			strx += strlen(sp->s_name) + 1;
 		}
 	put4(strx, f);
+	for (i = SNAMED; i < nsect; i++) {
+		fputs(sectname[i], f);
+		putc(0, f);
+		if (sectgrp[i]) {
+			fputs(sectgrp[i], f);
+			putc(0, f);
+		}
+	}
 	for (i = 0; i < NHASH; i++)
 		for (sp = hashtab[i]; sp; sp = sp->s_next)
 			if (sp->s_index >= 0) {
@@ -264,7 +354,7 @@ outfinish()
 	fseek(f, 0L, 0);
 	hdr.a_magic = A_OBJECT;
 	hdr.a_model = model;
-	hdr.a_nseg = 3;
+	hdr.a_nseg = nsect - 1;
 	hdr.a_eseg = 0;
 	hdr.a_entry = 0;
 	hdr.a_dseg = 0;
@@ -272,15 +362,15 @@ outfinish()
 	hdr.a_unused = 0;
 	hdr.a_syms = (long)nsym * sizeof(struct nlist);
 	hdr.a_strs = strx;
-	seg[0].xs_type = XS_CODE;
-	seg[1].xs_type = seg[2].xs_type = XS_DATA;
-	for (i = 0; i < 3; i++) {
-		seg[i].xs_nrel = nrel[STEXT + i];
-		seg[i].xs_filesz = i == 2 ? 0 : size[STEXT + i];
-		seg[i].xs_memsz = size[STEXT + i];
-	}
 	fwrite((char *)&hdr, sizeof hdr, 1, f);
-	fwrite((char *)seg, sizeof seg[0], 3, f);
+	for (i = STEXT; i < nsect; i++) {
+		seg.xs_type = i == STEXT ? XS_CODE : XS_DATA;
+		seg.xs_nrel = nrel[i];
+		seg.xs_filesz = i == SBSS ? 0 : i >= SNAMED ? fsize[i] :
+		    size[i];
+		seg.xs_memsz = size[i];
+		fwrite((char *)&seg, sizeof seg, 1, f);
+	}
 	if (ferror(f))
 		fatal("error writing %s", outfile);
 	fclose(f);

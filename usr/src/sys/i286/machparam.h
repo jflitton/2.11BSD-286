@@ -13,18 +13,21 @@
 
 /*
  * Macros for network/external number representation conversion.  The
- * kernel has them in line.
+ * kernel has them in line where it is compiled by the cross compiler;
+ * the system's own compiler calls them (mch_cksum.s).
  */
 #include <sys/types.h>
 #ifdef KERNEL
 u_short	ntohs(u_short), htons(u_short);
 u_long	ntohl(u_long), htonl(u_long);
+#ifdef __WATCOMC__
 #pragma aux ntohs = "xchg al,ah" parm [ax] value [ax] modify exact [ax];
 #pragma aux htons = "xchg al,ah" parm [ax] value [ax] modify exact [ax];
 #pragma aux ntohl = "xchg al,ah" "xchg dl,dh" "xchg ax,dx" \
 	parm [dx ax] value [dx ax] modify exact [ax dx];
 #pragma aux htonl = "xchg al,ah" "xchg dl,dh" "xchg ax,dx" \
 	parm [dx ax] value [dx ax] modify exact [ax dx];
+#endif
 #else
 u_short	ntohs(), htons();
 u_long	ntohl(), htonl();
@@ -108,6 +111,7 @@ u_long	ntohl(), htonl();
 extern int	cpl;
 extern unsigned	ipending, spending;
 int	splpend(void);
+#ifdef __WATCOMC__
 int	_splraise(int);
 int	_splset(int);
 #pragma aux _splraise = \
@@ -135,6 +139,15 @@ int	_splset(int);
 #define	splhigh()	_splraise(IPL_HIGH)
 #define	splx(s)		_splset(s)
 #define	spl0()		_splset(0)
+#else
+/*
+ * The system's own compiler has no way to put them in line: they are
+ * calls to mch_trap.s's.
+ */
+int	splsoftclock(void), splnet(void), splbio(void), splimp(void);
+int	spltty(void), spl5(void), splclock(void), splhigh(void);
+int	splx(int), spl0(void);
+#endif
 #endif
 
 /*
@@ -167,7 +180,11 @@ int	_splset(int);
  * (bit 0 of the selector, which is otherwise 0 for the kernel's code).
  */
 #ifdef SUPERVISOR
+#ifdef __WATCOMC__
 #define	KSPACE		__based(__segname("_STACK"))
+#else
+#define	KSPACE		__ss		/* the system's own compiler's */
+#endif
 #else
 #define	KSPACE
 #endif
@@ -191,7 +208,11 @@ int	_splset(int);
  * pointers are numbers, as any of the kernel's are.
  */
 #ifdef KERNEL
+#ifdef __WATCOMC__
 #define	CLSPACE		__based(__segname("CLIST"))
+#else
+#define	CLSPACE		__based(CLIST)	/* the system's own compiler's */
+#endif
 #else
 #define	CLSPACE
 #endif

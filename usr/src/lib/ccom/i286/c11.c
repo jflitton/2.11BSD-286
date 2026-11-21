@@ -193,7 +193,15 @@ xrefs()
 	for (xp = xsyms; xp; xp = xp->xnext) {
 		if (xp->xdefd)
 			continue;
-		if (xp->xsize)
+		/*
+		 * Where the data is not the program's, what has no value
+		 * is defined in the bss, as the cross compiler does it.
+		 */
+		if (xp->xsize && ssflag) {
+			sect(BSS);
+			printf("\talignb\t2\n\tglobal\t%s\n%s:\n\tresb\t%u\n",
+			    xp->xname, xp->xname, xp->xsize);
+		} else if (xp->xsize)
 			printf("\tcommon\t%s %u:near\n", xp->xname, xp->xsize);
 		else
 			printf("\textern\t%s\n", xp->xname);
@@ -205,10 +213,23 @@ xrefs()
  */
 sect(s)
 {
+	static int farsaid;
+
 	if (cursect==s)
 		return;
 	cursect = s;
-	printf("\tsegment\t%s\n", s==PROG? textseg: s==DATA? "_DATA": "_BSS");
+	if (s==FARSEG) {
+		printf("\tsegment\t%s", farseg);
+		if (!farsaid++)
+			printf(" public align=2 class=FAR_DATA");
+		putchar('\n');
+		return;
+	}
+	if (s==BASEDSEG) {
+		printf("\tsegment\t%s\n", basedseg);
+		return;
+	}
+	printf("\tsegment\t%s\n", s==PROG? textseg: s==DATA? datseg: bssseg);
 }
 
 /*
@@ -833,6 +854,29 @@ getree()
 		sect(BSS);
 		break;
 
+	case FARSEG:
+		sect(FARSEG);
+		break;
+
+	/*
+	 * The based segment, which is said here before anything is put
+	 * in it or its name is used for its selector.
+	 */
+	case SEGNAME:
+		outname(s);
+		strncpy(basedseg, s, sizeof basedseg - 1);
+		printf("\tsegment\t%s public align=2 class=FAR_DATA\n",
+		    basedseg);
+		t = cursect;
+		cursect = 0;
+		if (t)
+			sect(t);
+		break;
+
+	case BASEDSEG:
+		sect(BASEDSEG);
+		break;
+
 	case SYMDEF:
 		outname(s);
 		if (*s)
@@ -850,7 +894,7 @@ getree()
 
 	case SSPACE:
 		t = geti();
-		if (cursect==BSS)
+		if (cursect==BSS || cursect==FARSEG || cursect==BASEDSEG)
 			printf("\tresb\t%u\n", UNS(t));
 		else
 			printf("\ttimes %u db 0\n", UNS(t));
@@ -860,7 +904,8 @@ getree()
 	case EVEN:
 		if (cursect==BSS)
 			printf("\talignb\t2\n");
-		else if (cursect==DATA)
+		else if (cursect==DATA || cursect==FARSEG ||
+		    cursect==BASEDSEG)
 			printf("\talign\t2,db 0\n");
 		else
 			printf("\talign\t2\n");
@@ -1117,6 +1162,9 @@ union tree *atp;
 			rcexpr(paint(tp, nwords==1? INT: LONG), FORREG);
 			return;
 		}
+		if (ssflag)
+			error("a structure of more than two words is not \
+returned where DS is not SS");
 		strret = 1;
 		l = getblk(sizeof(struct tname));
 		l->t.op = NAME;
@@ -1160,15 +1208,17 @@ union tree *atp;
 	}
 	/*
 	 * To or from what a far pointer points at: both addresses are
-	 * made far.
+	 * made far.  So is every one where DS is not SS, and one may be
+	 * in the frame and the other not.
 	 */
-	if (l->t.op==FSTAR || r->t.op==FSTAR) {
+	if (l->t.op==FSTAR || r->t.op==FSTAR || ssflag) {
 		if (r->t.op==CALL) {
 			printf("\tsub\tsp,%d\n", nwords*2);
 			gcall(r, TNULL, 1);
 			faraddr(l);
 			printf("\tmov\tbx,ax\n\tmov\tcx,dx\n");
-			printf("\tmov\tax,sp\n\tmov\tdx,%s\n", dseg);
+			printf("\tmov\tax,sp\n\tmov\tdx,%s\n",
+			    ssflag? "ss": dseg);
 			fmovs(nwords);
 			printf("\tadd\tsp,%d\n", nwords*2);
 			return;
@@ -1243,12 +1293,16 @@ register n;
 faraddr(p)
 register union tree *p;
 {
+	register frame;
+
 	if (p->t.op==FSTAR) {
 		rcexpr(p->t.tr1, FORREG);
 		return;
 	}
+	/* (asked first: making its address makes p something else) */
+	frame = ssflag && isauto(p);
 	rcexpr(optim(tnode(AMPER, STRUCT+PTR, p, TNULL)), FORREG);
-	printf("\tmov\tdx,%s\n", dseg);
+	printf("\tmov\tdx,%s\n", frame? "ss": dseg);
 }
 
 /*

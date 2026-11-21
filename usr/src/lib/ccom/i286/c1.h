@@ -178,6 +178,12 @@ int	lflag;			/* the large model: DS is no one's (c10.c) */
 char	*dseg;			/* what has the program's data: ds, or ss */
 char	*ovr;			/* its override where DS is not it: "ss:" */
 char	*textseg;		/* the name of the segment the code is in */
+char	*farseg;		/*	and of the one far variables are in */
+char	basedseg[32];		/*	and of the based segment (__based) */
+char	*datseg, *bssseg;	/* the data's and the bss's */
+int	ssflag;			/* -N: DS is not SS (c10.c) */
+char	*sovr;			/* the override for the stack, through BX:
+				   "ss:" where DS is not SS */
 int	cursect;		/* PROG, DATA or BSS: the segment being filled */
 char	*funcbase;
 char	*curbase;
@@ -205,6 +211,8 @@ union	tree *operands();
 union	tree *loperands();
 union	tree *bxform();
 union	tree *faradr();
+union	tree *xbase();
+union	tree *xfind();
 union	tree *adrof();
 union	tree *fmem();
 char	*fname();
@@ -365,7 +373,11 @@ char	*opname2();
 #define	ASFMINUS 134
 #define	NTOF	135	/* a near pointer made far: the data segment's */
 #define	CTOF	136	/* a near pointer to a function made far */
-#define	MAXOP	136
+#define	XTOF	137	/* the address of a far variable made far: the
+			   variable's own segment's */
+#define	STOF	138	/* a pointer into SS made far */
+#define	BTOF	139	/* a pointer into the based segment made far */
+#define	MAXOP	139
 
 #define	BDATA	200
 #define	PROG	202
@@ -388,6 +400,9 @@ char	*opname2();
 #define	GLOBAL	221
 #define	C3BRANCH	222
 #define	ASSEM	223
+#define	FARSEG	224	/* what follows is in the file's far segment */
+#define	SEGNAME	225	/* the based segment's name */
+#define	BASEDSEG 226	/* what follows is in the based segment */
 
 /*
  *	types

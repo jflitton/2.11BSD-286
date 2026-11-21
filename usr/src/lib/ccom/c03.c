@@ -332,7 +332,7 @@ struct nmlist *tptr;
 decl1(askw, atptr, offset, absname)
 struct nmlist *atptr, *absname;
 {
-	int t1, a, elsize;
+	int t1, a, elsize, fv;
 	register int skw;
 	int type;
 	register struct nmlist *dsym;
@@ -363,6 +363,7 @@ struct nmlist *atptr, *absname;
 	}
 #ifdef	i286
 	farsym = 0;
+	basedsym = 0;
 #endif
 	t1 = getype(&dim, absname);
 	if (t1 == -1)
@@ -437,7 +438,7 @@ struct nmlist *atptr, *absname;
 				if ((t1 & XTYPE) == PTR)
 					continue;
 #ifdef	i286
-				if ((t1 & XTYPE) == FPTR)
+				if ((t1 & XTYPE) == FPTR || ISBASED(t1))
 					continue;
 #endif
 				if ((t1 & XTYPE) == FUNC) {
@@ -477,10 +478,21 @@ struct nmlist *atptr, *absname;
 #ifdef	i286
 	/*
 	 * A function said to be far is what every function is in the
-	 * medium and large models.
+	 * medium and large models.  Only what is static or external may
+	 * be in a segment of its own.
 	 */
-	if (farsym && !(mflag && (type&XTYPE)==FUNC))
-		dsym->hflag |= FFAR;
+	if (farsym && !(mflag && (type&XTYPE)==FUNC)) {
+		if (skw==EXTERN || skw==STATIC)
+			dsym->hflag |= FFAR;
+		else
+			error("%s cannot be far", dsym->name);
+	}
+	if (basedsym) {
+		if ((skw==EXTERN || skw==STATIC) && (type&XTYPE)!=FUNC)
+			dsym->hflag |= FBASED;
+		else
+			error("%s cannot be __based", dsym->name);
+	}
 #endif
 	if (skw==TYPEDEF) {
 		dsym->hclass = TYPEDEF;
@@ -555,12 +567,17 @@ struct nmlist *atptr, *absname;
 		isinit = 0;
 	} else if (skw==STATIC) {
 		dsym->hoffset = isn;
+#ifdef	i286
+		fv = dsym->hflag&FBASED? BASEDSEG: dsym->hflag&FFAR? FARSEG: 0;
+#else
+		fv = 0;
+#endif
 		if (isinit) {
-			outcode("BBN", DATA, LABEL, isn++);
+			outcode("BBN", fv? fv: DATA, LABEL, isn++);
 			if (cinit(dsym, 1, STATIC) & ALIGN)
 				outcode("B", EVEN);
 		} else
-			outcode("BBNBN", BSS, LABEL, isn++, SSPACE,
+			outcode("BBNBN", fv? fv: BSS, LABEL, isn++, SSPACE,
 			  rlength((union tree *)dsym));
 		outcode("B", PROG);
 		isinit = 0;
@@ -650,6 +667,46 @@ more:	switch(o=symbol()) {
 			mossym = 0;
 			goto more;
 		}
+		/*
+		 * __ss before a * makes a near pointer to what is in
+		 * SS, which is not DS with -S.  __based(NAME) before a *
+		 * makes a near pointer into the segment NAME, and before
+		 * a name says that what is named is in that segment.  A
+		 * file has one such segment.
+		 */
+		if (cval == SSKW) {
+			far = 2;
+			goto more;
+		}
+		if (cval == BASED) {
+			o = mossym;
+			mosflg = 0;
+			if (symbol()!=LPARN || symbol()!=NAME) {
+				error("__based(what?)");
+				goto more;
+			}
+			/*
+			 * The segment's name is no variable's: if looking
+			 * it up made an entry for it, which is first in
+			 * its list, that is taken out again.
+			 */
+			if (csym->hclass==0 && csym->htype==0
+			 && hshtab[hash(csym->name)]==csym)
+				hshtab[hash(csym->name)] = csym->nextnm;
+			if (basedname[0]==0) {
+				strncpy(basedname, csym->name,
+				    sizeof basedname - 1);
+				outcode("BF", SEGNAME, basedname);
+			} else if (strcmp(basedname, csym->name))
+				error("a second based segment: %s",
+				    csym->name);
+			if (symbol()!=RPARN)
+				error("__based(what?)");
+			far = 3;
+			mosflg = o;
+			mossym = 0;
+			goto more;
+		}
 #endif
 		break;
 
@@ -662,6 +719,10 @@ more:	switch(o=symbol()) {
 			type = 0;
 		}
 #ifdef	i286
+		if (far==2)
+			return(type<<TYLEN | SPTR);
+		if (far==3)
+			return(type<<TYLEN | BPTR);
 		if (far>0 || far==0 && lflag)
 			return(type<<TYLEN | FPTR);
 #endif
@@ -686,7 +747,11 @@ more:	switch(o=symbol()) {
 	case NAME:
 		defsym = ds = csym;
 #ifdef	i286
-		if (far>0)
+		if (far==3)
+			basedsym++;
+		else if (far==2)
+			error("only a pointer can be __ss");
+		else if (far>0)
 			farsym++;
 #endif
 	getf:

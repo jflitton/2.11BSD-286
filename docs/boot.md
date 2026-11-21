@@ -205,7 +205,8 @@ it was linked, and mean nothing in real mode.
 | 32 to 63 | 0x100 on | handed out as the kernel starts: so far, one for each 64K of the buffer pool's data |
 
 The kernel's segments have fixed slots because `ne2aout.py --gdt 16` writes
-their selectors into the kernel when it is linked. A descriptor's limit is
+their selectors into the kernel when it is linked (or `ld -gdt 16`, for the
+kernel the system's own tools make). A descriptor's limit is
 the segment's exact size, so the kernel faults if it reads or writes past
 the end of its data or jumps past the end of a code segment.
 

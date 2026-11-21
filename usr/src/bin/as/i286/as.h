@@ -17,18 +17,23 @@
 #define	NAMESZ	64		/* a name */
 #define	NHASH	257
 #define	NINCL	4		/* %includes, one in another */
-#define	NSEGN	12		/* names of segments in one file */
+#define	NSEGN	24		/* names of segments in one file */
+#define	NNAMED	12		/* segments of the object's own beyond its
+				   three */
 
 /*
- * Where a symbol is, or a value: one of the object's three segments, by
- * its number there, or nowhere.
+ * Where a symbol is, or a value: one of the object's segments, by its
+ * number there, or nowhere.  The first three are the text, the data
+ * and the bss; those after them are named, as a far variable's is
+ * (a.out.h).
  */
 #define	SUNDEF	0		/* not defined here */
 #define	STEXT	1
 #define	SDATA	2
 #define	SBSS	3
-#define	SABS	4		/* a number */
-#define	NSECT	4
+#define	SNAMED	4		/* the first named one */
+#define	NSECT	(SNAMED + NNAMED)
+#define	SABS	31		/* a number */
 
 struct sym {
 	struct	sym *s_next;	/* the next with the same hash */
@@ -175,6 +180,9 @@ extern	int	nerr;
 extern	unsigned stmt;
 extern	int	sect;
 extern	unsigned loc[NSECT];
+extern	int	nsect;
+extern	char	*sectname[NSECT];
+extern	char	*sectgrp[NSECT];
 extern	char	*lp;
 extern	struct	sym *hashtab[NHASH];
 extern	struct	sym *lastlab;
@@ -188,6 +196,8 @@ extern	struct	opnd op[3];
 extern	int	nop;
 extern	unsigned here;
 extern	int	model;
+
+#define	P_ADD	8		/* how tightly + and - bind (binary) */
 
 struct	sym *lookup(), *symbol();
 struct	insn *findinsn();

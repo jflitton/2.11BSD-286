@@ -38,7 +38,7 @@ d /lost+found 755
 d /mnt 755
 d /home 755
 d /usr/skel 755
-f /unix 644 ../../../obj/PC/unix
+i ../../../obj/root/kernel.proto
 f /boot 644 ../../../obj/stand/boot
 d /mdec 755
 f /mdec/wduboot 444 ../../../obj/stand/hdboot.bin

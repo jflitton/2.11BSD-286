@@ -156,6 +156,9 @@ int opdope[] = {
 	000001,	/* 134 - far -= */
 	000000,	/* 135 - near->far */
 	000000,	/* 136 - near->far, of code */
+	000000,	/* 137 - a far variable's address made far */
+	000000,	/* 138 - a pointer into SS made far */
+	000000,	/* 139 - a pointer into the based segment made far */
 #endif
 };
 

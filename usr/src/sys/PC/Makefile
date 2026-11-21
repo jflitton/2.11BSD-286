@@ -6,10 +6,20 @@
 #
 # makes obj/PC/unix, the kernel, and obj/PC/unix.img, a diskette that
 # boots it.  Everything made goes in obj/PC.  GNU make.
+#
+#	make -C usr/src/sys/PC CCOM=1
+#
+# makes the same in obj/nPC with the system's own compiler, assembler
+# and linker, as they are built for this machine (tools/ncc,
+# docs/toolchain.md), and none of the cross compiler's.
 
 TOP:=	$(abspath ../../../..)
 SYS:=	$(TOP)/usr/src/sys
+ifdef CCOM
+O=	$(TOP)/obj/nPC
+else
 O=	$(TOP)/obj/PC
+endif
 H=	$(SYS)/h
 M=	$(SYS)/i286
 A=	$(SYS)/i286at
@@ -77,6 +87,35 @@ $(O):
 # wrong.
 HDRS:=	$(wildcard $(H)/*.h $(M)/*.h $(A)/*.h $(C)/*.h $(N)/*.h $(I)/*.h $(E)/*.h)
 
+ifdef CCOM
+# The system's own tools.  The network's data is NET_GROUP, as the
+# cross compiler's -nd and -zu make it: -nd=NET does both.
+HOST=	$(TOP)/obj/host/ccom
+NCFLAGS= -k -O -mm $(DEFS)
+$(addprefix $(O)/,$(NET)): NCFLAGS += -DSUPERVISOR -nd=NET
+
+$(O)/%.o: %.c $(HDRS) $(HOST)/c0 $(HOST)/c1 $(HOST)/c2 $(HOST)/as
+	@echo cc $*.c
+	@$(TOP)/tools/ncc $(NCFLAGS) -o $@ $<
+
+$(O)/%.o: %.s $(M)/mch_defs.inc $(HOST)/as
+	@echo as $*.s
+	@$(HOST)/as -mm -DFAR -I$(M)/ -I$(CRT)/ -o $@ $<
+
+$(O)/vers.o: $(O)/vers.c
+	@cd $(O) && $(TOP)/tools/ncc -O -mm -o vers.o vers.c
+
+# The kernel's selectors are the GDT's from slot 16 (docs/boot.md), and
+# its stacks are in its data (uslot, param.c).  tools/netcheck.py reads
+# the cross compiler's objects, and is not run on these.
+$(O)/unix: $(addprefix $(O)/,$(OBJS)) $(HOST)/ld
+	@echo ld unix
+	@cd $(O) && $(HOST)/ld -mm -gdt 16 -stack 0 -M -o unix $(OBJS) \
+	    > unix.map || { rm -f unix; exit 1; }
+
+$(HOST)/c0 $(HOST)/c1 $(HOST)/c2 $(HOST)/as $(HOST)/ld:
+	$(MAKE) -C $(TOP)/usr/src/lib/ccom/i286 host
+else
 $(addprefix $(O)/,$(NET)): CFLAGS += $(NETFLAGS)
 
 $(O)/%.o: %.c $(HDRS)
@@ -90,12 +129,13 @@ $(O)/%.o: %.s $(M)/mch_defs.inc
 	@echo as $*.s
 	@$(AS) -o $@ $<
 
+$(O)/vers.o: $(O)/vers.c
+	@cd $(O) && $(CC) $(CFLAGS) -o vers.o vers.c
+endif
+
 $(O)/vers.c: FRC
 	@echo 'char version[] = "2.11 BSD UNIX for the 286 ('`date +%Y-%m-%d`')";' \
 	    > $@
-
-$(O)/vers.o: $(O)/vers.c
-	@cd $(O) && $(CC) $(CFLAGS) -o vers.o vers.c
 
 comma:=	,
 empty:=
@@ -111,6 +151,7 @@ space:=	$(empty) $(empty)
 # in two files, which a header that declares one without "extern" causes
 # in every file that includes it; the linker keeps the first and goes on,
 # and here that is an error.
+ifndef CCOM
 $(O)/unix: $(addprefix $(O)/,$(OBJS))
 	@cd $(O) && { wlink op q format os2 name unix.ne disable 1014,1172 \
 	    op nodefaultlibs,stack=2,map=unix.map \
@@ -123,6 +164,7 @@ $(O)/unix: $(addprefix $(O)/,$(OBJS))
 	    --kernel $(filter-out $(NET),$(OBJS))
 	cd $(O) && python3 -I $(TOP)/tools/ne2aout.py --model m --gdt 16 \
 	    --map unix.map unix.ne unix
+endif
 
 $(O)/fdboot.bin: $(SYS)/i286stand/fdboot.s
 	nasm -f bin -o $@ $<

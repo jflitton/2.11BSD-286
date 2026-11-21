@@ -45,6 +45,14 @@ the text of each file is whole in one of them, and files share a
 segment, in the order they are loaded, until the next would not fit.
 The large model's text is the medium's; its pointers are all far, and
 what they point at beyond its data the program is given as it runs.
+.PP
+The segments after the data are the files' named segments, as a far
+variable is in: what every file has of one name is put together, in
+the order they are loaded.
+The segments of a group are one segment, of 64K bytes at most, and
+the others share segments as files share the text.
+A program has 31 segments at most.
+.PP
 A reference to a segment is filled in with its selector, so that the
 program is loaded as it is written.
 All the files of a program must be for one model.
@@ -67,6 +75,12 @@ they may appear anywhere among the file names.
 The following argument is taken to be the
 name of the entry point of the loaded
 program.
+.TP
+.BI \-gdt " n"
+The selectors are of the global descriptor table, segment 1 in slot
+.I n
+and the others after it, and not of a process's own table: for the
+kernel.
 .TP
 .BI \-L dir
 Add
@@ -97,7 +111,8 @@ is significant.
 .TP
 .B \-M
 produce a primitive load map: each global symbol with its segment
-and its address, and each segment with its size.
+and its address, each segment with its size, and where each named
+segment is.
 .TP
 .B \-ml
 Make a program of the large model.

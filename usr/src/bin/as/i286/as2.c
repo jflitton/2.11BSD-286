@@ -17,6 +17,7 @@ struct insn insns[] = {
 	"adc",		C_ALU,		0,	2,
 	"add",		C_ALU,		0,	0,
 	"align",	C_DIR,		0,	D_ALIGN,
+	"alignb",	C_DIR,		1,	D_ALIGN,
 	"and",		C_ALU,		0,	4,
 	"arpl",		C_ARPL,		0,	0x63,
 	"bits",		C_DIR,		0,	D_IGNORE,
@@ -97,6 +98,7 @@ struct insn insns[] = {
 	"frstor",	C_FMEM,		0,	0xDD04,
 	"fsave",	C_FMEM,		1,	0xDD06,
 	"fscale",	C_NONE2,	0,	0xD9FD,
+	"fsetpm",	C_NONE2,	0,	0xDBE4,
 	"fsqrt",	C_NONE2,	0,	0xD9FA,
 	"fst",		C_FLD,		0,	2,
 	"fstcw",	C_FMEM,		1,	0xD907,
@@ -245,21 +247,34 @@ struct insn insns[] = {
 #define	NINSNS	(sizeof insns / sizeof insns[0])
 
 /*
- * The names of the file's segments, and which of the object's three
- * each is part of.
+ * The names of the file's segments, and which of the object's
+ * segments each is part of.
  */
 char	*segname[NSEGN];
 char	segsect[NSEGN];
 int	nsegn;
 
 /*
- * The names of groups.  What a group is made of is not asked: in a
- * program the data and the bss are one segment, which is the only
- * group there is (DGROUP), and its name stands for that segment's
- * selector, as `seg' of anything in it does.
+ * The object's named segments, SNAMED on: each one's name, and the
+ * group it is in, if any.
+ */
+int	nsect = SNAMED;
+char	*sectname[NSECT];
+char	*sectgrp[NSECT];
+
+/*
+ * The names of groups, and which segment is in which.  The data and
+ * the bss are in the program's data segment, whatever group they are
+ * said to be in; that one is DGROUP, and its name stands for that
+ * segment's selector, as `seg' of anything in it does.  A group of
+ * named segments is one segment of the program too, and its name
+ * stands for that one's.
  */
 char	*grpname[NSEGN];
 int	ngrpn;
+char	*memname[NSEGN];	/* a segment of a group, */
+char	memgrp[NSEGN];		/*	and which */
+int	nmem;
 
 tabcheck()
 {
@@ -857,6 +872,21 @@ register struct insn *ip;
 		oshort(&o->o_e);
 		return;
 	}
+	/*
+	 * Outside the text, where nothing is relaxed, one back to a place
+	 * already passed is short if that reaches, as NASM has it.
+	 */
+	if (sect != STEXT && o->o_e.e_sect == sect && !o->o_e.e_fwd) {
+		long d;
+
+		d = (o->o_e.e_val & 0177777L) - ((long)here + 2);
+		if (d >= -128 && d <= 127) {
+			ob(ip->i_op);
+			oshort(&o->o_e);
+		} else
+			longjump(ip, &o->o_e);
+		return;
+	}
 	if (pass == 1) {
 		jp = newjump();
 		jp->j_kind = ip->i_class == C_JMP ? J_JMP : J_COND;
@@ -1123,7 +1153,9 @@ register struct insn *ip;
 			error("align to what?", "");
 			return;
 		}
-		fill = sect == STEXT ? 0x90 : 0;
+		/* with NOPs, as NASM does in any segment but the bss;
+		   alignb with room, which is zero */
+		fill = sect != SBSS && !ip->i_arg ? 0x90 : 0;
 		skipb();
 		if (*lp == ',') {
 			lp++;
@@ -1146,7 +1178,8 @@ register struct insn *ip;
 		}
 		c = (int)n;
 		while (loc[sect] % c)
-			if (sect == SBSS)
+			if (sect == SBSS || sect >= SNAMED && fill == 0 ||
+			    ip->i_arg)
 				oskip(1L);
 			else
 				ob(fill);
@@ -1165,6 +1198,17 @@ register struct insn *ip;
 			sp->s_flags |= ip->i_op == D_GLOBAL ? FGLOBAL :
 			    FEXTERN;
 			skipb();
+			/* NAME:wrt GROUP: where it is reckoned from, which
+			   is where its segment starts, whatever is said */
+			if (*lp == ':') {
+				lp++;
+				skipb();
+				getname(name);
+				lower(name, name);
+				skipb();
+				getname(name);
+				skipb();
+			}
 			if (*lp != ',')
 				break;
 			lp++;
@@ -1201,16 +1245,8 @@ register struct insn *ip;
 		return;
 
 	case D_GROUP:
-		skipb();
-		getname(name);
-		if (name[0] == 0)
-			error("group what?", "");
-		else if (!isgroup(name)) {
-			if (ngrpn >= NSEGN)
-				fatal("too many groups", "");
-			grpname[ngrpn++] = save(name);
-		}
-		/* and what it is made of is not asked */
+		group();
+		return;
 
 	case D_IGNORE:
 		while (!eol())
@@ -1219,6 +1255,54 @@ register struct insn *ip;
 	}
 }
 
+/*
+ * group NAME SEGMENT ...: the first time, what it is made of.
+ */
+group()
+{
+	char name[NAMESZ];
+	register i, g;
+
+	skipb();
+	getname(name);
+	if (name[0] == 0) {
+		error("group what?", "");
+		return;
+	}
+	if ((g = isgroup(name)) != 0) {
+		/* what it is made of was said the first time */
+		while (!eol())
+			lp++;
+		return;
+	}
+	if (ngrpn >= NSEGN)
+		fatal("too many groups", "");
+	grpname[ngrpn++] = save(name);
+	g = ngrpn;
+	for (;;) {
+		skipb();
+		if (*lp == ',')
+			lp++;
+		skipb();
+		getname(name);
+		if (name[0] == 0)
+			break;
+		if (nmem >= NSEGN)
+			fatal("too many segments in groups", "");
+		memname[nmem] = save(name);
+		memgrp[nmem++] = g;
+		for (i = 0; i < nsegn; i++)
+			if (strcmp(segname[i], name) == 0 &&
+			    segsect[i] >= SNAMED)
+				sectgrp[segsect[i]] = grpname[g-1];
+	}
+	if (!eol())
+		error("group of what?  %s", lp);
+}
+
+/*
+ * Is the name a group's?  Its number from 1 if so.
+ */
 isgroup(name)
 char *name;
 {
@@ -1226,13 +1310,43 @@ char *name;
 
 	for (i = 0; i < ngrpn; i++)
 		if (strcmp(grpname[i], name) == 0)
-			return(1);
+			return(i + 1);
+	return(0);
+}
+
+/*
+ * The segment that the name of a group, or of a segment, stands for
+ * the selector of: one of the object's, or 0 if the name is neither.
+ * A group of no named segment is the program's data segment.
+ */
+segof(name)
+char *name;
+{
+	register i, j, g;
+
+	if ((g = isgroup(name)) != 0) {
+		for (i = 0; i < nmem; i++) {
+			if (memgrp[i] != g)
+				continue;
+			for (j = 0; j < nsegn; j++)
+				if (strcmp(segname[j], memname[i]) == 0 &&
+				    segsect[j] >= SNAMED)
+					return(segsect[j]);
+		}
+		return(SDATA);
+	}
+	for (i = 0; i < nsegn; i++)
+		if (strcmp(segname[i], name) == 0)
+			return(segsect[i]);
 	return(0);
 }
 
 /*
  * segment NAME, with what it is the first time: all that matters of
- * that is its class.  Without one the name has to say.
+ * that is its class.  CODE is the text, BSS the bss, and DATA and
+ * BEGDATA the data; any other is a named segment, which is not the
+ * program's data segment.  Without a class the name has to say, and
+ * names the text, the bss or the data.
  */
 segment()
 {
@@ -1258,14 +1372,16 @@ segment()
 			getname(word);
 			lower(word, word);
 			s = strcmp(word, "code") == 0 ? STEXT :
-			    strcmp(word, "bss") == 0 ? SBSS : SDATA;
+			    strcmp(word, "bss") == 0 ? SBSS :
+			    strcmp(word, "data") == 0 ||
+			    strcmp(word, "begdata") == 0 ? SDATA : SNAMED;
 		}
 	}
 	for (i = 0; i < nsegn; i++)
 		if (strcmp(segname[i], name) == 0)
 			break;
 	if (i < nsegn) {
-		if (s && s != segsect[i])
+		if (s && s != (segsect[i] < SNAMED ? segsect[i] : SNAMED))
 			error("segment %s was of another class", name);
 		sect = segsect[i];
 		return;
@@ -1281,6 +1397,15 @@ segment()
 		}
 		if (s == 0)
 			s = SDATA;
+	}
+	if (s == SNAMED) {
+		if (nsect >= NSECT)
+			fatal("too many named segments", "");
+		s = nsect++;
+		sectname[s] = save(name);
+		for (i = 0; i < nmem; i++)
+			if (strcmp(memname[i], name) == 0)
+				sectgrp[s] = grpname[memgrp[i]-1];
 	}
 	if (nsegn >= NSEGN)
 		fatal("too many segments", "");

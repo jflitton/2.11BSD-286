@@ -154,12 +154,31 @@ build(op)
 	case STAR:
 		if ((t1&XTYPE) == FUNC)
 			error("Illegal indirection");
+#ifdef	i286
+		/*
+		 * What a pointer into SS or into the based segment points
+		 * at is what the pointer made far does.
+		 */
+		if (ISBASED(t1))
+			p1 = basedfar(p1);
+#endif
 		*cp++ = block(STAR, decref(t1), p1->t.subsp, p1->t.strp, p1, TNULL);
 		return;
 
 	case AMPER:
 		if (p1->t.op==NAME || p1->t.op==STAR) {
 #ifdef	i286
+			/*
+			 * The address of what a based pointer points at is
+			 * that pointer, and as near as it is.
+			 */
+			if (p1->t.op==STAR && (p1->t.tr1->t.op==STOF
+			 || p1->t.tr1->t.op==BTOF)) {
+				p2 = p1->t.tr1->t.tr1;
+				*cp++ = block(PLUS, adrtype(p1), p1->t.subsp,
+				    p1->t.strp, p2, cblock(0));
+				return;
+			}
 			*cp++ = block(op,adrtype(p1),p1->t.subsp,p1->t.strp,p1,TNULL);
 #else
 			*cp++ = block(op,incref(p1->t.type),p1->t.subsp,p1->t.strp,p1,TNULL);
@@ -225,7 +244,8 @@ build(op)
 		 * pointer to it points at: there may be no room in a
 		 * type for that pointer.
 		 */
-		t = ISFAR(p1->t.type)? fincref(t2): incref(t2);
+		t = ISFAR(p1->t.type)? fincref(t2): ISBASED(p1->t.type)?
+		    incref(t2) + (p1->t.type&XTYPE) - PTR: incref(t2);
 		chkw(p1, -1);
 		setype(p1, t, p2);
 		*cp++ = block(PLUS, t, p2->t.subsp, p2->t.strp,
@@ -580,7 +600,10 @@ register union tree *p, *q;
 		lp->l.op = LCON;
 		lp->l.lvalue = (unsigned short)p->c.value;
 		p = lp;
-	} else if ((unsigned)pt>=PTR)
+	} else if ((pt&XTYPE)==SPTR || (pt&XTYPE)==BPTR)
+		return(block((pt&XTYPE)==SPTR? STOF: BTOF, t,
+		    q->t.subsp, q->t.strp, p, TNULL));
+	else if ((unsigned)pt>=PTR)
 		return(block((decref(pt)&XTYPE)==FUNC? CTOF: NTOF, t,
 		    q->t.subsp, q->t.strp, p, TNULL));
 	else if (pt==INT || pt==CHAR || pt==UNSIGN || pt==UNCHAR)
@@ -605,6 +628,51 @@ union tree *p, *q;
 {
 	return(block(LTOI, t, q->t.subsp, q->t.strp, p, TNULL));
 }
+
+/*
+ * A far variable, which is not in the data segment: what the far
+ * pointer to it points at.  That is its near address made far with
+ * XTOF, whose segment is the variable's own, which the second pass
+ * has from the name.
+ */
+union tree *
+farname(cs)
+register struct nmlist *cs;
+{
+	register union tree *p, *a;
+
+	if ((cs->htype&XTYPE)==FUNC) {
+		error("%s: a far function in the small model", cs->name);
+		return(nblock(cs));
+	}
+	p = nblock(cs);
+	if (cs->hflag&FBASED) {
+		/* in the based segment: the address is a based pointer */
+		a = block(AMPER, incref(p->t.type) + (BPTR-PTR), p->t.subsp,
+		    p->t.strp, p, TNULL);
+		a = basedfar(a);
+	} else {
+		a = block(AMPER, incref(p->t.type), p->t.subsp, p->t.strp, p,
+		    TNULL);
+		a = block(XTOF, fincref(p->t.type), p->t.subsp, p->t.strp, a,
+		    TNULL);
+	}
+	return(block(STAR, p->t.type, p->t.subsp, p->t.strp, a, TNULL));
+}
+
+/*
+ * A pointer into SS, or into the based segment, made far.
+ */
+union tree *
+basedfar(p)
+register union tree *p;
+{
+	register int t;
+
+	t = p->t.type;
+	return(block((t&XTYPE)==SPTR? STOF: BTOF, t + (FPTR-(t&XTYPE)),
+	    p->t.subsp, p->t.strp, p, TNULL));
+}
 #endif
 
 union tree *
@@ -617,7 +685,8 @@ register union tree *p1, *p2;
 	np = (struct nmlist *)p2->t.tr1;
 	for (;;) {
 #ifdef	i286
-		if (namesame && (p1->t.type==STRUCT+PTR || p1->t.type==STRUCT+FPTR)
+		if (namesame && (p1->t.type==STRUCT+PTR || p1->t.type==STRUCT+FPTR
+		 || p1->t.type==STRUCT+SPTR || p1->t.type==STRUCT+BPTR)
 		 && p1->t.strp == np->sparent) {
 #else
 		if (namesame && p1->t.type==STRUCT+PTR && p1->t.strp == np->sparent) {

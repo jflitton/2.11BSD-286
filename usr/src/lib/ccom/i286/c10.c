@@ -77,6 +77,10 @@ char	*argv[];
 {
 	char	buf1[BUFSIZ],
 		buf2[BUFSIZ];
+	static char fsname[64];
+	static char nsnames[3][40];
+	char	*grpname;
+	int	i;
 
 	if (argc<4) {
 		error("Arg count");
@@ -85,15 +89,55 @@ char	*argv[];
 	textseg = "_TEXT";
 	dseg = "ds";
 	ovr = "";
-	if (argc>4 && argv[4][0]=='-'
-	 && (argv[4][1]=='M' || argv[4][1]=='L')) {
-		mflag++;
-		if (argv[4][1]=='L') {
+	sovr = "";
+	datseg = "_DATA";
+	bssseg = "_BSS";
+	grpname = "DGROUP";
+	for (i = 4; i < argc && argv[i][0]=='-'; i++) {
+		switch (argv[i][1]) {
+
+		case 'L':
 			lflag++;
 			dseg = "ss";
 			ovr = "ss:";
+			sovr = "ss:";
+		case 'M':
+			mflag++;
+			textseg = argv[i]+2;
+			break;
+
+		/*
+		 * -NNAME: the data is NAME_DATA and the bss NAME_BSS, of
+		 * the group NAME_GROUP, which is a segment of its own and
+		 * not the stack's: DS is not SS, as in the kernel's
+		 * network (docs/network.md).  What has no value is defined
+		 * there, and not common.
+		 */
+		case 'N':
+			ssflag++;
+			sovr = "ss:";
+			if (strlen(argv[i]+2) + 7 > sizeof nsnames[0])
+				break;
+			sprintf(nsnames[0], "%s_DATA", argv[i]+2);
+			sprintf(nsnames[1], "%s_BSS", argv[i]+2);
+			sprintf(nsnames[2], "%s_GROUP", argv[i]+2);
+			datseg = nsnames[0];
+			bssseg = nsnames[1];
+			grpname = nsnames[2];
+			break;
 		}
-		textseg = argv[4]+2;
+	}
+	/*
+	 * Far variables are in a segment of the file's own, named for
+	 * it as its code is, or in the small model, where the code's is
+	 * not, in one that every file shares.
+	 */
+	farseg = "FAR_DATA";
+	if (mflag && (i = strlen(textseg)) > 5 && i < sizeof fsname
+	 && strcmp(textseg + i - 5, "_TEXT") == 0) {
+		strncpy(fsname, textseg, i - 5);
+		strcpy(fsname + i - 5, "_FAR");
+		farseg = fsname;
 	}
 	if (freopen(argv[1], "r", stdin)==NULL) {
 		error("Missing temp file");
@@ -108,9 +152,11 @@ char	*argv[];
 	funcbase = curbase = coremax = sbrk(0);
 	printf("\tbits\t16\n\tcpu\t286\n");
 	printf("\tsegment\t%s public align=2 class=CODE\n", textseg);
-	printf("\tsegment\t_DATA public align=2 class=DATA\n");
-	printf("\tsegment\t_BSS public align=2 class=BSS\n");
-	printf("\tgroup\tDGROUP _DATA _BSS\n");
+	printf("\tsegment\t%s public align=2 class=%s\n", datseg,
+	    ssflag? "FAR_DATA": "DATA");
+	printf("\tsegment\t%s public align=2 class=%s\n", bssseg,
+	    ssflag? "FAR_DATA": "BSS");
+	printf("\tgroup\t%s %s %s\n", grpname, datseg, bssseg);
 	getree();
 	/*
 	 * tack on the string file.
@@ -340,6 +386,30 @@ register union tree *tree;
 	case CTOF:
 		rcexpr(l, FORREG);
 		printf("\tmov\tdx,%s\n", op==NTOF? dseg: "cs");
+		return(INREG);
+
+	/*
+	 * The address of a far variable made far: the segment is the
+	 * variable's.
+	 */
+	case XTOF:
+		rcexpr(l, FORREG);
+		printf("\tmov\tdx,seg ");
+		pbase(xbase(l));
+		putchar('\n');
+		return(INREG);
+
+	/*
+	 * A pointer into SS, or into the based segment, made far.
+	 */
+	case STOF:
+		rcexpr(l, FORREG);
+		printf("\tmov\tdx,ss\n");
+		return(INREG);
+
+	case BTOF:
+		rcexpr(l, FORREG);
+		printf("\tmov\tdx,%s\n", basedseg);
 		return(INREG);
 
 	/*
@@ -846,6 +916,48 @@ register union tree *p;
 }
 
 /*
+ * The far variable whose address, with what has been added to it, is
+ * the near address p (XTOF): its name.
+ */
+union tree *
+xbase(p)
+union tree *p;
+{
+	register union tree *q;
+
+	if ((q = xfind(p)) == NULL) {
+		error("compiler error: xbase");
+		return(p);
+	}
+	return(q);
+}
+
+union tree *
+xfind(p)
+register union tree *p;
+{
+	register union tree *q;
+
+	switch (p->t.op) {
+
+	case AMPER:
+		if (p->t.tr1->t.op==NAME)
+			return(p->t.tr1);
+		break;
+
+	case PLUS:
+		if ((q = xfind(p->t.tr1)) != NULL)
+			return(q);
+		return(xfind(p->t.tr2));
+
+	case MINUS:
+	case LOAD:
+		return(xfind(p->t.tr1));
+	}
+	return(NULL);
+}
+
+/*
  * Can greg compute the word p in the register r, with no other
  * disturbed but BX?
  */
@@ -1089,6 +1201,15 @@ register union tree *p;
 		return;
 	}
 	q = bxform(p);
+	/*
+	 * What is at a constant from BP is in the frame: [bp+n], which
+	 * is through SS, as it must be where DS is not SS.
+	 */
+	if (q->t.op==NAME && q->n.class==REG && q->n.nloc==BP
+	 && p->n.class==OFFS) {
+		p->n.regno = BP;
+		return;
+	}
 	if (easy(q, BX))
 		greg(q, BX);
 	else {
@@ -1805,11 +1926,11 @@ register union tree *tree;
 		rcexpr(bxform(l), FORSP);
 		if (radr)
 			printf("\tmov\tbx,sp\n\t%s\tbx,[%sbx]\n",
-			    far? "les": "mov", ovr);
+			    far? "les": "mov", sovr);
 		else {
 			rcexpr(r, FORSP);
 			printf("\tmov\tbx,sp\n\t%s\tbx,[%sbx+4]\n",
-			    far? "les": "mov", ovr);
+			    far? "les": "mov", sovr);
 		}
 		load(l, AX);
 		if (radr)
@@ -1994,10 +2115,12 @@ register union tree *tree;
 			}
 			return(size);
 		}
-		if (tree->t.op==FSTAR) {
-			rcexpr(tree->t.tr1, FORREG);
+		/* where DS is not SS, the structure may be in either */
+		if (tree->t.op==FSTAR || ssflag) {
+			faraddr(tree);
 			printf("\tsub\tsp,%d\n", size);
-			printf("\tmov\tbx,sp\n\tmov\tcx,%s\n", dseg);
+			printf("\tmov\tbx,sp\n\tmov\tcx,%s\n",
+			    ssflag? "ss": dseg);
 			fmovs(size/2);
 			return(size);
 		}
@@ -2201,7 +2324,7 @@ register union tree *tree;
 		 * a variable: its address and its segment, which is for
 		 * whatever loads the program to put there.
 		 */
-		if (tree->t.op==NTOF && lflag)
+		if (tree->t.op==NTOF && lflag || tree->t.op==XTOF)
 			tree = tree->t.tr1;
 		if (tree->t.op==AMPER && adrble(tree)) {
 			printf("\tdw\t");

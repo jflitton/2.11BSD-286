@@ -363,6 +363,10 @@ int	mossym;
 #define	ASFMINUS 134
 #define	NTOF	135	/* a near pointer made far: the data segment's */
 #define	CTOF	136	/* a near pointer to a function made far */
+#define	XTOF	137	/* the address of a far variable made far: its
+			   own segment's */
+#define	STOF	138	/* a pointer into SS made far */
+#define	BTOF	139	/* a pointer into the based segment made far */
 #endif
 #define	SEOF	200	/* stack EOF marker in expr compilation */
 
@@ -402,7 +406,10 @@ int	mossym;
 #define	FUNC	040
 #define	ARRAY	060
 #define	FPTR	0100
+#define	SPTR	0120	/* a near pointer to what is in SS: the frame */
+#define	BPTR	0140	/* a near pointer into the based segment */
 #define	ISFAR(t)	(((t)&XTYPE)==FPTR)
+#define	ISBASED(t)	(((t)&XTYPE)==SPTR || ((t)&XTYPE)==BPTR)
 #else
 #define	BIGTYPE	060000
 #define	TYLEN	2
@@ -456,6 +463,8 @@ int	mossym;
 #ifdef	i286
 #define	FAR	34
 #define	NEAR	35
+#define	SSKW	36	/* __ss */
+#define	BASED	37	/* __based(segment) */
 #endif
 
 /*
@@ -497,6 +506,9 @@ int	mossym;
 #define	SETSTK	219
 #define	SINIT	220
 #define	ASSEM	223
+#define	FARSEG	224	/* what follows is in the file's far segment */
+#define	SEGNAME	225	/* the based segment's name */
+#define	BASEDSEG 226	/* what follows is in the based segment */
 
 /*
   Flag bits
@@ -542,6 +554,7 @@ int	mossym;
 #define	FLABL	0100
 #ifdef	i286
 #define	FFAR	010	/* declared far: not in the data segment */
+#define	FBASED	0200	/* declared __based: in the based segment */
 #endif
 
 /*
@@ -570,6 +583,12 @@ struct	nmlist *gentemp();
 struct	nmlist *strtemp();
 union	tree *tofar();
 union	tree *tonear();
+union	tree *farname();
+union	tree *basedfar();
 int	farsym;			/* the name declared was said to be far */
+int	basedsym;		/*	or in the based segment */
+int	ssflag;			/* -S: SS is not DS; what is in the frame is
+				   reached through SS */
+char	basedname[32];		/* the based segment: __based(NAME) */
 #endif
 union	tree *nblock();

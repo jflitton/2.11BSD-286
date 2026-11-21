@@ -69,12 +69,19 @@ register union tree *p;
 {
 	register far;
 
-	if (p->t.op==STAR)
+	if (p->t.op==STAR) {
+		/* what a based pointer made far points at */
+		if (p->t.tr1->t.op==STOF || p->t.tr1->t.op==BTOF)
+			return(incref(p->t.type) + (p->t.tr1->t.tr1->t.type
+			    &XTYPE) - PTR);
 		far = ISFAR(p->t.tr1->t.type);
-	else
+	} else
 		far = lflag;
 	if (far || mflag && (p->t.type&XTYPE)==FUNC)
 		return(fincref(p->t.type));
+	/* with -S, what is in the frame is in SS */
+	if (ssflag && p->t.op==NAME && p->t.tr1->n.hclass==AUTO)
+		return(incref(p->t.type) + (SPTR-PTR));
 	return(incref(p->t.type));
 }
 
@@ -92,6 +99,9 @@ register int t;
 	for (m = t; m&XTYPE; m >>= TYLEN) {
 		if ((m&XTYPE)==FPTR)
 			return(t & ((1<<n)-1) & ~TYPE | UNLONG);
+		/* a based pointer is a near one to it */
+		if ((m&XTYPE)==SPTR || (m&XTYPE)==BPTR)
+			t = t & ~(07<<n) | (01<<n);
 		n += TYLEN;
 	}
 	return(t);

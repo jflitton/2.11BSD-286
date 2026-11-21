@@ -163,11 +163,12 @@ def build(name, sources, out):
         "--model", "s", "--real", "0x1000", "--map", mapfile, ne, exe)
 
     # start.s is linked first, so the entry point is the start of the code.
+    # The code and the data are two segments, and far variables more.
     b = open(exe, "rb").read()
     magic, model, nseg, eseg, eoff = struct.unpack_from("<HHHHH", b, 0)
-    if nseg != 2 or (eseg, eoff) != (1, 0):
-        sys.exit("%s: want two segments and entry 1:0000, have %d and %d:%04x"
-                 % (name, nseg, eseg, eoff))
+    if nseg < 2 or (eseg, eoff) != (1, 0):
+        sys.exit("%s: want two segments or more and entry 1:0000, have %d "
+                 "and %d:%04x" % (name, nseg, eseg, eoff))
     img = os.path.join(out, name + ".img")
     mkfd(exe, img, out, "--spread")
     return img

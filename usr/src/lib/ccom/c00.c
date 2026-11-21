@@ -61,6 +61,8 @@ struct kwtab {
 #ifdef	i286
 	"__far",	FAR,
 	"__near",	NEAR,
+	"__ss",		SSKW,
+	"__based",	BASED,
 #endif
 	0,		0,
 };
@@ -128,6 +130,9 @@ char	*argv[];
 		case 'L':		/* the large model */
 			mflag++;
 			lflag++;
+			break;
+		case 'S':		/* SS is not DS */
+			ssflag++;
 			break;
 #endif
 		case 'w':
@@ -705,8 +710,10 @@ advanc:
 					funcsym ? funcsym->name : "(none)");
 			}
 #ifdef	i286
-		if (cs->hflag&FFAR)
-			error("%s is far, which is not done yet", cs->name);
+		if (cs->hflag&(FFAR|FBASED)) {
+			*cp++ = farname(cs);
+			goto tand;
+		}
 #endif
 		*cp++ = nblock(cs);
 		goto tand;

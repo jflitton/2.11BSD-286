@@ -104,7 +104,17 @@ is the selector of the segment that
 .I name
 is in, which
 .I ld
-fills in.
+fills in; the name of a segment or of a group, by itself, is its
+selector.
+Values may be put together with
+.BR "+ \- * / % << >> & ^ |" ,
+and compared with
+.BR "= == != <> < <= > >=" ,
+which make 1 or 0, as do
+.BR && ,
+.B ||
+and
+.BR ! .
 A number is decimal,
 or hexadecimal with
 .B 0x
@@ -150,7 +160,16 @@ times.
 .BR align " n"
 Advance to a multiple of
 .IR n ,
-with no-operation instructions in the text and zeros elsewhere.
+with no-operation instructions, or with
+.BR "align n,db b" ,
+bytes
+.IR b ;
+in the bss with room.
+.TP
+.BR alignb " n"
+Advance to a multiple of
+.I n
+with room, which is zero.
 .TP
 .RB name " equ " value
 Define
@@ -162,6 +181,10 @@ The names are defined here for other files to use.
 .TP
 .BR extern " name, ..."
 The names are defined in another file.
+A name may be followed by
+.BR ":wrt " group ,
+which is read and ignored: what it is is reckoned from where its
+segment starts in the program, whatever group that is.
 .TP
 .BR common " name size"
 .I Name
@@ -172,22 +195,32 @@ puts after the bss unless some file defines it.
 .BR segment " name"
 What follows is in that segment; also spelled
 .BR section .
-An object has three, the text, the data and the bss, and every
-segment named is one of them: the text if it is given
-.B class=CODE
-or if its name has
+An object has three, the text, the data and the bss, and a segment
+is one of them if it is given
+.BR class=CODE ,
+.B BSS
+or
+.B DATA
+(or
+.BR BEGDATA ),
+or, with no class, if its name has
 .B text
 or
 .B code
-in it, the bss likewise for
-.BR BSS ,
-and the data otherwise.
+in it, or
+.BR bss ,
+or else is the data.
+A segment of any other class, as
+.BR FAR_DATA ,
+is a named segment of its own (a.out(5)), which is not in the
+program's data segment: up to twelve.
 .TP
-.BR group " name ..."
-What the group is made of is not asked, but its name is the selector
-of the program's data, which is the only group a program has, as
-.B seg
-of anything in it is.
+.BR group " name segment ..."
+The segments are in the group, which
+.I ld
+makes one segment of the program.
+The data and the bss are in the program's data segment, whatever
+group they are said to be in.
 .TP
 .BR bits ", " cpu
 These are read and ignored.
@@ -208,15 +241,50 @@ Replace
 .I name
 with
 .I text
-wherever it is found from here on.
-A definition has no arguments.
+wherever it is found from here on, and again in what comes of that.
 .TP
-.B "%ifdef, %ifndef, %else, %endif"
-Assemble the lines between only if the name is, or is not, defined
-by
+.BR %define " name(a,...) text"
+The same, where what
+.I name
+is followed by in brackets takes the place of
+.I a
+and the others in
+.IR text :
+up to four.
+.TP
+.BR %assign " name value"
+.B %define
+.I name
+as the value, which is reckoned here.
+.TP
+.B "%if value, %elif value, %else, %endif"
+Assemble the lines between only if the value, which is reckoned when
+the line is read, is not zero; else the lines after the first
+.B %elif
+whose value is not, or after the
+.BR %else .
+.TP
+.B "%ifdef name, %ifndef name"
+The same, if the name is, or is not, defined by
 .B %define
 or
 .BR \-D .
+.TP
+.BR %rep " n"
+The lines up to the matching
+.B %endrep
+are read
+.I n
+times.
+.TP
+.B %+
+Between two things, makes one of them, after names are replaced:
+.B "vec %+ v"
+is
+.B vec3
+where
+.I v
+is 3.
 .TP
 .BR %macro " name n"
 The lines up to
@@ -228,6 +296,7 @@ is used as an instruction, with
 to
 .BI % n
 replaced by its operands.
+One macro may use another.
 .SH FILES
 .ta \w'/tmp/as*\ \ \ 'u
 a.out	object
@@ -244,9 +313,7 @@ Only one file is assembled.
 .PP
 The language is NASM's only so far as described here:
 macros take no more than nine operands, and there are no local labels
-in them, no
-.B %if
-with an expression, no structures and no listing.
+in them, no structures and no listing.
 .PP
 NASM keeps a jump long in some programs where it would reach if
 it and others were made short together;

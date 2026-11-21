@@ -39,10 +39,17 @@ mkdir -p "$out"
 
 quiet() { grep -v '^cc \|^as \|^wlib \|^ar \|Warning!\|Note!\|^unix:' || true; }
 make -s -C "$top/usr/src/sys/PC" | quiet
+# With NATIVE_KERNEL=1 the kernel is the one the system's own compiler,
+# assembler and linker make (usr/src/sys/PC CCOM=1).
+kernel=
+if [ -n "$NATIVE_KERNEL" ]; then
+    make -s -C "$top/usr/src/sys/PC" CCOM=1 | quiet
+    kernel=KERNEL=$top/obj/nPC/unix
+fi
 make -s -C "$top/usr/src/sys/i286stand" | quiet
 make -s -C "$top/usr/src/lib/libc/i286" | quiet
 make -s -C "$top/usr/src/i286" all | quiet
-make -s -C "$top/usr/src/i286" root | quiet
+make -s -C "$top/usr/src/i286" root $kernel | quiet
 
 # The file system of checks, with ntp's own test, which its Makefile
 # runs when it has built the rest, and what a client of rexecd sends: a

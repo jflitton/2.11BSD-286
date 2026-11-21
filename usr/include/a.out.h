@@ -51,7 +51,7 @@
  * entries for the first segment (xs_nrel of them, sys/exec.h), then
  * those for the second, each in the order of r_addr.  An entry is for
  * a word of the segment, which is to have something done to it that
- * depends on where a symbol, or one of the file's own three segments,
+ * depends on where a symbol, or one of the file's own segments,
  * is put when the program is linked.
  *
  * The PDP-11 has a word of relocation for each word of the text and
@@ -73,6 +73,20 @@ struct reloc {
 			   what is to be added, less where the word ends */
 #define	R_TYPE	0x0f
 #define	R_EXT	0x10	/* r_sym is a symbol */
+
+/*
+ * An object has three segments, the text, the data and the bss, and
+ * may have more after them: named segments of data that is not in the
+ * program's data segment, as a far variable is, or the kernel's
+ * network's (NET_GROUP).  Each is named by a symbol of type N_SEGNAME
+ * whose n_ovly is its number, and if it is in a group, the group by
+ * one of type N_GRPNAME with the same n_ovly; those come first in the
+ * symbol table.  What every file has of a named segment is put
+ * together, in the order they are linked.  The segments of one group
+ * are one segment of the program, and the others share segments as
+ * they fit.  A symbol in a named segment has its type N_DATA and its
+ * number in n_ovly, which is 0 for the three.
+ */
 
 #define	N_TXTOFF(x) \
 	((off_t)sizeof(struct exec) + (x).a_nseg * (off_t)sizeof(struct exseg))

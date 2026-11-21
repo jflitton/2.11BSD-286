@@ -215,6 +215,12 @@ psyms(symp, nsyms)
 		case N_REG:
 			c = 'r';
 			break;
+		case N_SEGNAME:		/* an object's named segment */
+			c = 's';
+			break;
+		case N_GRPNAME:		/*	and its group */
+			c = 'g';
+			break;
 		default:
 			c = '?';
 			break;

@@ -20,9 +20,9 @@
  *
  * An object file, which the assembler writes and the linker reads, is
  * the same with A_OBJECT for its magic number and three segments: the
- * text, the data, and the bss, of which nothing is in the file.  It has
- * relocation between the segments' contents and the symbol table
- * (a.out.h).
+ * text, the data, and the bss, of which nothing is in the file; and any
+ * named segments after those.  It has relocation between the segments'
+ * contents and the symbol table (a.out.h).
  */
 struct	exec {
 unsigned short	a_magic;	/* magic number */

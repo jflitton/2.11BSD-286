@@ -119,7 +119,9 @@ the other sizes.
 .IR Programs :
 If the magic number in the header is A_MAGIC,
 the file is a program.
-Its last segment is its data: initialized data, then
+Its data is segment
+.IR a_dseg :
+initialized data, then
 uninitialized data, and when it is executed a stack of
 .I a_stack
 bytes above that, and above the stack what the program asks for with
@@ -128,6 +130,8 @@ The segments before it are text, one in the small model and one or
 more in the medium, which are not writable by the program;
 if other processes are executing the same file,
 they will share them.
+Any after it are data too, the named segments of the objects it was
+made of, of which the file has what is not zero at their ends.
 A running program addresses segment
 .I n
 with the selector
@@ -146,12 +150,16 @@ for its data and stack.
 .IR "Object files" :
 If the magic number is A_OBJECT, the file is an object.
 It has three segments, the text, the data, and the uninitialized
-data (bss), of which nothing is in the file; and after the contents
-of the data come
+data (bss), of which nothing is in the file; and may have more after
+them, named segments of data that is not in the program's data
+segment, as a far variable is, of which the file has up to what is
+last put there.
+After the contents of the segments come
 .I xs_nrel
-entries of relocation for the text and then as many as the data's
+entries of relocation for the text and then as many as each other
+segment's
 .I xs_nrel
-says for the data, each in the order of
+says for it, each in the order of
 .IR r_addr .
 An entry is for the word at
 .I r_addr
@@ -161,7 +169,7 @@ If
 has R_EXT,
 .I r_sym
 is the number of a symbol, counting the first in the symbol table
-as 0; if not, it is one of this file's own segments, 1, 2 or 3.
+as 0; if not, it is one of this file's own segments, from 1.
 What is done to the word is the rest of
 .IR r_type :
 for R_OFF, the address of the symbol, or of the start of this file's
@@ -194,6 +202,8 @@ struct	nlist {
 #define	N_TEXT	0x02	/* text segment */
 #define	N_DATA	0x03	/* data segment */
 #define	N_BSS	0x04	/* bss segment */
+#define	N_GRPNAME	0x1d	/* an object's: a segment's group */
+#define	N_SEGNAME	0x1e	/* an object's: a segment's name */
 
 #define	N_EXT	0x20	/* external (global) bit, OR'ed in */
 #define	N_TYPE	0x1f	/* mask for all the type bits */
@@ -207,7 +217,16 @@ for the number of its overlay, and
 its address in that segment.
 In an object file
 .I n_ovly
-is 0 and the address is in the file's own text, data or bss.
+is 0 and the address is in the file's own text, data or bss, or for
+a symbol in a named segment is that segment's number, and the type
+N_DATA.
+A named segment is named by a symbol of type N_SEGNAME whose
+.I n_ovly
+is its number, and if it is in a group, the group by one of type
+N_GRPNAME with the same
+.IR n_ovly :
+the link editor puts together what every file has of a segment of one
+name, and makes one segment of a group.
 If a symbol's type is undefined external,
 and the value field is non-zero,
 the symbol is interpreted by the loader

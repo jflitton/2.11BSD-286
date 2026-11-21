@@ -9,9 +9,9 @@
 # in each of the ways its operands may be written, and its directives;
 # the C library's own assembly, for each model, with the start-up
 # code; the system call stubs as tools/mkstubs.py writes them, for
-# each; and what the system's C compiler writes for the programs of
-# tests/ccom, in each model, as its second pass leaves it and as the
-# object code improver does.
+# each; the kernel's assembly; and what the system's C compiler writes
+# for the programs of tests/ccom, in each model, as its second pass
+# leaves it and as the object code improver does.
 #
 # Where a jump is one byte too far for the short form as NASM lays the
 # code out and not as the assembler does, NASM keeps the long form and
@@ -64,6 +64,11 @@ for m in s m l; do
     for f in "$out/stubs/$m"/*.s; do
         both "$f"
     done
+done
+# the kernel's, which has segments of its own beyond the three, and
+# groups of them (NET_GROUP), and what NASM's preprocessor has most of
+for f in "$top"/usr/src/sys/i286/mch_*.s; do
+    both "$f" -I "$top/usr/src/sys/i286/" -DFAR
 done
 for f in "$top"/tests/ccom/t_*.c "$top/tests/ccom/prog.c"; do
     b=$(basename "$f" .c)

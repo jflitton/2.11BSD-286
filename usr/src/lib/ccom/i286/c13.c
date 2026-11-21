@@ -151,6 +151,9 @@ int opdope[] = {
 	000013,	/* far -= */
 	000000,	/* near->far */
 	000000,	/* near->far, of code (136) */
+	000000,	/* a far variable's address made far (137) */
+	000000,	/* a pointer into SS made far */
+	000000,	/* a pointer into the based segment made far (139) */
 };
 
 char	*opntab[] = {
@@ -291,6 +294,9 @@ char	*opntab[] = {
 	"far -=",
 	"near->far",
 	"near->far (code)",	/* 136 */
+	"far variable",		/* 137 */
+	"ss->far",
+	"based->far",		/* 139 */
 };
 
 /*

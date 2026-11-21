@@ -11,7 +11,8 @@ static	char	sccsid[] = "@(#)ansi.c	1.1 (2.11BSD) 2025/12/25";
 #define	PNULL		(PTR|REG)	/* impossible type */
 
 #ifdef	i286
-#define ISPTR(t)	(((t) & XTYPE) == PTR || ((t) & XTYPE) == FPTR)
+#define ISPTR(t)	(((t) & XTYPE) == PTR || ((t) & XTYPE) == FPTR \
+			|| ISBASED(t))
 #else
 #define ISPTR(t)	(((t) & XTYPE) == PTR)
 #endif
@@ -185,6 +186,8 @@ cktypep(p)
 #ifdef	i286
 		else if (ISFAR(t) && t-(FPTR-PTR) == u)
 			;	/* a near pointer made far, as it is for */
+		else if (ISFAR(t) && ISBASED(u) && t-(FPTR-(u&XTYPE)) == u)
+			;	/* and one into SS or the based segment */
 		else if ((t == (FPTR|VOID) && ISPTR(u)) ||
 		    (ISFAR(t) && u == (FPTR|VOID)))
 			;	/* far pointers to void, as near ones above */

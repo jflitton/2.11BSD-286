@@ -56,7 +56,7 @@ def symbols(path, data):
         fail("%s: not an object file" % path)
     (magic, _m, nseg, _es, _eo, _d, _s, _u,
      nsyms, nstrs) = struct.unpack_from("<HHHHHHHHLL", data, 0)
-    if magic != A_OBJECT or nseg != 3:
+    if magic != A_OBJECT or not 3 <= nseg <= 31:
         fail("%s: not an object file" % path)
     off = 24 + 12 * nseg
     for i in range(nseg):

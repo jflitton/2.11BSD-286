@@ -109,14 +109,15 @@ register struct expr *e;
 			lp++;
 		else
 			error("no ) where one should be", "");
-	} else if (c == '-' || c == '~' || c == '+') {
+	} else if (c == '-' || c == '~' || c == '+' || c == '!') {
 		lp++;
 		primary(e);
 		if (c != '+') {
 			if (!isnum(e))
 				error("an address cannot have its sign changed",
 				    "");
-			e->e_val = c == '-' ? -e->e_val : ~e->e_val;
+			e->e_val = c == '-' ? -e->e_val : c == '~' ?
+			    ~e->e_val : !e->e_val;
 		}
 	} else if (c >= '0' && c <= '9') {
 		e->e_val = number();
@@ -142,8 +143,9 @@ register struct expr *e;
 			if (e->e_sect == SABS || e->e_seg)
 				error("seg of what has no segment", "");
 			e->e_seg = 1;
-		} else if (isgroup(name)) {
-			e->e_sect = SDATA;
+		} else if ((c = segof(name)) != 0) {
+			/* a group's name, or a segment's: its selector */
+			e->e_sect = c;
 			e->e_seg = 1;
 		} else
 			symval(e, symbol(name));
@@ -152,28 +154,82 @@ register struct expr *e;
 }
 
 /*
- * The operators, by how tightly they bind: | ^ & then << >> then + -
- * then * / %.
+ * The operators, by how tightly they bind: || then && then = == != <>
+ * < <= > >= then | ^ & then << >> then + - then * / %.  getop says
+ * which is at lp, as one character, and how long it is in len.
  */
+#define	O_OROR	'o'
+#define	O_ANDAND 'a'
+#define	O_NE	'!'
+#define	O_LE	'l'
+#define	O_GE	'g'
+#define	O_SHL	'L'
+#define	O_SHR	'R'
+
+getop(len)
+int *len;
+{
+	register c, d;
+
+	c = lp[0];
+	d = lp[1];
+	*len = 2;
+	if (c == '|' && d == '|')
+		return(O_OROR);
+	if (c == '&' && d == '&')
+		return(O_ANDAND);
+	if (c == '=' && d == '=')
+		return('=');
+	if (c == '!' && d == '=' || c == '<' && d == '>')
+		return(O_NE);
+	if (c == '<' && d == '=')
+		return(O_LE);
+	if (c == '>' && d == '=')
+		return(O_GE);
+	if (c == '<' && d == '<')
+		return(O_SHL);
+	if (c == '>' && d == '>')
+		return(O_SHR);
+	*len = 1;
+	switch (c) {
+	case '=': case '<': case '>': case '|': case '^': case '&':
+	case '+': case '-': case '*': case '/': case '%':
+		return(c);
+	}
+	*len = 0;
+	return(0);
+}
+
 prec(c)
 {
 	switch (c) {
-	case '|':
+	case O_OROR:
 		return(1);
-	case '^':
+	case O_ANDAND:
 		return(2);
-	case '&':
-		return(3);
+	case '=':
+	case O_NE:
 	case '<':
+	case O_LE:
 	case '>':
+	case O_GE:
+		return(3);
+	case '|':
 		return(4);
+	case '^':
+		return(5);
+	case '&':
+		return(6);
+	case O_SHL:
+	case O_SHR:
+		return(7);
 	case '+':
 	case '-':
-		return(5);
+		return(P_ADD);
 	case '*':
 	case '/':
 	case '%':
-		return(6);
+		return(9);
 	}
 	return(0);
 }
@@ -183,20 +239,16 @@ register struct expr *e;
 {
 	struct expr r;
 	register c, p;
+	int len;
 
 	primary(e);
 	for (;;) {
 		skipb();
-		c = *lp;
+		c = getop(&len);
 		p = prec(c);
 		if (p == 0 || p <= min)
 			return;
-		if (c == '<' || c == '>') {
-			if (lp[1] != c)
-				return;
-			lp++;
-		}
-		lp++;
+		lp += len;
 		binary(&r, p);
 		combine(e, c, &r);
 	}
@@ -278,12 +330,44 @@ register struct expr *e, *r;
 		e->e_val &= v;
 		break;
 
-	case '<':
+	case O_SHL:
 		e->e_val <<= (int)v;
 		break;
 
-	case '>':
+	case O_SHR:
 		e->e_val >>= (int)v;
+		break;
+
+	case O_OROR:
+		e->e_val = e->e_val || v;
+		break;
+
+	case O_ANDAND:
+		e->e_val = e->e_val && v;
+		break;
+
+	case '=':
+		e->e_val = e->e_val == v;
+		break;
+
+	case O_NE:
+		e->e_val = e->e_val != v;
+		break;
+
+	case '<':
+		e->e_val = e->e_val < v;
+		break;
+
+	case O_LE:
+		e->e_val = e->e_val <= v;
+		break;
+
+	case '>':
+		e->e_val = e->e_val > v;
+		break;
+
+	case O_GE:
+		e->e_val = e->e_val >= v;
 		break;
 	}
 }
@@ -497,7 +581,7 @@ register struct opnd *o;
 			}
 			lp = p;
 		}
-		binary(&t, 5);
+		binary(&t, P_ADD);
 		combine(&o->o_e, neg ? '-' : '+', &t);
 	}
 	if (*lp == ']')
