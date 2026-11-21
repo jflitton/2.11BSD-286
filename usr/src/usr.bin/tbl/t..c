@@ -6,7 +6,7 @@
 # include "ctype.h"
 
 # define MAXLIN 200
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 # define MAXHEAD 30
 #else
 # define MAXHEAD 100

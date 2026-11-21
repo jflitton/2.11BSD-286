@@ -175,13 +175,17 @@ p_synerror()
 	}
 }
 
-/*VARARGS1*/
-p_error(msg, a, b, c)
-char *msg;
+p_error(char *msg, ...)
 {
+	va_list ap;
+	char buf[256];
+
 	if (!cx.x_erred) {
 		cx.x_erred = 1;
-		error(msg, a, b, c);
+		va_start(ap, msg);
+		vsnprintf(buf, sizeof buf, msg, ap);
+		va_end(ap);
+		error("%s", buf);
 	}
 }
 

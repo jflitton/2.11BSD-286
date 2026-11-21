@@ -190,6 +190,29 @@ f /usr/libexec/acctd 700 ../../../obj/root/bin/acctd
 f /usr/ucb/lastcomm 755 ../../../obj/root/bin/lastcomm
 f /usr/sbin/sa 755 ../../../obj/root/bin/sa
 f /usr/bin/find 755 ../../../obj/root/bin/find
+d /usr/libexec/find 755
+f /usr/libexec/find/bigram 755 ../../../obj/root/bin/bigram
+f /usr/libexec/find/code 755 ../../../obj/root/bin/code
+f /usr/libexec/find/updatedb 755 ../usr.bin/find/updatedb.csh
+d /var/db 755
+f /var/db/find.codes 644:32767.31 ../../../obj/root/empty
+f /usr/adm/daily 755 etc/daily
+f /usr/adm/weekly 755 etc/weekly
+f /usr/adm/monthly 755 etc/monthly
+f /usr/sbin/zic 755 ../../../obj/root/bin/zic
+f /usr/sbin/zdump 755 ../../../obj/root/bin/zdump
+i ../../../obj/zoneinfo/zone.proto
+f /sbin/dump 755 ../../../obj/root/bin/dump
+f /sbin/rdump 755 ../../../obj/root/bin/rdump
+f /sbin/dumpdir 755 ../../../obj/root/bin/dumpdir
+f /sbin/restor 755 ../../../obj/root/bin/restor
+f /usr/sbin/rmt 755 ../../../obj/root/bin/rmt
+f /etc/dumpdates 664:5 ../../../obj/root/empty
+f /bin/chflags 755 ../../../obj/root/bin/chflags
+d /usr/new 755
+f /usr/new/la 755 ../../../obj/root/bin/la
+f /usr/ucb/gcore 2755:2 ../../../obj/root/bin/gcore
+f /usr/ucb/window 755 ../../../obj/root/bin/window
 f /bin/expr 755 ../../../obj/root/bin/expr
 f /bin/awk 755 ../../../obj/root/bin/awk
 f /usr/bin/egrep 755 ../../../obj/root/bin/egrep
@@ -452,10 +475,52 @@ f /usr/man/man.template 444 ../man/man.template
 f /usr/man/makewhatis.sed 444 ../man/makewhatis.sed
 f /usr/man/manroff 755 ../man/manroff
 f /usr/sbin/makewhatis 755 ../usr.sbin/makewhatis/makewhatis.sh
+f /usr/bin/tbl 755 ../../../obj/root/bin/tbl
+f /usr/bin/eqn 755 ../../../obj/root/bin/eqn
+f /usr/bin/neqn 755 ../../../obj/root/bin/neqn
+d /usr/pub 755
+f /usr/pub/ascii 444:10 ../../pub/ascii
+f /usr/pub/eqnchar 444:10 ../../pub/eqnchar
+f /usr/pub/greek 444:10 ../../pub/greek
+d /usr/libexec/refer 755
+f /usr/libexec/refer/deliv 755 ../../../obj/root/bin/deliv
+f /usr/libexec/refer/mkey 755 ../../../obj/root/bin/mkey
+f /usr/libexec/refer/inv 755 ../../../obj/root/bin/inv
+f /usr/libexec/refer/hunt 755 ../../../obj/root/bin/refer.hunt
+f /usr/bin/refer 755 ../../../obj/root/bin/refer
+f /usr/bin/addbib 755 ../../../obj/root/bin/addbib
+f /usr/bin/sortbib 755 ../../../obj/root/bin/sortbib
+f /usr/bin/lookbib 755 ../../../obj/root/bin/lookbib
+f /usr/bin/roffbib 755 ../usr.bin/refer/roffbib.sh
+f /usr/bin/indxbib 755 ../usr.bin/refer/indxbib.sh
+f /usr/share/tmac/tmac.bib 444 ../usr.bin/refer/tmac.bib
+f /usr/libexec/spell 755 ../../../obj/root/bin/spell
+f /usr/bin/spellin 755 ../../../obj/root/bin/spellin
+f /usr/bin/spellout 755 ../../../obj/root/bin/spellout
+f /usr/bin/spell 755 ../usr.bin/spell/spell.sh
+d /usr/libexec/diction 755
+f /usr/libexec/diction/style1 755 ../../../obj/root/bin/style1
+f /usr/libexec/diction/style2 755 ../../../obj/root/bin/style2
+f /usr/libexec/diction/style3 755 ../../../obj/root/bin/style3
+f /usr/libexec/diction/dprog 755 ../../../obj/root/bin/dprog
+f /usr/bin/style 755 ../usr.bin/diction/style.sh
+f /usr/bin/diction 755 ../usr.bin/diction/diction.sh
+f /usr/bin/explain 755 ../usr.bin/diction/explain.sh
+f /usr/share/misc/dict.d 444 ../usr.bin/diction/dict.d
+f /usr/share/misc/explain.d 444 ../usr.bin/diction/explain.d
+f /usr/ucb/indent 755 ../../../obj/root/bin/indent
 d /usr/dict 755
 f /usr/dict/README 444:10 ../../dict/README
 f /usr/dict/connectives 644:10 ../../dict/connectives
 f /usr/dict/words 444:3.10 ../../dict/words
+f /usr/dict/hlista 644 ../../../obj/spell/hlista
+f /usr/dict/hlistb 644 ../../../obj/spell/hlistb
+f /usr/dict/hstop 644 ../../../obj/spell/hstop
+d /usr/dict/papers 775:10
+f /usr/dict/papers/INDEX 664:20 ../../dict/papers/INDEX
+f /usr/dict/papers/Rbstjissue 444:20 ../../dict/papers/Rbstjissue
+f /usr/dict/papers/Rv7man 444:20 ../../dict/papers/Rv7man
+f /usr/dict/papers/runinv 555:20 ../../dict/papers/runinv
 d /usr/games 755
 d /usr/games/lib 755:10
 d /usr/games/lib/adventure 755

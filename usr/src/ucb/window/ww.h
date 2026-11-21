@@ -238,6 +238,7 @@ void wwchild();
 int wwsuspend();
 char **wwalloc();
 char *wwerror();
+int wwprintf(struct ww *, char *, ...);
 
 	/* c library functions */
 char *tgetstr();

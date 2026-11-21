@@ -52,7 +52,7 @@ struct lcmd_arg arg_unalias[];
 struct lcmd_arg arg_unset[];
 struct lcmd_arg arg_window[];
 struct lcmd_arg arg_write[];
-struct lcmd_arg arg_null[] = 0;
+struct lcmd_arg arg_null[] = { 0 };
 
 struct lcmd_tab lcmd_tab[] = {
 	"alias",	1,	l_alias,	arg_alias,

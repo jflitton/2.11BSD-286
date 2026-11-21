@@ -17,12 +17,12 @@ Some programs wait on more than themselves:
 
 | what | for |
 |---|---|
-| A library for the large model, and the helpers for `__huge` pointers | programs with more than 64K of data |
+| A library for the large model, and the helpers for `__huge` pointers | programs with more than 64K of data, and `window` on a screen bigger than 80 by 24 |
 | Quotas (`sys/sys/quota_*.c` are in the tree, and not built) | `quota`, `quotacheck`, `quotaon`, `edquota`, `repquota` |
 | SLIP (`sys/net/if_sl.c`; `NSL` is 0) | `slattach` |
 | A driver for the parallel port | the line printer's programs, but for a printer on a serial port |
 | A diskette driver | `mtools`, and `tar` to a diskette |
-| A tape driver | `mt`, `tcopy`, `ansitape`, `dump` and `restor` to tape |
+| A tape driver | `mt`, `tcopy`, `ansitape`, and `dump` and `restor` to a tape |
 | Crash dumps written to the swap area | `savecore` |
 
 ## The compiler and object files
@@ -114,17 +114,13 @@ compared.
 
 ## Typesetting and text
 
-`nroff` is ported; these are what it is given documents through, and
-the rest of the writer's tools.
+`nroff` is ported, with `tbl`, `eqn`, `neqn`, `refer`, `spell`, `style`,
+`diction` and `indent` ([the C library and programs](userland.md)).
+These are the rest of the writer's tools.
 
 | program | where | notes |
 |---|---|---|
-| `tbl`, `eqn`, `neqn` | `usr.bin` | `eqn` has a grammar for the tree's `yacc` |
-| `refer`, `addbib`, `lookbib`, `sortbib`, `indxbib` | `usr.bin/refer` | |
-| `spell`, `spellin`, `spellout` and the word lists | `usr.bin/spell` | |
-| `diction`, `explain` | `usr.bin/diction` | |
 | `vgrind`, `vfontedpr` | `ucb/vgrind` | its output is for `troff` |
-| `indent` | `ucb/indent` | |
 | `learn` and its lessons | `usr.bin/learn`, `share/learn` | most lessons want `cc` |
 | `troff`, and `tc`, which shows its output on a Tektronix 4015 | `usr.bin/roff/troff`, `usr.bin` | `troff` drives a C/A/T phototypesetter |
 | `tk` | `usr.bin` | pages `nroff`'s output on a Tektronix 4014 |
@@ -150,14 +146,9 @@ the rest of the writer's tools.
 
 | program | where | notes |
 |---|---|---|
-| `dump`, `restor` | `sbin` | to a file as well as a tape |
-| `chflags` | `bin/chflags` | the kernel has the calls |
-| `zic`, `zdump` and the zone files | `share/zoneinfo` | with none, the time is UTC |
-| `gcore`, `savecore` | `ucb`, `sbin` | `savecore` waits on crash dumps |
+| `savecore` | `sbin` | waits on crash dumps |
 | `quota`, `quotacheck`, `quotaon`, `edquota`, `repquota` | `ucb`, `sbin`, `usr.sbin` | wait on quotas |
-| `window` | `ucb/window` | |
 | `sendbug` | `ucb/sendbug` | |
-| `la` | `new/la` | the load averages |
 
 ## Printers and tapes
 
@@ -165,7 +156,7 @@ the rest of the writer's tools.
 |---|---|---|
 | `lpr`, `lpq`, `lprm`, `lpc`, `lpd`, `pac` | `usr.sbin/lpr` | |
 | the printers' filters | `usr.sbin/lpr/filters` | most are for Versatec and Varian plotters |
-| `mt`, `tcopy`, `rmt` | `bin`, `ucb`, `usr.sbin` | `rmt` serves another machine's `dump` |
+| `mt`, `tcopy` | `bin`, `ucb` | |
 | `ansitape` | `new/ansi` | |
 | `vmsbackup` | `new/vmsbackup` | reads VMS's backup tapes |
 

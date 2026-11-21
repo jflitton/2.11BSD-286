@@ -13,6 +13,9 @@
 #include "context.h"
 #include "token.h"
 #include "string.h"
+#include <stdarg.h>
+
+int error(char *, ...), p_error(char *, ...);
 
 #define p_erred()	(cx.x_erred)
 #define p_synerred()	(cx.x_synerred)

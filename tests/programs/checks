@@ -907,6 +907,426 @@ makewhatis /tmp/w/m
 grep ' ([47]) - ' /usr/man/whatis | cmp - m/whatis && wc -l < m/whatis
 --
       24
+=file tab.t
+.TS
+center box;
+c s
+l | n.
+Fruit
+_
+apple	12
+fig	3.5
+.TE
+=file eq.t
+.EQ
+x sup 2 + y sub i over 2
+.EN
+=file sp.t
+The quick brwon fox jumpd over the lazy dog.
+Colour and color, and the centre.
+=file st.t
+.PP
+It is a fact that the results were in close proximity to the expected values.
+We utilize a method which is very unique.
+The data was analyzed by the program.
+=file in.c
+main(){int i;for(i=0;i<3;i++)printf("%d\n",i);}
+=file cite.ms
+.ND
+.LP
+eqn is described in
+.[
+kernighan cherry typesetting
+.]
+and qed in
+.[
+deutsch lampson online editor
+.]
+\&.
+== tbl
+tbl /mnt/d/tab.t | nroff -T37 | col | sed '/^$/d'
+--
+                         ______________
+                        |____F_r_u_i_t______|
+                        | apple|  12  |
+                        | fig  |   3.5|
+                        |_______|_______|
+== neqn
+neqn /mnt/d/eq.t | nroff | col | sed '/^$/d'
+neqn /mnt/d/eq.t | nroff -T37 | sed '/^$/d' | od -c
+neqn /usr/pub/eqnchar /mnt/d/eq.t | nroff | col | sed '/^$/d'
+--
+x2+2
+   y_i_
+0000000  033   9   x 033   8   2 033   9   + 033   9   2 033   7 033   8
+0000020   \b   y 033   9   i  \b  \b   _   _  \n
+0000032
+x2+2
+   y_i_
+== eqn
+eqn /mnt/d/eq.t
+--
+.EQ
+.nr 99 \n(.s
+.nr 98 \n(.f
+.ps 10
+.ft 2
+.ds 11 "x
+.ds 12 "\f12\fP
+.as 11 \v'-24u'\s-3\|\*(12\s+3\v'24u'
+.ds 12 "\(pl
+.as 11 "\*(12
+.ds 12 "y
+.ds 13 "i
+.as 12 \v'12u'\s-3\*(13\s+3\|\v'-12u'
+.ds 13 "\f12\fP
+.nr 12 \w'\s10\*(12'
+.nr 13 \w'\s10\*(13'
+.nr 14 \n(12
+.if \n(13>\n(14 .nr 14 \n(13
+.nr 14 \n(14+\s10.5m\s0
+.ds 12 \v'42u'\h'\n(14u-\n(13u/2u'\*(13\
+\h'-\n(13u-\n(12u/2u'\v'-90u'\*(12\
+\h'-\n(14u-\n(12u/2u+.1m'\v'30u'\l'\n(14u-.2m'\h'.1m'\v'18u'
+.as 11 "\*(12
+.ds 11 \x'0'\x'0-36u'\f2\s10\*(11\s\n(99\f\n(98\x'30u'
+.nr 11 \w'\*(11'
+.nr MK 0
+.if 150>\n(.v .ne 150u
+.rn 11 10
+\*(10
+.ps \n(99
+.ft \n(98
+.EN
+== refer-runinv
+cd /usr/dict/papers && sh runinv; ls Ind.*
+--
+841 key occurrences,  213 hashes, 65 docs
+Ind.ia
+Ind.ib
+Ind.ic
+== refer
+refer /mnt/d/cite.ms | nroff -ms | sed '/^$/d'
+refer -e /mnt/d/cite.ms | sed -n '1,5p;/^\.]/p'
+--
+eqn is described in[1] and qed in[2] .
+_________________________
+  [1] B. W. Kernighan and L. L. Cherry, "A  System  for
+Typesetting  Mathematics,"  _C_o_m_m.  _A_s_s_o_c.  _C_o_m_p. _M_a_c_h.,
+vol. 18, pp. 151-157, Bell Laboratories,  Murray  Hill,
+New Jersey, March 1975.
+  [2] L. P. Deutsch and B. W. Lampson, "An online  edi-
+tor,"  _C_o_m_m.  _A_s_s_o_c.  _C_o_m_p. _M_a_c_h., vol. 10, no. 12, pp.
+793-799, 803, December 1967.
+.ND
+.LP
+eqn is described in\*([.1\*(.]
+and qed in\*([.2\*(.]
+\&.
+.]<
+.]-
+.][ 1 journal-article
+.]-
+.][ 1 journal-article
+.]>
+== lookbib
+echo kernighan cherry | lookbib /usr/dict/papers/Ind
+--
+> .[
+%r 17
+%K cstr
+%R Comp. Sci. Tech. Rep. No. 17
+%I Bell Laboratories
+%C Murray Hill, New Jersey
+%A B. W. Kernighan
+%A L. L. Cherry
+%T A System for Typesetting Mathematics
+%d May 1974, revised April 1977
+%J Comm. Assoc. Comp. Mach.
+%K acm cacm
+%V 18
+%P 151-157
+%D March 1975
+.]
+
+> EOT
+== indxbib
+cp /usr/dict/papers/Rv7man db
+indxbib db; ls
+echo deutsch online | /usr/libexec/refer/hunt db
+echo deutsch | lookbib db
+--
+db
+db.ia
+db.ib
+db.ic
+%A L. P. Deutsch
+%A B. W. Lampson
+%T An online editor
+%J Comm. Assoc. Comp. Mach.
+%V 10
+%N 12
+%D December 1967
+%P 793-799, 803
+%K qed
+
+> %A L. P. Deutsch
+%A B. W. Lampson
+%T An online editor
+%J Comm. Assoc. Comp. Mach.
+%V 10
+%N 12
+%D December 1967
+%P 793-799, 803
+%K qed
+
+%A L. P. Deutsch
+%A B. W. Lampson
+%T \*sSDS\*n 930 time-sharing system preliminary reference manual
+%R Doc. 30.10.10, Project \*sGENIE\*n
+%C Univ. Cal. at Berkeley
+%D April 1965
+
+> EOT
+== refer-long
+awk 'BEGIN { for (i = 0; i < 4000; i++) printf "%%A a%d\n%%T t%d\n\n", i, i }' > b
+indxbib b
+wc -c b b.ic
+od -d b.ia | sed 1q
+echo a3999 t3999 | /usr/libexec/refer/hunt b
+echo a12 t12 | /usr/libexec/refer/hunt b
+printf '.LP\nCited\n.[\na3998\n.]\n' > d
+refer -p b d
+--
+   73780 b
+   43240 b.ic
+  117020 total
+0000000  00256 00001 00000 00000 00004 00000 00068 00000
+
+%A a3999
+%T t3999
+
+%A a12
+%T t12
+
+.LP
+Cited\*([.1\*(.]
+.ds [F 1
+.]-
+.ds [A a3998
+.ds [T t3998
+.nr [T 0
+.nr [A 0
+.nr [O 0
+.][ 0 other
+== sortbib
+sed 40q /usr/dict/papers/Rv7man > db; sortbib db | grep '^%[AT]'
+sortbib -sT db | grep '^%T'
+--
+%A L. P. Deutsch
+%A B. W. Lampson
+%T An online editor
+%A T. A. Dolotta
+%A J. R. Mashey
+%A B. W. Kernighan
+%A L. L. Cherry
+%T A System for Typesetting Mathematics
+%T U\s-2NIX\s0 Time-Sharing System: Document Preparation
+%A B. W. Kernighan
+%A M. E. Lesk
+%A J. F. Ossanna
+%T An online editor
+%T A System for Typesetting Mathematics
+%T U\s-2NIX\s0 Time-Sharing System: Document Preparation
+== roffbib
+sed 20q /usr/dict/papers/Rv7man > db; roffbib db | sed '/^$/d' | sed 12q
+--
+                          _B_I_B_L_I_O_G_R_A_P_H_Y
+Deutsch, L. P. and B. W. Lampson, "An online editor," _C_o_m_m. _A_s_-
+     _s_o_c. _C_o_m_p. _M_a_c_h., vol. 10, no. 12, pp. 793-799, 803, De-
+     cember 1967.
+Kernighan, B. W. and L. L. Cherry, "A System for Typesetting
+     Mathematics," Comp. Sci. Tech. Rep. No. 17, Bell Labora-
+     tories, Murray Hill, New Jersey.
+== spell
+spell /mnt/d/sp.t
+spell -b /mnt/d/sp.t
+--
+brwon
+centre
+Colour
+jumpd
+brwon
+color
+jumpd
+== spellout
+printf 'fox\nbrwon\ncolour\n' | spellout /usr/dict/hlista
+printf 'fox\nbrwon\n' | spellout -d /usr/dict/hlista
+--
+brwon
+colour
+fox
+== spellin
+spellin < /mnt/d/stop | cmp - /usr/dict/hstop && echo same
+--
+same
+== diction
+diction /mnt/d/st.t
+--
+/mnt/d/st.t
+It is a fact that the results were *[ in close proximity ]* to
+the expected values.
+
+We *[ utilize]* a method *[ which ]* is *[ very ]* unique.
+
+number of sentences 3 number of phrases found 4
+== style
+style /mnt/d/st.t
+--
+  /mnt/d/st.t
+readability grades:
+	(Kincaid)  5.1  (auto)  3.2  (Coleman-Liau)  5.7  (Flesch)  7.3 (76.5)
+sentence info:
+	no. sent 3 no. wds 30
+	av sent leng 10.0 av word leng 4.17
+	no. questions 0 no. imperatives 0
+	no. nonfunc wds 13  43.3%   av leng 6.23
+	short sent (<5)  0% (0) long sent (>20)   0% (0)
+	longest sent 15 wds at sent 1; shortest sent 7 wds at sent 3
+sentence types:
+	simple  33% (1) complex  67% (2)
+	compound   0% (0) compound-complex   0% (0)
+word usage:
+	verb types as % of total verbs
+	tobe  80% (4) aux   0% (0) inf   0% (0)
+	passives as % of non-inf verbs  20% (1)
+	types as % of total
+	prep 10.0% (3) conj 0.0% (0) adv 3.3% (1)
+	noun 23.3% (7) adj 10.0% (3) pron 10.0% (3)
+	nominalizations   0 % (0)
+sentence beginnings:
+	subject opener: noun (0) pron (1) pos (0) adj (0) art (1) tot  67%
+	prep   0% (0) adv   0% (0) 
+	verb   0% (0)  sub_conj   0% (0) conj   0% (0)
+	expletives  33% (1)
+== explain
+echo utilize | explain
+--
+phrase?
+use "use" for "utilize"
+phrase?
+== indent
+indent /mnt/d/in.c o.c; cat o.c
+--
+main()
+{
+	int             i;
+	for (i = 0; i < 3; i++)
+		printf("%d\n", i);
+}
+== zic
+(cd /mnt/d; zic -d /tmp/w/z asia australasia europe etcetera northamerica pacificnew systemv)
+cd z
+for f in `find . -type f -print`
+do
+	cmp $f /usr/share/zoneinfo/$f || echo $f
+done
+find . -type f -print | wc -l
+ls -l GMT | awk '{ print $2 }'
+--
+      85
+5
+== zdump
+zdump -v -c 2008 US/Eastern | sed -n -e '/ 1901 /p' -e '/ 200[67] /p' -e '/ 2038 /p'
+--
+US/Eastern  Fri Dec 13 20:45:52 1901 GMT = Fri Dec 13 15:45:52 1901 EST isdst=0 gmtoff=-18000
+US/Eastern  Sat Dec 14 20:45:52 1901 GMT = Sat Dec 14 15:45:52 1901 EST isdst=0 gmtoff=-18000
+US/Eastern  Sun Apr  2 06:59:59 2006 GMT = Sun Apr  2 01:59:59 2006 EST isdst=0 gmtoff=-18000
+US/Eastern  Sun Apr  2 07:00:00 2006 GMT = Sun Apr  2 03:00:00 2006 EDT isdst=1 gmtoff=-14400
+US/Eastern  Sun Oct 29 05:59:59 2006 GMT = Sun Oct 29 01:59:59 2006 EDT isdst=1 gmtoff=-14400
+US/Eastern  Sun Oct 29 06:00:00 2006 GMT = Sun Oct 29 01:00:00 2006 EST isdst=0 gmtoff=-18000
+US/Eastern  Sun Mar 11 06:59:59 2007 GMT = Sun Mar 11 01:59:59 2007 EST isdst=0 gmtoff=-18000
+US/Eastern  Sun Mar 11 07:00:00 2007 GMT = Sun Mar 11 03:00:00 2007 EDT isdst=1 gmtoff=-14400
+US/Eastern  Sun Nov  4 05:59:59 2007 GMT = Sun Nov  4 01:59:59 2007 EDT isdst=1 gmtoff=-14400
+US/Eastern  Sun Nov  4 06:00:00 2007 GMT = Sun Nov  4 01:00:00 2007 EST isdst=0 gmtoff=-18000
+US/Eastern  Mon Jan 18 03:14:07 2038 GMT = Sun Jan 17 22:14:07 2038 EST isdst=0 gmtoff=-18000
+US/Eastern  Tue Jan 19 03:14:07 2038 GMT = Mon Jan 18 22:14:07 2038 EST isdst=0 gmtoff=-18000
+== zic-localtime
+date | awk '{ print $5 }'
+zic -l Japan && date | awk '{ print $5 }'
+TZ=GMT+5 date | awk '{ print $5 }'
+rm /etc/localtime
+date | awk '{ print $5 }'
+--
+GMT
+JST
+GMT+0500
+GMT
+== daily
+sh /usr/adm/daily
+sh /usr/adm/daily > /dev/null
+ls /usr/adm /usr/spool/mqueue | grep '[.][0-9]'
+--
+Subject: daily run output
+
+
+Rotating accounting records:
+
+Rotating mail syslog:
+
+Rotating daemonlog:
+
+Rotating debuglog:
+
+mail:
+Mail queue is empty
+acct.0.Z
+acct.1.Z
+daemonlog.0
+daemonlog.1
+debuglog.0
+debuglog.1
+syslog.0
+syslog.1
+== weekly
+cp /usr/man/whatis w
+sh /usr/adm/weekly
+cmp w /usr/man/whatis && echo same
+ls /usr/adm | grep '[.][0-9]'
+find zdump.0
+--
+Subject: weekly run output
+
+Rotating messages:
+
+Rotating cron:
+
+Rebuilding whatis database:
+
+Rebuilding find database:
+same
+acct.0.Z
+acct.1.Z
+cron.0.Z
+daemonlog.0
+daemonlog.1
+debuglog.0
+debuglog.1
+messages.0.Z
+/usr/man/cat8/zdump.0
+== monthly
+sh /usr/adm/monthly | awk '{ print $1 }'
+ls /usr/adm | grep wtmp
+--
+Subject:
+
+Doing
+total
+root
+
+Rotating
+wtmp
+wtmp.0
 == disklabel
 disklabel wd0 > l; echo $?
 expand l
@@ -1177,6 +1597,270 @@ File System: /tmp/w/m
 ** Phase 4 - Check Reference Counts
 ** Phase 5 - Check Free List
 15 files, 3 used, 994 free
+== trunc-device
+dd if=/unix of=/dev/rwd1e bs=1k seek=1 count=1 2>/dev/null
+ls -l /dev/rwd1e | awk '{ print $1, $4, $5 }'
+: > /dev/rwd1e
+ls -l /dev/rwd1e | awk '{ print $1, $4, $5 }'
+--
+crw-r----- 8, 12
+crw-r----- 8, 12
+== dump
+newfs /dev/rwd1a > /dev/null
+mkdir m
+mount /dev/wd1a /tmp/w/m
+mkdir m/a m/a/b
+cp /etc/termcap m/a/termcap
+dd if=/etc/motd of=m/a/b/hole bs=1k seek=300 2>/dev/null
+ln m/a/termcap m/a/b/link
+ln -s ../termcap m/a/b/sym
+mknod m/a/null c 1 2
+echo hello > m/a/b/f
+chmod 600 m/a/b/f
+chown daemon m/a/b m/a/b/f
+umount /dev/wd1a
+sleep 2
+dump 0uf /tmp/d0 /dev/rwd1a 2>&1 | sed -e 's/dump: [A-Z].*/dump:/' -e 's/ on [A-Z].*//'
+awk '{ print $1, $2 }' /etc/dumpdates
+dump W | sed 's/Date .*/Date/' | expand
+dump w
+--
+  DUMP: Date of this level 0 dump:
+  DUMP: Date of last level 0 dump: the epoch
+  DUMP: Dumping /dev/rwd1a to /tmp/d0
+  DUMP: mapping (Pass I) [regular files]
+  DUMP: mapping (Pass II) [directories]
+  DUMP: estimated 478 tape blocks on 0.01 tape(s).
+  DUMP: dumping (Pass III) [directories]
+  DUMP: dumping (Pass IV) [regular files]
+  DUMP: DUMP: 179 tape blocks on 1 tape(s)
+  DUMP: DUMP IS DONE
+  DUMP: level 0 dump
+  DUMP: Closing /tmp/d0
+/dev/rwd1a 0
+Last dump(s) done (Dump '>' file systems):
+  /dev/rwd1a    (      ) Last dump: Level 0, Date
+Dump these file systems:
+== dumpdir
+restor tf /tmp/d0 | sed 1d
+dumpdir f /tmp/d0 | sed 1,2d | expand
+--
+Dumped from: Thu Jan  1 00:00:00 1970
+    2   /.
+    2   /..
+    3   /lost+found/.
+    2   /lost+found/..
+  103   /a/.
+    2   /a/..
+  102   /a/b/.
+  103   /a/b/..
+  100   /a/b/hole
+  101   /a/b/link
+   99   /a/b/sym
+   97   /a/b/f
+  101   /a/termcap
+   98   /a/null
+== restor
+newfs /dev/rwd1e > /dev/null
+echo | restor rf /tmp/d0 /dev/rwd1e
+fsck /dev/rwd1e
+mkdir a e
+mount /dev/wd1a /tmp/w/a
+mount /dev/wd1e /tmp/w/e
+(cd a; ls -liR) > la; (cd e; ls -liR) > le; cmp la le && echo same
+cmp a/a/termcap e/a/termcap && cmp a/a/b/hole e/a/b/hole && echo same files
+umount /dev/wd1a; umount /dev/wd1e
+--
+Last chance before scribbling on /dev/rwd1e. End of tape
+** /dev/rwd1e
+File System: 
+
+** Last Mounted on 
+** Phase 1 - Check Blocks and Sizes
+** Phase 2 - Check Pathnames
+** Phase 3 - Check Connectivity
+** Phase 4 - Check Reference Counts
+** Phase 5 - Check Free List
+9 files, 154 used, 829 free
+Marking file system clean
+
+***** FILE SYSTEM WAS MODIFIED *****
+same
+same files
+== restor-pipe
+newfs /dev/rwd1e > /dev/null
+dump 0f - /dev/rwd1a 2>/dev/null | restor rf - /dev/rwd1e
+fsck /dev/rwd1e | sed -n '$p'
+mkdir a e
+mount /dev/wd1a /tmp/w/a
+mount /dev/wd1e /tmp/w/e
+(cd a; ls -liR) > la; (cd e; ls -liR) > le; cmp la le && echo same
+cmp a/a/b/hole e/a/b/hole && echo same files
+umount /dev/wd1a; umount /dev/wd1e
+--
+End of tape
+***** FILE SYSTEM WAS MODIFIED *****
+same
+same files
+== dump-1
+mkdir m
+mount /dev/wd1a /tmp/w/m
+echo changed >> m/a/b/f
+rm m/a/b/link
+echo new > m/a/n
+umount /dev/wd1a
+sleep 2
+dump 1uBf 1000 /tmp/d1 /dev/rwd1a 2>&1 | sed -e 's/dump: [A-Z].*/dump:/' -e 's/ on [A-Z].*//'
+dumpdir f /tmp/d1 | sed 1,2d | expand
+awk '{ print $1, $2 }' /etc/dumpdates
+echo | restor rf /tmp/d1 /dev/rwd1e
+fsck -f /dev/rwd1e
+mkdir a e
+mount /dev/wd1a /tmp/w/a
+mount /dev/wd1e /tmp/w/e
+(cd a; ls -liR) > la; (cd e; ls -liR) > le; cmp la le && echo same
+cmp a/a/b/f e/a/b/f && cmp a/a/n e/a/n && echo same files
+umount /dev/wd1a; umount /dev/wd1e
+--
+  DUMP: Date of this level 1 dump:
+  DUMP: Date of last level 0 dump:
+  DUMP: Dumping /dev/rwd1a to /tmp/d1
+  DUMP: mapping (Pass I) [regular files]
+  DUMP: mapping (Pass II) [directories]
+  DUMP: mapping (Pass II) [directories]
+  DUMP: estimated 170 tape blocks on 0.16 tape(s).
+  DUMP: dumping (Pass III) [directories]
+  DUMP: dumping (Pass IV) [regular files]
+  DUMP: DUMP: 170 tape blocks on 1 tape(s)
+  DUMP: DUMP IS DONE
+  DUMP: level 1 dump
+  DUMP: Closing /tmp/d1
+    2   /.
+    2   /..
+  103   /a/.
+    2   /a/..
+  102   /a/b/.
+  103   /a/b/..
+   97   /a/b/f
+  101   /a/termcap
+   96   /a/n
+/dev/rwd1a 0
+/dev/rwd1a 1
+Last chance before scribbling on /dev/rwd1e. End of tape
+** /dev/rwd1e
+File System: /tmp/w/e
+
+** Last Mounted on /tmp/w/e
+** Phase 1 - Check Blocks and Sizes
+** Phase 2 - Check Pathnames
+** Phase 3 - Check Connectivity
+** Phase 4 - Check Reference Counts
+** Phase 5 - Check Free List
+10 files, 155 used, 828 free
+same
+same files
+== nodump
+mkdir m
+mount /dev/wd1a /tmp/w/m
+echo skip > m/a/s
+chflags nodump m/a/s
+ls -lo m/a/s | awk '{ print $1, $4, $NF }'
+umount /dev/wd1a
+dump 2f /tmp/d2 /dev/rwd1a > /dev/null 2>&1
+dumpdir f /tmp/d2 | sed 1,2d | expand
+dump 0f /tmp/d2 /dev/rwd1a > /dev/null 2>&1
+dumpdir f /tmp/d2 | grep /a/s | expand
+dump 0hf 0 /tmp/d2 /dev/rwd1a > /dev/null 2>&1
+dumpdir f /tmp/d2 | grep /a/s
+rm /tmp/d2
+--
+-rw-r--r-- nodump m/a/s
+    2   /.
+    2   /..
+  103   /a/.
+    2   /a/..
+   95   /a/s
+== restor-x
+echo 1 | restor xf /tmp/d0 a/b/f a/termcap nothere
+ls -l | awk '{ print $1, $3, $NF }'
+cmp 101 /etc/termcap && cat 97
+--
+a/b/f: inode 97
+a/termcap: inode 101
+nothere: not on the tape
+Mount desired tape volume: Specify volume #: extract file 97
+extract file 101
+total  144
+-rw-r--r-- root 101
+-rw-r--r-- daemon 97
+hello
+== rdump
+echo "localhost root" > /root/.rhosts
+cp /dev/null /tmp/d2
+rdump 0f localhost:/tmp/d2 /dev/rwd1a 2>&1 | sed -n '/Dumping/p;/DONE/p'
+rm /root/.rhosts
+newfs /dev/rwd1e > /dev/null
+echo | restor rf /tmp/d2 /dev/rwd1e > /dev/null
+fsck /dev/rwd1e | sed -n '$p'
+mkdir a e
+mount /dev/wd1a /tmp/w/a
+mount /dev/wd1e /tmp/w/e
+(cd a; ls -liR) > la; (cd e; ls -liR) > le; cmp la le && echo same
+cmp a/a/b/hole e/a/b/hole && echo same files
+umount /dev/wd1a; umount /dev/wd1e
+rm /tmp/d0 /tmp/d1 /tmp/d2
+--
+  DUMP: Dumping /dev/rwd1a to /tmp/d2 on host localhost
+  DUMP: DUMP IS DONE
+***** FILE SYSTEM WAS MODIFIED *****
+same
+same files
+== gcore
+(sleep 60 & echo $! > pid)
+p=`cat pid`
+sleep 1
+gcore -s $p; echo $?
+kill -6 $p
+sleep 2
+a=`ls -l $p.core | awk '{ print $4 }'`
+b=`ls -l sleep.core | awk '{ print $4 }'`
+test $a -eq $b && test $a -gt 3840 && echo same size
+dd if=$p.core bs=3584 skip=1 2>/dev/null > g
+dd if=sleep.core bs=3584 skip=1 2>/dev/null > k
+cmp g k && echo same
+gcore 0; echo $?
+gcore 9999; echo $?
+--
+0
+same size
+same
+gcore: 0: system process
+1
+gcore: 9999: not found
+1
+== chflags
+echo x > f
+chflags uchg f; echo $?
+ls -lo f | awk '{ print $1, $4, $NF }'
+rm f; ls f
+echo y >> f
+chflags nouchg f; echo $?
+ls -lo f | awk '{ print $1, $4, $NF }'
+rm f; ls
+chflags foo f; echo $?
+--
+0
+-rw-r--r-- uchg f
+f
+/mnt/t/chflags: f: cannot create
+0
+-rw-r--r-- - f
+invalid flag: foo
+1
+== la
+/usr/new/la | sed 's/[0-9]/N/g'
+--
+load N.NN N.NN N.NN
 == fstat
 sleep 30 < /etc/motd &
 sleep 1

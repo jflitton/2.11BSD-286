@@ -20,6 +20,16 @@ that is not a multiple of 512 is refused (`EINVAL`). Upstream's programs
 that read a file system directly read its superblock as the size of its
 structure, as the PDP-11's controllers let them; here they read the 1K
 block it is in.
+
+A device's inode holds its number where a file's holds the addresses of
+its blocks, and has no size: truncating one does nothing (`itrunc`), as
+in 4.4BSD. Upstream's kernel lengthened it as it would a file, which
+`dd` does to its output with `ftruncate` when it is given `seek` and not
+`conv=notrunc`, and the next open of the device with `O_TRUNC`, as
+`mkfs` opens a disk, then freed the number as though it were a block.
+The kernel said "bad block", the inode was left with the number 0, 0,
+the console's, and `newfs` wrote its file system on the screen.
+`tests/programs` has a raw disk keep its number after both.
 What the two drivers do alike, which is everything in this section and
 the next, is in `sys/i286at/pcdisk.c`.
 

@@ -574,12 +574,36 @@ points at its own copy.
 `cron` and `crontab` are upstream's, Paul Vixie's, unchanged. `cron`
 makes `/var/cron/tabs`, where `crontab` keeps each user's table, and
 it runs `/etc/crontab` as well, which is this port's own. That has
-upstream's line that runs `atrun` every quarter of an hour. Upstream's
-also runs `/usr/adm/daily`, `weekly` and `monthly` and mails root what
-they print, but the tree has no such scripts. This one has `sendmail
--q` try each hour to deliver what is in mail's queue, which upstream
-leaves to `sendmail`'s daemon ([mail](#mail)). `cron` mails what a job
-prints to the job's owner, through `sendmail`.
+upstream's lines: `atrun` every quarter of an hour, and
+`/usr/adm/daily`, `weekly` and `monthly` (below), each piped to `mail
+root`. It adds `sendmail -q` each hour, to deliver what is in mail's
+queue, which upstream leaves to `sendmail`'s daemon ([mail](#mail)).
+`cron` mails what a job prints to the job's owner, through `sendmail`.
+The times in the table are local ([time zones](#time-zones)).
+
+`daily` runs at five past midnight. It starts a new file of accounting
+records, has `sa` add the old one to its summaries, `savacct` and
+`usracct`, and compresses it, keeping four; it keeps eight days of
+mail's log and of `daemonlog` and `debuglog`; it has `msgs -c` remove
+old messages; and it lists mail's queue. `weekly`, at quarter past on
+Sunday, keeps four weeks of `messages` and `cron`, compressed, makes
+`/usr/man/whatis` again with `makewhatis`, and has `updatedb` make the
+list of the system's files that `find` looks a name up in when given
+only the name, `/var/db/find.codes`. It runs that as `nobody`, so that
+the list has only what anyone may see; the root file system has the
+file, empty and `nobody`'s, for it to write. `monthly`, on the first,
+totals each user's time logged in with `ac -p` and keeps six months of
+`wtmp`. `bigram` and `code`, which `updatedb` runs, are in
+`/usr/libexec/find` with it.
+
+The scripts are the port's, in `usr/src/i286/etc`, made from
+upstream's (`usr/adm` in the tree, from the tape). Upstream's `daily`
+also runs `calendar` and cleans up after UUCP, and `weekly` UUCP too,
+neither of which is on the system ([what is not
+ported](unported.md)). And upstream's move each log's older copies
+along with a fixed list of `mv` commands, which on a new system mail
+root an error for each copy not made yet, 27 the first night. The
+port's move only the copies there are.
 
 `cron` reads the tables again when `/etc/crontab` or the directory of
 tables has a later time of modification than it last saw. So it does
@@ -615,7 +639,53 @@ behind: the kernel wakes `acctd` at every tenth record, and `acctd`
 writes the file a kilobyte at a time, 32 records. `acctd` does not
 make the file, so it is in the root file system, empty.
 
-`find` is built because `/etc/rc` clears `/tmp` with it.
+`/etc/rc` clears `/tmp` with `find`.
+
+## Time zones
+
+`localtime` takes the zone the system is in, and when its clocks
+change, from `/etc/localtime`, or from the file in `/usr/share/zoneinfo`
+that a user's `TZ` names; without either it keeps universal time, which
+it calls GMT. The root file system has no `/etc/localtime`: `zic -l
+US/Pacific`, say, makes it a link to that zone's file. The kernel takes
+the clock chip to keep universal time
+([above](#the-log-and-what-the-clock-runs)), so on a machine whose chip
+keeps local time, as DOS has it, the chip must be set to universal time
+in the machine's setup: the kernel reads the chip only as it starts and
+never writes it, so `date` sets the time only until the next boot.
+
+`zic` makes the files from upstream's tables in `usr/src/share/zoneinfo`:
+72 zones and 13 other names for them, those of the United States,
+Canada, Europe, Australia, New Zealand, Japan and Singapore, System V's,
+and `GMT+N` and `GMT-N` for each whole hour. `zdump -v` shows each
+zone's changes. A file holds a zone's changes from 1901 to 2038, the
+range of a 32-bit `time_t`, as on the PDP-11. The build makes them, as
+upstream's Makefile has the system do, but with upstream's `zic` built
+for the machine the build runs on. That makes the same files: a file's
+numbers are four bytes, high byte first, on any machine, and
+`tests/programs` has the system's own `zic` make them all again and
+compare. The build's `zic` is built with a 32-bit `time_t`
+(`tools/hostzic.h`), since it works out from the type which years to
+cover: with the 64 bits of `time_t` on such a host it would write each
+rule's changes up to the year 292 billion.
+
+Patch level 500 brought the rules of the United States and Canada up to
+those of 2007, but it ended the United States' rule that sets the
+clocks back in October in 1973, so that from 1974 to 2006 summer time
+never ended there, and left Canada's going on after 2007, so that its
+clocks went back in October and again in November. Both rules now end
+in 2006. Compared with the database of the machine the build ran on,
+the four zones of the 48 states, Arizona's, Hawaii's, and Canada's
+Atlantic and Eastern zones have every change from 1970 to 2038 right,
+and Alaska's those from 1984. The rest are as upstream had them in the 1990s, and many of
+their places have changed their rules since: Indiana, Newfoundland,
+British Columbia, much of Europe, Russia, Australia and New Zealand,
+among others.
+
+`zdump -v` showed the second and the second-last of its times wrong: it
+added and took off a day as `SECS_PER_HOUR * HOURS_PER_DAY`, 86400 in
+an int, which a 16-bit int does not hold, on the PDP-11 as here. It
+uses `SECS_PER_DAY`, a long, now.
 
 ## Grammars: yacc and lex
 
@@ -801,10 +871,8 @@ Left out of this batch: `tc` and `tk`, which are for a Tektronix
 4014; `from`, `biff` and `msgs`, which came with
 [mail](#mail), and `calendar`, which runs `/lib/cpp`; `tcopy`, `mt` and `tp`, for tapes; the scripts
 `lorder`, `mkdep` and `lint`, which run `nm`, the compiler and the
-passes of `lint`; `spell`, which needs its word lists made; `indent`,
-where the script found 16 calls to read, each with another number of
-arguments than the function is defined with;
-the programs that read the kernel, `fstat`, `top` and `gcore`; those
+passes of `lint`; `spell` and `indent`, which came [with what documents
+go through](#what-documents-go-through); the programs that read the kernel, `fstat`, `top` and `gcore`; those
 for object files, `nm`, `ar`, `ranlib`, `size` and `ld`; and
 the network's, which came next. `look` searches `/usr/dict/words` by
 default, which is not in upstream's source tree but on its `/usr` tape,
@@ -1165,9 +1233,9 @@ formats, with the pages of those kinds that `cron` and `tcpd` keep
 with them; of 4, those not of the PDP-11's devices: `tty`, `pty`,
 `null`, and the network's; of 6, those of the games on it
 ([games](#games)). 3f, Fortran's library, has nothing on the system to
-go with it. That is 583 pages, with the 309 other names upstream's
+go with it. That is 605 pages, with the 315 other names upstream's
 Makefiles give them by `ln`, `egrep` for `grep` and `fprintf` for
-`printf`, and 2.3 MB. A page its Makefile installs under another name,
+`printf`, and 2.4 MB. A page its Makefile installs under another name,
 as `phantasia`'s `phant.nr` is `phantasia.0`, has that name after its
 source in `man.list`. `whatis` is
 made as `usr/src/man`'s Makefile makes it: its `makewhatis.sed` takes
@@ -1199,9 +1267,8 @@ What upstream does that is left as it is:
 - `man -f` and `man -k` are `whatis` and `apropos`, run by name from
   the `PATH`.
 
-Left out: `troff`, which drives a phototypesetter; `tbl`, `eqn` and
-`neqn`, `refer` and the rest that `nroff` is given documents through;
-and of the manual, the pages of programs not on the system, and
+Left out: `troff`, which drives a phototypesetter, and of the manual,
+the pages of programs not on the system, and
 upstream's `adduser(8)`, which tells how to add a user by hand, where
 `adduser` here is a program of this port's own. Neither it nor `bench`
 has a page yet.
@@ -1213,6 +1280,115 @@ has a page yet.
 and to say where one is; look pages up with `whatis` and `apropos`; and
 make `whatis` of copies of two sections with `makewhatis`. At the terminal it
 shows `ls`'s page with `man`, which `more` pages through.
+
+## What documents go through
+
+Then what a document goes through on its way to `nroff`, and what reads
+its words: 19 programs, with the scripts and files that go with them. 11
+are compiled as upstream has them. All are small-model programs.
+
+| Where | |
+|---|---|
+| `/usr/bin` | `tbl`; `eqn` and `neqn`; `refer`, `addbib`, `lookbib`, `sortbib`, and the scripts `indxbib` and `roffbib`; `spellin`, `spellout`, and the script `spell`; the scripts `style`, `diction` and `explain` |
+| `/usr/ucb` | `indent` |
+| `/usr/libexec` | `spell`, which the script runs; in `refer`, `deliv`, `mkey`, `inv` and `hunt`, which `refer` and the others run; in `diction`, `style1`, `style2`, `style3` and `dprog` |
+| `/usr/dict` | `hlista`, `hlistb` and `hstop`, `spell`'s lists; `papers`, the references `refer` looks in unless it is given others, and `runinv`, which indexes them |
+| `/usr/pub` | `eqnchar`, the characters `eqn` and `neqn` know by name; `ascii` and `greek` |
+| `/usr/share/misc`, `/usr/share/tmac` | `dict.d` and `explain.d`, the phrases `diction` and `explain` look for; `tmac.bib`, `roffbib`'s macros |
+
+`eqn` and `neqn` are one grammar for the tree's `yacc` and the same
+files, `neqn` compiled with `-DNEQN`; `eqn` writes for a typesetter.
+`style` runs three scanners made by the tree's `lex`, which include
+`diction`'s tables of words, and `diction` runs `dprog`. `refer`'s
+`hunt` is `refer.hunt` in `obj/bin`, beside the game.
+
+`spell`'s lists are made as its Makefile makes them, by `spellin`,
+built for the machine the system is built on, as the games' tools are
+([games](#games)): `hlista` and `hlistb` of `/usr/dict/words` with the
+American spellings or the British, and the local words; `hstop` of the
+words at which `spell` stops before it looks for a stem. Each is a table
+of 400,000 bits as shorts, low byte first, on the PDP-11 too, and they
+are the same bytes as the lists on upstream's `/usr` tape, which were
+left out of the import as made of what is there ([the upstream
+branch](upstream.md)). The system's `spellin` makes the same of `stop`.
+
+`refer` finds a reference by an index of its keys, which `mkey` takes
+and `inv` hashes. The hash is reckoned in an `int`, which overflows,
+and shifts by a count that is negative when the sum is, which each
+machine takes its own way: the index is the machine's own. The PDP-11's
+of `/usr/dict/papers`, on upstream's tape, was left out with the lists,
+and differs from the system's, its `.ib` 2172 bytes to 1982. The build's
+machine, whose `int` is 32 bits, does not make it; it is made on the
+system, as upstream's Makefile makes it there as it installs `refer`.
+As root:
+
+```
+cd /usr/dict/papers; sh runinv
+```
+
+which takes six seconds. Until then `refer` and `lookbib` have no index
+there, and `refer` finds only what it is given with `-p`.
+
+What the compiler needed:
+
+- Casts, where a function takes an `int` and is given a pointer, or the
+  other way, before its definition in the same file, which this compiler
+  holds the call to: `tbl`'s `domore` and `point`, `eqn`'s `error` and
+  `define`, and `new` in `refer`'s `glue5.c`. `mkey`'s `chkey` and
+  `refer`'s `corout` take a string they pass on, and declare it a
+  `char *` now.
+- `tbl`'s `badsig` and `sortbib`'s `onintr` are defined `void`, as they
+  are declared; `inv`'s `recopy` returns 0 after an error that does not
+  come back, where it returned nothing.
+- `tbl` and `spell` and its two are compiled with `-Dunix`, which
+  upstream's compiler defines and this one does not: `tbl` keeps its
+  handler of `SIGPIPE` under it, and `spell.h` without it takes the
+  Honeywell's table, of `int`s shifted by up to 31 bits.
+
+What the machine needed:
+
+- `tbl` keeps the PDP-11's limit of 30 lines of a table's format, under
+  `#if defined(pdp11) || defined(i286)`, where the VAX has 100: its
+  tables of each line's columns take 10K at 30 and 32K at 100.
+- `spell` and its two hold a table of 50000 bytes, and `dprog` one of
+  52000, and each has a stack of 4K, which leaves room in its 64K for its
+  arguments and stdio's buffers. `refer` reads a reference into 4.5K of
+  its stack below the 1K of its `main` and what it runs of `hunt`'s, and
+  `sortbib` a record into 9K: each has 16K.
+
+Bugs, which the PDP-11 has too:
+
+- `indxbib` moved `db.ia_` to `db.ia`, where `inv` writes `db_.ia`: it
+  said it could not, and left the index under names nothing looks for.
+- `inv` writes the place of each reference in the index's `.ic` file as
+  an `int`, and as a `long` when the file passes 64K. `getw` reads the
+  `int`s signed, so a place past 32K was a negative number, which `hunt`
+  compares with the places it holds of the first key: such a reference
+  was found by one key and not by two. The `long`s were written with
+  `putw`, two bytes each, where `inv` counted four, and read with
+  `getw`. `inv` writes `long`s from 32K now, four bytes each, and `inv`
+  and `hunt` read them so.
+
+What upstream does that is left as it is:
+
+- `nroff` with no `-T` does not move up the page, so a box's sides that
+  `tbl` draws come out below the table. `nroff -T37 | col` draws them.
+- `eqn`'s page is formatted as the others are, without `eqn`, which
+  upstream's Makefile runs first: the build's machine has no `eqn`, which
+  keeps pointers in `int`s, and the equations show as they are written,
+  between dollar signs. `tbl`'s page has its table formatted without
+  `tbl`, as upstream's Makefile has it.
+
+`tests/programs` has the system lay out a boxed table with `tbl`; set an
+equation with `neqn` for `nroff` and with `eqn` for a typesetter; index
+`/usr/dict/papers` with `runinv`, cite two of its references with
+`refer` in a document for `-ms`, look one up with `lookbib`, index
+references of its own with `indxbib`, and 4000 more, whose index's `.ic`
+is 43K, and find and cite the last; sort references with `sortbib` and
+print them with `roffbib`; find misspelt words with `spell`, American
+and British, and in a list with `spellout`, and make `hstop` again with
+`spellin`; find wordy phrases with `diction` and one with `explain`,
+measure a document with `style`; and lay out C with `indent`.
 
 ## Disks and file systems
 
@@ -1367,6 +1543,126 @@ has open, who has `/etc/motd` open, `syslogd`'s socket in the UNIX
 domain and `inetd`'s on the Internet. Afterwards `tools/fsck.py` must
 find nothing wrong with the file systems in `a` and `e`.
 
+## Backups, and the rest of the administrator's
+
+| Where | |
+|---|---|
+| `/sbin` | `dump`, `rdump`, `dumpdir`, `restor` |
+| `/usr/sbin` | `rmt` |
+| `/bin` | `chflags` |
+| `/usr/ucb` | `gcore`, `window` |
+| `/usr/new` | `la` |
+| `/etc` | `dumpdates`, the group `operator`'s to write, as upstream installs it |
+
+`dump` and `restor` are the Seventh Edition's, as 2.11BSD has them, with
+the format of `protocols/dumprestor.h`: 1K records in blocks of ten, a
+header before each file, and a map of the inodes in use and of those in
+the dump. `dump` reads a file system through its raw device, which only
+root and the group `operator` may, and copies all of it (level 0), or
+what has changed since the last dump of a lower level, which
+`/etc/dumpdates` keeps with `u`; `W` and `w` say from that file and
+`fstab` what is due. There is no tape drive yet, so a dump goes to a
+file, named with `f`, or with `f -` to the standard output, from which
+`restor rf -` can read it in a pipe, as `restor(8)` shows for copying a
+file system. `rdump`, which only root may run, since it takes a
+privileged port, writes it on another machine through `rsh` and `rmt`
+there; `rmt` opens a file without making it, as 4.3BSD's does, so the
+file must be there first. A file is taken for a tape of 2300 feet at
+1600 bpi, which holds about 38000 blocks: at that size `dump` asks at
+the terminal for the next tape and opens the same name again. `B` gives the number of
+records a volume holds instead, and a dump to the standard output has no
+limit. `dump` reads and writes with three helper processes, which take
+their turns writing with `flock` on files in `/tmp`, as upstream's do.
+
+`restor r` puts a dump back on a file system, inode by inode: a level 0
+on one `newfs` has just made, and each level after on top of it,
+removing the files that went in between. `x` takes the files it is
+given out of a dump, each into a file named by its inode number in the
+directory it is run in, and `t` says when the dump was made and from
+what date. `dumpdir` lists the files in a dump with their inode numbers,
+from which to name them for `x`.
+
+These had bugs, on the PDP-11 too:
+
+- `dump` read the superblock as the size of its structure, which a raw
+  device here refuses ([disks and file systems](#disks-and-file-systems)),
+  and went on with what was in memory: an inode count it made up, read
+  past the end of the partition, and asked at the terminal whether to go
+  on. It reads the block now, as `icheck` does. When it gave up after
+  that it named the disk with `%d`.
+- A file with a hole where a whole block of addresses would be, as `dd
+  seek=300` makes, lost its place. `dump` wrote nothing for the missing
+  indirect block, and `restor`, counting the file's blocks in order,
+  put what came after the hole that much nearer the start: a block
+  written at 300K came back at 44K. `dump` writes a record of no blocks
+  for each block of addresses a hole takes the place of now, while the
+  file goes on after it. A dump made by upstream's has the fault.
+- `B` never worked: given it, `dump` left the tape's length at zero, and
+  asked for a new tape after the first block. It counts the records of
+  each volume now.
+- `restor` wrote the superblock back as a whole block from the structure,
+  with whatever followed the structure in its memory; it keeps the whole
+  block now. `dump`'s messages, `msg`, took five `int`s whatever they
+  were given, and take a variable list now.
+
+`chflags` sets the flags the kernel keeps for a file, which `ls -lo`
+shows: `nodump`, which `dump` honours at level 1 and above unless `h`
+says otherwise; `uchg` and `uappnd`, which keep a file from being
+changed or let it only be added to, and which its owner may set; and
+`schg` and `sappnd`, the same, which only root may set, and nobody take
+off in multi-user, where the securelevel is 1. `la` prints the load
+averages, which it gets with `getloadavg`.
+
+`gcore` writes the core of a running process without stopping it, or
+stopped for the while with `-s`. Upstream's read the PDP-11's user
+structure, data and stack at the clicks in its `proc` entry. Here it
+writes what the kernel's own `core` does: the user structure and kernel
+stack, the process's table of segments, and each of the process's own
+segments, not the shared code. It finds the user structure as `ps`
+does, in the kernel's slot or at `p_addr`, and the table in `pseg`
+([programs that read the kernel](#programs-that-read-the-kernel)), and
+runs with the group `kmem`. As upstream's, it will not write a process
+that is swapped out. It looked one entry past the end of the table of processes
+before saying a process was not there.
+
+`window` divides a terminal into windows, each with a shell on a pty of
+its own, and is upstream's, which leaves each window only the lines it
+shows (`local.h`). Its screen and its windows are kept in its 64K of
+data, at about 15 bytes for each place on the screen, with the window
+it draws frames in and the one it draws boxes in each as big as the
+screen: 80 by 24 leaves room for the two windows it starts with and a
+few more, at 132 by 24 it starts with none, and at 100 by 30 or 80 by
+36 it says "Out of memory." and stops. A bigger screen waits on the
+large model ([what is not ported](unported.md)); `stty rows 24 columns
+80` makes a bigger terminal do. It took what `sprintf` returns for the
+name of `~/.windowrc`: the buffer in 4.3BSD's library, and a count of
+characters in 2.11BSD's, so it never read the file. `error` took eight
+`int`s, and its table of commands ended with an initializer the
+compiler refused.
+
+`tests/programs` first has a raw disk keep its device number after `dd`
+with `seek` and an open with `O_TRUNC` ([disks](disks.md#devices)).
+Then it makes a file system on the second disk's partition `a` with a
+file of 145K, which takes a block of addresses, a file with a
+hole before its one block, which takes two, a hard and a symbolic link,
+a device, and a file of another user's. `dump` must copy it to a file,
+with `u`, and `dump W` must then name it; `restor t` and `dumpdir` must
+list the dump; `restor r` must put it on a new file system in `e`, which
+`fsck` must find whole and which must list as the first does, inode for
+inode, with the same files; and so must `dump` and `restor` in a pipe.
+After a file is changed, one made and a link removed, a level 1 dump in
+volumes of 1000 records must hold those, and put on the copy it must
+make it the same again. A level 2 dump must leave out a file marked
+`nodump` with `chflags`, which a level 0 keeps unless `h 0` says
+otherwise. `restor x` must take two files out of the dump; `rdump` must
+write one through `rmt` on the same machine, which `restor r` puts back
+whole. `gcore` must write a core of a `sleep` that is the kernel's own
+after the user structure, which the kernel then writes when the `sleep`
+is killed with signal 6; `chflags uchg` must keep a file from being
+removed and written to until `nouchg`; and `la` must print three
+averages. At the terminal, it starts `window`, runs a command in a
+window on a pty, and leaves it with ^P `q`.
+
 ## Games
 
 Then the games of `usr/src/games`: all 38 of upstream's, and 41 programs
@@ -1385,8 +1681,9 @@ branch](upstream.md)). The root has `words`, `connectives` and the
 `README`, with their modes and owners on the tape. `web2` and `web2a`,
 Webster's Second and its phrases, 3.4 MB together, are not on it:
 nothing reads them unless it is asked to, and there is no room for them
-in the root of the tests' disks. `refer`'s papers wait for `refer`, and
-`spell`'s hashed lists, which `spellin` makes, for `spell`.
+in the root of the tests' disks. `refer`'s papers and `spell`'s lists
+came with them ([what documents go
+through](#what-documents-go-through)).
 
 Each is installed as its Makefile installs it. `fortune`, `hack`,
 `phantasia`, `robots` and `rogue` run as `daemon`, mode 4711, and `sail`
@@ -1434,9 +1731,9 @@ written by a tool of this port's own, laid out as the 286 has it:
   the empty files. `setfiles` never seeds `rand()`, so where it puts
   them is the library's sequence from its start, which is the same here.
   Its help, `phant.help`, is formatted with `tbl` and `nroff -Ttn300`;
-  there is no `tbl`, and the host's `nroff` formats it alone, as the
-  Makefile formats the manual page: its two tables come out as text run
-  together.
+  the build's machine has no `tbl`, which keeps pointers in `int`s, and
+  the host's `nroff` formats it alone, as the Makefile formats the manual
+  page: its two tables come out as text run together.
 - `battlestar` keeps the descriptions of its places and things in
   `/usr/games/lib/battle_strings`, which its own `mkstr` makes of three
   of its files as it takes the strings out of them, leaving each
@@ -1715,9 +2012,11 @@ The programs: `init`, `getty`, `login`, `sh`, `csh`, `ls`, `cat`, `cp`,
 names, as upstream has them, `w` and `uptime`, one file under two,
 `vmstat`, `top`, `logger` and `lastcomm`. `/usr/sbin` has `update`,
 `vipw`, `chown`, `adduser`, `dev_mkdb`, `pstat`, `tracebuf`, `syslogd`,
-`cron`, `accton`,
-`sa`, `exrecover` and `expreserve`, and `/usr/libexec` `atrun` and
-`acctd`. For the network there are `ifconfig`, `ping` and `route` in
+`cron`, `accton`, `sa`, `zic`, `zdump`, `exrecover` and `expreserve`,
+and `/usr/libexec` `atrun` and `acctd`, and in `find` `updatedb` and
+the `bigram` and `code` it runs. `/usr/adm` has `daily`, `weekly` and
+`monthly` ([the log, and what the clock
+runs](#the-log-and-what-the-clock-runs)). For the network there are `ifconfig`, `ping` and `route` in
 `/sbin`, `inetd` and `arp` in `/usr/sbin`, `telnetd` in `/usr/libexec`,
 and `telnet` and `netstat` in `/usr/ucb`. `tools/mkfs.py` makes these
 other names as hard links, and also `[` and `halt`. It makes everything
@@ -1733,8 +2032,11 @@ network's others [after them](#the-networks-programs), and mail's
 `/usr/msgs`. `nroff`'s macros, its printers' tables and the manual are
 [after those](#nroff-and-the-manual): `tools/mkman.py` writes a list of
 the manual's pages and their links, which `root.proto` takes in with a
-line `i ../../../obj/man/man.proto`. The programs for disks and file
-systems are [after the manual](#disks-and-file-systems), and the games
+line `i ../../../obj/man/man.proto`; the Makefile lists the zone files
+of `/usr/share/zoneinfo` likewise ([time zones](#time-zones)). The programs for disks and file
+systems are [after the manual](#disks-and-file-systems), those for
+backups and the rest of the administrator's [after
+those](#backups-and-the-rest-of-the-administrators), and the games
 [after those](#games).
 
 The programs are in it without their symbol tables, as upstream's
@@ -1753,9 +2055,9 @@ kernel](#programs-that-read-the-kernel)). The system's own `strip` makes
 of a file what `tools/strip.py` does, which `tests/programs` checks on
 the kernel.
 
-The file system is 15000 blocks of 1K, of which the system takes 11599.
-The 269 programs are 5.3 MB of that, and 6.0 MB with their symbols; the
-manual's pages are 2.3 MB in about 2700 blocks; the games and their
+The file system is 15000 blocks of 1K, of which the system takes 12704.
+The 301 programs are 5.9 MB of that, and 6.7 MB with their symbols; the
+manual's pages are 2.4 MB in about 2700 blocks; the games and their
 files take about 3300 blocks, 1600 of them `fortune`'s; and
 `/usr/dict/words` takes 206. It was 8000 blocks until the manual came,
 and 12000 until the games did. The tests' disks are of 20 MB, and the
@@ -1896,7 +2198,7 @@ copied files.
 `tests/programs` boots the same system from a disk with the root, a
 swap area and a small file system of checks, logs in as root on the
 first serial port, mounts that file system and runs its `check.sh`. For
-each of the 122 checks in `tests/programs/checks` it runs the check's
+each of the 157 checks in `tests/programs/checks` it runs the check's
 lines with the shell in an empty directory and compares what they wrote
 with what the check says they must, and says `ok` or shows what was
 written. A check is of one program, by its name, or of one use of it:
@@ -1904,18 +2206,24 @@ written. A check is of one program, by its name, or of one use of it:
 it holds in memory, so that it merges files; `diff` has four, among
 them one of directories and one against an empty file; `nroff` formats
 three of the manual's pages and must make of each what the build did
-([nroff and the manual](#nroff-and-the-manual)); `disklabel` and
+([nroff and the manual](#nroff-and-the-manual)); `zic` must make the
+zone files the build made ([time zones](#time-zones)); `daily`,
+`weekly` and `monthly` are run, and must move the logs along and make
+`whatis` and `find`'s list; `disklabel` and
 the programs that read a file system directly work on a second disk
-([disks and file systems](#disks-and-file-systems)); and the games that
-can be played from a file are played ([games](#games)). The test fails
-unless all 122 say `ok`. Then, at the terminal, it runs `tty` and `mesg`;
+([disks and file systems](#disks-and-file-systems)), and `dump` and
+`restor` copy a file system there to a file and back to another
+([backups](#backups-and-the-rest-of-the-administrators)); and the games
+that can be played from a file are played ([games](#games)). The test
+fails unless all 157 say `ok`. Then, at the terminal, it runs `tty` and `mesg`;
 pages through a file and through a pipe with `more`, and through `ls`'s
 page with `man`; records a shell
 with `script`, which it leaves with ^D, and finds the command it typed
 in the file; locks the terminal with `lock`, gives it a wrong key and
 then the right one; has `tset` name the terminal and `clear` write the
 sequence that clears a VT100; starts five games and leaves each
-([games](#games)); and stops the system with `shutdown -h now` and a
+([games](#games)); runs a command in a window of `window`'s and leaves
+it; and stops the system with `shutdown -h now` and a
 message, which must be shown before the system halts. Afterwards
 `tools/fsck.py` must find nothing wrong with the root.
 
@@ -2004,10 +2312,11 @@ Not done, or not tested:
   five are started at a terminal and left; none is played through.
   `hunt` has not had a player, `sail` two ships, or `monop` a game
   saved and restored.
-- Nothing trims the logs or the accounting file. Upstream's `crontab`
-  has `/usr/adm/daily`, `weekly` and `monthly` do that, and the tree has
-  no such scripts. `acctd` stops when the file system is nearly full;
-  `syslogd` does not.
+- `/usr/adm/daily`, `weekly` and `monthly` have been run by hand, not
+  by `cron` at their times, and `zic -l` and `TZ` tried only with the
+  zones' names. `acctd` stops when the file system is nearly full;
+  `syslogd` does not, and the logs are trimmed only as often as the
+  scripts run.
 - `iostat`'s seek times (`msps`) are 0. An IDE or SCSI drive seeks by
   itself, so its driver counts no seeks, as upstream's MSCP driver
   counts none; upstream's drivers count them where they give the drive

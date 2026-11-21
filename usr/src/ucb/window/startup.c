@@ -22,9 +22,10 @@ doconfig()
 
 	if ((home = getenv("HOME")) == 0)
 		home = ".";
-	return dosource(sprintf(buf, "%.*s/%s",
+	(void) sprintf(buf, "%.*s/%s",
 		(sizeof buf - sizeof runcom) / sizeof (char) - 1,
-		home, runcom));
+		home, runcom);
+	return dosource(buf);
 }
 
 /*

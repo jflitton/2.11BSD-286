@@ -261,14 +261,18 @@ long
 getl(fb)
 FILE *fb;
 {
-	return(getw(fb));
+	long ll;
+
+	if (fread((char *)&ll, sizeof(ll), 1, fb) != 1)
+		return(-1L);
+	return(ll);
 }
 
 putl(ll, f)
 long ll;
 FILE *f;
 {
-	putw(ll, f);
+	fwrite((char *)&ll, sizeof(ll), 1, f);
 }
 
 hcomp( n1, n2)

@@ -22,19 +22,31 @@ static char sccsid[] = "@(#)gcore.c    1.4 (2.11BSD) 2025/12/26";
 #include <nlist.h>
 #include <stdlib.h>
 #include <strings.h>
+#ifdef i286
+#include <machine/seg.h>
+#endif
 
 #define NLIST	"/unix"
 #define MEM	"/dev/mem"
+#define KMEM	"/dev/kmem"
 
 struct nlist nl[] = {
 	{ "_proc" },
 #define	X_PROC	0
 	{ "_nproc" },
 #define	X_NPROC	1
+#ifdef i286
+	{ "_slotproc" },
+#define	X_SLOTPROC	2
+	{ "_uslot" },
+#define	X_USLOT	3
+	{ "_pseg" },
+#define	X_PSEG	4
+#endif
 	{ 0 },
 };
 
-	int	mem, cor, nproc, sflag;
+	int	mem, kmem, cor, nproc, sflag;
 	struct	proc	*pbuf;
 	char	*corefile, *program_name;
 
@@ -79,13 +91,13 @@ main(argc, argv)
 
 	openfiles();
 	getkvars();
-	(void)lseek(mem, (long)nl[X_NPROC].n_value, L_SET);
-	(void)read(mem, &nproc, sizeof nproc);
+	(void)lseek(kmem, (long)nl[X_NPROC].n_value, L_SET);
+	(void)read(kmem, &nproc, sizeof nproc);
 	pbuf = (struct proc *)calloc(nproc, sizeof (struct proc));
 	if (pbuf == NULL)
 		error("not enough core");
-	(void)lseek(mem, (long)nl[X_PROC].n_value, L_SET);
-	(void)read(mem, pbuf, nproc * sizeof (struct proc));
+	(void)lseek(kmem, (long)nl[X_PROC].n_value, L_SET);
+	(void)read(kmem, pbuf, nproc * sizeof (struct proc));
 
 	core(pid);
 	exit(0);
@@ -98,13 +110,15 @@ core(pid)
 	register int i;
 	register struct proc *pp;
 	uid_t uid, getuid();
+#ifndef i286
 	char ubuf[USIZE*64];
+#endif
 
 	for (i = 0, pp = pbuf;; pp++) {
-		if (pp->p_pid == pid)
-			break;
 		if (i++ == nproc)
 			error("%d: not found", pid);
+		if (pp->p_pid == pid)
+			break;
 	}
 	if (pp->p_uid != (uid = getuid()) && uid != 0)
 		error("%d: not owner", pid);
@@ -116,6 +130,9 @@ core(pid)
 		error("%d: system process", pid);
 	if (sflag && kill(pid, SIGSTOP) < 0)
 		warning("%d: could not send stop signal", pid);
+#ifdef i286
+	core286(pp);
+#else
 	if (lseek(mem, (long)pp->p_addr << 6, L_SET) < 0)
 		error("bad mem seek");
 	if (read(mem, &ubuf, sizeof ubuf) != sizeof ubuf)
@@ -129,6 +146,7 @@ core(pid)
 	dump(pp->p_dsize);
 	(void)lseek(mem, (long)pp->p_saddr << 6, L_SET);
 	dump(pp->p_ssize);
+#endif
 
 	if (sflag && kill(pid, SIGCONT) < 0)
 		warning("%d: could not send continue signal", pid);
@@ -157,6 +175,69 @@ dump(size)
 	}
 }
 
+#ifdef i286
+/*
+ * The core of a process as the kernel writes it (core() in kern_sig.c):
+ * its user structure and kernel stack, UBYTES of them; its table of
+ * segments, NSEG entries; and each segment of its own, not the shared
+ * code, in the table's order, as long as its limit says.  The user
+ * structure is in one of the kernel's slots while the process is the
+ * one there, and at p_addr in memory otherwise; the table is in a
+ * segment of the kernel's own; the segments are in memory at their
+ * clicks (ps finds them the same way).
+ */
+void
+core286(pp)
+	register struct proc *pp;
+{
+	static char ubuf[UBYTES], buffer[BUFSIZ * 2];
+	struct pseg segs[NSEG];
+	register struct pseg *sp;
+	struct proc *inslot;
+	register int fd, n;
+	off_t addr;
+	long size;
+
+	(void)lseek(kmem, (off_t)nl[X_SLOTPROC].n_value +
+	    pp->p_slot * sizeof (inslot), L_SET);
+	if (read(kmem, &inslot, sizeof (inslot)) != sizeof (inslot))
+		error("bad kmem read");
+	if (inslot == (struct proc *)nl[X_PROC].n_value + (pp - pbuf)) {
+		fd = kmem;
+		addr = (off_t)nl[X_USLOT].n_value + pp->p_slot * (off_t)UBYTES;
+	} else {
+		fd = mem;
+		addr = ctob((off_t)pp->p_addr);
+	}
+	if (lseek(fd, addr, L_SET) < 0)
+		error("bad mem seek");
+	if (read(fd, ubuf, sizeof ubuf) != sizeof ubuf)
+		error("bad mem read");
+	(void)lseek(kmem, ((off_t)nl[X_PSEG].n_ovly << 16) +
+	    nl[X_PSEG].n_value + (pp - pbuf) * (off_t)sizeof (segs), L_SET);
+	if (read(kmem, segs, sizeof (segs)) != sizeof (segs))
+		error("bad kmem read");
+	if ((cor = open(corefile, O_RDWR|O_CREAT|O_TRUNC, 0666)) < 0) {
+		perror(corefile);
+		exit(1);
+	}
+	(void)write(cor, ubuf, sizeof ubuf);
+	(void)write(cor, segs, sizeof (segs));
+	for (sp = segs; sp < &segs[NSEG]; sp++) {
+		if ((sp->ps_flag & (PS_USED|PS_TEXT)) != PS_USED)
+			continue;
+		if (lseek(mem, ctob((off_t)sp->ps_addr), L_SET) < 0)
+			error("bad mem seek");
+		for (size = (long)sp->ps_limit + 1; size > 0; size -= n) {
+			n = size > sizeof (buffer) ? sizeof (buffer) : size;
+			if (read(mem, buffer, n) != n)
+				error("bad mem read");
+			(void)write(cor, buffer, n);
+		}
+	}
+}
+#endif
+
 void
 openfiles()
 {
@@ -165,6 +246,15 @@ openfiles()
 		perror(MEM);
 		exit(1);
 	}
+#ifdef i286
+	kmem = open(KMEM, 0);
+	if (kmem < 0) {
+		perror(KMEM);
+		exit(1);
+	}
+#else
+	kmem = mem;
+#endif
 }
 
 void

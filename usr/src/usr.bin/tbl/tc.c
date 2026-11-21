@@ -22,11 +22,11 @@ for(ilin=0;ilin<nlin;ilin++)
 		if (k==0 || k == '-' || k == '=')
 			continue;
 		s = table[ilin][icol].col;
-		if (point(s))
+		if (point((int)s))
 		while (*s)
 			had[*s++]=1;
 		s=table[ilin][icol].rcol;
-		if (point(s))
+		if (point((int)s))
 		while (*s)
 			had[*s++]=1;
 		}

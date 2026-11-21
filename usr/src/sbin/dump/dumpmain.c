@@ -8,6 +8,7 @@ long	blocksperfile;
 int	cartridge = 0;
 static	long	numarg();
 static	void	missingarg();
+char	*deraw();
 
 char	*host = NULL;
 

@@ -14,7 +14,7 @@ table[0]=table[useln];
 for(useln=nlin-1; useln>=0 && (fullbot[useln] || instead[useln]); useln--);
 if (useln<0)
 	error("Wierd.  No real lines in table.");
-domore(leftover);
+domore((char *)leftover);
 while (gets1(cstore=cspace) && domore(cstore))
 	;
 last =cstore;

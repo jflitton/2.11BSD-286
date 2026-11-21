@@ -136,7 +136,7 @@ oalloc() {
 	int i;
 	for (i=11; i<100; i++)
 		if (used[i]++ == 0) return(i);
-	error( FATAL, "no eqn strings left", i);
+	error( FATAL, "no eqn strings left", (char *)i);
 	return(0);
 }
 

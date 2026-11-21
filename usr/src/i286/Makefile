@@ -197,6 +197,54 @@ find_SRCS=	usr.bin/find/find.c
 LOGPROGS=	syslogd logger dmesg cron crontab $(ATPROGS) accton acctd \
 		lastcomm sa find
 
+# What /usr/adm/weekly runs to make find's list of the system's files,
+# which find looks a name up in when given only the name: bigram and
+# code, which updatedb, a script, runs.  And the time zones: zic, which
+# makes the files in /usr/share/zoneinfo that localtime reads, and
+# zdump, which shows them.
+bigram_SRCS=	usr.bin/find/bigram.c
+code_SRCS=	usr.bin/find/code.c
+zic_SRCS=	$(addprefix share/zoneinfo/,zic.c scheck.c ialloc.c)
+zdump_SRCS=	$(addprefix share/zoneinfo/,zdump.c ialloc.c)
+ADMPROGS=	bigram code zic zdump
+
+# Backups: dump, which copies a file system, or what has changed in it
+# since a dump of a lower level, to a tape, and here to a file or a pipe;
+# rdump, the same to another machine's file or tape, through rmt there,
+# which serves it; dumpdir, which lists the files in a dump; and restor,
+# which puts a dump back on a file system, or takes files out of it.
+# And the rest of the administrator's: chflags, which sets the flags of
+# a file that the kernel keeps; la, which shows the load averages; gcore,
+# which writes a running process's core; and window, which shares a
+# terminal among windows, each with its own shell, on a pty.
+DUMP=		dumpitime.c dumpmain.c dumpoptr.c dumptape.c dumptraverse.c \
+		unctime.c
+dump_SRCS=	$(addprefix sbin/dump/,$(DUMP))
+rdump_SRCS=	$(addprefix sbin/dump/,$(DUMP) dumprmt.c)
+rdump_FLAGS=	-DRDUMP
+dumpdir_SRCS=	sbin/dump/dumpdir.c
+restor_SRCS=	sbin/restor/restor.c
+rmt_SRCS=	usr.sbin/rmt/rmt.c
+chflags_SRCS=	bin/chflags/chflags.c bin/ls/stat_flags.c
+la_SRCS=	new/la/la.c
+gcore_SRCS=	ucb/gcore.c
+WINDOW=		char.c cmd.c cmd1.c cmd2.c cmd3.c cmd4.c cmd5.c cmd6.c cmd7.c \
+		context.c error.c lcmd.c lcmd1.c lcmd2.c main.c mloop.c \
+		parser1.c parser2.c parser3.c parser4.c parser5.c scanner.c \
+		startup.c string.c ttf100.c ttgeneric.c tth19.c tth29.c \
+		ttinit.c ttoutput.c tttermcap.c tttvi925.c var.c win.c wwadd.c \
+		wwalloc.c wwbox.c wwchild.c wwclose.c wwclreol.c wwclreos.c \
+		wwcursor.c wwdata.c wwdelchar.c wwdelete.c wwdelline.c \
+		wwdump.c wwend.c wwenviron.c wwerror.c wwflush.c wwframe.c \
+		wwgets.c wwinit.c wwinschar.c wwinsline.c wwiomux.c wwlabel.c \
+		wwmisc.c wwmove.c wwopen.c wwprintf.c wwpty.c wwputc.c \
+		wwputs.c wwredraw.c wwredrawwin.c wwrint.c wwscroll.c \
+		wwsize.c wwspawn.c wwsuspend.c wwtty.c wwunframe.c wwupdate.c \
+		wwwrite.c
+window_SRCS=	$(addprefix ucb/window/,$(WINDOW))
+window_LIBS=	-ltermcap
+BACKPROGS=	dump rdump dumpdir restor rmt chflags la gcore window
+
 # Those with a grammar for yacc, and yacc and lex themselves.  The
 # grammars are made into C by the tree's own yacc and lex, built for the
 # machine the system is built on (below) in obj/host, and the C is in
@@ -442,6 +490,67 @@ man_SRCS=	ucb/man/man.c
 apropos_SRCS=	ucb/man/apropos.c
 DOCPROGS=	nroff man apropos
 
+# What documents go through on their way to nroff, and what reads their
+# words: tbl, which lays out tables; eqn and neqn, which set mathematics
+# for a typesetter and for nroff, both of one grammar (below); refer,
+# which finds references and cites them, with what it runs in
+# /usr/libexec/refer, and addbib, lookbib and sortbib; spell, in
+# /usr/libexec, and spellin and spellout, which make and read its lists
+# of words; style and diction, which judge a document's sentences and
+# phrases, of scanners made by lex (below); and indent, which lays out C.
+# refer's hunt is refer.hunt here, beside the game.  tbl and spell's
+# three want unix defined, as the PDP-11's compiler has it: tbl keeps its
+# handler of SIGPIPE under it, and spell.h takes the Honeywell's table
+# without it.  spell and its two have a table of 50000 bytes, and
+# diction one of 52000: each has a stack of 4K, half the usual, which
+# leaves them room for their arguments and stdio's buffers.  refer reads
+# a reference into 4.5K of its stack, under the 1K and more of its
+# caller and what it runs of hunt's, and sortbib a record into 9K.
+tbl_SRCS=	$(addprefix usr.bin/tbl/,t0.c t1.c t2.c t3.c t4.c t5.c t6.c \
+		t7.c t8.c t9.c tb.c tc.c te.c tf.c tg.c ti.c tm.c ts.c tt.c \
+		tu.c tv.c)
+tbl_FLAGS=	-Dunix
+EQN=		$(G)/eqn/e.c $(addprefix usr.bin/eqn/,diacrit.c eqnbox.c \
+		font.c fromto.c funny.c glob.c integral.c io.c lex.c lookup.c \
+		mark.c matrix.c move.c over.c paren.c pile.c shift.c size.c \
+		sqrt.c text.c)
+eqn_SRCS=	$(EQN)
+eqn_FLAGS=	-I$(G)/eqn -I$(SRC)/usr.bin/eqn
+neqn_SRCS=	$(EQN)
+neqn_FLAGS=	-DNEQN $(eqn_FLAGS)
+RF=		usr.bin/refer
+deliv_SRCS=	$(addprefix $(RF)/,deliv1.c deliv2.c)
+mkey_SRCS=	$(addprefix $(RF)/,mkey1.c mkey2.c mkey3.c deliv2.c)
+inv_SRCS=	$(addprefix $(RF)/,inv1.c inv2.c inv3.c inv5.c inv6.c deliv2.c)
+refer.hunt_SRCS= $(addprefix $(RF)/,hunt1.c hunt2.c hunt3.c hunt5.c hunt6.c \
+		hunt7.c hunt8.c hunt9.c glue4.c glue5.c refer3.c shell.c \
+		deliv2.c tick.c)
+refer_SRCS=	$(addprefix $(RF)/,glue1.c glue2.c glue3.c glue4.c glue5.c \
+		refer0.c refer1.c refer2.c refer4.c refer5.c refer6.c refer7.c \
+		refer8.c hunt2.c hunt3.c hunt5.c hunt6.c hunt7.c hunt8.c \
+		hunt9.c mkey3.c shell.c deliv2.c)
+refer_FLAGS=	-stack 16384
+addbib_SRCS=	$(RF)/addbib.c
+lookbib_SRCS=	$(RF)/lookbib.c
+sortbib_SRCS=	$(RF)/sortbib.c
+sortbib_FLAGS=	-stack 16384
+$(foreach p,spell spellin spellout,$(eval $(p)_SRCS = usr.bin/spell/$(p).c) \
+		$(eval $(p)_FLAGS = -Dunix -stack 4096))
+DI=		$(SRC)/usr.bin/diction
+style1_SRCS=	$(G)/diction/wdslex.c
+style2_SRCS=	$(G)/diction/endlex.c
+style3_SRCS=	$(G)/diction/prtlex.c usr.bin/diction/pscan.c \
+		usr.bin/diction/outp.c
+$(foreach p,style1 style2 style3,$(eval $(p)_FLAGS = -I$(DI)) \
+		$(eval $(p)_LIBS = -lln))
+dprog_SRCS=	usr.bin/diction/diction.c
+dprog_FLAGS=	'-DDICT="/usr/share/misc/dict.d"' -stack 4096
+indent_SRCS=	$(addprefix ucb/indent/,indent.c io.c lexi.c parse.c \
+		pr_comment.c args.c)
+WRITERPROGS=	tbl eqn neqn deliv mkey inv refer.hunt refer addbib lookbib \
+		sortbib spell spellin spellout style1 style2 style3 dprog \
+		indent
+
 # The games, in /usr/games, with their data and scores in
 # /usr/games/lib, as the games' Makefiles install them (docs/userland.md).
 # Those of one file in games, and those in a directory of their own.
@@ -585,8 +694,8 @@ OWNPROGS=	adduser bench
 PROGS=	init getty login sh csh ls mkdir stty test hostname mknod mount \
 	umount reboot sleep ex exrecover expreserve tcsh $(BINSTD) \
 	$(NETPROGS) $(SYSPROGS) $(DISKPROGS) $(KMEMPROGS) $(LOGPROGS) \
-	$(YACCPROGS) $(TEXTPROGS) $(NET2PROGS) $(MAILPROGS) $(DOCPROGS) \
-	$(GAMEPROGS) $(OWNPROGS)
+	$(ADMPROGS) $(BACKPROGS) $(YACCPROGS) $(TEXTPROGS) $(NET2PROGS) \
+	$(MAILPROGS) $(DOCPROGS) $(WRITERPROGS) $(GAMEPROGS) $(OWNPROGS)
 
 # The libraries the programs use besides the C library: NAME_LIB lists a
 # library's sources, and NAME_LIBFLAGS what it is compiled with.  Each is
@@ -729,6 +838,31 @@ $(G)/ftpcmd.c: $(SRC)/libexec/ftpd/ftpcmd.y $(YACC) | $(G)
 	@echo yacc ftpd/ftpcmd.y
 	@$(call yacc,$<,$@)
 
+# eqn's grammar, with e.def, the tokens' numbers, which the rest of eqn
+# and neqn include.  diction's three scanners, which include its tables of
+# words and the functions that look in them, from its directory.
+$(G)/eqn $(G)/diction:
+	mkdir -p $@
+$(G)/eqn/e.c: $(SRC)/usr.bin/eqn/e.y $(YACC) | $(G)/eqn
+	@echo yacc eqn/e.y
+	@$(call yacc,$<,$@,$(G)/eqn/e.def)
+$(G)/eqn/e.def: $(G)/eqn/e.c ;
+$(O)/eqn $(O)/neqn: $(G)/eqn/e.def $(SRC)/usr.bin/eqn/e.h
+$(G)/diction/wdslex.c: $(DI)/nwords.l $(LEX) | $(G)/diction
+	@echo lex diction/nwords.l
+	@$(call lex,$<,$@)
+$(G)/diction/endlex.c: $(DI)/end.l $(LEX) | $(G)/diction
+	@echo lex diction/end.l
+	@$(call lex,$<,$@)
+$(G)/diction/prtlex.c: $(DI)/part.l $(LEX) | $(G)/diction
+	@echo lex diction/part.l
+	@$(call lex,$<,$@)
+$(O)/style1: $(addprefix $(DI)/,nhash.c dict.c ydict.c abbrev.c names.h)
+$(O)/style2: $(addprefix $(DI)/,ehash.c edict.c names.h)
+$(O)/style3: $(addprefix $(DI)/,names.h conp.h style.h)
+$(O)/tbl: $(SRC)/usr.bin/tbl/t..c
+$(O)/spell $(O)/spellin $(O)/spellout: $(SRC)/usr.bin/spell/spell.h
+
 A=	$(SRC)/bin/awk
 $(AWKG)/awk.g.c: $(A)/awk.g.y $(YACC) | $(AWKG)
 	@echo yacc awk.g.y
@@ -855,6 +989,59 @@ $(H)/bcomp: $(BG6)/comp.c | $(H)
 $(GO)/bogdict: $(TOP)/usr/dict/words $(BG6)/sfile $(H)/bcomp
 	@mkdir -p $(GO)
 	LC_ALL=C sed -f $(BG6)/sfile $< | uniq | $(H)/bcomp > $@
+
+# spell's lists of words, which its Makefile makes with spellin, built
+# here for this machine: hlist of /usr/dict/words; hlista and hlistb of
+# that and the words that are American or British, and the local ones;
+# and hstop of the words spell stops at before it looks for a stem.
+# Each is spell's table of bits as shorts, low byte first, as on the
+# PDP-11 too: what the tape has in /usr/dict, byte for byte.
+SP=		$(SRC)/usr.bin/spell
+SO=		$(TOP)/obj/spell
+$(H)/spellin: $(SP)/spellin.c $(SP)/spell.h $(SRC)/sys/h/localopts.h | $(H)
+	@echo hostcc spell/spellin
+	@mkdir -p $(H)/include/sys
+	@cp $(SRC)/sys/h/localopts.h $(H)/include/sys
+	@$(HOSTCC) $(HOSTCFLAGS) -Dunix -I$(H)/include -o $@ $<
+$(SO)/hlist: $(TOP)/usr/dict/words $(H)/spellin
+	@mkdir -p $(SO)
+	$(H)/spellin < $< > $@
+$(SO)/hlista: $(SP)/american $(SP)/local $(SO)/hlist
+	cat $(SP)/american $(SP)/local | $(H)/spellin $(SO)/hlist > $@
+$(SO)/hlistb: $(SP)/british $(SP)/local $(SO)/hlist
+	cat $(SP)/british $(SP)/local | $(H)/spellin $(SO)/hlist > $@
+$(SO)/hstop: $(SP)/stop $(H)/spellin
+	@mkdir -p $(SO)
+	$(H)/spellin < $< > $@
+
+# The zone files, made by zic from the tables upstream's Makefile
+# installs, as the system's own zic makes them (tests/programs): their
+# numbers are four bytes, high byte first, on any machine.  This zic is
+# built for 32-bit time_t (tools/hostzic.h), whose sums it expects to
+# wrap.  zone.proto lists them for root.proto, each name a Link gives
+# the zone being another link to its file, as zic makes it.
+ZI=		$(SRC)/share/zoneinfo
+ZO=		$(TOP)/obj/zoneinfo
+ZDATA=		asia australasia europe etcetera northamerica pacificnew \
+		systemv
+$(H)/zic: $(addprefix $(ZI)/,zic.c scheck.c ialloc.c) \
+		$(TOP)/usr/include/tzfile.h $(TOP)/tools/hostzic.h | $(H)
+	@echo hostcc zic
+	@mkdir -p $(H)/include
+	@cp $(TOP)/usr/include/tzfile.h $(H)/include
+	@$(HOSTCC) $(HOSTCFLAGS) -fwrapv -include $(TOP)/tools/hostzic.h \
+	    -I$(H)/include -o $@ $(filter %.c,$^)
+$(ZO)/zone.proto: $(addprefix $(ZI)/,$(ZDATA)) $(H)/zic
+	@rm -rf $(ZO) && mkdir -p $(ZO)
+	cd $(ZI) && $(H)/zic -d $(ZO) $(ZDATA)
+	@cd $(ZI) && awk 'BEGIN { z = "/usr/share/zoneinfo"; \
+	    print "# The zone files, made by zic in obj/zoneinfo."; \
+	    print "d " z " 755" } \
+	    $$1 == "Zone" { if (split($$2, p, "/") > 1 && !(p[1] in d)) { \
+		d[p[1]]; print "d " z "/" p[1] " 755" } \
+		print "f " z "/" $$2 " 644 " $$2 } \
+	    $$1 == "Link" { h = h "h " z "/" $$3 " " z "/" $$2 "\n" } \
+	    END { printf "%s", h }' $(ZDATA) > $@
 
 # What root.proto takes of the games' besides their programs.
 GAMEDATA=	$(GO)/battlestar/battle_strings $(GO)/fortunes.dat \
@@ -1038,10 +1225,11 @@ $(R)/root.fs: root.proto $(wildcard etc/* root/* skel/*) adventure/Makefile \
 		$(R)/zero $(R)/termcap $(addprefix $(R)/tmac/tmac.,$(MDOC)) \
 		$(addprefix $(R)/me/,$(MEFILES)) \
 		$(patsubst %,$(R)/term/tab%.tab,$(TERMS)) $(MANO)/man.proto \
-		$(GAMEDATA) \
+		$(GAMEDATA) $(addprefix $(SO)/,hlista hlistb hstop) \
+		$(ZO)/zone.proto \
 		$(TOP)/obj/PC/unix $(TOP)/obj/stand/boot $(TOP)/obj/stand/hdboot.bin
 	python3 -I $(TOP)/tools/mkfs.py -s $(ROOTSIZE) root.proto $@
 
 clean:
-	rm -rf $(O) $(EXO) $(TCO) $(H) $(G) $(R) $(MANO) $(GO) \
+	rm -rf $(O) $(EXO) $(TCO) $(H) $(G) $(R) $(MANO) $(GO) $(SO) $(ZO) \
 	    $(foreach l,$(LIBRARIES),$(LIB)/[sm]/$(l) $(LIB)/[sm]/lib$(l).lib)

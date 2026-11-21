@@ -49,7 +49,11 @@ struct odirect {
 	char  d_name[ODIRSIZ];
 	};
 
-struct	fs	sblock;
+union {
+	struct	fs fs;
+	char	pad[DEV_BSIZE];	/* the block dwrite writes */
+} sbun;
+#define	sblock	sbun.fs
 
 int	fi;
 ino_t	ino, maxi, curino;
@@ -94,6 +98,7 @@ struct dinode tino, dino;
 daddr_t	taddr[NADDR];
 
 daddr_t	curbno;
+struct	direct *inidbuf();
 
 #ifndef	STANDALONE
 short	dumpmap[MSIZ];
@@ -130,7 +135,7 @@ ssize_t mtread(int fd, void *buf, size_t len)
 
 	while	(r < len)
 		{
-		n = read (fd, buf + r, len - r);
+		n = read (fd, (char *)buf + r, len - r);
 		if	(n < 0)
 			{
 #ifndef STANDALONE
@@ -408,7 +413,7 @@ done:
 #endif
 		   while (getchar() != '\n');
 		   }
-		dread((daddr_t)SBLOCK, (char *)&sblock, sizeof(sblock));
+		dread((daddr_t)SBLOCK, (char *)&sbun, sizeof(sbun));
 		maxi = (sblock.fs_isize-2)*INOPB;
 		if (readhdr(&spcl) == 0) {
 			printf("Missing volume record\n");
@@ -477,7 +482,7 @@ ragain:
 			clri(&tino);
 			bzero(taddr, NADDR * sizeof (daddr_t));
 			if (cvtflag)
-				futz(dino.di_addr);
+				futz((char *)dino.di_addr);
 			taddr[0] = dino.di_addr[0];
 			isdir = ((dino.di_mode & IFMT) == IFDIR);
 			getfile(ino, rstrfile, rstrskip, dino.di_size);

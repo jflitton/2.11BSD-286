@@ -11,6 +11,8 @@
 #include "ww.h"
 #include <sys/time.h>
 
+int error(char *, ...);
+
 #define NWINDOW 9
 
 struct timeval starttime;

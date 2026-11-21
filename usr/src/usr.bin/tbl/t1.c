@@ -85,6 +85,7 @@ swapin()
 	return(1);
 }
 # ifdef unix
+void
 badsig()
 {
 signal(SIGPIPE, SIG_IGN);
