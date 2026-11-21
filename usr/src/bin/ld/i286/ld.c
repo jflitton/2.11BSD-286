@@ -29,6 +29,9 @@
  * a word that is to hold one is filled in here and the program is
  * loaded as it is.  The kernel is linked with -gdt n: its selectors
  * are of the global descriptor table, from slot n on (docs/boot.md).
+ * With -real n they are no selectors but where real mode has the
+ * segments, the first at n and each 64K after the last: a program for
+ * the tests, which is loaded so (tests/harness/runtest.py).
  *
  * With -b the program is an image, as /boot is: its text, its data and
  * its bss in one segment of the small model, one after the other, and
@@ -38,7 +41,8 @@
  * text and data are not apart, with no header.
  *
  *	ld [-o out] [-ms] [-mm] [-ml] [-b] [-s] [-x] [-stack n] [-packcode n]
- *	    [-gdt n] [-e sym] [-u sym] [-L dir] [-M] [-t] file ... -lx ...
+ *	    [-gdt n] [-real n] [-e sym] [-u sym] [-L dir] [-M] [-t]
+ *	    file ... -lx ...
  */
 #include <stdio.h>
 #include <a.out.h>
@@ -105,6 +109,7 @@ int	trace;
 unsigned stack = 8192;
 long	limit = 65536L;		/* the most text in a segment */
 int	gdt;			/* -gdt: the kernel's first slot, or 0 */
+unsigned real;			/* -real: where segment 1 is, or 0 */
 char	*entry = "..start";
 char	*ofilename = "a.out";
 char	*dirs[NDIRS];
@@ -178,8 +183,8 @@ char **argv;
 
 	if (argc < 2) {
 		fprintf(stderr, "usage: ld [-o out] [-ms] [-mm] [-ml] [-b] [-s] \
-[-x] [-stack n] [-packcode n] [-gdt n] [-e sym] [-u sym] [-L dir] [-M] \
-file ... -lx ...\n");
+[-x] [-stack n] [-packcode n] [-gdt n] [-real n] [-e sym] [-u sym] [-L dir] \
+[-M] file ... -lx ...\n");
 		exit(1);
 	}
 	args(argc, argv);
@@ -218,16 +223,18 @@ char **argv;
 		}
 		ap++;
 		if (strcmp(ap, "stack") == 0 || strcmp(ap, "packcode") == 0 ||
-		    strcmp(ap, "gdt") == 0) {
+		    strcmp(ap, "gdt") == 0 || strcmp(ap, "real") == 0) {
 			if (++i >= argc)
 				error(1, "-%s: no number", ap);
 			if (*ap == 's')
 				stack = (unsigned)atol(argv[i]);
 			else if (*ap == 'g')
 				gdt = (int)atol(argv[i]);
+			else if (*ap == 'r')
+				real = (unsigned)atol(argv[i]);
 			else
 				limit = atol(argv[i]);
-			if (limit < 2 || limit > 65536L)
+			if (limit < 1 || limit > 65536L)
 				error(1, "-packcode: not a segment's size", "");
 			if (*ap == 'g' && (gdt < 1 || gdt > 8191))
 				error(1, "-gdt: not a slot", "");
@@ -606,13 +613,13 @@ place()
 	t = filseg[0].xs_memsz;
 	tpos = even(tpos);
 	if (t && tpos + t > limit) {
-		if (model == A_SMALL || tpos == 0) {
+		if (model == A_SMALL || tpos == 0 && t > 65536L) {
 			if (pass == 1)
 				error(0, model == A_SMALL ?
 				    "%s: more than 64K of text; try the medium model" :
 				    "%s: its text is more than a segment",
 				    filname);
-		} else {
+		} else if (tpos) {
 			seglen[curseg] = tpos;
 			if (++curseg > NCODE)
 				error(1, "too many segments of text", "");
@@ -897,10 +904,12 @@ named()
 
 /*
  * The selector of segment n: of the process's own table (LSEL), or of
- * the kernel's slots in the global table.
+ * the kernel's slots in the global table; or where real mode has it.
  */
 selector(n)
 {
+	if (real)
+		return(real + (n - 1) * 0x1000);
 	return(gdt ? (gdt + n - 1) << 3 : n << 3 | 7);
 }
 

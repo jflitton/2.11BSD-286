@@ -95,6 +95,13 @@ The selectors are of the global descriptor table, segment 1 in slot
 and the others after it, and not of a process's own table: for the
 kernel.
 .TP
+.BI \-real " n"
+The selectors are none, but where real mode has the segments: segment
+1 at
+.I n
+and each of the others 64K after the one before, as the tests' own
+programs are loaded.
+.TP
 .BI \-L dir
 Add
 .I dir
@@ -150,6 +157,9 @@ output file, instead of
 In the medium and large models, put no more than
 .I n
 bytes of text in a segment, where 65536 is the default.
+A file with more text than that has a segment to itself: with
+.B \-packcode 1
+every file has.
 .TP
 .B  \-s
 `strip' the output, that is, remove the symbol table

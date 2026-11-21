@@ -123,6 +123,7 @@ struct insn insns[] = {
 	"imul",		C_IMUL,		0,	5,
 	"in",		C_IN,		0,	0xE4,
 	"inc",		C_INCDEC,	0,	0,
+	"incbin",	C_DIR,		0,	D_INCBIN,
 	"insb",		C_NONE,		0,	0x6C,
 	"insw",		C_NONE,		0,	0x6D,
 	"int",		C_INT,		0,	0xCD,
@@ -1150,6 +1151,10 @@ register struct insn *ip;
 				break;
 			lp++;
 		}
+		return;
+
+	case D_INCBIN:
+		incbin();
 		return;
 
 	case D_RES:

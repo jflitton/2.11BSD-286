@@ -308,11 +308,17 @@ directory of its own in `obj/tests`, the suite's name for the cross
 compiler's and with `-n` after it for the system's own tools', or
 `-n` and `k`, `p` and `b` for the parts that are theirs when not all
 are (`-nk`, `-np`, `-nkp`), so that one can be compared with
-another, as `tests/bench`'s `BASE` does.
+another, as `tests/bench`'s `BASE` does. The four that boot a program
+of their own take the same switches: `tests/crt` and `tests/user`'s
+process are programs, `tests/pm` and `tests/user`'s other half a
+kernel, and `tests/kernel` has the kernel, its test programs and the
+boot programs each as the switches say (`tests/crt` in `obj/tests/crt-n`,
+and so on).
 
 - `tests/crt` is a small-model program in real mode, built through the
   normal path (`cc286`, `wlink`, `ne2aout.py`) behind the start-up code in
-  `tests/harness/start.s`.
+  `tests/harness/start.s`; or by the system's own tools (`tools/ncc`,
+  `as`, `ld -real`).
 - `tests/ccom` is another, whose tests are compiled by the tree's own
   compiler, `usr/src/lib/ccom`, with the second pass for the 286,
   `usr/src/lib/ccom/i286`. Both passes are built for the machine the

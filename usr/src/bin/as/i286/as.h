@@ -173,6 +173,7 @@ struct insn {
 #define	D_IGNORE 8		/* bits, cpu */
 #define	D_GROUP	9		/* its name: the selector of the data */
 #define	D_ORG	10		/* where an image is to be (-b) */
+#define	D_INCBIN 11		/* a file's bytes */
 
 /*
  * A jump whose length is not known until all of them are.  An `align'

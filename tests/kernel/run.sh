@@ -1,7 +1,12 @@
 #!/bin/sh
 # Test the kernel: build it, build a root file system with a test program
 # as /etc/init, and boot the two in the emulator (usr/src/sys/PC,
-# tests/kernel/init.c).
+# tests/kernel/init.c).  With NATIVE=1 the kernel, the test programs,
+# /boot and the boot blocks are the work of the system's own compiler,
+# assembler and linker, and not the cross compiler's; NATIVE_KERNEL=1,
+# NATIVE_PROGRAMS=1 and NATIVE_BOOT=1 say so of each alone
+# (tests/harness/system.sh, which says what comes after "kernel" in the
+# names of the directories in obj/tests then).
 # Run from the top of the repository after `. tools/env.sh`.
 set -e
 if [ "$EMU" = qemu ]; then
@@ -11,33 +16,60 @@ fi
 top=$(cd "$(dirname "$0")/../.." && pwd)
 crt=$top/usr/src/lib/libc/i286/crt
 here=$top/tests/kernel
-out=$top/obj/tests/kernel
+. "$top/tests/harness/system.sh"
+t=kernel$case
+out=$top/obj/tests/$t
 mkdir -p "$out"
+host=$top/obj/host/ccom
 
-make -s -C "$top/usr/src/sys/PC" | grep -v '^cc \|^as ' || true
+if [ "$NATIVE_KERNEL" = 1 ]; then
+    mk -C "$top/usr/src/sys/PC" CCOM=1
+else
+    mk -C "$top/usr/src/sys/PC"
+fi
 
 # The test programs: small model.
 cd "$out"
 python3 -I "$top/tools/mkstubs.py" --sysent "$top/usr/src/sys/sys/init_sysent.c" \
     "$here/syscalls.tab" "$top/usr/include/syscall.h" > stubs.s
-lib=crt0.o
-nasm -f obj -o crt0.o "$here/crt0.s"
-for f in stubs.s "$crt/i4m.s" "$crt/i4d.s"; do
-    o=$(basename "$f" .s).o
-    nasm -f obj -I "$crt/" -o "$o" "$f"
-    lib="$lib,$o"
-done
-for f in "$here/lib.c" "$top/tests/harness/printf.c"; do
-    o=$(basename "$f" .c).o
-    "$top/tools/cc286" -ms -wcd=131 -wcd=107 -I"$here" -o "$o" "$f"
-    lib="$lib,$o"
-done
-for p in init child; do
-    "$top/tools/cc286" -ms -wcd=131 -wcd=107 -I"$here" -o $p.o "$here/$p.c"
-    wlink op q format os2 name $p.ne disable 1014 \
-        op nodefaultlibs,stack=2048 file "$lib,$p.o"
-    python3 -I "$top/tools/ne2aout.py" --model s $p.ne $p
-done
+if [ "$NATIVE_PROGRAMS" = 1 ]; then
+    mk -C "$top/usr/src/lib/ccom/i286" host
+    lib=crt0.o
+    "$host/as" -ms -o crt0.o "$here/crt0.s"
+    for f in stubs.s "$crt/i4m.s" "$crt/i4d.s"; do
+        o=$(basename "$f" .s).o
+        "$host/as" -ms -I"$crt/" -o "$o" "$f"
+        lib="$lib $o"
+    done
+    for f in "$here/lib.c" "$top/tests/harness/printf.c"; do
+        o=$(basename "$f" .c).o
+        "$top/tools/ncc" -ms -I"$here" -o "$o" "$f"
+        lib="$lib $o"
+    done
+    for p in init child; do
+        "$top/tools/ncc" -ms -I"$here" -o $p.o "$here/$p.c"
+        "$host/ld" -ms -stack 2048 -o $p $lib $p.o
+    done
+else
+    lib=crt0.o
+    nasm -f obj -o crt0.o "$here/crt0.s"
+    for f in stubs.s "$crt/i4m.s" "$crt/i4d.s"; do
+        o=$(basename "$f" .s).o
+        nasm -f obj -I "$crt/" -o "$o" "$f"
+        lib="$lib,$o"
+    done
+    for f in "$here/lib.c" "$top/tests/harness/printf.c"; do
+        o=$(basename "$f" .c).o
+        "$top/tools/cc286" -ms -wcd=131 -wcd=107 -I"$here" -o "$o" "$f"
+        lib="$lib,$o"
+    done
+    for p in init child; do
+        "$top/tools/cc286" -ms -wcd=131 -wcd=107 -I"$here" -o $p.o "$here/$p.c"
+        wlink op q format os2 name $p.ne disable 1014 \
+            op nodefaultlibs,stack=2048 file "$lib,$p.o"
+        python3 -I "$top/tools/ne2aout.py" --model s $p.ne $p
+    done
+fi
 
 # The root file system, as the RAM disk of the first boot.  The first
 # file in it is one for the test to read back, every byte of which says
@@ -53,14 +85,14 @@ python3 -I "$here/pattern.py" pattern root.fs 0x7DFE
 
 # A swap area that takes most of the machine's 4M, so that the test's
 # processes do not all fit in what is left.
-cp "$top/obj/PC/unix" unix
+cp "$kernel" unix
 python3 -I "$top/tools/kpatch.py" unix rdswap=5000
 
 # Each boot is over when the kernel has stopped, not when the test has
 # given its result: the kernel writes what it still holds to the disk
 # after that.
 python3 -I "$top/tests/harness/runtest.py" --until halting \
-    --boot kernel unix root.fs
+    --boot $t unix root.fs
 
 # Then the same from a hard disk, which has the root file system, with
 # room in it this time, a swap area, and a partition for the test to
@@ -83,11 +115,10 @@ python3 -I "$top/tests/harness/runtest.py" --until halting \
 # With NATIVE_BOOT=1 /boot and the boot blocks, and the diskette's boot
 # sector (tests/harness/runtest.py), are the ones the system's own
 # compiler, assembler and linker make (usr/src/sys/i286stand CCOM=1).
-make -s -C "$top/usr/src/sys/i286stand" > /dev/null
-stand=$top/obj/stand
-if [ "${NATIVE_BOOT:-0}" = 1 ]; then
-    make -s -C "$top/usr/src/sys/i286stand" CCOM=1 > /dev/null
-    stand=$top/obj/nstand
+if [ "$NATIVE_BOOT" = 1 ]; then
+    mk -C "$top/usr/src/sys/i286stand" CCOM=1
+else
+    mk -C "$top/usr/src/sys/i286stand"
 fi
 cp "$stand/boot" boot
 # The boot block finds the blocks of a file past its fourth another way,
@@ -98,7 +129,7 @@ diskboot() {
     name=$1 driver=$2 bus=$3 from=$4 options=$5
     shift 5
     printf $driver > disk
-    cp "$top/obj/PC/unix" unix.$name
+    cp "$kernel" unix.$name
     python3 -I "$top/tools/kpatch.py" unix.$name extlimit=384 "$@"
     (cat "$here/proto"; echo "f /etc/disk 644 disk") > proto.$name
     if [ $driver = sd ]; then
@@ -106,7 +137,7 @@ diskboot() {
     fi
     case $from in
     diskette)
-        set -- --boot kernel-$name unix.$name ;;
+        set -- --boot $t-$name unix.$name ;;
     disk*)
         echo "f /boot 644 boot" >> proto.$name
         options="$options -b $stand/hdboot.bin"
@@ -115,11 +146,11 @@ diskboot() {
         esac
         if [ $from = disk ]; then
             echo "f /unix 644 unix.$name" >> proto.$name
-            set -- --boot kernel-$name
+            set -- --boot $t-$name
         else
             (echo "d /sys 755"; echo "f /sys/unix 644 unix.$name") >> proto.$name
             set -- --type "Boot from" "unix" \
-                --type "no such file" "${from#disk:}" --boot kernel-$name
+                --type "no such file" "${from#disk:}" --boot $t-$name
         fi ;;
     esac
     python3 -I "$top/tools/mkfs.py" -s 2000 proto.$name root.$name
@@ -128,7 +159,7 @@ diskboot() {
     python3 -I "$top/tests/harness/runtest.py" \
         --hd $name.img,$geometry,$bus --until halting "$@"
     if [ $from != diskette ]; then
-        grep -q "^Boot from $driver(0,0)" "$top/obj/tests/kernel-$name/serial.txt"
+        grep -q "^Boot from $driver(0,0)" "$top/obj/tests/$t-$name/serial.txt"
     fi
     python3 -I "$top/tools/fsck.py" $name.img
     python3 -I "$top/tools/fsck.py" -x /persist $name.img |
@@ -148,7 +179,7 @@ diskboot wd wd xtide disk "-p"
 # /boot is told what to load: first a file that is not there, then the
 # kernel by its device and a path.
 diskboot wdlba wd xtide "disk:wd(0,0)sys/unix" "-g 1024,2,17" wdmulti=1
-grep -q "no such file" "$top/obj/tests/kernel-wdlba/serial.txt"
+grep -q "no such file" "$top/obj/tests/$t-wdlba/serial.txt"
 
 # One of 2.6 GB, of which the system has the end, past the sectors whose
 # numbers fit in 16 bits and the bytes whose numbers fit in 31.  That is
@@ -167,7 +198,7 @@ diskboot wdbig wd ide diskette "-g 5400,16,63 -p -o 5000000"
 # reads, while others arrive: the emulator's disk answers too soon for
 # any of that.
 diskboot sd sd scsi:330:11:5:0:DC000 disk "-p -g 20,64,32" bufshare=8 ahatest=8
-grep -q "^buffers   = 131072" "$top/obj/tests/kernel-sd/serial.txt"
+grep -q "^buffers   = 131072" "$top/obj/tests/$t-sd/serial.txt"
 
 # Another on an adapter set otherwise, with its BIOS off, and at another
 # SCSI id, of 2.6 GB with the system at the end of it.  The kernel comes
@@ -179,9 +210,9 @@ grep -q "^buffers   = 131072" "$top/obj/tests/kernel-sd/serial.txt"
 # by itself.
 diskboot sdlost sd scsi:334:10:6:5:0 diskette "-g 2600,64,32 -p -o 5000000" \
     diskroot=512 ahatest=7 ahatimeout=5
-grep -q "aha: lost interrupt" "$top/obj/tests/kernel-sdlost/serial.txt"
-grep -q "aha: timeout after 5 s" "$top/obj/tests/kernel-sdlost/serial.txt"
-grep -q "sd0: [0-9]*-block command failed" "$top/obj/tests/kernel-sdlost/serial.txt"
-grep -q "^buffers   = 65536" "$top/obj/tests/kernel-sdlost/serial.txt"
+grep -q "aha: lost interrupt" "$top/obj/tests/$t-sdlost/serial.txt"
+grep -q "aha: timeout after 5 s" "$top/obj/tests/$t-sdlost/serial.txt"
+grep -q "sd0: [0-9]*-block command failed" "$top/obj/tests/$t-sdlost/serial.txt"
+grep -q "^buffers   = 65536" "$top/obj/tests/$t-sdlost/serial.txt"
 
 echo "kernel: all six boots passed"

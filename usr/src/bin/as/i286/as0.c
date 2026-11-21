@@ -216,17 +216,17 @@ start()
 		exit(1);
 }
 
-include(name)
+/*
+ * A file named in the source, here or in a directory of -I.
+ */
+FILE *
+incopen(name)
 char *name;
 {
 	register FILE *f;
 	register i;
 	char path[LINESZ];
 
-	if (nin >= NINCL) {
-		error("%%include too deep: %s", name);
-		return;
-	}
 	f = fopen(name, "r");
 	for (i = 0; f == NULL && i < nincdir; i++) {
 		strcpy(path, incdir[i]);
@@ -235,6 +235,50 @@ char *name;
 		strcat(path, name);
 		f = fopen(path, "r");
 	}
+	return(f);
+}
+
+/*
+ * incbin "file": its bytes, as so many db.
+ */
+incbin()
+{
+	register FILE *f;
+	register c;
+	register char *p;
+	char name[LINESZ];
+
+	skipb();
+	c = *lp;
+	p = name;
+	if (c == '\'' || c == '"')
+		for (lp++; *lp && *lp != c && *lp != '\n'; )
+			*p++ = *lp++;
+	*p = 0;
+	if (*lp != c || p == name) {
+		error("incbin of what file?", "");
+		return;
+	}
+	lp++;
+	if ((f = incopen(name)) == NULL) {
+		error("cannot open %s", name);
+		return;
+	}
+	while ((c = getc(f)) != EOF)
+		ob(c);
+	fclose(f);
+}
+
+include(name)
+char *name;
+{
+	register FILE *f;
+
+	if (nin >= NINCL) {
+		error("%%include too deep: %s", name);
+		return;
+	}
+	f = incopen(name);
 	if (f == NULL) {
 		error("cannot open %s", name);
 		return;

@@ -12,7 +12,9 @@ usage: runtest.py NAME SOURCE...
 The first form builds a small-model program that runs in real mode.  Each
 .c is compiled with tools/cc286 and each .s assembled with NASM; they are
 linked behind tests/harness/start.s and converted with tools/ne2aout.py, as
-any program is.
+any program is.  With NATIVE_PROGRAMS=1 in the environment it is the
+system's own compiler, assembler and linker that make it, as they are
+built for this machine (tools/ncc, obj/host/ccom/as and ld -real).
 
 The second takes an executable already built, such as a kernel, that
 starts itself as docs/boot.md describes.  A file system image given with
@@ -140,8 +142,32 @@ def run(*cmd, **kw):
     return r.stdout + r.stderr
 
 
+def build_native(name, sources, out):
+    """The program made by the system's own tools: returns its path."""
+    host = os.path.join(TOP, "obj", "host", "ccom")
+    objs = []
+    for src in [os.path.join(HARNESS, "start.s")] + sources:
+        base = os.path.splitext(os.path.basename(src))[0]
+        obj = os.path.join(out, base + ".o")
+        if src.endswith(".c"):
+            run(os.path.join(TOP, "tools", "ncc"), "-ms", "-o", obj, src)
+        else:
+            run(os.path.join(host, "as"), "-ms",
+                "-I" + os.path.dirname(src) + "/", "-o", obj, src)
+        objs.append(obj)
+    exe = os.path.join(out, name)
+    log = run(os.path.join(host, "ld"), "-ms", "-real", str(0x1000), "-M",
+              "-o", exe, *objs)
+    with open(os.path.join(out, name + ".map"), "w") as f:
+        f.write(log)
+    return exe
+
+
 def build(name, sources, out):
     """Returns the path of the diskette image."""
+    if os.environ.get("NATIVE_PROGRAMS", "0") not in ("", "0"):
+        exe = build_native(name, sources, out)
+        return build_image(name, exe, out)
     objs = []
     for src in [os.path.join(HARNESS, "start.s")] + sources:
         base = os.path.splitext(os.path.basename(src))[0]
@@ -163,7 +189,11 @@ def build(name, sources, out):
     exe = os.path.join(out, name)
     run(sys.executable, "-I", os.path.join(TOP, "tools", "ne2aout.py"),
         "--model", "s", "--real", "0x1000", "--map", mapfile, ne, exe)
+    return build_image(name, exe, out)
 
+
+def build_image(name, exe, out):
+    """The diskette image of the program EXE: returns its path."""
     # start.s is linked first, so the entry point is the start of the code.
     # The code and the data are two segments, and far variables more.
     b = open(exe, "rb").read()

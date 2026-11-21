@@ -197,7 +197,7 @@ What it has:
   mode's among them, and the 287's.
 - Operands as NASM writes them: `word [bp-4]`, `byte [es:bx+_tab+2]`,
   `far [bx]`, `seg _name`, `st1`.
-- `db`, `dw`, `dd`, `resb`, `resw`, `resd`, `times`, `align`,
+- `db`, `dw`, `dd`, `incbin`, `resb`, `resw`, `resd`, `times`, `align`,
   `alignb`, `equ`, `global`, `extern` (with NASM's `:wrt GROUP`, which
   means nothing here), `common`, `segment`, `group`.
 - Labels local to the last label without a dot (`.loop`), `$` and
@@ -305,7 +305,7 @@ upstream has them.
 
 ```
 ld [-o out] [-ms|-mm|-ml] [-b] [-s] [-x] [-stack n] [-packcode n] [-gdt n]
-   [-e sym] [-u sym] [-L dir] [-M] [-t] file ... -lx ...
+   [-real n] [-e sym] [-u sym] [-L dir] [-M] [-t] file ... -lx ...
 ```
 
 It reads its arguments twice, as upstream's does: once for the symbols
@@ -334,7 +334,11 @@ next would not fit. A program may have 31 segments in all.
 A segment's selector follows from its number, so the linker fills
 selectors in and the program is loaded as it is. With `-gdt n` the
 selectors are the kernel's, of the global descriptor table from slot
-`n` on ([booting](boot.md)), and not a process's own. `-stack n` sets the
+`n` on ([booting](boot.md)), and not a process's own; with `-real n`
+they are where real mode has the segments, the first at `n` and each
+64K after the last, as the tests' own programs are loaded. `-packcode
+n` puts no more than `n` bytes of text in a segment, a file with more
+than that in one of its own. `-stack n` sets the
 stack the header asks for (8192 without). The entry point is the symbol
 `..start`, which the start-up code defines, or `-e`. `_etext`, `_edata`
 and `_end` are defined if something asks for them.
