@@ -2101,6 +2101,18 @@ each is and where it is from. `cc`, `/lib/cpp`, `ar`, `ranlib`, `nm`,
   its length. And it reads the lines it writes to say where it is,
   `# 12 "file"`, as `#line`, which hack's Makefile needs: it compiles
   what `cc -E` wrote.
+- `/lib/cpp` is of the large model. In the small one it ran out of
+  memory on eight of tcsh's files, the kernel's `machdep.c`, and
+  `top`'s, `ntpd`'s and `rwhod`'s: tcsh's headers and the system's give
+  it 1,221 macros, each with its name, its text and its place in the
+  table of names, more than the 50K or so the small model leaves it.
+  For the large model a page of its list of the macros that are not to
+  be expanded again holds as many as it does where a pointer is two
+  bytes, a power of two, which 256 bytes of them are not where it is
+  four; and more than 64K of macros' text is an error, where it would
+  have begun again over the first. Given on the 286 each of the 2,236
+  files, with its flags, that it is given where the system is built,
+  it writes what it writes there, to the byte.
 - `size` adds up the segments: the text is those of code, the data what
   the last has in the file, and the bss the rest of it. For a program
   of the medium model it gives each segment of text as well, as it

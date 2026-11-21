@@ -300,8 +300,8 @@ pointer of 16; the host's copies of them are made with the types put
 right (`obj/host/ccom/include`). The host has to keep a number's low
 byte first. `cpp` there is given the tree's `usr/include` for the
 system's headers, a type of 32 bits for what `#if` reckons in, which is
-a `long` on the 286, and its tables as they are where a pointer is two
-bytes (`lib/cpp/i286`), so that it writes what `/lib/cpp` writes.
+a `long` on the 286, and its buffers and tables as large as they are
+there (`lib/cpp/i286`), so that it writes what `/lib/cpp` writes.
 
 ## The system makes its own compiler
 

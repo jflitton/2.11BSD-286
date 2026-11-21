@@ -715,16 +715,18 @@ OWNPROGS=	adduser bench ve
 # object code improver, /lib/c0, c1 and c2, the second pass and the
 # improver being the 286's own (lib/ccom/i286, lib/c2/i286); as and ld,
 # which are the 286's own too (bin/as/i286, bin/ld/i286); and ar,
-# ranlib, nm and size.  cpp is given the size of a pointer, and keeps
-# what it has in memory and not in a file (LIBVMF).  nm and ranlib read
-# libraries with ar's header.  The compiler's passes and the improver
-# are compiled by the compiler, whichever one compiles the rest
-# (NAME_CCOM, below): they are written for it, and the passes are more
-# than the cross compiler will take, a function being called there with
-# as many arguments as the call has use for.
+# ranlib, nm and size.  cpp keeps what it has in memory and not in a
+# file (LIBVMF), and is of the large model: tcsh's headers, and the
+# kernel's, have more macros than the small model's 64K of data holds.
+# nm and ranlib read libraries with ar's header.  The compiler's passes
+# and the improver are compiled by the compiler, whichever one compiles
+# the rest (NAME_CCOM, below): they are written for it, and the passes
+# are more than the cross compiler will take, a function being called
+# there with as many arguments as the call has use for.
 cc_SRCS=	bin/cc.c
 cpp_SRCS=	$(addprefix lib/cpp/,cpp.c cpc.c token.c)
-cpp_FLAGS=	-DLIBVMF=0 -DSIZEOF_INT_P=2 -I$(SRC)/lib/cpp
+cpp_FLAGS=	-DLIBVMF=0 -I$(SRC)/lib/cpp
+cpp_MODEL=	l
 c0_SRCS=	$(addprefix lib/ccom/,c00.c c01.c c02.c c03.c c04.c c05.c \
 		ansi.c)
 c1_SRCS=	$(addprefix lib/ccom/i286/,c10.c c11.c c12.c c13.c c14.c)
@@ -810,10 +812,10 @@ list:
 	@printf '%s\n' $(PROGS)
 
 # The compiler's programs, a line each: the name, and what cc is given
-# to make it, its sources named from $(SRC).  tests/ccom/self.sh has
-# the system make them from that.
+# to make it, its model if not the small and its sources named from
+# $(SRC).  tests/ccom/self.sh has the system make them from that.
 ccprogs:
-	@$(foreach p,$(CCPROGS),echo $(p) \
+	@$(foreach p,$(CCPROGS),echo $(p) $(if $($(p)_MODEL),-m$($(p)_MODEL)) \
 	    $(subst $(SRC)/,,$($(p)_FLAGS) $($(p)_SRCS));)
 
 .PHONY:	all list ccprogs root syslibs clean FORCE

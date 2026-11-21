@@ -1,9 +1,8 @@
 # The preprocessor, /lib/cpp, where the system is built.
 #
 # ../Makefile is the PDP-11's.  On the 286 cpp is made by
-# usr/src/i286/Makefile, which gives it the size of a pointer and has it
-# keep what it has in memory (cpp_FLAGS there).  From the top of the
-# repository:
+# usr/src/i286/Makefile, of the large model, keeping what it has in
+# memory (cpp_FLAGS there).  From the top of the repository:
 #
 #	make -C usr/src/lib/cpp/i286 host
 #
@@ -17,8 +16,9 @@
 # its own; the tree's headers for its own directory of them, which is
 # /usr/include there (STDINC); and a type of 32 bits for what #if
 # reckons in, which is a long on the 286 and more here (CPPLONG).  Its
-# tables are reckoned for a pointer of two bytes, as there; and a sum in
-# #if that overflows does here what it does there.
+# buffers and tables are those of a machine whose int is 16 bits, which
+# i286 says, and as large as there; and a sum in #if that overflows does
+# here what it does there.
 
 TOP:=	$(abspath ../../../../..)
 H=	$(TOP)/obj/host/ccom
@@ -35,7 +35,7 @@ $(H):
 
 $(H)/cpp: ../cpp.c ../cpc.c ../token.c ../cpp.h | $(H)
 	@echo hostcc cpp
-	@$(HOSTCC) $(HOSTCFLAGS) -Di286 -DLIBVMF=0 -DSIZEOF_INT_P=2 \
+	@$(HOSTCC) $(HOSTCFLAGS) -Di286 -DLIBVMF=0 \
 	    -DCPPLONG=int '-DSTDINC="$(TOP)/usr/include"' -I.. -o $@ \
 	    ../cpp.c ../cpc.c ../token.c
 

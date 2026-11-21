@@ -159,8 +159,15 @@ struct blok {
 	struct symtab *sp;
 };
 struct blok *blokx[L2MAX];
-#define	BLKPTR(x)	((x) & ((CPPBUF/sizeof(struct blok))-1))
-#define	BLKBUF(x)	((x) / (CPPBUF/sizeof(struct blok)))
+/*
+ * A page of them holds as many as CPPBUF bytes do where an int and a
+ * pointer are two bytes each: a power of two, which CPPBUF divided by
+ * the size of one is not where a pointer is four, as in the 286's
+ * large model, and as many wherever cpp is compiled.
+ */
+#define	NBLKPG		(CPPBUF/4)
+#define	BLKPTR(x)	((x) & (NBLKPG-1))
+#define	BLKBUF(x)	((x) / NBLKPG)
 int blkidp;
 
 static struct iobuf *readargs(struct iobuf *, struct symtab *, const usch **);
@@ -620,7 +627,9 @@ macsav(int ch)
 	if ((mp = macptr[cpos]) == NULL)
 		mp = macptr[cpos] = xmalloc(CPPBUF);
 #endif
-	mp[cptr] = ch, macpos++;
+	mp[cptr] = ch;
+	if (++macpos == 0)	/* not to begin again over the first */
+		error("too many macros");
 }
 
 static void                     
@@ -1545,7 +1554,7 @@ blkget(struct symtab *sp, int id)
 	if (upper == L2MAX)
 		error("too complex macro");
 	if (blokx[upper] == NULL)
-		blokx[upper] = xmalloc(CPPBUF);
+		blokx[upper] = xmalloc(NBLKPG * sizeof(struct blok));
 	blokx[upper][off].sp = sp;
 	blokx[upper][off].nidx = id;
 	return blkidp++;

@@ -66,8 +66,8 @@ extern	int	defining, inclevel;
 #define FIND    0
 #define ENTER   1
 
-/* buffer used internally */
-#if SIZEOF_INT_P == 2 || LIBVMF
+/* buffer used internally; the 286's int is 16 bits in any model */
+#if SIZEOF_INT_P == 2 || LIBVMF || defined(i286)
 #define CPPL2	8
 typedef	unsigned short mvtyp;
 #else
