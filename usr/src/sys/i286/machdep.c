@@ -234,8 +234,15 @@ setldt(p, n)
 	register struct segdesc __far *dp;
 	long base;
 
-	sp = &PSEG(p)[n];
-	dp = &PLDT(p)[n];
+	/*
+	 * The slot's place in both tables, worked out once: the system's
+	 * own compiler, as upstream's, does not see that PSEG and PLDT
+	 * divide by the same, and this is called for every slot of a
+	 * process that forks or execs.
+	 */
+	n += (p - proc) * NSEG;
+	sp = &pseg[n];
+	dp = &ldt[n];
 	if ((sp->ps_flag & PS_USED) == 0) {
 		dp->sd_access = 0;
 		return;

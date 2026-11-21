@@ -120,7 +120,8 @@ extern	char revbr[];
  * writes it, "word [bp-4]" or "12" or "si", or "&[bp-4]" for an
  * address that lea made; SS, which is the same throughout, as "ss".
  * And in regs[ESBX], the far pointer that les gave ES and BX, "far
- * [bp+6]", while they have it still.
+ * [bp+6]", while they have it still; and in regs[ES], what was moved
+ * to ES, "CLIST" or "word [bp-2]", while it has it still.
  */
 #define	AX	0
 #define	BX	1
@@ -130,7 +131,9 @@ extern	char revbr[];
 #define	DI	5
 #define	NREG	6
 #define	ESBX	6
-char	regs[NREG + 1][MAXCPS + 1];
+#define	ES	7
+#define	NTRACK	8
+char	regs[NTRACK][MAXCPS + 1];
 char	rt1[LSIZE];
 char	rt2[LSIZE];
 extern	char *rname[];

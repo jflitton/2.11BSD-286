@@ -48,6 +48,10 @@ they write with what they wrote where the system was built.
 first pass makes pointers to functions far, the second makes calls far
 and is told the name of the segment for the file's code, the assembler
 records the model in the object, and the linker refuses to mix them.
+A function the file has defined already is called near, with CS
+pushed for its far return; and a static function whose address
+nothing takes returns near, taking that CS off the stack (`ret 2`),
+which is 11 clocks in protected mode where a far return is 25.
 
 The start-up code and the libraries are per model:
 
@@ -368,7 +372,7 @@ are the cross compiler's kernel's, in the same order:
 
 | | this kernel | the cross compiler's |
 |---|---|---|
-| code | 184,800 bytes in 3 segments | 165,870 in 3 |
+| code | 185,040 bytes in 3 segments | 165,870 in 3 |
 | data (DGROUP) | 63,604 | 63,544 |
 | the network's (NET_GROUP) | 58,806 | 58,802 |
 | the character blocks (CLIST) and the far variables | 46,352 and 27,704 | 32,768, 13,584 and 27,704 |

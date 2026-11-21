@@ -100,11 +100,16 @@ arlength(t)
 struct	xsym {
 	struct	xsym *xnext;
 	unsigned xsize;		/* of common storage asked for */
+	long	xretpos;	/* where a static function's return is */
 	char	xdefd;
 	char	xinline;	/* an in-line function: the body follows */
+	char	xaddr;		/* the name is used but to be called */
 	char	xname[1];
 };
 struct	xsym	*xsyms;
+int	laststatic;		/* the last SYMDEF was of something static */
+char	statname[40];		/* the static function being compiled */
+char	*statfn;
 
 struct xsym *
 xlook(s)
@@ -119,6 +124,8 @@ register char *s;
 	strcpy(xp->xname, s);
 	xp->xdefd = 0;
 	xp->xinline = 0;
+	xp->xaddr = 0;
+	xp->xretpos = 0;
 	xp->xsize = 0;
 	xp->xnext = xsyms;
 	xsyms = xp;
@@ -160,9 +167,45 @@ char *s;
 	strcpy(xp->xname + strlen(s) + 1, body);
 	xp->xdefd = 0;
 	xp->xinline = 1;
+	xp->xaddr = 0;
+	xp->xretpos = 0;
 	xp->xsize = 0;
 	xp->xnext = xsyms;
 	xsyms = xp;
+}
+
+/*
+ * The name s is used other than to be called: as an address, or in an
+ * in-line function's body.
+ */
+xaddrof(s)
+char *s;
+{
+	xlook(s)->xaddr = 1;
+}
+
+/*
+ * A static function is called near, with CS pushed, by the functions
+ * of the file it is in, whose code is all in one segment; or far, if
+ * it is called before it is defined, from that segment too.  One whose
+ * address nothing takes returns near, and takes CS off with the
+ * return: in protected mode 11 clocks where a far return is 25.  It
+ * was written to return far, since whether its address is taken is
+ * known only at the end of the file.
+ */
+nearrets()
+{
+	register struct xsym *xp;
+
+	fflush(stdout);
+	for (xp = xsyms; xp; xp = xp->xnext) {
+		if (xp->xretpos==0 || xp->xaddr)
+			continue;
+		fseek(stdout, xp->xretpos, 0);
+		printf("\tret 2");
+		fflush(stdout);
+	}
+	fseek(stdout, 0L, 2);
 }
 
 /*
@@ -252,7 +295,7 @@ register char *s;
 			*p = '\0';
 			if (!label) {
 				if (name[0]=='_')
-					xref(name);
+					xaddrof(name);
 				printf("%s", name);
 				continue;
 			}
@@ -1038,7 +1081,12 @@ retrn()
 		printf("\tpop\tdi\n");
 	if (minreg<=SI)
 		printf("\tpop\tsi\n");
-	printf(mflag? "\tleave\n\tretf\n": "\tleave\n\tret\n");
+	printf("\tleave\n");
+	if (mflag && statfn) {
+		fflush(stdout);
+		xlook(statfn)->xretpos = ftell(stdout);
+	}
+	printf(mflag? "\tretf \n": "\tret\n");
 }
 
 /*
@@ -1139,6 +1187,7 @@ getree()
 		outname(s);
 		if (*s)
 			printf("\tglobal\t%s\n", s);
+		laststatic = *s=='\0';
 		break;
 
 	case INLDEF:
@@ -1343,6 +1392,11 @@ getree()
 		outname(s);
 		xdef(s);
 		printf("%s:\n", s);
+		statfn = NULL;
+		if (laststatic) {
+			strncpy(statname, s, sizeof statname - 1);
+			statfn = statname;
+		}
 		break;
 
 	case BRANCH:

@@ -652,28 +652,29 @@ its time in the kernel, reading and writing its files; the rest is a
 second here and there.
 
 What has been done about it, each a commit of its own, with the
-system's compiler's kernel against the cross compiler's:
+system's compiler's kernel against the cross compiler's, and in the
+last column its programs too:
 
 ```
-test          cross      in line
-sieve      124175 us     124600   1.00
-long          100 us        100   1.00
-getpid        174 us        184   1.06
-write         388 us        418   1.08
-stat         1325 us       1408   1.06
-pipe         3600 us       3934   1.09
-pipeio        643 K/s       605   1.06
-fork        12890 us      14443   1.12
-exec        32160 us      34670   1.08
-shell      321700 us     333300   1.04
-creat       26330 us      25000   0.95
-fswrite       315 K/s       299   1.05
-fsread        353 K/s       318   1.11
-pty            43 K/s        41   1.05
-tcp           219 K/s       207   1.06
-tcprr        7200 us       8266   1.15
-telkey      13464 us      14321   1.06
-telcmd     183750 us     193750   1.05
+test          cross       in line         now           and programs
+sieve      124175 us    124600  1.00   124600  1.00   132075  1.06
+long          100 us       100  1.00      100  1.00       82  0.82
+getpid        174 us       184  1.06      182  1.05      185  1.06
+write         388 us       418  1.08      415  1.07      418  1.08
+stat         1325 us      1408  1.06     1383  1.04     1383  1.04
+pipe         3600 us      3934  1.09     3768  1.05     3768  1.05
+pipeio        643 K/s      605  1.06      627  1.03      627  1.03
+fork        12890 us     14443  1.12    13886  1.08    13890  1.08
+exec        32160 us     34670  1.08    33000  1.03    33330  1.04
+shell      321700 us    333300  1.04   320000  0.99   343300  1.07
+creat       26330 us     25000  0.95    24670  0.94    24660  0.94
+fswrite       315 K/s      299  1.05      307  1.03      307  1.03
+fsread        353 K/s      318  1.11      326  1.08      326  1.08
+pty            43 K/s       41  1.05       41  1.05       38  1.13
+tcp           219 K/s      207  1.06      210  1.04      207  1.06
+tcprr        7200 us      8266  1.15     7566  1.05     7600  1.06
+telkey      13464 us     14321  1.06    14243  1.06    14296  1.06
+telcmd     183750 us    193750  1.05   187075  1.02   188350  1.03
 ```
 
 - **In line.** The system's compiler puts a function declared
@@ -682,6 +683,66 @@ telcmd     183750 us     193750   1.05
   the byte swaps are such. More than half of what `telkey`, `tcp`,
   `pipeio` and `fswrite` had more is gone, two fifths of `pipe`'s and a
   quarter of `tcprr`'s.
+- **The code generator and `c2`**, for what was left of the profile
+  that was the compiler's doing:
+  - `setldt` works out the slot's place once (`i286/machdep.c`), as the
+    cross compiler did for it; neither this compiler nor upstream's
+    sees that two expressions are the same.
+  - A long multiplied or divided by a power of two is shifted, its
+    unsigned remainder masked, and the product of two words made long
+    is one IMUL or MUL, where the library's routines were called:
+    `namei` divided and multiplied by 512, the buffers' code by 1024.
+    A long is shifted a byte and then a place at a time, not a place at
+    a time round a loop: `ctob`'s 9 places are about 36 clocks where
+    they were 110. A signed word divided by a power of two is a shift,
+    where it was IDIV, as `userret`'s was on every system call; and the
+    difference of a pointer and an array's address is a subtraction
+    and a borrow.
+  - `c2` remembers what ES was given and takes out a load of what it
+    has already, which is 17 clocks in protected mode: the routines of
+    the character lists loaded it again and again. A store through a
+    far pointer, with what is stored at hand, loads ES:BX from DX:AX
+    and not by way of the stack.
+  - A static function whose address nothing takes returns near ([the
+    compiler](toolchain.md#models)), 14 clocks less a call; and `c2`
+    takes out a CBW whose AH nothing reads, as when a char is copied.
+
+  `fork`, `exec`, `pipe` and `tcprr` gained most. `tcprr` was the test
+  furthest behind, 1.15, but run alone on that kernel it took 7666 us
+  against the cross compiler's 7200, with as many packets each way
+  (`netstat -s`): what fell in its part of the whole run cost it the
+  rest. The cross compiler's kernel, with `setldt` as it is now and
+  the same code for it, measured as before but for `fork`, 7% slower,
+  and `creat`, 8% quicker: `update`'s sync fell in `fork` that time.
+  Differences of that size in those tests, and in `shell`, are the
+  run's and not the kernel's.
+
+What is left is thin, a few percent in each test, and is in no one
+place: a profile of `getpid`, `write` or `telkey` against the cross
+compiler's puts a few clocks more in each function on the way. It is
+what the code generator is made to be. It has one register, BX, to
+reach memory through and two, SI and DI, for variables, where the cross
+compiler keeps a function's values in any free register; so a third
+variable, or a loop's bound, is in the frame, and the same pointer is
+loaded into BX again after BX was needed for another. A far pointer is
+kept in the frame and loaded again with LES after anything is stored
+through it, since the store may have been to the pointer: `setldt`
+and `segfree`, with far pointers into the tables of slots, are still
+the functions with most more time in `fork` and `exec`, about 4% of
+each. Every function has a frame. `tests/system` takes 483 seconds
+of the emulator's time on the cross compiler's kernel and 489 on the
+system's compiler's now, where it took 504; `yacc` and `lex` take 134
+seconds of that, against 133.
+
+The programs' own code is slower by more than the kernel's, for the
+same reasons: the sieve is 6% slower, its inner loop adding a variable
+from the frame, there being no third register for it; `ls` spends 70%
+longer in `qsort` and a quarter longer in `printf`, which make `shell`
+7% slower; and `pty`'s 13% is `bench`'s own loop, which writes the
+lines and reads them. A code generator that chose
+registers, CX and DX and BX when it is not addressing, for variables
+and for what a loop does not change, is what would take most of that
+back; it would be a code generator written again.
 
 ## What is left
 
@@ -696,7 +757,8 @@ before the wait state.
 - **Shifts of longs.** The compiler shifts a long right by a constant
   with a loop, a bit at a time: about 130 clocks for the 10 places of
   `lblkno`, in `rwip`, `bmap`, `namei` and the disk drivers. A routine
-  in line that moves bytes first would be a fifth of that.
+  in line that moves bytes first would be a fifth of that, which is
+  what the system's own compiler does now (above).
 - **A pipe is a file.** A byte through one costs `rwip`, `bmap` and a
   buffer each way, and that is most of `pipe`'s 2.8 ms now.
 - **`fork` and `exec`** are the copying and clearing of memory they

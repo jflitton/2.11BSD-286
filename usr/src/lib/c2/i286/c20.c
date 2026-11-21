@@ -239,7 +239,8 @@ input()
 				p->op = 0;
 				p->subop = 0;
 				p->code = copy(line, "");
-			}
+			} else if (*curlp)
+				p->code = copy(curlp, "");	/* ret 2 */
 			break;
 
 		default:

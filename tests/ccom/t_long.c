@@ -275,17 +275,138 @@ muldiv()
 	LK(gst.lv, 70000L);
 }
 
+/*
+ * By a power of two, and words made long: what needs no call of the
+ * library's routines.
+ */
+static
+lconsts()
+{
+	long a, s;
+	unsigned long u;
+	int i, j;
+	unsigned w, x;
+
+	a = -123456L;
+	s = 0x12345678L;
+	u = 0x87654321L;
+	LK(a * 2L, -246912L);
+	LK(s * 2L, 610839792L);
+	LK(a / 2L, -61728L);
+	LK(s / 2L, 152709948L);
+	LK(u / 2L, 0x43B2A190L);
+	LK(u % 2L, 0x00000001L);
+	LK(a % 2L, 0L);
+	LK(a * 512L, -63209472L);
+	LK(s * 512L, 1756164096L);
+	LK(a / 512L, -241L);
+	LK(s / 512L, 596523L);
+	LK(u / 512L, 0x0043B2A1L);
+	LK(u % 512L, 0x00000121L);
+	LK(a % 512L, -64L);
+	LK(a * 1024L, -126418944L);
+	LK(s * 1024L, -782639104L);
+	LK(a / 1024L, -120L);
+	LK(s / 1024L, 298261L);
+	LK(u / 1024L, 0x0021D950L);
+	LK(u % 1024L, 0x00000321L);
+	LK(a % 1024L, -576L);
+	LK(a * 65536L, 499122176L);
+	LK(s * 65536L, 1450704896L);
+	LK(a / 65536L, -1L);
+	LK(s / 65536L, 4660L);
+	LK(u / 65536L, 0x00008765L);
+	LK(u % 65536L, 0x00004321L);
+	LK(a % 65536L, -57920L);
+	LK(a * 1048576L, -603979776L);
+	LK(s * 1048576L, 1736441856L);
+	LK(a / 1048576L, 0L);
+	LK(s / 1048576L, 291L);
+	LK(u / 1048576L, 0x00000876L);
+	LK(u % 1048576L, 0x00054321L);
+	LK(a % 1048576L, -123456L);
+	LK(lident(-1L) / 2, 0L);
+	LK(lident(-512L) / 512, -1L);
+	LK(lident(-513L) / 512, -1L);
+	LK(lident(a) / 512 * 512, -123392L);
+	i = -300;
+	j = 200;
+	w = 65535;
+	x = 65535;
+	LK((long)i * j, -60000L);
+	LK((long)i * -300, 90000L);
+	LK((long)i * (long)(j + 1), -60300L);
+	LK((long)ident(-32767 - 1) * ident(-32767 - 1), 1073741824L);
+	LK((long)ident(32767) * ident(-32767 - 1), -1073709056L);
+	LK((unsigned long)w * x, 0xFFFE0001L);
+	LK((unsigned long)w * 65535L, 0xFFFE0001L);
+	LK((long)w * 12, 786420L);
+	LK((long)ident(-7) * 12, -84L);
+	LK((long)j * 100000L, 20000000L);
+}
+
 static
 shifts()
 {
-	long a, c;
+	long a, c, s;
 	unsigned long u;
 	long *p;
 	int n;
 
 	a = -123456L;
 	u = 0x87654321L;
+	s = 0x12345678L;
 	p = &a;
+	/* by each kind of constant: places, a byte, and a byte and places */
+	LK(a << 4, 0xFFE1DC00L);
+	LK(a >> 4, -7716L);
+	LK(u >> 4, 0x08765432L);
+	LK(u << 4, 0x76543210L);
+	LK(s >> 4, 0x01234567L);
+	LK(a << 5, 0xFFC3B800L);
+	LK(a >> 5, -3858L);
+	LK(u >> 5, 0x043B2A19L);
+	LK(u << 5, 0xECA86420L);
+	LK(s >> 5, 0x0091A2B3L);
+	LK(a << 7, 0xFF0EE000L);
+	LK(a >> 7, -965L);
+	LK(u >> 7, 0x010ECA86L);
+	LK(u << 7, 0xB2A19080L);
+	LK(s >> 7, 0x002468ACL);
+	LK(a << 8, 0xFE1DC000L);
+	LK(a >> 8, -483L);
+	LK(u >> 8, 0x00876543L);
+	LK(u << 8, 0x65432100L);
+	LK(s >> 8, 0x00123456L);
+	LK(a << 9, 0xFC3B8000L);
+	LK(a >> 9, -242L);
+	LK(u >> 9, 0x0043B2A1L);
+	LK(u << 9, 0xCA864200L);
+	LK(s >> 9, 0x00091A2BL);
+	LK(a << 10, 0xF8770000L);
+	LK(a >> 10, -121L);
+	LK(u >> 10, 0x0021D950L);
+	LK(u << 10, 0x950C8400L);
+	LK(s >> 10, 0x00048D15L);
+	LK(a << 12, 0xE1DC0000L);
+	LK(a >> 12, -31L);
+	LK(u >> 12, 0x00087654L);
+	LK(u << 12, 0x54321000L);
+	LK(s >> 12, 0x00012345L);
+	LK(a << 15, 0x0EE00000L);
+	LK(a >> 15, -4L);
+	LK(u >> 15, 0x00010ECAL);
+	LK(u << 15, 0xA1908000L);
+	LK(s >> 15, 0x00002468L);
+	c = a;
+	c >>= 10;
+	LK(c, -121L);
+	c = a;
+	c <<= 9;
+	LK(c, 0xFC3B8000L);
+	c = s;
+	c >>= 12;
+	LK(c, 0x00012345L);
 	LK(a << 1, -246912L);
 	LK(a << 3, -987648L);
 	LK(a << 8, -31604736L);
@@ -536,6 +657,7 @@ t_long()
 {
 	arith();
 	muldiv();
+	lconsts();
 	shifts();
 	compares();
 	calls();

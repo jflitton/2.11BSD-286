@@ -170,6 +170,7 @@ char	*argv[];
 		setbuf(stdin,buf1);	/* sbrk problems */
 		getree();
 	}
+	nearrets();
 	xrefs();
 	if (totspace >= (unsigned)56000)
 		werror("possibly too much data");
@@ -525,7 +526,8 @@ register union tree *tree;
 	case ULTIMES:
 	case ULDIV:
 	case ULMOD:
-		lmulop(op, loperands(tree));
+		if (!lmulcon(tree))
+			lmulop(op, loperands(tree));
 		return(INREG);
 
 	case ASSIGN:
@@ -798,6 +800,18 @@ register union tree *l, *r;
 
 	if ((l->t.op==STAR || l->t.op==FSTAR) && !canbx(l)) {
 		far = l->t.op==FSTAR;
+		/*
+		 * What is stored is had without BX or ES, which may then
+		 * have the address at once and not by way of the stack.
+		 */
+		if (adrble(r)) {
+			rcexpr(bxform(l), FORREG);
+			printf("\tmov\tbx,ax\n");
+			if (far)
+				printf("\tmov\tes,dx\n");
+			rcexpr(r, FORREG);
+			return;
+		}
 		rcexpr(bxform(l), FORSP);
 		rcexpr(r, FORREG);
 		printf("\tpop\tbx\n");
@@ -836,12 +850,14 @@ register union tree *p;
 
 	/*
 	 * As a long, a constant, or an unsigned word with nothing above
-	 * it.
+	 * it: a variable, or the address of one, as the difference of
+	 * two pointers is worked out.
 	 */
 	case ITOL:
 		q = p->t.tr1;
 		return(q->t.op==CON
-		    || q->t.op==NAME && uns(q) && !CHR(q->t.type));
+		    || q->t.op==NAME && uns(q) && !CHR(q->t.type)
+		    || q->t.op==AMPER && uns(q) && adrble(q));
 	}
 	return(0);
 }
@@ -1541,6 +1557,7 @@ mulop(op, r)
 register union tree *r;
 {
 	register char *s;
+	int d, i;
 
 	switch (op) {
 
@@ -1559,6 +1576,27 @@ register union tree *r;
 	case MOD:
 	case UDIV:
 	case UMOD:
+		/*
+		 * A signed division by a power of two is a shift, of what
+		 * is made up first by one less than the divisor if it is
+		 * negative, which CWD and a mask give; and the remainder
+		 * is what that leaves in the low bits, less the same.
+		 */
+		if ((op==DIVIDE || op==MOD) && r && r->t.op==CON
+		 && (d = r->c.value) > 1 && (d&(d-1))==0) {
+			for (i = 0; (1<<i) != d; i++)
+				;
+			printf("\tcwd\n");
+			if (op==DIVIDE && d==2)
+				printf("\tsub\tax,dx\n");
+			else
+				printf("\tand\tdx,%d\n\tadd\tax,dx\n", d-1);
+			if (op==DIVIDE)
+				shiftc(RSHIFT, AX, i);
+			else
+				printf("\tand\tax,%d\n\tsub\tax,dx\n", d-1);
+			return;
+		}
 		if (r && (r->t.op==CON || r->t.op==AMPER)) {
 			insrp("mov", CX, r, 0);
 			r = NULL;
@@ -1924,7 +1962,11 @@ union tree *dest;
 			printf("\tpush\tcs\n\tcall\t");
 		else
 			printf("\tcall\tfar ");
-		pbase(p);
+		/* not pbase, which takes it for the address taken */
+		if (p->n.class==EXTERN)
+			printf("%s", p->x.name);
+		else
+			pbase(p);
 		poff(p->n.offset);
 		putchar('\n');
 	} else if (far==1) {
@@ -2259,8 +2301,10 @@ register union tree *p;
 
 	if (p->n.class==SOFFS || p->n.class==STATIC)
 		printf("L%d", p->n.nloc);
-	else
+	else {
 		printf("%s", p->x.name);
+		xaddrof(p->x.name);
+	}
 }
 
 /*

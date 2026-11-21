@@ -77,6 +77,28 @@ rmove()
 		dualop(p);
 		d = isreg(rt1);
 		s = isreg(rt2);
+		if (equstr(rt1, "es")) {
+			/*
+			 * ES is given a selector, which it may have
+			 * already: loading it takes the 286 17 clocks in
+			 * protected mode.
+			 */
+			lbuf[0] = 0;
+			if (s >= 0)
+				strcpy(lbuf, regs[s]);
+			else if (equstr(rt2, "ss") || equstr(rt2, "ds")
+			 || wordmem(rt2) && !segpre(rt2) && strlen(rt2) <= MAXCPS)
+				strcpy(lbuf, rt2);
+			if (lbuf[0] && equstr(regs[ES], lbuf)) {
+				delete(p);
+				redunm++;
+				nchange++;
+				continue;
+			}
+			dest(rt1);
+			strcpy(regs[ES], lbuf);
+			continue;
+		}
 		if (d >= 0) {
 			/*
 			 * A register is loaded.
@@ -315,11 +337,18 @@ rmove()
 
 	case CBW:
 		/*
-		 * It does nothing to a small number.
+		 * It does nothing to a small number; and nothing that is
+		 * read, if what it puts in AH is not.
 		 */
 		if (small(regs[AX])) {
 			delete(p);
 			redunm++;
+			nchange++;
+			continue;
+		}
+		if (ahdead(p)) {
+			delete(p);
+			ndead++;
 			nchange++;
 			continue;
 		}
@@ -366,7 +395,7 @@ register struct node *lp;
 	sp = (struct snap *)lp->code;
 	if (sp && sp->sgen==rgen) {
 		sp->scnt++;
-		for (p = sp->sregs, i = 0; i<=ESBX; i++) {
+		for (p = sp->sregs, i = 0; i<NTRACK; i++) {
 			n = *p++;
 			if (!equstr(p, regs[i]))
 				*p = 0;
@@ -375,7 +404,7 @@ register struct node *lp;
 		return;
 	}
 	n = 0;
-	for (i = 0; i<=ESBX; i++)
+	for (i = 0; i<NTRACK; i++)
 		n += strlen(regs[i]) + 2;
 	if (sp==0 || sp->ssize < n) {
 		sp = (struct snap *)alloc(sizeof(struct snap) + n);
@@ -384,7 +413,7 @@ register struct node *lp;
 	}
 	sp->sgen = rgen;
 	sp->scnt = 1;
-	for (p = sp->sregs, i = 0; i<=ESBX; i++) {
+	for (p = sp->sregs, i = 0; i<NTRACK; i++) {
 		q = regs[i];
 		*p++ = strlen(q) + 1;
 		while (*p++ = *q++)
@@ -419,7 +448,7 @@ register struct node *lp;
 	case EROU:
 		fall = 0;
 	}
-	for (p = sp->sregs, i = 0; i<=ESBX; i++) {
+	for (p = sp->sregs, i = 0; i<NTRACK; i++) {
 		n = *p++;
 		if (fall==0)
 			strcpy(regs[i], p);
@@ -756,6 +785,100 @@ register struct node *p;
 }
 
 /*
+ * Is AH, as p leaves it, given something new before anything reads it,
+ * each way a jump goes, as dead() has it of a register?  What names AL
+ * alone, as a byte is stored or compared, leaves AH be.
+ */
+ahdead(p)
+struct node *p;
+{
+	register struct node *q;
+
+	if (++gen <= 0) {
+		for (q = first.forw; q; q = q->forw)
+			q->mark = 0;
+		gen = 1;
+	}
+	budget = 100;
+	return(ahscan(p->forw, 0));
+}
+
+ahscan(p, depth)
+register struct node *p;
+{
+	static char u1[LSIZE], u2[LSIZE];
+
+	for (; p; p = p->forw) {
+		if (--budget < 0)
+			return(0);
+		switch (p->op) {
+
+		case LABEL:
+			if (p->mark==gen)
+				return(1);
+			p->mark = gen;
+			continue;
+
+		case JBR:
+			if (p->ref==0)
+				return(0);
+			p = p->ref->back;
+			continue;
+
+		case CBR:
+			if (p->ref==0 || depth >= 4)
+				return(0);
+			if (!ahscan(p->ref, depth+1))
+				return(0);
+			continue;
+
+		case CBW:
+			return(1);
+
+		case MOV:
+		case LEA:
+		case POP:
+			split(p->code, u1, u2);
+			if (word(u2, "ax") || word(u2, "ah"))
+				return(0);
+			if (isreg(u1)==AX || equstr(u1, "ah"))
+				return(1);
+			if (word(u1, "ax") || word(u1, "ah"))
+				return(0);
+			continue;
+
+		case XOR:
+		case SUB:
+			split(p->code, u1, u2);
+			if (isreg(u1)==AX && equstr(u1, u2))
+				return(1);
+		case PUSH:
+		case CMP:
+		case TEST:
+		case ADD:
+		case AND:
+		case OR:
+		case ADC:
+		case SBB:
+		case INC:
+		case DEC:
+		case NEG:
+		case NOT:
+		case SHIFT:
+		case XCHG:
+			if (word(p->code, "ax") || word(p->code, "ah"))
+				return(0);
+			continue;
+
+		case JSR:
+			return(ruse(p, AX) < 0);
+		}
+		return(0);
+	}
+	return(0);
+}
+
+/*
  * What p does with the register r: 1 if it reads it, or any of it, -1
  * if it gives it something new without reading it, and 0 if it leaves
  * it be.  What is not known reads everything.
@@ -976,7 +1099,7 @@ clearreg()
 {
 	register int i;
 
-	for (i=0; i<=ESBX; i++)
+	for (i=0; i<NTRACK; i++)
 		regs[i][0] = '\0';
 }
 
@@ -1012,7 +1135,7 @@ register char *s;
 
 	if ((r = anyreg(s)) >= 0) {
 		regs[r][0] = 0;
-		for (i = 0; i<=ESBX; i++)
+		for (i = 0; i<NTRACK; i++)
 			if (mention(regs[i], r))
 				regs[i][0] = 0;
 		if (r==BX)
@@ -1022,6 +1145,7 @@ register char *s;
 	if (!ismem(s)) {
 		if (equstr(s, "es")) {
 			regs[ESBX][0] = 0;
+			regs[ES][0] = 0;
 			return;
 		}
 		if (!equstr(s, "sp")) {
@@ -1031,12 +1155,12 @@ register char *s;
 		/*
 		 * What was above the stack is not now.
 		 */
-		for (i = 0; i<=ESBX; i++)
+		for (i = 0; i<NTRACK; i++)
 			if (indirect(regs[i]))
 				regs[i][0] = 0;
 		return;
 	}
-	for (i = 0; i<=ESBX; i++)
+	for (i = 0; i<NTRACK; i++)
 		if (regs[i][0] && regs[i][0]!='&' && ismem(regs[i])
 		 && alias(regs[i], s))
 			regs[i][0] = 0;

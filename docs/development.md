@@ -222,12 +222,12 @@ tests/libc/run.sh       # the C library, with a test program as init: 74
                         # and 84 in the large; with CCOM=1, the same
                         # of the library and the program as the
                         # system's own compiler makes them
-tests/ccom/run.sh       # the system's own C compiler, run here: 1671
+tests/ccom/run.sh       # the system's own C compiler, run here: 1781
                         # checks of the code it generates, as it is and
                         # again as c2 improves it; 59 by a program it
                         # compiled, in the small model and the medium,
                         # and 62 in the large, that the system's
-                        # assembler and linker made; the 1671 again in
+                        # assembler and linker made; the 1781 again in
                         # the large model, run on the system; and the
                         # compiler's two passes and c2 as it compiled
                         # them, run there too
@@ -239,7 +239,7 @@ tests/ccom/self.sh      # the system making its compiler: cc, cpp, the
 tests/ccom/programs.sh  # the same compiler, assembler and linker on
                         # the system's programs: tests/programs, with
                         # all of them made that way
-tests/as/run.sh         # the system's assembler against NASM: 445
+tests/as/run.sh         # the system's assembler against NASM: 451
                         # files that both are to make the same of, the
                         # kernel's assembly among them (no emulator)
 tests/preflight/run.sh  # tools/preflight.py, on two files with one of each
