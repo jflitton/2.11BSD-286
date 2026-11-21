@@ -30,7 +30,14 @@
  * loaded as it is.  The kernel is linked with -gdt n: its selectors
  * are of the global descriptor table, from slot n on (docs/boot.md).
  *
- *	ld [-o out] [-ms] [-mm] [-ml] [-s] [-x] [-stack n] [-packcode n]
+ * With -b the program is an image, as /boot is: its text, its data and
+ * its bss in one segment of the small model, one after the other, and
+ * in the file the bytes of the text and the data and nothing else.  It
+ * is run from its first byte, with CS, DS and SS all the segment it is
+ * in, and it can have no selector: it is the PDP-11's program whose
+ * text and data are not apart, with no header.
+ *
+ *	ld [-o out] [-ms] [-mm] [-ml] [-b] [-s] [-x] [-stack n] [-packcode n]
  *	    [-gdt n] [-e sym] [-u sym] [-L dir] [-M] [-t] file ... -lx ...
  */
 #include <stdio.h>
@@ -89,6 +96,8 @@ long	loclen;
  * The options.
  */
 int	model = A_SMALL;
+int	bflag;			/* an image */
+long	dorg;			/*	and where its data is in it */
 int	sflag;			/* no symbol table */
 int	xflag;			/* none of the files' own symbols */
 int	Mflag;			/* say where everything is */
@@ -168,9 +177,9 @@ char **argv;
 	register struct nseg *np;
 
 	if (argc < 2) {
-		fprintf(stderr, "usage: ld [-o out] [-ms] [-mm] [-ml] [-s] [-x] \
-[-stack n] [-packcode n] [-gdt n] [-e sym] [-u sym] [-L dir] [-M] file ... \
--lx ...\n");
+		fprintf(stderr, "usage: ld [-o out] [-ms] [-mm] [-ml] [-b] [-s] \
+[-x] [-stack n] [-packcode n] [-gdt n] [-e sym] [-u sym] [-L dir] [-M] \
+file ... -lx ...\n");
 		exit(1);
 	}
 	args(argc, argv);
@@ -270,6 +279,10 @@ char **argv;
 				model = A_LARGE;
 			else
 				error(1, "-%s: no such model", ap);
+			break;
+
+		case 'b':
+			bflag = sflag = xflag = 1;
 			break;
 
 		case 's':
@@ -784,7 +797,15 @@ middle()
 		nglobal++;
 		globlen += strlen(sp->s_name) + 1;
 	}
-	if (memsize + stack > 65536L)
+	if (bflag) {
+		/* the data after the text, in the one segment */
+		dorg = seglen[1];
+		if (model != A_SMALL || nseg > dseg)
+			error(1, "an image is one segment, of the small model",
+			    "");
+		if (dorg + memsize > 65536L)
+			error(0, "the image is more than 64K", "");
+	} else if (memsize + stack > 65536L)
 		error(0, "the data and the stack are more than 64K", "");
 	if (errlev)
 		exit(1);
@@ -915,7 +936,8 @@ setupout()
 	if (dout == NULL || nout == NULL ||
 	    !sflag && (sout == NULL || strout == NULL))
 		error(1, "cannot open %s again", ofilename);
-	off = sizeof(struct exec) + (long)nseg * sizeof(struct exseg);
+	off = bflag ? 0L : sizeof(struct exec) + (long)nseg *
+	    sizeof(struct exseg);
 	fseek(tout, off, 0);
 	for (i = 1; i <= ncode; i++)
 		off += seglen[i];
@@ -1126,10 +1148,14 @@ unsigned w;
 	switch (r->r_type & R_TYPE) {
 
 	case R_OFF:
+		if (bflag && seg == dseg)
+			v += (unsigned)dorg;
 		return(w + v);
 
 	case R_SEG:
-		if (seg == 0)
+		if (bflag)
+			error(0, "%s: an image has no selectors", name);
+		else if (seg == 0)
 			error(0, "%s has no segment", name);
 		return(selector(seg));
 
@@ -1181,12 +1207,17 @@ finishout()
 		}
 		if (sp->s_name[0] == '.' && sp->s_name[1] == '.')
 			continue;
-		if (Mflag)
+		if (Mflag && bflag)
+			printf("%2d:%04x %s\n", i ? 1 : 0, sp->s_value +
+			    (i == dseg ? (unsigned)dorg : 0), sp->s_name);
+		else if (Mflag)
 			printf("%2d:%04x %s\n", i, sp->s_value, sp->s_name);
 		if (!sflag)
 			putsym(sp->s_name, sp->s_type | N_EXT, i,
 			    sp->s_value);
 	}
+	if (bflag && (hdr.a_eseg != 1 || hdr.a_entry != 0))
+		error(0, "%s is not the image's first byte", entry);
 	if (!sflag) {
 		hdr.a_syms = (long)(nlocal + nglobal) * sizeof(struct nlist);
 		hdr.a_strs = strx;
@@ -1209,10 +1240,15 @@ finishout()
 		}
 	}
 	fclose(nout);
-	fseek(tout, 0L, 0);
-	fwrite((char *)&hdr, sizeof hdr, 1, tout);
+	if (bflag && Mflag)
+		printf("image: %ld bytes, %ld of them in the file\n",
+		    dorg + memsize, dorg + dsize);
+	if (!bflag) {
+		fseek(tout, 0L, 0);
+		fwrite((char *)&hdr, sizeof hdr, 1, tout);
+	}
 	seg.xs_nrel = 0;
-	for (i = 1; i <= nseg; i++) {
+	for (i = 1; i <= nseg && !bflag; i++) {
 		seg.xs_type = i >= dseg ? XS_DATA : XS_CODE;
 		seg.xs_filesz = i == dseg ? dsize : i > dseg ? nfsize[i] :
 		    seglen[i];

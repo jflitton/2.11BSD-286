@@ -7,7 +7,9 @@
 #
 # The files are all.s, which has every instruction the assembler knows
 # in each of the ways its operands may be written, and its directives;
-# the C library's own assembly, for each model, with the start-up
+# the boot blocks, made images by each (as -b, nasm -f bin), and
+# /boot's start-up; the C library's own assembly, for each model, with
+# the start-up
 # code; the system call stubs as tools/mkstubs.py writes them, for
 # each; the kernel's assembly; and what the system's C compiler writes
 # for the programs of tests/ccom, in each model, as its second pass
@@ -47,7 +49,25 @@ both() {
     [ ! -f "$out/cmp" ] || cat "$out/cmp"
 }
 
+# image FILE: the file made an image by each, nasm -f bin and as -b,
+# which are to be the same to the byte
+image() {
+    n=$((n + 1))
+    if nasm -f bin -o "$out/n.bin" "$1" && "$as" -b -o "$out/a.bin" "$1" &&
+        cmp "$out/n.bin" "$out/a.bin"
+    then
+        return
+    fi
+    bad=$((bad + 1))
+    echo "BAD $1 -b"
+}
+
 both "$here/all.s"
+# the boot blocks, and /boot's start-up
+for f in fdboot mbr hdboot; do
+    image "$top/usr/src/sys/i286stand/$f.s"
+done
+both "$top/usr/src/sys/i286stand/srt0.s"
 for f in $(find "$libc" -name '*.s' | sort); do
     both "$f" -I "$libc/crt/"
     both "$f" -I "$libc/crt/" -DFAR

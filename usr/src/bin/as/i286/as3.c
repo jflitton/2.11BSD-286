@@ -6,6 +6,9 @@
  * the data, and of the named segments, is kept in a file of its own
  * until how much the text has is known.  What a named segment has in
  * it, which is not much, is written where it goes as it comes.
+ *
+ * An image (-b) is the text and nothing else, its addresses those of
+ * where it is to be (org).
  */
 #include "as.h"
 #include <a.out.h>
@@ -93,6 +96,12 @@ register struct expr *e;
 
 	if (sect == SBSS)
 		return;
+	if (flat) {
+		/* an image is not linked: its own text is all it has */
+		if (type != R_OFF || e->e_sect != STEXT)
+			error("an image has no segments and no other files", "");
+		return;
+	}
 	r.r_addr = loc[sect];
 	if (e->e_sect == SUNDEF) {
 		if (e->e_sym == NULL || e->e_sym->s_index < 0)
@@ -114,7 +123,7 @@ register struct expr *e;
 
 /*
  * A value in a word: a number, an address, or the selector of an
- * address's segment.
+ * address's segment.  In an image an address is where it is put.
  */
 oword(e)
 register struct expr *e;
@@ -127,7 +136,7 @@ register struct expr *e;
 	}
 	if (pass == 2 && e->e_sect != SABS)
 		reloc(R_OFF, e);
-	ow((int)e->e_val);
+	ow((int)e->e_val + (flat && e->e_sect == STEXT ? origin : 0));
 }
 
 obyte(e)
@@ -199,6 +208,13 @@ outstart()
 
 	for (i = 0; i < nsect; i++)
 		size[i] = loc[i];
+	if (flat) {
+		if (origin + (long)size[STEXT] > 0200000L)
+			fatal("an image cannot go past 64K", "");
+		if ((sfp[STEXT] = fopen(outfile, "w")) == NULL)
+			fatal("cannot create %s", outfile);
+		return;
+	}
 	nsym = 0;
 	for (i = SNAMED; i < nsect; i++)
 		nsym += sectgrp[i] ? 2 : 1;
@@ -278,6 +294,13 @@ outfinish()
 	for (i = STEXT; i < nsect; i++)
 		if (loc[i] != size[i])
 			fatal("the passes do not agree (phase error)", "");
+	if (flat) {
+		/* the bytes, and nothing about them */
+		if (ferror(sfp[STEXT]))
+			fatal("error writing %s", outfile);
+		fclose(sfp[STEXT]);
+		return;
+	}
 	for (i = STEXT; i <= SDATA; i++) {
 		if (size[i] & 1)
 			putc(0, sfp[i]);

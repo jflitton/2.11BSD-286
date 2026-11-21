@@ -79,8 +79,16 @@ python3 -I "$top/tests/harness/runtest.py" --until halting \
 #               and /boot is left to load /unix by itself
 #   disk:NAME   the same, but the kernel is the file /sys/unix and NAME
 #               is typed at /boot, after a name that is no file
+#
+# With NATIVE_BOOT=1 /boot and the boot blocks, and the diskette's boot
+# sector (tests/harness/runtest.py), are the ones the system's own
+# compiler, assembler and linker make (usr/src/sys/i286stand CCOM=1).
 make -s -C "$top/usr/src/sys/i286stand" > /dev/null
 stand=$top/obj/stand
+if [ -n "$NATIVE_BOOT" ]; then
+    make -s -C "$top/usr/src/sys/i286stand" CCOM=1 > /dev/null
+    stand=$top/obj/nstand
+fi
 cp "$stand/boot" boot
 # The boot block finds the blocks of a file past its fourth another way,
 # and that way runs only if /boot has more than four.

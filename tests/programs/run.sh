@@ -30,10 +30,17 @@ mkdir -p "$out"
 quiet() { grep -v '^cc \|^as \|^wlib \|^ar \|Warning!\|Note!\|^unix:' || true; }
 make -s -C "$top/usr/src/sys/PC" | quiet
 make -s -C "$top/usr/src/sys/i286stand" | quiet
+# With NATIVE_BOOT=1 /boot and the boot blocks are the ones the system's
+# own compiler, assembler and linker make (usr/src/sys/i286stand CCOM=1).
+stand=$top/obj/stand
+if [ -n "$NATIVE_BOOT" ]; then
+    make -s -C "$top/usr/src/sys/i286stand" CCOM=1 | quiet
+    stand=$top/obj/nstand
+fi
 make -s -C "$top/usr/src/lib/libc/i286" | quiet
 if [ -z "$ROOTFS" ]; then
     make -s -C "$top/usr/src/i286" all | quiet
-    make -s -C "$top/usr/src/i286" root | quiet
+    make -s -C "$top/usr/src/i286" root STAND=$stand | quiet
     ROOTFS=$top/obj/root/root.fs
 fi
 
@@ -68,7 +75,6 @@ cp "$top/usr/src/usr.bin/spell/stop" checks/d
 } > checks.proto
 python3 -I "$top/tools/mkfs.py" -s 800 checks.proto checks.fs >/dev/null
 
-stand=$top/obj/stand
 geometry=$(python3 -I "$top/tools/mkdisk.py" -p -g 977,5,17 \
     -b "$stand/hdboot.bin" -m "$stand/mbr.bin" programs.img a=root.fs b=swap:4000 d=checks.fs | tail -1)
 # A second disk, of 3.4 MB, the AT disk controller's second drive, for

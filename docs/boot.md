@@ -4,7 +4,10 @@ How the kernel gets into memory and into protected mode: from a
 diskette, or from the hard disk that has the root file system. Running
 under `tests/pm` and `tests/kernel`. The boot programs are in
 `sys/i286stand`; `make -C usr/src/sys/i286stand` puts them in
-`obj/stand`.
+`obj/stand`, made by NASM and the cross compiler, and with `CCOM=1` in
+`obj/nstand`, made by the system's own assembler, compiler and linker
+([the compiler](toolchain.md#the-assembler)): the boot sectors are the
+same to the byte, and `/boot` is another compiler's.
 
 ## From the boot program to the kernel
 
@@ -92,8 +95,8 @@ Memory while they run:
 | 0x10000 | the kernel's segments, one after another, each at a multiple of 512 bytes |
 
 `/boot` is a file of code and data exactly as they are in memory,
-linked as one segment. It must fit with what the file does not hold in
-56K; it takes 8K now. When the kernel starts it gives all memory from 4K
+linked as one segment (`wlink`'s "DOS .COM", or `ld -b`). It must fit
+with what the file does not hold in 56K; it takes 8K now. When the kernel starts it gives all memory from 4K
 to its own first segment to processes, so nothing of the boot programs
 is kept.
 

@@ -1204,9 +1204,12 @@ ROOTDISK= wd0
 STRIP=	yes
 # The kernel that is /unix: the cross compiler's, or with
 # KERNEL=$(TOP)/obj/nPC/unix the one the system's own tools made
-# (usr/src/sys/PC CCOM=1).  root.proto has it from kernel.proto, which
-# is written again only when it changes.
+# (usr/src/sys/PC CCOM=1); and /boot and the boot block in /mdec, the
+# cross build's, or with STAND=$(TOP)/obj/nstand those the system's own
+# tools made (usr/src/sys/i286stand CCOM=1).  root.proto has them from
+# kernel.proto, which is written again only when it changes.
 KERNEL=	$(TOP)/obj/PC/unix
+STAND=	$(TOP)/obj/stand
 
 # The system has its compiler, and so the headers and the libraries
 # that a program is compiled and linked with there.  The libraries are
@@ -1394,13 +1397,14 @@ $(R)/root.fs: root.proto $(wildcard etc/* root/* skel/*) adventure/Makefile \
 		$(ZO)/zone.proto $(R)/cc.proto $(SRC)/usr.bin/lorder.sh \
 		$(R)/learn.proto $(SRC)/usr.bin/calendar/calendar.sh \
 		$(SRC)/usr.bin/lint.sh $(SRC)/usr.bin/mkdep.sh \
-		$(R)/kernel.proto $(KERNEL) \
-		$(TOP)/obj/stand/boot $(TOP)/obj/stand/hdboot.bin
+		$(R)/kernel.proto $(KERNEL) $(STAND)/boot $(STAND)/hdboot.bin
 	python3 -I $(TOP)/tools/mkfs.py -s $(ROOTSIZE) root.proto $@
 
 $(R)/kernel.proto: FORCE
 	@mkdir -p $(R)
-	@echo "f /unix 644 $(KERNEL)" > $@.new
+	@{ echo "f /unix 644 $(KERNEL)"; echo "f /boot 644 $(STAND)/boot"; \
+	    echo "d /mdec 755"; \
+	    echo "f /mdec/wduboot 444 $(STAND)/hdboot.bin"; } > $@.new
 	@if cmp -s $@.new $@; then rm $@.new; else mv $@.new $@; fi
 
 clean:

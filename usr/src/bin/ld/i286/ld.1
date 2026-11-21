@@ -71,6 +71,19 @@ Except for
 .BR \-l ,
 they may appear anywhere among the file names.
 .TP
+.B \-b
+Make an image, as a program that is started where it is loaded by
+something other than
+.IR execve (2)
+is, such as
+.IR /boot :
+its text, its data and then its bss and common storage in one segment
+of the small model, and in the file the bytes of the text and the data
+and nothing else.
+Its addresses are counted from its first byte, where it is started,
+which must be its entry point if it has one; and nothing in it may be
+a selector.
+.TP
 .B \-e
 The following argument is taken to be the
 name of the entry point of the loaded
@@ -112,7 +125,7 @@ is significant.
 .B \-M
 produce a primitive load map: each global symbol with its segment
 and its address, each segment with its size, and where each named
-segment is.
+segment is; or, of an image, how big it is in memory and in the file.
 .TP
 .B \-ml
 Make a program of the large model.

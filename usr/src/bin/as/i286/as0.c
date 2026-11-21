@@ -8,6 +8,8 @@ int	pass;
 int	nerr;
 unsigned stmt;			/* lines read in this pass, of any file */
 int	model;			/* -ms, -mm or -ml: for the object's header */
+int	flat;			/* -b: an image, and no object */
+unsigned origin;		/*	where it is to be (org) */
 char	*outfile = "a.out";
 char	line[LINESZ];
 char	*lp;			/* where in the line */
@@ -134,6 +136,10 @@ char **argv;
 			incdir[nincdir++] = p;
 			break;
 
+		case 'b':
+			flat = 1;
+			break;
+
 		case 'm':
 			if (p[2] == 's')
 				model = 1;
@@ -176,7 +182,7 @@ char **argv;
 usage()
 {
 	fprintf(stderr,
-	    "usage: as [-o object] [-Dname[=text]] [-Idir] [-ms|-mm|-ml] file.s\n");
+	    "usage: as [-o object] [-b] [-Dname[=text]] [-Idir] [-ms|-mm|-ml] file.s\n");
 	exit(1);
 }
 
@@ -1084,6 +1090,7 @@ statement()
 	register struct insn *ip;
 	register struct sym *sp;
 	struct expr e;
+	struct jump *jp;
 	char *p;
 	long n;
 	int c;
@@ -1139,10 +1146,23 @@ statement()
 	}
 	if (ip) {
 		if (ip->i_class == C_TIMES) {
+			here = loc[sect];
+			usedhere = 0;
 			expr(&e);
 			if (e.e_sect != SABS || e.e_fwd || e.e_val < 0) {
 				error("times what?", "");
 				return;
+			}
+			/* times 510-($-$$): what the jumps before it add, it
+			   is less by (relax) */
+			if (usedhere && sect == STEXT) {
+				if (pass == 1) {
+					jp = newjump();
+					jp->j_kind = J_FILL;
+					if (nexsym == 1)
+						jp->j_sym = exsym;
+				} else
+					nextjump();
 			}
 			skipb();
 			getname(low);

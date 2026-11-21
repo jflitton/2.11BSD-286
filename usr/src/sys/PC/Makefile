@@ -167,8 +167,13 @@ $(O)/unix: $(addprefix $(O)/,$(OBJS))
 	    --map unix.map unix.ne unix
 endif
 
+ifdef CCOM
+$(O)/fdboot.bin: $(SYS)/i286stand/fdboot.s $(HOST)/as
+	$(HOST)/as -b -o $@ $<
+else
 $(O)/fdboot.bin: $(SYS)/i286stand/fdboot.s
 	nasm -f bin -o $@ $<
+endif
 
 $(O)/unix.img: $(O)/unix $(O)/fdboot.bin
 	python3 -I $(TOP)/tools/mkfd.py $(O)/fdboot.bin $(O)/unix $@

@@ -456,6 +456,15 @@ far2:	jmp	back
 	jmp	$
 table:	dw	back, fwd, far2
 	dw	far2.loc
+; far to a segment that is a number, as a boot block does; and a times
+; that fills to a place, after a jump that is made long
+	jmp	0:back
+	jmp	0x40:0x7C00
+	call	0x1000:fwd
+	call	0:0
+pad:	jne	back
+	times	16-($-pad) db 0x90
+	jmp	pad
 
 ; the protected mode's
 	lgdt	[bx]
@@ -604,7 +613,7 @@ _var:	dw	1, 2
 	dw	_var, _var+2, _buf, _buf+4, _ext, _ext+6, _start, after
 	dw	_start, seg _start
 	dw	_far, seg _far
-	dw	here-_var, $-_var
+	dw	here-_var, $-_var, $-$$
 here:	dd	0, 1, 0x12345678, -1
 	times 7 db 0
 	times 3 dw 0x55AA

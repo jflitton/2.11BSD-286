@@ -1,8 +1,9 @@
 # The root file system of the system for the 286: tools/mkfs.py makes it
 # (`make -C usr/src/i286 root`).  Files are named relative to this
 # directory: the programs from obj/root/bin, where the Makefile puts each
-# of obj/bin's without its symbols, the kernel and /boot as their own
-# Makefiles make them, /etc from ../etc (upstream's) or etc
+# of obj/bin's without its symbols, the kernel, /boot and /mdec's boot
+# block as their own Makefiles make them (kernel.proto, which the
+# Makefile writes), /etc from ../etc (upstream's) or etc
 # (this port's own), root's files from ../etc/root (upstream's) or root
 # (this port's own), a new user's from skel (this port's own), and what
 # the Makefile makes in obj/root.
@@ -39,9 +40,6 @@ d /mnt 755
 d /home 755
 d /usr/skel 755
 i ../../../obj/root/kernel.proto
-f /boot 644 ../../../obj/stand/boot
-d /mdec 755
-f /mdec/wduboot 444 ../../../obj/stand/hdboot.bin
 h /mdec/sduboot /mdec/wduboot
 f /etc/init 700 ../../../obj/root/bin/init
 f /etc/rc 644 etc/rc

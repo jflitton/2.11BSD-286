@@ -56,9 +56,16 @@ if [ -n "$NATIVE_KERNEL" ]; then
     kernel=KERNEL=$top/obj/nPC/unix
 fi
 make -s -C "$top/usr/src/sys/i286stand" | quiet
+# With NATIVE_BOOT=1 /boot and the boot blocks are the ones the system's
+# own compiler, assembler and linker make (usr/src/sys/i286stand CCOM=1).
+stand=$top/obj/stand
+if [ -n "$NATIVE_BOOT" ]; then
+    make -s -C "$top/usr/src/sys/i286stand" CCOM=1 | quiet
+    stand=$top/obj/nstand
+fi
 make -s -C "$top/usr/src/lib/libc/i286" | quiet
 make -s -C "$top/usr/src/i286" all | quiet
-make -s -C "$top/usr/src/i286" root $kernel | quiet
+make -s -C "$top/usr/src/i286" root $kernel STAND=$stand | quiet
 
 # The root file system as a power cut leaves one: its superblock not
 # marked clean (MNT_CLEAN in fs_flags, usr/src/sys/h/fs.h).
@@ -89,7 +96,6 @@ python3 -I "$top/tools/mkfs.py" -s 400 gram.proto gram.fs >/dev/null
 # An IDE disk shared by a partition table, as tests/kernel's first, with
 # that in partition a, a swap area in b, room for a file system in d,
 # for one in e that the kernel is too big a file for, and that one in f.
-stand=$top/obj/stand
 geometry=$(python3 -I "$top/tools/mkdisk.py" -p -g 977,5,17 \
     -b "$stand/hdboot.bin" -m "$stand/mbr.bin" system.img a=root.fs b=swap:4000 d=fs:4000 e=fs:200 f=gram.fs | tail -1)
 

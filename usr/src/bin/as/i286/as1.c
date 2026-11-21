@@ -9,6 +9,7 @@ int	nop;
 unsigned here;			/* where the line began: $ */
 struct	sym *exsym;		/* the symbol in the last value read, */
 int	nexsym;			/*	if this is 1 */
+int	usedhere;		/* a value used $ */
 
 /*
  * Numbers: decimal, 0x and hexadecimal, or hexadecimal and then h.
@@ -131,10 +132,15 @@ register struct expr *e;
 			lp++;
 		else
 			error("a character has no quote after it", "");
+	} else if (c == '$' && lp[1] == '$' && !idchar(lp[2])) {
+		/* $$: where the segment begins */
+		lp += 2;
+		e->e_sect = sect;
 	} else if (c == '$' && !idchar(lp[1])) {
 		lp++;
 		e->e_sect = sect;
 		e->e_val = here;
+		usedhere = 1;
 	} else if (idstart(c)) {
 		getname(name);
 		lower(low, name);
@@ -505,6 +511,16 @@ register struct opnd *o;
 	}
 	o->o_kind = K_IMM;
 	binary(&o->o_e, 0);
+	skipb();
+	if (*lp == ':') {
+		/* jmp 0:go, for a far jump or call */
+		lp++;
+		if (!isnum(&o->o_e) || o->o_e.e_fwd)
+			error("the segment of a far address is a number", "");
+		o->o_kind = K_FAR;
+		o->o_segv = (unsigned)o->o_e.e_val;
+		binary(&o->o_e, 0);
+	}
 }
 
 /*
@@ -680,13 +696,17 @@ nextjump()
  * Between the passes: every jump was taken to be a short one.  Make
  * those that do not reach long ones, which moves what is after them
  * and may put others out of reach, until none is.  A label has in
- * s_index, which is not yet in use, how far it has moved.
+ * s_index, which is not yet in use, how far it has moved.  A times
+ * reckoned from $ is taken to fill to a place, as times 510-($-$$)
+ * does, or times 32-($-label): what is after it has moved as far as
+ * $$ has, which is not at all, or the label.
  */
 relax()
 {
 	register struct jblk *bp;
 	register struct jump *jp;
 	register struct sym *sp;
+	struct sym *sp2;
 	int i, n, grow, pad, changed;
 	long d;
 
@@ -707,6 +727,11 @@ relax()
 					grow += (pad - (jp->j_loc + grow) %
 					    pad) % pad - (pad - jp->j_loc %
 					    pad) % pad;
+				} else if (jp->j_kind == J_FILL) {
+					sp2 = jp->j_sym;
+					grow = sp2 && sp2->s_sect == STEXT &&
+					    sp2->s_stmt && sp2->s_stmt <=
+					    jp->j_stmt ? sp2->s_index : 0;
 				} else if (jp->j_long == 1)
 					grow += jp->j_kind == J_COND ? 3 : 1;
 			}
@@ -716,7 +741,7 @@ relax()
 		for (bp = jblk0; bp; bp = bp->jb_next) {
 			n = bp == jblkn ? njump : JBLK;
 			for (jp = bp->jb_j, i = 0; i < n; i++, jp++) {
-				if (jp->j_kind == J_ALIGN || jp->j_long)
+				if (jp->j_kind > J_COND || jp->j_long)
 					continue;
 				sp = jp->j_sym;
 				if (sp && sp->s_stmt && sp->s_sect == STEXT) {

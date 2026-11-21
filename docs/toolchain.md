@@ -15,7 +15,8 @@ The system itself is still built with the cross compiler, Open Watcom
 ([building](development.md)). The same tools, compiled for the machine
 the system is built on, make it too: the programs (`tools/cc -ccom`),
 and `tests/ccom/programs.sh` boots a system that is all their work;
-and the kernel ([below](#the-kernel)). And the system makes them of
+the kernel ([below](#the-kernel)); and the programs that load it
+([booting](boot.md)). And the system makes them of
 their sources itself ([below](#the-system-makes-its-own-compiler)).
 
 ## What runs what
@@ -180,7 +181,7 @@ how the assembler is tested: `tests/as` gives both the same files and
 compares what they make.
 
 ```
-as [-o object] [-Dname[=text]] [-Idir] [-ms|-mm|-ml] file.s
+as [-o object] [-b] [-Dname[=text]] [-Idir] [-ms|-mm|-ml] file.s
 ```
 
 What it has:
@@ -192,7 +193,9 @@ What it has:
 - `db`, `dw`, `dd`, `resb`, `resw`, `resd`, `times`, `align`,
   `alignb`, `equ`, `global`, `extern` (with NASM's `:wrt GROUP`, which
   means nothing here), `common`, `segment`, `group`.
-- Labels local to the last label without a dot (`.loop`), and `$`.
+- Labels local to the last label without a dot (`.loop`), `$` and
+  `$$`, and a far jump or call to a segment that is a number,
+  `jmp 0:go`.
 - Values with `+ - * / % << >> & ^ |`, and compared with `= == != <>
   < <= > >=`, `&&`, `||` and `!`.
 - `%include`; `%define`, with arguments in brackets or without, and
@@ -220,6 +223,15 @@ round a jump, which the 286 needs. The compiler leaves that to the
 assembler, as the PDP-11's does. It is worked out between the two
 passes, starting from every jump short and lengthening those that do
 not reach until none is left, so the code is as short as it can be.
+
+With `-b` it writes an image, the bytes and nothing else, as NASM's
+`-f bin` does: a boot block. Its addresses are those of where it is to
+be, which `org` says, and it is all text, with nothing from another
+file and no selector. A `times` whose count is reckoned from `$`, as
+`times 510-($-$$) db 0` is, is taken to fill to a place, which stays
+where it is when the jumps before it are made long. The boot blocks
+are each one file, and so `as` makes them, as NASM did; `/boot`, which
+is linked, `ld -b` makes ([below](#the-linker)).
 
 A name that is not defined in the file must be declared `extern`, which
 the compiler does. Labels the compiler made (`L12`) and local ones are
@@ -275,7 +287,7 @@ upstream has them.
 ## The linker
 
 ```
-ld [-o out] [-ms|-mm|-ml] [-s] [-x] [-stack n] [-packcode n] [-gdt n]
+ld [-o out] [-ms|-mm|-ml] [-b] [-s] [-x] [-stack n] [-packcode n] [-gdt n]
    [-e sym] [-u sym] [-L dir] [-M] [-t] file ... -lx ...
 ```
 
@@ -310,6 +322,14 @@ stack the header asks for (8192 without). The entry point is the symbol
 `..start`, which the start-up code defines, or `-e`. `_etext`, `_edata`
 and `_end` are defined if something asks for them.
 
+With `-b` the program is an image, as `/boot` is: its text, its data
+and then its bss and common storage in one segment of the small model,
+and in the file the bytes of the text and the data and nothing else,
+as the cross linker's "DOS .COM" has it. Its addresses are counted from
+its first byte, which is its entry point, with CS, DS and SS all the
+one segment; nothing in it may be a selector. It is the PDP-11's
+program whose text and data are not apart, without the header.
+
 The PDP-11's `-i`, `-n` and `-z` are taken and ignored; its overlays
 (`-Z`, `-L`, `-Y`) and `-r` are not there.
 
@@ -326,6 +346,7 @@ The same sources are compiled for the machine the system is built on
 | `tools/ar.py` | makes a library with its table of contents, as `ar` and `ranlib` do on the system |
 | `make -C usr/src/lib/libc/i286 CCOM=1` | the C library that way, in `obj/nlib` |
 | `make -C usr/src/i286 CCOM=1` | every program that way, in `obj/nbin` |
+| `make -C usr/src/sys/i286stand CCOM=1` | the boot blocks by `as -b` and `/boot` by `tools/ncc` and `ld -b`, in `obj/nstand` |
 
 The libraries on the root file system are those of `obj/nlib` whichever
 compiler made the programs, since the cross compiler's objects are of

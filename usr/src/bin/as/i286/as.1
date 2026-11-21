@@ -8,6 +8,8 @@ as \- assembler for the 80286
 .B \-o
 objfile
 ] [
+.B \-b
+] [
 .BI \-D name\c
 [\c
 .BI = text\c
@@ -40,6 +42,16 @@ for the name of the object.
 If this is omitted,
 .I a.out
 is used.
+.TP
+.B \-\^b
+Write the bytes that the file assembles to and nothing else, as
+NASM's
+.B "\-f bin"
+does: an image, such as a boot block.
+Its addresses are those of where it is to be, which
+.B org
+says, and it is all text: it can have no other segment, nothing from
+another file and no selector.
 .TP
 .BI \-\^D name
 Define
@@ -127,8 +139,16 @@ or a character in quotes; and numbers are reckoned with
 .B "<< >>"
 and parentheses.
 .B $
-is the address of the line it is on.
+is the address of the line it is on, and
+.B $$
+that of the start of its segment.
 .PP
+A far jump or call is to an address, whose segment's selector
+.I ld
+fills in, or to
+.IB seg : offset\c
+, where the segment is a number:
+.BR "jmp 0:start" .
 A jump is assembled short if it reaches.
 A jump that does not is made long:
 .B jmp
@@ -156,6 +176,18 @@ of them.
 The instruction or directive that follows,
 .I n
 times.
+A count that is reckoned from
+.BR $ ,
+as in
+.BR "times 510\-($\-$$) db 0" ,
+is taken to fill to a place, which stays where it is when the jumps
+before it are made long.
+.TP
+.BR org " n"
+With
+.BR \-b ,
+the address of the image's first byte, where it is to be: 0 if none
+is given.
 .TP
 .BR align " n"
 Advance to a multiple of
@@ -320,3 +352,8 @@ it and others were made short together;
 .I as
 makes them short, and its object is then a few bytes smaller than
 NASM's.
+.PP
+An address is never written in a byte, even in an image, whose
+addresses NASM knows as numbers and writes in a byte where they fit:
+the two differ where an address is under 128, or in the last 128
+bytes of the 64K.

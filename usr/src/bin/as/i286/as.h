@@ -4,7 +4,8 @@
  * It reads what the C compiler's second pass writes (lib/ccom/i286)
  * and what the C library's own assembly is written in: the syntax of
  * NASM, as much of it as those use, so that either assembler does for
- * them.  It writes an object file (a.out.h).
+ * them.  It writes an object file (a.out.h), or with -b the bytes and
+ * nothing else, as NASM's -f bin does: a boot block.
  *
  * There are two passes over the source.  The first finds how long
  * everything is, taking each jump to be a short one, and remembers the
@@ -77,6 +78,7 @@ struct opnd {
 	char	o_dist;		/* far, near or short, as written */
 	char	o_rm;		/* K_MEM: its r/m, or -1 with no register */
 	char	o_over;		/* K_MEM: a segment's prefix, or 0 */
+	unsigned o_segv;	/* K_FAR: the segment */
 	struct	expr o_e;	/* the displacement, or the value */
 };
 
@@ -87,6 +89,7 @@ struct opnd {
 #define	K_MEM	4
 #define	K_IMM	5
 #define	K_ST	6		/* st0 ... st7 */
+#define	K_FAR	7		/* SEG:OFF, the segment a number */
 
 #define	D_FAR	1
 #define	D_NEAR	2
@@ -150,10 +153,12 @@ struct insn {
 #define	D_SEGMENT 7
 #define	D_IGNORE 8		/* bits, cpu */
 #define	D_GROUP	9		/* its name: the selector of the data */
+#define	D_ORG	10		/* where an image is to be (-b) */
 
 /*
  * A jump whose length is not known until all of them are.  An `align'
- * in the text is here too, since what it puts in changes as they do.
+ * in the text is here too, since what it puts in changes as they do,
+ * and a `times' whose count is reckoned from $, which fills to a place.
  */
 struct jump {
 	unsigned j_loc;		/* where it is, all before it short */
@@ -168,6 +173,7 @@ struct jump {
 #define	J_JMP	0		/* 2 bytes, or 3 */
 #define	J_COND	1		/* 2 bytes, or 5: a jump round a jump */
 #define	J_ALIGN	2		/* j_off is the boundary */
+#define	J_FILL	3
 
 #define	JBLK	128
 struct jblk {
@@ -196,6 +202,9 @@ extern	struct	opnd op[3];
 extern	int	nop;
 extern	unsigned here;
 extern	int	model;
+extern	int	flat;
+extern	unsigned origin;
+extern	int	usedhere;
 
 #define	P_ADD	8		/* how tightly + and - bind (binary) */
 

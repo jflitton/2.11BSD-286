@@ -106,6 +106,8 @@ make -C usr/src/sys/PC              # the kernel, obj/PC/unix
 make -C usr/src/sys/PC CCOM=1       # the same by the system's own
                                     # tools, obj/nPC/unix
 make -C usr/src/sys/i286stand       # the boot sectors and /boot, obj/stand
+make -C usr/src/sys/i286stand CCOM=1  # the same by the system's own
+                                    # tools, obj/nstand
 make -C usr/src/lib/libc/i286       # the C library, obj/lib
 make -C usr/src/i286 all root       # the programs, obj/bin, and the root
                                     # file system, obj/root/root.fs
@@ -118,7 +120,8 @@ The last makes a bootable image of a 40 MB IDE disk with the root and
 `make root ROOTSIZE=` makes it larger, and `ROOTDISK=sd0` makes it for a
 SCSI disk, whose image `mkdisk.py -t scsi` makes; `make root
 KERNEL=$PWD/obj/nPC/unix` makes it with the kernel the system's own
-tools made ([the compiler](toolchain.md#the-kernel)). [Booting](boot.md) and
+tools made ([the compiler](toolchain.md#the-kernel)), and
+`STAND=$PWD/obj/nstand` with their `/boot` and boot block. [Booting](boot.md) and
 [disks](disks.md) say more, and [the root file
 system](userland.md#the-root-file-system) what is in it.
 
@@ -216,7 +219,10 @@ tests/crt/run.sh        # the compiler's helper routines: 5,161 checks
 tests/pm/run.sh         # the kernel's start-up and trap entry: 54 checks
 tests/user/run.sh       # a process in ring 3: 58 checks
 tests/kernel/run.sh     # the kernel, with a test program as init, booted
-                        # six times: 82 checks, then 98 on each of five disks
+                        # six times: 82 checks, then 98 on each of five
+                        # disks; with NATIVE_BOOT=1, by the boot
+                        # programs the system's own tools made, as
+                        # tests/system and tests/programs can be too
 tests/libc/run.sh       # the C library, with a test program as init: 74
                         # checks in the small model, 74 in the medium
                         # and 84 in the large; with CCOM=1, the same
@@ -239,9 +245,10 @@ tests/ccom/self.sh      # the system making its compiler: cc, cpp, the
 tests/ccom/programs.sh  # the same compiler, assembler and linker on
                         # the system's programs: tests/programs, with
                         # all of them made that way
-tests/as/run.sh         # the system's assembler against NASM: 451
+tests/as/run.sh         # the system's assembler against NASM: 455
                         # files that both are to make the same of, the
-                        # kernel's assembly among them (no emulator)
+                        # kernel's assembly and the boot blocks among
+                        # them (no emulator)
 tests/preflight/run.sh  # tools/preflight.py, on two files with one of each
                         # thing it looks for (no emulator)
 tests/bench/run.sh      # how fast the system is: its benchmark, each
@@ -324,7 +331,9 @@ tests/ve/run.sh         # the editor ve, built for that machine too: 115
   and the system call stubs for each model, and what the compiler
   writes in each for
   the programs of `tests/ccom`. `tests/as/objcmp.py` reads NASM's
-  object and the assembler's and says where they differ.
+  object and the assembler's and says where they differ. The boot
+  blocks each makes an image of (`nasm -f bin`, `as -b`), which are to
+  be the same to the byte.
 - `tests/pm` is a medium-model program that takes the place of the
   kernel's `main` and `trap`, linked with the kernel's own start-up
   (`usr/src/sys/i286`). It checks the descriptor tables, far calls between

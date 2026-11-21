@@ -189,6 +189,7 @@ struct insn insns[] = {
 	"nop",		C_NONE,		0,	0x90,
 	"not",		C_UN,		0,	2,
 	"or",		C_ALU,		0,	1,
+	"org",		C_DIR,		0,	D_ORG,
 	"out",		C_OUT,		0,	0xE6,
 	"outsb",	C_NONE,		0,	0x6E,
 	"outsw",	C_NONE,		0,	0x6F,
@@ -728,10 +729,11 @@ register struct insn *ip;
 		} else if (a->o_kind == K_REG) {
 			ob(0xFF);
 			ob(0320 | a->o_reg);
-		} else if (a->o_kind != K_IMM)
+		} else if (a->o_kind == K_FAR || a->o_kind == K_IMM &&
+		    a->o_dist == D_FAR)
+			farptr(0x9A, a);
+		else if (a->o_kind != K_IMM)
 			break;
-		else if (a->o_dist == D_FAR)
-			farptr(0x9A, &a->o_e);
 		else {
 			ob(0xE8);
 			orel(&a->o_e);
@@ -850,8 +852,9 @@ register struct insn *ip;
 			ob(0340 | o->o_reg);
 			return;
 		}
-		if (o->o_kind == K_IMM && o->o_dist == D_FAR) {
-			farptr(0xEA, &o->o_e);
+		if (o->o_kind == K_FAR || o->o_kind == K_IMM &&
+		    o->o_dist == D_FAR) {
+			farptr(0xEA, o);
 			return;
 		}
 	}
@@ -925,12 +928,23 @@ struct expr *e;
 }
 
 /*
- * A far jump or call: the offset, and then the segment.
+ * A far jump or call: the offset, and then the segment, which is the
+ * address's own or, with SEG:OFF, SEG.
  */
-farptr(opc, e)
-register struct expr *e;
+farptr(opc, o)
+struct opnd *o;
 {
+	register struct expr *e;
+
+	e = &o->o_e;
 	ob(opc);
+	if (o->o_kind == K_FAR) {
+		if (e->e_seg)
+			error("far to what is no offset", "");
+		oword(e);
+		ow(o->o_segv);
+		return;
+	}
 	if (e->e_sect == SABS || e->e_seg)
 		error("far to what has no segment", "");
 	oword(e);
@@ -1252,6 +1266,21 @@ register struct insn *ip;
 		while (!eol())
 			lp++;
 		return;
+
+	case D_ORG:
+		/* the address of the image's first byte, wherever it is
+		   said */
+		expr(&e);
+		if (!flat)
+			error("org is for an image (-b)", "");
+		else if (!isnum(&e) || e.e_fwd || e.e_val < 0 ||
+		    e.e_val > 0177777L)
+			error("org of what?", "");
+		else if (pass == 1 && origin && origin != (unsigned)e.e_val)
+			error("org twice", "");
+		else
+			origin = (unsigned)e.e_val;
+		return;
 	}
 }
 
@@ -1398,6 +1427,8 @@ segment()
 		if (s == 0)
 			s = SDATA;
 	}
+	if (flat && s != STEXT)
+		error("an image is all text: segment %s", name);
 	if (s == SNAMED) {
 		if (nsect >= NSECT)
 			fatal("too many named segments", "");
