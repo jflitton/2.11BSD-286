@@ -87,6 +87,9 @@ tests/bench/run.sh                      # everything
 tests/bench/run.sh pipe pty             # those tests
 MS=1 tests/bench/run.sh tcp             # with a sample every millisecond
 BASE=before.txt tests/bench/run.sh      # compared with an earlier run
+NATIVE_KERNEL=1 tests/bench/run.sh      # the system's own compiler's kernel
+NATIVE_KERNEL=1 NATIVE_PROGRAMS=1 tests/bench/run.sh
+                                        # and its programs and libraries
 ```
 
 It builds the system, boots it in the emulator to multi-user, logs in
@@ -102,8 +105,16 @@ as root on the serial port and runs `bench -m`. The harness
 - `--profile KERNEL[:MS]` takes a sample of where the processor is
   every MS milliseconds on average (below).
 
-What comes out, in `obj/tests/bench`: `results.txt`, the table, which
-is also printed; `kprof.txt`, where each test's time went; and
+The system is the cross compiler's unless it is said otherwise.
+`NATIVE_KERNEL=1` boots the kernel that the system's own compiler,
+assembler and linker make (`obj/nPC/unix`), and `NATIVE_PROGRAMS=1` a
+root of the programs and libraries they make (`obj/nbin`, `obj/nlib`),
+as `tests/system` and `tests/ccom/programs.sh` have them; the profile
+is read with that kernel and those programs.
+
+What comes out, in `obj/tests/bench`, or `bench-nk`, `bench-np` or
+`bench-nk-np` for the other cases: `results.txt`, the table, which is
+also printed; `kprof.txt`, where each test's time went; and
 `profile.txt` and `marks.txt`, the samples and the times of the marks,
 from which `tools/kprof.py` can make other reports.
 
@@ -160,7 +171,10 @@ Its limits:
   copies between any two places in memory, share a loop; those now have
   symbols (`vec0`, `allsys`, `alltraps`, `allintr`, `raise`, `lower`,
   `runpend`, `copy`, `str`, `window`), so `copy` in a report is that
-  loop. `bench`'s functions are not static for the same reason.
+  loop. `bench`'s functions are not static for the same reason. What
+  the system's own tools make has the static names in its table as
+  well, and the assembly's labels but those after a dot, so a profile
+  of their kernel or programs names more places.
 - A request to the emulator takes over a millisecond of the host's
   time, and a sample is three. At 5 ms between samples a run goes at
   about the speed of the real machine, and at 1 ms four times slower.
@@ -578,6 +592,64 @@ command was 312 ms for 343. Running a program, 36.0 ms for 34.5, and
 the pipe, 520 K/s for 541, showed there what is in the paragraph
 above, and with `breada` asking first they are 34.8 ms and 548 K/s,
 the files as they were at 357 and 455.
+
+## The system's own compiler
+
+The kernel and the programs as the system's own compiler makes them
+([the compiler](toolchain.md)), against the cross compiler's, with the
+emulator's wait state: the cross compiler's kernel and programs, its
+kernel with the system's compiler's programs (`NATIVE_KERNEL=1`), and
+the system's compiler's of both (`NATIVE_PROGRAMS=1` too). Beside each
+figure is its time against the first, above 1 for slower:
+
+```
+test          cross        own kernel        and programs
+sieve      124175 us     125000   1.01     132075   1.06
+long          100 us        100   1.00        101   1.01
+getpid        174 us        184   1.06        185   1.06
+write         388 us        416   1.07        418   1.08
+stat         1325 us       1400   1.06       1408   1.06
+pipe         3600 us       4166   1.16       4200   1.17
+pipeio        643 K/s       566   1.14        563   1.14
+fork        12890 us      14613   1.13      14556   1.13
+exec        32160 us      35330   1.10      35500   1.10
+shell      321700 us     330000   1.03     355000   1.10
+creat       26330 us      25830   0.98      25840   0.98
+fswrite       315 K/s       283   1.11        284   1.11
+fsread        353 K/s       298   1.18        299   1.18
+pty            43 K/s        40   1.08         36   1.19
+tcp           219 K/s       191   1.15        194   1.13
+tcprr        7200 us       8600   1.19       8566   1.19
+telkey      13464 us      15573   1.16      15806   1.17
+telcmd     183750 us     199600   1.09     207900   1.13
+```
+
+Where the kernel's extra time went, by the profile, each function's
+time against the cross compiler's kernel's (with the system's
+compiler's static functions counted to the function before them, as
+the cross compiler's tables have it):
+
+- **The spl routines**, which were calls (`raise`, `lower`, `splx`,
+  `splbio`): 646 ms of `telkey`'s 1351 more, 315 of `tcprr`'s 709, 271
+  of `pipeio`'s 436, 232 of `fswrite`'s 382, 184 of `pipe`'s 274.
+- **The byte swaps**, `ntohs` and `ntohl`, calls too: 152 ms more in
+  `telkey`, 63 in `tcprr`.
+- **`setldt`**, which makes a process's descriptor for one of its 32
+  slots and is called for each of them in `fork` and `exec`: 168 ms more
+  in `fork`, 251 in `exec`. It worked out where the slot is in the two
+  tables twice, with a division each time, where the cross compiler
+  does it once.
+- The rest is thin: a few clocks in each function on the way, for the
+  frame every function has, the far return of a static function, and
+  the one register, BX, that the compiler reaches memory through.
+
+`tests/system` boots the system and does what it does there in 484
+seconds of the emulator's time with the cross compiler's kernel, and in
+504 with the system's compiler's: 4% more, which was over its limit of
+500. Two fifths of the difference is `yacc` and `lex` making awk's
+parser and scanner, 133 seconds against 141, `yacc` spending 40% of
+its time in the kernel, reading and writing its files; the rest is a
+second here and there.
 
 ## What is left
 

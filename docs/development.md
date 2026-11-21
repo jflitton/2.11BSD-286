@@ -247,7 +247,9 @@ tests/preflight/run.sh  # tools/preflight.py, on two files with one of each
 tests/bench/run.sh      # how fast the system is: its benchmark, each
                         # of 18 tests timed by the system's clock and by
                         # the emulator's, and a profile of each; fails
-                        # only if the measuring does
+                        # only if the measuring does; with
+                        # NATIVE_KERNEL=1 and NATIVE_PROGRAMS=1, of the
+                        # system's own compiler's kernel and programs
 tests/network/run.sh    # the network's programs, on the system booted to
                         # multi-user with an emulated NE2000: 34 checks,
                         # of ftp, rsh, rcp, tftp, finger, tcpd, nc, the

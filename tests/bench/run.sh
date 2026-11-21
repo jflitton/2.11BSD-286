@@ -16,8 +16,18 @@
 # how many milliseconds of emulated time lie between samples on average,
 # 5 if not set: 1 gives five times the samples and takes the host about
 # four times as long.  BASE is the results.txt of an earlier run to
-# compare with: copy obj/tests/bench/results.txt somewhere before a
-# change, and give it here after.
+# compare with: copy the results.txt somewhere before a change, and give
+# it here after.
+#
+# The system is the cross compiler's unless it is said otherwise:
+# NATIVE_KERNEL=1 boots the kernel the system's own compiler, assembler
+# and linker make (usr/src/sys/PC CCOM=1), as tests/system has it, and
+# NATIVE_PROGRAMS=1 a root of the programs those make, with the C
+# library and the others as they make them (usr/src/i286 CCOM=1, in
+# obj/nbin), as tests/ccom/programs.sh has it.  The profile is read with
+# the kernel and the programs that ran.  Each case has a directory of its
+# own, so that one may be compared with another: obj/tests/bench, with
+# -nk after it for the native kernel and -np for the native programs.
 #
 # Run from the top of the repository after `. tools/env.sh`.
 set -e
@@ -26,16 +36,37 @@ if [ "$EMU" = qemu ]; then
     exit 2
 fi
 top=$(cd "$(dirname "$0")/../.." && pwd)
-out=$top/obj/tests/bench
-mkdir -p "$out"
 
 quiet() { grep -v '^cc \|^as \|^wlib \|^ar \|Warning!\|Note!\|^unix:' || true; }
+name=bench
 make -s -C "$top/usr/src/sys/PC" | quiet
+kernel=$top/obj/PC/unix
+if [ -n "$NATIVE_KERNEL" ]; then
+    make -s -C "$top/usr/src/sys/PC" CCOM=1 | quiet
+    kernel=$top/obj/nPC/unix
+    name=$name-nk
+fi
 make -s -C "$top/usr/src/sys/i286stand" | quiet
 make -s -C "$top/usr/src/lib/libc/i286" | quiet
-make -s -C "$top/usr/src/i286" all | quiet
-make -s -C "$top/usr/src/i286" root | quiet
+bin=$top/obj/bin
+if [ -n "$NATIVE_PROGRAMS" ]; then
+    make -s -C "$top/usr/src/lib/libc/i286" CCOM=1 | quiet
+    make -s -C "$top/usr/src/i286" CCOM=1 all | quiet
+    bin=$top/obj/nbin
+    name=$name-np
+else
+    make -s -C "$top/usr/src/i286" all | quiet
+fi
+make -s -C "$top/usr/src/i286" O="$bin" root KERNEL="$kernel" | quiet
+for f in "$kernel" "$bin/bench"; do
+    if [ ! -f "$f" ]; then
+        echo "bench: no $f" >&2
+        exit 1
+    fi
+done
 
+out=$top/obj/tests/$name
+mkdir -p "$out"
 cd "$out"
 cp "$top/obj/root/root.fs" root.fs
 stand=$top/obj/stand
@@ -49,7 +80,7 @@ geometry=$(python3 -I "$top/tools/mkdisk.py" -p -g 977,5,17 \
 rm -f marks.txt profile.txt results.txt kprof.txt
 TIMEOUT=${TIMEOUT:-900} python3 -I "$top/tests/harness/runtest.py" \
     --hd bench.img,$geometry,xtide --until halting \
-    --mark '@@' --profile "$top/obj/PC/unix:${MS:-5}" \
+    --mark '@@' --profile "$kernel:${MS:-5}" \
     --type "login: " "root" \
     --type "# " "bench -m $*; echo \"ben\"\"ch-\$?\"" \
     --type "bench-" 'bench -s 2 stat getpid; echo "sca""le-$?"' \
@@ -58,7 +89,7 @@ TIMEOUT=${TIMEOUT:-900} python3 -I "$top/tests/harness/runtest.py" \
     --type "sysctl-" 'top -s 1' \
     --type "COMMAND" 'q' \
     --type "# " 'echo "@ex""it 00"; shutdown -h now going down' \
-    --boot bench > run.out 2>&1 || { cat run.out; exit 1; }
+    --boot $name > run.out 2>&1 || { cat run.out; exit 1; }
 
 serial=$out/serial.txt
 for want in "^bench-0" "^scale-0" "^tracebuf-0" "^sysctl-0" \
@@ -79,7 +110,7 @@ python3 -I "$top/tests/bench/report.py" ${BASE:+-b "$BASE"} "$out" "$@"
 
 # The profile: every part must have its samples, and the two tests whose
 # time can be in one place only must have it there.
-python3 -I "$top/tools/kprof.py" -m marks.txt "$top/obj/PC/unix" profile.txt > kprof.txt
+python3 -I "$top/tools/kprof.py" -b "$bin" -m marks.txt "$kernel" profile.txt > kprof.txt
 for t in ${*:-sieve getpid}; do
     case $t in
     sieve)  want="bench: sieve" ;;
