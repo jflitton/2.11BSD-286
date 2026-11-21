@@ -1,7 +1,9 @@
 # The root file system the compiler's test boots: tools/mkfs.py makes it.
 # /etc/init is tests/ccom/init.c, and /bin/small and /bin/medium, which
 # it runs, are tests/ccom/prog.c in the two models: all compiled by the
-# system's own compiler.
+# system's own compiler.  /bin/c2 is the object code improver, which
+# that compiler compiled too: it is run on /etc/prog.s, the assembly
+# the compiler wrote for prog.c, and is to make of it /etc/prog.want.
 d /etc 755
 d /dev 755
 d /tmp 777
@@ -9,6 +11,9 @@ d /bin 755
 f /etc/init 755 init
 f /bin/small 755 small
 f /bin/medium 755 medium
+f /bin/c2 755 c2
+f /etc/prog.s 644 prog.s
+f /etc/prog.want 644 prog.want
 # The console is the first serial port (major 10), where the harness
 # reads what the system writes, and not the screen (major 0).
 c /dev/console 622 10 0

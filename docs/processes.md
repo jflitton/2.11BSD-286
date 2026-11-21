@@ -341,7 +341,8 @@ for the one and loaded for the other. A process that never touches the
   takes the heap to start at `end`, as the PDP-11's did, finds its stack
   there instead: the shell did, and starts at the break now; `csh`
   frees from there and `sendmail` freezes from there, and are made to
-  pass over the stack (userland.md); `c2`, not built yet, does too. The arguments would have to go
+  pass over the stack (userland.md); upstream's `c2` does too, and the
+  286's has its space from `malloc` instead. The arguments would have to go
   elsewhere, since a stack at the bottom cannot be made larger for them.
 - More data segments for a program that asks for them, by a system call.
 - A segment that is not in memory. The fault it causes, 11, is the hook

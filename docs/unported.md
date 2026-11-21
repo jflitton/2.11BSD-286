@@ -37,11 +37,30 @@ optimizer of expressions, and a generator of its own where upstream has
 its tables of PDP-11 code. The first pass is upstream's, with what
 differs for the 286 under `#ifdef i286`. So far it does the small
 model and the medium, with floating point on the 287 and far pointers,
-and not profiling. It does not run on the system yet: it is
-built for the machine the system is built on (`tools/ncc`), writes
-assembly for NASM, and its objects are linked by the cross tools
-(`tests/ccom`). An assembler, a linker and a format for objects are
-still to come, and `/lib/cpp`, which needs `libvmf`.
+and not profiling. It compiles every one of the system's programs and
+the C library (`tests/ccom/programs.sh`), and a system of those runs;
+the kernel it cannot compile yet.
+
+`usr/src/lib/c2/i286` is `c2` for what it writes, the object code
+improver that `cc -O` runs after the two passes. What upstream's does
+to jumps it does as upstream's does: a jump to a jump, code nothing
+comes to, the same instructions on two paths, a loop's test moved to
+its end. What upstream's knows of the PDP-11's instructions is written
+again for the 286's: a register is not loaded with what it has, one
+that has a value stands in for the memory or the constant that is that
+value, and, which the PDP-11's tables had no need of, a value moved to
+a register only to be used once is used where it was. With it, and
+with `enter` where a function begins, the 269 programs have 4,991,554
+bytes of code where they had 5,411,314; as the cross compiler makes
+them they have 4,568,754.
+
+Neither is on the system yet. They are built for the machine the
+system is built on (`tools/ncc`, and `-O` for `c2`), write assembly for
+NASM, and their objects are linked by the cross tools (`tests/ccom`).
+`c2` as the compiler compiles it does run on the system: the
+compiler's test has it make of a file there what it makes of it here.
+An assembler, a linker and a format for objects are still to come, and
+`/lib/cpp`, which needs `libvmf`.
 
 A far pointer is declared as the cross compiler has it, with `__far`
 before the `*`, and is the same four bytes: `char __far *p`, `int
@@ -58,7 +77,9 @@ does not have of the cross compiler's:
   in the small model. It reads the declaration, and says so if the
   name is then used.
 - `__huge` and based pointers, `__interrupt`, and `#pragma aux`, which
-  `tools/ncc` takes out: `ntohs` and the like are then functions.
+  `tools/ncc` takes out: `ntohs` and the like are then functions, and
+  so is `alloca`, which the library has for this compiler alone
+  (`usr/src/lib/libc/i286/gen/alloca.s`).
 - More than four of `*`, `[]` and `()` in one type, where the PDP-11's
   compiler had five: the far pointer took the room. Nothing in the
   tree has five.

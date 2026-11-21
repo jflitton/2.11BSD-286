@@ -119,6 +119,46 @@ format()
 	    && u == 17 && l == -900000L && strcmp(line, "word") == 0);
 }
 
+/*
+ * alloca, which the library has for this compiler: the space is on the
+ * stack below what the function has there, the registers it saved
+ * too, which its caller must get back.
+ */
+static
+onstack(n)
+{
+	extern char *alloca();
+	register char *p, *q;
+	int i, good, mark;
+
+	mark = 12345;
+	p = alloca(n);
+	q = alloca(n + 1);
+	for (i = 0; i < n; i++) {
+		p[i] = i;
+		q[i] = ~i;
+	}
+	q[n] = 77;
+	good = 0;
+	for (i = 0; i < n; i++)
+		good += p[i] == (char)i && q[i] == (char)~i;
+	return good == n && mark == 12345 && q[n] == 77 && q + n + 1 <= p;
+}
+
+static
+onstack0(n)
+{
+	extern char *alloca();
+	char *p;
+	int k;
+
+	k = n;
+	p = alloca(n);
+	p[0] = 1;
+	p[n - 1] = 2;
+	return k == n && p[0] + p[n - 1] == 3;
+}
+
 static
 library()
 {
@@ -150,6 +190,10 @@ library()
 	ok("malloc memory", i == 1000);
 	free(p);
 	free(q);
+	for (i = 3; i < 6; i++)
+		if (!onstack(i * 100) || !onstack0(i * 7))
+			break;
+	ok("alloca", i == 6);
 }
 
 static

@@ -21,9 +21,16 @@ union handler {
 		unsigned off, seg;
 	} w;
 };
-#else
+#elif defined(__WATCOMC__)
 unsigned _getcs(void);
 #pragma aux _getcs = "mov ax, cs" value [ax];
+#else
+/*
+ * The system's own compiler: a function's address made far has the
+ * code segment.
+ */
+#define	_getcs() \
+	((unsigned)((unsigned long)(void (__far *)())_sigtramp >> 16))
 #endif
 
 extern void _sigtramp();

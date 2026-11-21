@@ -9,12 +9,16 @@
 # the cross compiler compiles, as it does the printing.  A check is
 # known by the line it is on.  They run in real mode, with nothing
 # under them, and as one program: a name that is not static is one
-# test's alone.
+# test's alone.  They are run twice, as the compiler's two passes leave
+# them and as the object code improver does (tools/ncc -O).
 #
 # Then prog.c, a program that uses the C library and the system, is
 # compiled with it for the small model and for the medium, and linked
-# with the library; and the kernel is booted from a RAM disk on which
-# /etc/init is init.c, which runs the two.
+# with the library as that compiler made it (obj/nlib); and the kernel
+# is booted from a RAM disk on which /etc/init is init.c, which runs
+# the two.  It runs the object code improver there as well, which the
+# compiler has compiled, on the assembly for prog.c: what it writes on
+# the system is to be what it wrote here.
 #
 # usage: run.sh [NAME ...]	those tests alone; without, all of them
 #				and then init.c
@@ -35,7 +39,6 @@ if [ $# -eq 0 ]; then
     all=yes
     set -- $(cd "$here" && ls t_*.c | sed 's/^t_//; s/\.c$//')
 fi
-srcs=
 {
     for t; do echo "extern int t_$t();"; done
     echo "struct test { char *name; int (*fn)(); } tests[] = {"
@@ -43,19 +46,23 @@ srcs=
     echo "	{ 0, 0 }"
     echo "};"
 } > "$out/src/tests.c"
-for t; do
-    if [ -n "$REF" ]; then
-        cp "$here"/*.h "$out/src"
-        cp "$here/t_$t.c" "$out/src/t_$t.c"
-        srcs="$srcs $out/src/t_$t.c"
-    else
-        "$top/tools/ncc" -S -o "$out/src/t_$t.s" "$here/t_$t.c"
-        srcs="$srcs $out/src/t_$t.s"
-    fi
+for o in "" -O; do
+    srcs=
+    for t; do
+        if [ -n "$REF" ]; then
+            cp "$here"/*.h "$out/src"
+            cp "$here/t_$t.c" "$out/src/t_$t.c"
+            srcs="$srcs $out/src/t_$t.c"
+        else
+            "$top/tools/ncc" -S $o -o "$out/src/t_$t.s" "$here/t_$t.c"
+            srcs="$srcs $out/src/t_$t.s"
+        fi
+    done
+    python3 -I "$top/tests/harness/runtest.py" ccom$o \
+        "$top/tests/harness/printf.c" "$here/support.c" "$out/src/tests.c" \
+        $srcs "$crt/i4m.s" "$crt/i4d.s" "$crt/chp.s"
+    [ -z "$REF" ] || break
 done
-python3 -I "$top/tests/harness/runtest.py" ccom \
-    "$top/tests/harness/printf.c" "$here/support.c" "$out/src/tests.c" \
-    $srcs "$crt/i4m.s" "$crt/i4d.s" "$crt/chp.s"
 
 if [ -z "$all" ] || [ -n "$REF" ]; then
     exit 0
@@ -65,15 +72,16 @@ if [ "$EMU" = qemu ]; then
     exit 2
 fi
 make -s -C "$top/usr/src/sys/PC" | grep -v '^cc \|^as ' || true
-make -s -C "$top/usr/src/lib/libc/i286" MODEL=s | grep -v '^cc \|^as \|^wlib ' || true
-make -s -C "$top/usr/src/lib/libc/i286" MODEL=m | grep -v '^cc \|^as \|^wlib ' || true
+make -s -C "$top/usr/src/lib/libc/i286" CCOM=1 |
+    grep -v '^cc \|^as \|^wlib ' || true
 cd "$out/boot"
-"$top/tools/ncc" -o init.o "$here/init.c"
-"$top/tools/cc" -o init init.o
-"$top/tools/ncc" -DMEDIUM=0 -o small.o "$here/prog.c"
-"$top/tools/cc" -o small small.o
-"$top/tools/ncc" -mm -DMEDIUM=1 -o medium.o "$here/prog.c"
-"$top/tools/cc" -mm -o medium medium.o
+"$top/tools/cc" -ccom -o init "$here/init.c"
+"$top/tools/cc" -ccom -DMEDIUM=0 -o small "$here/prog.c"
+"$top/tools/cc" -ccom -mm -DMEDIUM=1 -o medium "$here/prog.c"
+c2=$top/usr/src/lib/c2/i286
+"$top/tools/cc" -ccom -o c2 "$c2/c20.c" "$c2/c21.c"
+"$top/tools/ncc" -S -DMEDIUM=0 -o prog.s "$here/prog.c"
+"$top/obj/host/ccom/c2" prog.s prog.want
 cp "$here/proto" proto
 python3 -I "$top/tools/mkfs.py" -s 400 proto root.fs
 python3 -I "$top/tests/harness/runtest.py" --until halting \

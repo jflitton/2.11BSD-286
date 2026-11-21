@@ -18,6 +18,15 @@
 # Each variable a file defines without a value gets common storage
 # (tools/commonize.py), as for programs (tools/cc).
 #
+# With CCOM=1 the C is compiled by the system's own compiler, as built
+# for this machine (tools/ncc -O, ../../ccom/i286 and ../../c2/i286),
+# and what is made goes to obj/nlib/M: the library that tools/cc -ccom
+# links a program with.
+# The assembly is the same, and NASM's.  That compiler gives such
+# variables common storage itself.  The library is made again when the
+# compiler is.  It has alloca (gen/alloca.s), which the cross compiler
+# has in line and its library has not.
+#
 # The library is the tree's portable C, as ../Makefile and the Makefiles
 # of its directories list it, with this directory in place of ../pdp:
 #
@@ -67,14 +76,20 @@ ifeq ($(filter $(MODEL),s m),)
 $(error MODEL is s or m)
 endif
 
-O=	$(TOP)/obj/lib/$(MODEL)
+O=	$(TOP)/obj/$(if $(CCOM),nlib,lib)/$(MODEL)
 OBJ=	$(O)/obj
 
+ifeq ($(CCOM),)
 CC=	$(TOP)/tools/cc286
 # 131 and 107: calls to functions with no prototype, and functions that
 # return nothing in particular; the tree's C is full of both.  121: a
 # name after #endif.
 CFLAGS=	-m$(MODEL) -I$(TOP)/usr/include -wcd=131 -wcd=107 -wcd=121
+else
+CC=	$(TOP)/tools/ncc
+CFLAGS=	-O -m$(MODEL) -I$(TOP)/usr/include
+NCC:=	$(TOP)/tools/ncc $(addprefix $(TOP)/obj/host/ccom/,c0 c1 c2)
+endif
 AS=	nasm -f obj -I$(MD)/crt/ $(if $(filter m,$(MODEL)),-DFAR)
 
 GEN=	abort alarm atoi atol calloc closedir crypt ctime ctype_ daemon \
@@ -115,7 +130,7 @@ NS=	ns_addr ns_ntoa
 MDSYS=	brk execl execle execv iovec setlogin sigaction sigaltstack
 MDGENC=	nsym
 MDSYSS=	sigtramp
-MDGEN=	ldexp modf setjmp
+MDGEN=	ldexp modf setjmp $(if $(CCOM),alloca)
 MDNET=	htons
 CRT=	i4m i4d chp
 
@@ -133,7 +148,7 @@ $(OBJ) $(OBJ)/sys:
 # Every object is made again when any header changes: crude, and never
 # wrong.
 HDRS:=	$(wildcard $(TOP)/usr/include/*.h $(TOP)/usr/src/sys/h/*.h \
-	$(TOP)/usr/src/sys/i286/*.h $(LIBC)/stdio/*.h)
+	$(TOP)/usr/src/sys/i286/*.h $(LIBC)/stdio/*.h) $(NCC)
 
 define compile
 	@echo cc $(notdir $<)
@@ -141,7 +156,7 @@ define compile
 	    cat $*.log; \
 	    if [ $$r != 0 ] || grep -q 'Error!' $*.log; \
 	    then rm -f $*.o; exit 1; fi; }
-	@python3 -I $(TOP)/tools/commonize.py $(OBJ)/$*.o
+	$(if $(CCOM),,@python3 -I $(TOP)/tools/commonize.py $(OBJ)/$*.o)
 endef
 
 $(OBJ)/%.o: $(LIBC)/gen/%.c $(HDRS) | $(OBJ)

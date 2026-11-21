@@ -208,12 +208,16 @@ tests/crt/run.sh        # the compiler's helper routines: 5,161 checks
 tests/pm/run.sh         # the kernel's start-up and trap entry: 54 checks
 tests/user/run.sh       # a process in ring 3: 58 checks
 tests/kernel/run.sh     # the kernel, with a test program as init, booted
-                        # six times: 51 checks, then 67 on each of five disks
+                        # six times: 52 checks, then 68 on each of five disks
 tests/libc/run.sh       # the C library, with a test program as init: 74
-                        # checks in the small model, 74 in the medium
+                        # checks in the small model, 74 in the medium;
+                        # with CCOM=1, of the library and the program
+                        # as the system's own compiler makes them
 tests/ccom/run.sh       # the system's own C compiler, run here: 1568
-                        # checks of the code it generates, and 57 by a
-                        # program it compiled, in each of two models
+                        # checks of the code it generates, as it is and
+                        # again as c2 improves it; 58 by a program it
+                        # compiled, in each of two models; and c2 as it
+                        # compiled that, run on the system
 tests/ccom/programs.sh  # the same compiler on the system's programs:
                         # tests/programs, with those it compiled
 tests/preflight/run.sh  # tools/preflight.py, on two files with one of each
@@ -260,12 +264,21 @@ tests/vt/run.sh         # the console's terminal emulator, on the machine
   tests call the cross compiler's code to have each value checked, so
   the two compilers' calling conventions are tested against each other.
   `REF=1` compiles the tests with the cross compiler instead, to check
-  a test. It ends by booting the kernel with programs the compiler
-  compiled, and the C library: an `/etc/init` that runs one program
-  built for the small model and again for the medium.
+  a test. The tests are run twice: as the two passes leave them, and
+  with `tools/ncc -O`, which has `c2` improve the code
+  (`usr/src/lib/c2/i286`); everything else the compiler makes is made
+  with `-O`. It ends by booting the kernel with programs the compiler
+  compiled, and the C library as it compiled that: an `/etc/init` that
+  runs one program built for the small model and again for the medium,
+  and then `c2` itself, which is to make of a file of assembly there
+  exactly what it made of it here.
+  The library is in `obj/nlib`, where `make -C usr/src/lib/libc/i286
+  CCOM=1` puts it and `tools/cc -ccom` looks for it; its assembly is
+  NASM's, as in the cross compiler's library, `obj/lib`.
   `tests/ccom/programs.sh` has the compiler make the system's programs
-  (`tools/cc -ccom`), all that it can, and runs `tests/programs` on a
-  root file system of those; `obj/nbin/native` lists which they were.
+  (`tools/cc -ccom`), all that it can, and the libraries they use, and
+  runs `tests/programs` on a root file system of those;
+  `obj/nbin/native` lists which they were.
 - `tests/pm` is a medium-model program that takes the place of the
   kernel's `main` and `trap`, linked with the kernel's own start-up
   (`usr/src/sys/i286`). It checks the descriptor tables, far calls between
@@ -294,6 +307,8 @@ tests/vt/run.sh         # the console's terminal emulator, on the machine
 - `tests/libc` builds the C library and boots the kernel with a program
   that calls into each part of it as `/etc/init`. The program is built
   for both models; the small one runs the medium one when it is done.
+  `CCOM=1 tests/libc/run.sh` does the same with the library and the
+  program compiled by the system's own compiler.
 - `tests/system` builds the kernel, `/boot`, the library, the programs and
   the root file system as for a real machine, and boots them from an IDE
   disk, whose root is not marked clean, so that `/etc/rc` has `fsck`

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compile C with the system's own compiler, run here.
 
-usage: ncc [-S] [-ms|-mm] [-o OUT] [-Dname[=val]] [-Uname] [-Idir] FILE.c
+usage: ncc [-S] [-O] [-ms|-mm] [-o OUT] [-Dname[=val]] [-Uname] [-Idir] FILE.c
 
 The tree's C compiler (usr/src/lib/ccom) is two passes: c0 reads C and
 writes trees, and c1, which for the 286 is usr/src/lib/ccom/i286, turns
@@ -9,12 +9,16 @@ them into assembly.  This runs the two as built for this machine
 (`make -C usr/src/lib/ccom/i286 host`) and has NASM assemble what comes
 out, so that the compiler can be worked on, and what it generates
 linked with the cross tools and run (tests/ccom), before the system has
-an assembler and a linker of its own.
+an assembler and a linker of its own.  With -O the assembly goes
+through c2 on the way, the object code improver (usr/src/lib/c2/i286),
+as cc -O has it do.
 
 The object is OUT, or FILE.o in the current directory.  It is as
 tools/cc makes them, and tools/cc links it.
 
     -S          stop at the assembly: OUT, or FILE.s
+    -O          improve the code: jumps to jumps, what is the same on
+                two paths, what a register has already
     -ms -mm     the small model, the default, or the medium, whose
                 functions are far: the file's are then in a segment of
                 its own, FILE_TEXT
@@ -45,6 +49,7 @@ def fail(msg):
 def main():
     args = sys.argv[1:]
     asm_only = False
+    improve = False
     model = "s"
     out = None
     cpp = []
@@ -55,6 +60,8 @@ def main():
         i += 1
         if a == "-S":
             asm_only = True
+        elif a == "-O":
+            improve = True
         elif a in ("-ms", "-mm"):
             model = a[2]
         elif a == "-o":
@@ -77,7 +84,7 @@ def main():
             src = a
     if not src or not src.endswith(".c"):
         sys.exit(__doc__)
-    for p in ("c0", "c1"):
+    for p in ("c0", "c1") + (("c2",) if improve else ()):
         if not os.path.exists(os.path.join(HOST, p)):
             fail("no obj/host/ccom/%s: make -C usr/src/lib/ccom/i286 host" % p)
     base = os.path.splitext(os.path.basename(src))[0]
@@ -115,10 +122,14 @@ def main():
         if seg[0].isdigit():
             seg = "_" + seg
         medium = model == "m"
-        for cmd in ([os.path.join(HOST, "c0"), pre, t1, t2] +
-                    (["-M"] if medium else []),
-                    [os.path.join(HOST, "c1"), t1, t2, asm] +
-                    (["-M" + seg] if medium else [])):
+        raw = os.path.join(tmp, "t3") if improve else asm
+        passes = [[os.path.join(HOST, "c0"), pre, t1, t2] +
+                  (["-M"] if medium else []),
+                  [os.path.join(HOST, "c1"), t1, t2, raw] +
+                  (["-M" + seg] if medium else [])]
+        if improve:
+            passes.append([os.path.join(HOST, "c2"), raw, asm])
+        for cmd in passes:
             r = subprocess.run(cmd, capture_output=True, text=True)
             msg = r.stdout + r.stderr
             # A message begins with the line it is about, and the file
@@ -131,7 +142,10 @@ def main():
                     os.unlink(asm)
                 sys.exit(1)
         if not asm_only:
-            r = subprocess.run(["nasm", "-f", "obj", "-o", out, asm])
+            # (from there, for the object to have the file's name in
+            # it and not that directory's)
+            r = subprocess.run(["nasm", "-f", "obj", "-o",
+                                os.path.abspath(out), base + ".s"], cwd=tmp)
             if r.returncode != 0:
                 sys.exit(1)
     finally:

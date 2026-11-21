@@ -5,13 +5,14 @@
 # tests/programs boot that and run its checks, which are of what the
 # programs write, to the byte.
 #
-# The programs are made in obj/nbin, and the libraries they use besides
-# the C library with them, in the small model and the medium as each
-# is.  Whatever the compiler cannot compile is then made there by the
-# cross compiler, so that the system is whole: obj/nbin/native lists
-# the programs that are the system's compiler's own work, and
-# obj/nbin/cross the others, of which there are now none.  The C
-# library is the cross compiler's.
+# The programs are made in obj/nbin, and the C library and the others
+# they use in obj/nlib, in the small model and the medium as each is:
+# all of it the compiler's work but the assembly, which is NASM's.
+# (make CCOM=1, in the library's directory and the programs'.)
+# Whatever the compiler cannot compile is then made in obj/nbin by the
+# cross compiler, with its own libraries, so that the system is whole:
+# obj/nbin/native lists the programs that are the system's compiler's
+# own work, and obj/nbin/cross the others, of which there are now none.
 #
 # Run from the top of the repository after `. tools/env.sh`.
 set -e
@@ -27,6 +28,7 @@ make -s -C "$top/usr/src/lib/ccom/i286" host
 make -s -C "$top/usr/src/sys/PC" | quiet
 make -s -C "$top/usr/src/sys/i286stand" | quiet
 make -s -C "$top/usr/src/lib/libc/i286" | quiet
+make -s -C "$top/usr/src/lib/libc/i286" CCOM=1 | quiet
 
 # Each program that the system's compiler can make; make goes on past
 # those it cannot.  What the cross compiler made the last time is tried
@@ -41,11 +43,16 @@ elif [ -n "$(names)" ]; then
     exit 1
 fi
 : > "$bin/cross"
-make -s -k -C "$top/usr/src/i286" O="$bin" CC="$top/tools/cc -ccom" all \
-    > "$bin/log/ccom" 2>&1 || true
+make -s -k -C "$top/usr/src/i286" CCOM=1 all > "$bin/log/ccom" 2>&1 || true
 names > "$bin/native"
-# And the rest.
-make -s -C "$top/usr/src/i286" O="$bin" all | quiet
+# And the rest: a program that could not be made is not there.
+rest=
+for p in $(make -s -C "$top/usr/src/i286" list); do
+    [ -f "$bin/$p" ] || rest="$rest $bin/$p"
+done
+if [ -n "$rest" ]; then
+    make -s -C "$top/usr/src/i286" O="$bin" $rest | quiet
+fi
 names | comm -13 "$bin/native" - > "$bin/cross"
 echo "ccom: $(wc -l < "$bin/native" | tr -d ' ') programs compiled by" \
     "the system's compiler, $(wc -l < "$bin/cross" | tr -d ' ') by the" \

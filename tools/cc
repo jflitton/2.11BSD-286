@@ -22,7 +22,9 @@ variable defined twice with a value is an error.
     -E          run each .c through the preprocessor only, as it is
                 compiled, and write what comes out, with #line lines,
                 to the standard output
-    -O          optimize; the compiler always does, for size
+    -O          optimize; the compiler always does, for size.  -O0
+                has the system's own compiler (-ccom) leave out its
+                object code improver, and is nothing to the other
     -s          leave out the symbol table
     -lname      the library obj/lib/M/libname.lib, M being the model's
                 letter, or libname.lib in a directory given by -L
@@ -36,8 +38,9 @@ variable defined twice with a value is an error.
                 one segment up to N bytes (the linker's default is
                 nearly 64K)
     -ccom       compile each .c with the system's own compiler, as
-                tools/ncc runs it, in place of the cross compiler; the
-                rest is as without
+                tools/ncc -O runs it, in place of the cross compiler, and
+                link with the libraries that compiler made, which are
+                in obj/nlib and not obj/lib; the rest is as without
 
 Each file is compiled for the model, and linked with its library and
 start-up code, obj/lib/s or obj/lib/m.
@@ -59,6 +62,7 @@ import commonize        # noqa: E402
 TOOLS = os.path.dirname(os.path.abspath(__file__))
 TOP = os.path.dirname(TOOLS)
 LIBS = os.path.join(TOP, "obj", "lib")
+NLIBS = os.path.join(TOP, "obj", "nlib")        # -ccom
 CRT = os.path.join(TOP, "usr", "src", "lib", "libc", "i286", "crt")
 IGNORED = {"-i", "-n", "-z", "-V", "-X", "-x", "-g"}
 # Names old programs use that the compiler takes for its own: cat has a
@@ -176,9 +180,10 @@ def compile_c(src, obj, model, cflags):
     commonize.commonize(obj)
 
 
-def compile_ccom(src, obj, model, cflags):
+def compile_ccom(src, obj, model, cflags, improve):
     """The same with the tree's compiler, which tools/ncc runs."""
     r = subprocess.run([os.path.join(TOOLS, "ncc"), "-m" + model, "-o", obj] +
+                       (["-O"] if improve else []) +
                        [f for f in cflags if f[:2] in ("-D", "-U", "-I")] +
                        [src])
     if r.returncode != 0:
@@ -189,6 +194,7 @@ def main():
     args = sys.argv[1:]
     compile_only = False
     ccom = False
+    improve = True
     preprocess_only = False
     out = None
     strip = False
@@ -222,7 +228,9 @@ def main():
                 fail("-o needs an argument")
             out = args[i]
             i += 1
-        elif a == "-O" or a.startswith("-O"):
+        elif a == "-O0":
+            improve = False
+        elif a.startswith("-O"):
             pass
         elif a == "-s":
             strip = True
@@ -264,7 +272,7 @@ def main():
         sys.exit(__doc__)
     if packcode is not None and model == "s":
         fail("-packcode: the small model has one code segment")
-    lib = os.path.join(LIBS, model)
+    lib = os.path.join(NLIBS if ccom else LIBS, model)
     own = cflags
     cflags = compiler_flags(cflags)
     if preprocess_only:
@@ -289,7 +297,7 @@ def main():
             else:
                 obj = os.path.join(tmp, "%d-%s" % (len(objs), base))
             if f.endswith(".c") and ccom:
-                compile_ccom(f, obj, model, own)
+                compile_ccom(f, obj, model, own, improve)
             elif f.endswith(".c"):
                 compile_c(f, obj, model, cflags)
             else:

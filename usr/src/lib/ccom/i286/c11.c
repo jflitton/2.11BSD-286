@@ -642,9 +642,7 @@ char *s;
 /*
  * A function's entry and exit.
  *
- *		push	bp
- *		mov	bp,sp
- *		sub	sp,N		N bytes of automatic variables
+ *		enter	N,0		N bytes of automatic variables
  *		mov	[bp-2],si	if it returns a structure where
  *					it is told to (strasg)
  *		push	si		if SI holds a register variable
@@ -654,6 +652,10 @@ char *s;
  *		pop	si
  *		leave
  *		ret
+ *
+ * With no automatic variables the first is push bp and mov bp,sp, which
+ * are shorter than enter with nothing; and with one word of them a
+ * push after those, which is shorter than either.
  *
  * So the first argument is at [bp+4] and the first automatic variable
  * at [bp-2], as the first pass has them.  That pass finds how much the
@@ -689,14 +691,14 @@ setstk(n)
 	register i;
 
 	s = buf;
-	strcpy(s, "\tpush\tbp\n\tmov\tbp,sp\n");
-	s += strlen(s);
-	if (n==2)
-		strcpy(s, strret? "\tpush\tsi\n": "\tpush\tax\n");
-	else if (n) {
-		sprintf(s, "\tsub\tsp,%u\n", UNS(n));
+	if (n>2) {
+		sprintf(s, "\tenter\t%u,0\n", UNS(n));
 		if (strret)
 			strcat(s, "\tmov\t[bp-2],si\n");
+	} else {
+		strcpy(s, "\tpush\tbp\n\tmov\tbp,sp\n");
+		if (n==2)
+			strcat(s, strret? "\tpush\tsi\n": "\tpush\tax\n");
 	}
 	if (minreg<=SI)
 		strcat(s, "\tpush\tsi\n");

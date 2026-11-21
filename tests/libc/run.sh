@@ -2,6 +2,9 @@
 # Test the C library: build it, build a test program with it as
 # /etc/init on a RAM disk, and boot the kernel with that
 # (usr/src/lib/libc/i286, tests/libc/init.c).
+#
+# With CCOM=1 the library and the test programs are compiled by the
+# system's own compiler (tools/cc -ccom) and not the cross compiler.
 # Run from the top of the repository after `. tools/env.sh`.
 set -e
 if [ "$EMU" = qemu ]; then
@@ -10,18 +13,27 @@ if [ "$EMU" = qemu ]; then
 fi
 top=$(cd "$(dirname "$0")/../.." && pwd)
 here=$top/tests/libc
-out=$top/obj/tests/libc
+if [ -n "$CCOM" ]; then
+    name=libc-ccom
+    cc="$top/tools/cc -ccom"
+    make -s -C "$top/usr/src/lib/ccom/i286" host
+else
+    name=libc
+    cc=$top/tools/cc
+fi
+out=$top/obj/tests/$name
 mkdir -p "$out"
 
 make -s -C "$top/usr/src/sys/PC" | grep -v '^cc \|^as ' || true
-make -s -C "$top/usr/src/lib/libc/i286" | grep -v '^cc \|^as \|^wlib ' || true
+make -s -C "$top/usr/src/lib/libc/i286" ${CCOM:+CCOM=1} |
+    grep -v '^cc \|^as \|^wlib ' || true
 
 cd "$out"
 # Each for the small model, and for the medium as NAME-m, its code packed
 # into segments of 8K so that there are several.
 for p in init echoargs; do
-    "$top/tools/cc" -o $p "$here/$p.c"
-    "$top/tools/cc" -mm -packcode 8192 -o $p-m "$here/$p.c"
+    $cc -o $p "$here/$p.c"
+    $cc -mm -packcode 8192 -o $p-m "$here/$p.c"
 done
 # The library reads users from master.passwd (or its ndbm form, which
 # this has not), and error messages from syserrlst.
@@ -41,4 +53,4 @@ END
 cp "$here/proto" proto
 python3 -I "$top/tools/mkfs.py" -s 400 proto root.fs
 python3 -I "$top/tests/harness/runtest.py" --until halting \
-    --boot libc "$top/obj/PC/unix" root.fs
+    --boot $name "$top/obj/PC/unix" root.fs

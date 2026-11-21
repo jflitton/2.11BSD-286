@@ -278,8 +278,9 @@ a union (`bin/sh/mode.h`); the shell's few other such uses have casts.
   break now. `csh` frees only what lies between `end` and its stack, to
   pass over strings in its data and on its stack, and so here would free
   nothing; on the 286 it frees what lies above where the break started
-  (`_minbrk`). `c2` takes the heap to start at `end` too, and is not
-  built yet. `sendmail` freezes what lies from `end` to the break, which
+  (`_minbrk`). Upstream's `c2` takes the heap to start at `end` too;
+  the 286's (`usr/src/lib/c2/i286`) has its space from `malloc`.
+  `sendmail` freezes what lies from `end` to the break, which
   here is the BSS and the heap with the stack between them, and writes
   the two each by itself ([mail](#mail)).
 - **That `printf` can be written in PDP-11 assembly.** `csh` prints

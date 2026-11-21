@@ -15,12 +15,19 @@
 # unless it is m, the medium (docs/memory-model.md).  Each is compiled
 # and linked in one run of tools/cc; what the compiler says goes to
 # obj/bin/log/NAME, and is shown only if it fails.
+#
+# With CCOM=1 the C is compiled by the system's own compiler (tools/cc
+# -ccom): the programs are made in obj/nbin and the libraries in
+# obj/nlib/M, where the C library as that compiler makes it is to be
+# (make -C ../lib/libc/i286 CCOM=1).  Its code is nearly a tenth larger
+# than the cross compiler's, and each program is of the model it has
+# here.
 
 TOP:=	$(abspath ../../..)
 SRC:=	$(TOP)/usr/src
-O=	$(TOP)/obj/bin
-LIB=	$(TOP)/obj/lib
-CC=	$(TOP)/tools/cc
+O=	$(TOP)/obj/$(if $(CCOM),nbin,bin)
+LIB=	$(TOP)/obj/$(if $(CCOM),nlib,lib)
+CC=	$(TOP)/tools/cc $(if $(CCOM),-ccom)
 
 # Programs of one file, bin/NAME.c.
 BINSTD=	cat chgrp chmod cmp cp date dd df du echo ed grep hostid kill ln \
@@ -617,7 +624,11 @@ LIBRARIES=	util termcap m curses wrap dbm ln
 
 all:	$(addprefix $(O)/,$(PROGS))
 
-.PHONY:	all root clean FORCE
+# The programs' names, a line each.
+list:
+	@printf '%s\n' $(PROGS)
+
+.PHONY:	all list root clean FORCE
 
 $(O) $(O)/log $(EXO) $(TCO) $(H) $(G) $(AWKG):
 	mkdir -p $@
@@ -637,7 +648,7 @@ $(O)/$(1): $$(call srcs,$(1)) $(HDRS) \
 	@echo cc $(1)
 	@$(CC) -m$(call model,$(1)) $$($(1)_FLAGS) -o $$@ \
 	    $$(call srcs,$(1)) $$($(1)_LIBS) \
-	    > $(O)/log/$(1) 2>&1 || { cat $(O)/log/$(1); exit 1; }
+	    > $(O)/log/$(1) 2>&1 || { cat $(O)/log/$(1); rm -f $$@; exit 1; }
 endef
 $(foreach p,$(PROGS),$(eval $(call prog,$(p))))
 
