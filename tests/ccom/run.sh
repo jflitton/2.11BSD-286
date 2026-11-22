@@ -6,7 +6,10 @@
 #
 # Each t_NAME.c has a function t_NAME that works values out and gives
 # each, with what it ought to be, to check or lcheck in support.c, which
-# the cross compiler compiles, as it does the printing.  A check is
+# is compiled as the harness compiles a program (TOOLS_PROGRAMS,
+# tests/harness/runtest.py), as the printing is: by the system's own
+# compiler too, unless that is cross, and far.s then has the two far
+# functions it cannot make in the small model.  A check is
 # known by the line it is on.  They run in real mode, with nothing
 # under them, and as one program: a name that is not static is one
 # test's alone.  They are run twice, as the compiler's two passes leave
@@ -33,8 +36,8 @@
 # usage: run.sh [NAME ...]	those tests alone; without, all of them
 #				and then init.c
 #
-# With REF=1 the tests are compiled by the cross compiler instead, which
-# says whether a test is itself right.  init.c is booted with the
+# With REF=1 the tests are compiled by the cross compiler instead, and
+# support.c with them, which says whether a test is itself right.  init.c is booted with the
 # kernel that TOOLS and TOOLS_KERNEL choose (tests/harness/system.sh),
 # in obj/tests/ccom-init-n or -nk if it is the system's own tools'.
 # Run from the top of the repository after `. tools/env.sh`.
@@ -60,6 +63,9 @@ if [ "$got" != "$want" ]; then
     exit 1
 fi
 
+[ -z "$REF" ] || export TOOLS_PROGRAMS=cross
+far=
+[ "${TOOLS_PROGRAMS:-${TOOLS:-native}}" != native ] || far=$here/far.s
 all=
 if [ $# -eq 0 ]; then
     all=yes
@@ -95,7 +101,7 @@ for o in "" -O; do
     done
     python3 -I "$top/tests/harness/runtest.py" ccom$o \
         "$top/tests/harness/printf.c" "$here/support.c" "$out/src/tests.c" \
-        $srcs "$crt/i4m.s" "$crt/i4d.s" "$crt/chp.s"
+        $srcs $far "$crt/i4m.s" "$crt/i4d.s" "$crt/chp.s"
     [ -z "$REF" ] || break
 done
 

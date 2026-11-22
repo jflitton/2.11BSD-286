@@ -380,6 +380,12 @@ fr_proto(char __far *p, int __far *q, int n)
 	return *p + 2L * q[n];
 }
 
+/*
+ * Two far functions.  The system's own compiler makes a function far
+ * only where all of them are, in the medium model and the large; where
+ * it compiles this for the small model, they are far.s's.
+ */
+#if defined(__WATCOMC__) || defined(__MEDIUM__) || defined(__LARGE__)
 static int __far
 fr_add(a, b)
 	int a, b;
@@ -393,6 +399,9 @@ fr_mul(a, b)
 {
 	return a * b;
 }
+#else
+extern int fr_add(), fr_mul();	/* it will not have them called far */
+#endif
 
 int (__far *
 fr_func(which))()
