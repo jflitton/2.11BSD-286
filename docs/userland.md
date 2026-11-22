@@ -53,8 +53,8 @@ and which knows the cursor keys in insert mode too.
 
 ```sh
 . tools/env.sh
-make -C usr/src/lib/libc/i286   # crt0.o and libc.lib in obj/lib/s and obj/lib/m
-make -C usr/src/i286            # the programs, each in obj/bin
+make -C usr/src/lib/libc/i286   # crt0.o and libc.a in obj/nlib/s, m and l
+make -C usr/src/i286            # the programs, each in obj/nbin
 make -C usr/src/i286 root       # obj/root/root.fs, a root file system
 make -C usr/src/i286 root STRIP=no   # the same, the programs with their symbols
 ```
@@ -1678,7 +1678,7 @@ out). `tools/cc -ml` makes one, and so does the system's own compiler,
 as `cc -ml` on the system and `tools/cc -ccom -ml` where the system is
 built ([the compiler](toolchain.md#models)). The library for it is
 built beside the others (`make -C usr/src/lib/libc/i286`, in
-`obj/lib/l`, and with `CCOM=1` in `obj/nlib/l`): the same sources,
+`obj/nlib/l`, and with `TOOLS=cross` in `obj/lib/l`): the same sources,
 with the start-up, `setjmp`, the signal trampoline, `modf`, `alloca`,
 the byte-order functions and the system call stubs each in the
 model's form, and its own `malloc` (`gen/lmalloc.c`) and, for the

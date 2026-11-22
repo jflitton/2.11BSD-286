@@ -12,7 +12,7 @@ usage: runtest.py NAME SOURCE...
 The first form builds a small-model program that runs in real mode.  Each
 .c is compiled with tools/cc286 and each .s assembled with NASM; they are
 linked behind tests/harness/start.s and converted with tools/ne2aout.py, as
-any program is.  With NATIVE_PROGRAMS=1 in the environment it is the
+any program is.  With TOOLS_PROGRAMS=native in the environment it is the
 system's own compiler, assembler and linker that make it, as they are
 built for this machine (tools/ncc, obj/host/ccom/as and ld -real).
 
@@ -88,7 +88,7 @@ the automation socket only.
 
 A program given is put on a diskette image by tools/mkfd.py, behind the
 boot sector, usr/src/sys/i286stand/fdboot.s, and the emulator boots it.
-The boot sector is NASM's work, or with NATIVE_BOOT=1 in the
+The boot sector is NASM's work, or with TOOLS_BOOT=native in the
 environment the system's own assembler's, as -b (obj/host/ccom/as).
 What the program writes to the serial port is printed.  The program ends by
 writing a line "@exit NN", two hex digits, which become the exit status;
@@ -142,6 +142,12 @@ def run(*cmd, **kw):
     return r.stdout + r.stderr
 
 
+def tools(part):
+    """Whose tools make that part, native or cross: what the environment
+    says of it, or of everything (TOOLS), or the system's own."""
+    return os.environ.get(part) or os.environ.get("TOOLS") or "native"
+
+
 def build_native(name, sources, out):
     """The program made by the system's own tools: returns its path."""
     host = os.path.join(TOP, "obj", "host", "ccom")
@@ -165,7 +171,7 @@ def build_native(name, sources, out):
 
 def build(name, sources, out):
     """Returns the path of the diskette image."""
-    if os.environ.get("NATIVE_PROGRAMS", "0") not in ("", "0"):
+    if tools("TOOLS_PROGRAMS") == "native":
         exe = build_native(name, sources, out)
         return build_image(name, exe, out)
     objs = []
@@ -210,7 +216,7 @@ def mkfd(exe, img, out, *options):
     """Make the diskette image IMG that boots the executable EXE."""
     bootbin = os.path.join(out, "fdboot.bin")
     src = os.path.join(TOP, "usr", "src", "sys", "i286stand", "fdboot.s")
-    if os.environ.get("NATIVE_BOOT", "0") not in ("", "0"):
+    if tools("TOOLS_BOOT") == "native":
         run(os.path.join(TOP, "obj", "host", "ccom", "as"), "-b", "-o",
             bootbin, src)
     else:

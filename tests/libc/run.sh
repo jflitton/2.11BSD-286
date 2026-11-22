@@ -3,10 +3,10 @@
 # /etc/init on a RAM disk, and boot the kernel with that
 # (usr/src/lib/libc/i286, tests/libc/init.c).
 #
-# NATIVE_PROGRAMS, or CCOM=1, says whether the library and the test
-# programs are compiled by the system's own compiler (tools/cc -ccom) or
-# the cross compiler, NATIVE_KERNEL which kernel boots, and NATIVE both
-# (tests/harness/system.sh).
+# TOOLS_PROGRAMS says whether the library and the test programs are
+# compiled by the system's own compiler (native: tools/cc -ccom) or the
+# cross compiler (cross), TOOLS_KERNEL which kernel boots, and TOOLS
+# both (tests/harness/system.sh).
 # Run from the top of the repository after `. tools/env.sh`.
 set -e
 if [ "$EMU" = qemu ]; then
@@ -15,9 +15,6 @@ if [ "$EMU" = qemu ]; then
 fi
 top=$(cd "$(dirname "$0")/../.." && pwd)
 here=$top/tests/libc
-if [ -n "$CCOM" ]; then
-    NATIVE_PROGRAMS=1
-fi
 . "$top/tests/harness/system.sh"
 name=libc$case
 cc="$top/tools/cc $ccflag"

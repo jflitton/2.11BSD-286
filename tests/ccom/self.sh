@@ -17,8 +17,8 @@
 # is made from the top of that with the names its sources have there:
 # a file's name is in what the compiler says of it and nowhere else.
 #
-# NATIVE, NATIVE_KERNEL and NATIVE_PROGRAMS are as in tests/system
-# (tests/harness/system.sh): with NATIVE=1 the system is the system's
+# TOOLS, TOOLS_KERNEL and TOOLS_PROGRAMS are as in tests/system
+# (tests/harness/system.sh): with TOOLS=native the system is the system's
 # own tools' work throughout, and so are the tools it makes them with
 # the first time.
 # With ROOTFS set, that root file system is booted in place of the one

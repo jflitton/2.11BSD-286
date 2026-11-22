@@ -4,16 +4,26 @@
 #
 #	make -C usr/src/sys/PC
 #
-# makes obj/PC/unix, the kernel, and obj/PC/unix.img, a diskette that
-# boots it.  Everything made goes in obj/PC.  GNU make.
+# makes obj/nPC/unix, the kernel, and obj/nPC/unix.img, a diskette that
+# boots it, with the system's own compiler, assembler and linker, as
+# they are built for this machine (tools/ncc, docs/toolchain.md), and
+# none of the cross compiler's.  Everything made goes in obj/nPC.  GNU
+# make.
 #
-#	make -C usr/src/sys/PC CCOM=1
+#	make -C usr/src/sys/PC TOOLS=cross
 #
-# makes the same in obj/nPC with the system's own compiler, assembler
-# and linker, as they are built for this machine (tools/ncc,
-# docs/toolchain.md), and none of the cross compiler's.
+# makes the same in obj/PC with the cross compiler, Open Watcom, and
+# NASM.
 
 TOP:=	$(abspath ../../../..)
+# Whose tools make it: the system's own compiler, assembler and linker,
+# as built for this machine (TOOLS=native), or the cross compiler's
+# (TOOLS=cross).  CCOM is set for the first, and is not to be given.
+TOOLS?=	native
+ifeq ($(filter native cross,$(TOOLS)),)
+$(error TOOLS is native or cross)
+endif
+override CCOM:=	$(if $(filter native,$(TOOLS)),1)
 SYS:=	$(TOP)/usr/src/sys
 ifdef CCOM
 O=	$(TOP)/obj/nPC

@@ -4,8 +4,8 @@ How the kernel gets into memory and into protected mode: from a
 diskette, or from the hard disk that has the root file system. Running
 under `tests/pm` and `tests/kernel`. The boot programs are in
 `sys/i286stand`; `make -C usr/src/sys/i286stand` puts them in
-`obj/stand`, made by NASM and the cross compiler, and with `CCOM=1` in
-`obj/nstand`, made by the system's own assembler, compiler and linker
+`obj/nstand`, made by the system's own assembler, compiler and linker,
+and with `TOOLS=cross` in `obj/stand`, made by NASM and the cross compiler
 ([the compiler](toolchain.md#the-assembler)): the boot sectors are the
 same to the byte, and `/boot` is another compiler's.
 

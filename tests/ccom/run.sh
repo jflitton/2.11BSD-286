@@ -35,7 +35,7 @@
 #
 # With REF=1 the tests are compiled by the cross compiler instead, which
 # says whether a test is itself right.  init.c is booted with the
-# kernel that NATIVE and NATIVE_KERNEL choose (tests/harness/system.sh),
+# kernel that TOOLS and TOOLS_KERNEL choose (tests/harness/system.sh),
 # in obj/tests/ccom-init-n or -nk if it is the system's own tools'.
 # Run from the top of the repository after `. tools/env.sh`.
 set -e
@@ -107,13 +107,13 @@ if [ "$EMU" = qemu ]; then
     exit 2
 fi
 . "$top/tests/harness/system.sh"
-if [ "$NATIVE_KERNEL" = 1 ]; then
-    mk -C "$top/usr/src/sys/PC" CCOM=1
+if [ "$TOOLS_KERNEL" = native ]; then
+    mk -C "$top/usr/src/sys/PC" TOOLS=native
 else
-    mk -C "$top/usr/src/sys/PC"
+    mk -C "$top/usr/src/sys/PC" TOOLS=cross
     case=
 fi
-mk -C "$top/usr/src/lib/libc/i286" CCOM=1
+mk -C "$top/usr/src/lib/libc/i286" TOOLS=native
 cd "$out/boot"
 "$top/tools/cc" -ccom -o init "$here/init.c"
 "$top/tools/cc" -ccom -DMEDIUM=0 -o small "$here/prog.c"

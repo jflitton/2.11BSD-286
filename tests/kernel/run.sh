@@ -1,12 +1,12 @@
 #!/bin/sh
 # Test the kernel: build it, build a root file system with a test program
 # as /etc/init, and boot the two in the emulator (usr/src/sys/PC,
-# tests/kernel/init.c).  With NATIVE=1 the kernel, the test programs,
-# /boot and the boot blocks are the work of the system's own compiler,
-# assembler and linker, and not the cross compiler's; NATIVE_KERNEL=1,
-# NATIVE_PROGRAMS=1 and NATIVE_BOOT=1 say so of each alone
+# tests/kernel/init.c).  The kernel, the test programs, /boot and the
+# boot blocks are the work of the system's own compiler, assembler and
+# linker, or with TOOLS=cross the cross compiler's; TOOLS_KERNEL,
+# TOOLS_PROGRAMS and TOOLS_BOOT say which of each alone
 # (tests/harness/system.sh, which says what comes after "kernel" in the
-# names of the directories in obj/tests then).
+# names of the directories in obj/tests for each).
 # Run from the top of the repository after `. tools/env.sh`.
 set -e
 if [ "$EMU" = qemu ]; then
@@ -22,17 +22,17 @@ out=$top/obj/tests/$t
 mkdir -p "$out"
 host=$top/obj/host/ccom
 
-if [ "$NATIVE_KERNEL" = 1 ]; then
-    mk -C "$top/usr/src/sys/PC" CCOM=1
+if [ "$TOOLS_KERNEL" = native ]; then
+    mk -C "$top/usr/src/sys/PC" TOOLS=native
 else
-    mk -C "$top/usr/src/sys/PC"
+    mk -C "$top/usr/src/sys/PC" TOOLS=cross
 fi
 
 # The test programs: small model.
 cd "$out"
 python3 -I "$top/tools/mkstubs.py" --sysent "$top/usr/src/sys/sys/init_sysent.c" \
     "$here/syscalls.tab" "$top/usr/include/syscall.h" > stubs.s
-if [ "$NATIVE_PROGRAMS" = 1 ]; then
+if [ "$TOOLS_PROGRAMS" = native ]; then
     mk -C "$top/usr/src/lib/ccom/i286" host
     lib=crt0.o
     "$host/as" -ms -o crt0.o "$here/crt0.s"
@@ -112,13 +112,13 @@ python3 -I "$top/tests/harness/runtest.py" --until halting \
 #   disk:NAME   the same, but the kernel is the file /sys/unix and NAME
 #               is typed at /boot, after a name that is no file
 #
-# With NATIVE_BOOT=1 /boot and the boot blocks, and the diskette's boot
-# sector (tests/harness/runtest.py), are the ones the system's own
-# compiler, assembler and linker make (usr/src/sys/i286stand CCOM=1).
-if [ "$NATIVE_BOOT" = 1 ]; then
-    mk -C "$top/usr/src/sys/i286stand" CCOM=1
+# /boot and the boot blocks, and the diskette's boot sector
+# (tests/harness/runtest.py), are whichever TOOLS_BOOT says
+# (usr/src/sys/i286stand).
+if [ "$TOOLS_BOOT" = native ]; then
+    mk -C "$top/usr/src/sys/i286stand" TOOLS=native
 else
-    mk -C "$top/usr/src/sys/i286stand"
+    mk -C "$top/usr/src/sys/i286stand" TOOLS=cross
 fi
 cp "$stand/boot" boot
 # The boot block finds the blocks of a file past its fourth another way,

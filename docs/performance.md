@@ -87,8 +87,9 @@ tests/bench/run.sh                      # everything
 tests/bench/run.sh pipe pty             # those tests
 MS=1 tests/bench/run.sh tcp             # with a sample every millisecond
 BASE=before.txt tests/bench/run.sh      # compared with an earlier run
-NATIVE_KERNEL=1 tests/bench/run.sh      # the system's own compiler's kernel
-NATIVE=1 tests/bench/run.sh             # and its programs and libraries
+TOOLS=cross tests/bench/run.sh             # the cross compiler's system
+TOOLS=cross TOOLS_KERNEL=native tests/bench/run.sh  # with the system's own
+                                        # compiler's kernel
 ```
 
 It builds the system, boots it in the emulator to multi-user, logs in
@@ -104,12 +105,14 @@ as root on the serial port and runs `bench -m`. The harness
 - `--profile KERNEL[:MS]` takes a sample of where the processor is
   every MS milliseconds on average (below).
 
-The system is the cross compiler's unless it is said otherwise, as in
-the other tests that boot it ([tests](development.md#tests)).
-`NATIVE_KERNEL=1` boots the kernel that the system's own compiler,
-assembler and linker make (`obj/nPC/unix`), `NATIVE_PROGRAMS=1` a
+The system is the one its own tools build unless it is said otherwise
+(`TOOLS=cross`, the cross compiler's), as in the other tests that boot it
+([tests](development.md#tests)); the figures below are the cross
+compiler's system's but where they say.
+`TOOLS_KERNEL=native` boots the kernel that the system's own compiler,
+assembler and linker make (`obj/nPC/unix`), `TOOLS_PROGRAMS=native` a
 root of the programs and libraries they make (`obj/nbin`, `obj/nlib`),
-and `NATIVE=1` both, and the boot programs; the profile is read with
+and `TOOLS=native` both, and the boot programs; the profile is read with
 that kernel and those programs.
 
 What comes out, in `obj/tests/bench`, or `bench-nk`, `bench-np`,
@@ -598,8 +601,8 @@ the files as they were at 357 and 455.
 The kernel and the programs as the system's own compiler makes them
 ([the compiler](toolchain.md)), against the cross compiler's, with the
 emulator's wait state: the cross compiler's kernel and programs, its
-kernel with the system's compiler's programs (`NATIVE_KERNEL=1`), and
-the system's compiler's of both (`NATIVE_PROGRAMS=1` too). Beside each
+kernel with the system's compiler's programs (`TOOLS_KERNEL=native`), and
+the system's compiler's of both (`TOOLS_PROGRAMS=native` too). Beside each
 figure is its time against the first, above 1 for slower:
 
 ```

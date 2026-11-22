@@ -50,8 +50,8 @@ The PDP-11 and the 286 are close enough that the tree carries over:
 - `cc` is on the system, with an assembler and a linker of its own
   ([the compiler](docs/toolchain.md)). They can build every program and
   library, themselves included, on the 286, and the kernel where the
-  system is built ([the kernel](docs/toolchain.md#the-kernel)), though
-  the system is still built with the cross compiler.
+  system is built ([the kernel](docs/toolchain.md#the-kernel)): the
+  system is built with them.
 - Not there yet: `named` and `identd`; `troff`; the line printer's
   programs and UUCP; quotas in the kernel. [What is not
   ported](docs/unported.md) has the whole list.
@@ -62,21 +62,23 @@ The PDP-11 and the 286 are close enough that the tree carries over:
 
 ## Building
 
-The system is cross-compiled, with Open Watcom v2 and the host's own C
-compiler, on Linux or macOS. The repository must be on a case-sensitive
-file system: the tree has file names that differ only by case.
+The system is built on Linux or macOS by its own compiler, assembler
+and linker, which the host's C compiler makes first. The repository
+must be on a case-sensitive file system: the tree has file names that
+differ only by case.
 
 ```sh
-tools/fetch-reference.py toolchain    # Open Watcom, about 150 MB
-tools/install-watcom.sh               # unpacked into toolchain/
-. tools/env.sh
 make -C usr/src/sys/PC                # the kernel
 make -C usr/src/sys/i286stand         # the boot sectors and /boot
 make -C usr/src/lib/libc/i286         # the C library
 make -C usr/src/i286 all root         # the programs and the root file system
-python3 tools/mkdisk.py -p -b obj/stand/hdboot.bin -m obj/stand/mbr.bin \
+python3 tools/mkdisk.py -p -b obj/nstand/hdboot.bin -m obj/nstand/mbr.bin \
     disk.img a=obj/root/root.fs b=swap:4000
 ```
+
+A cross compiler, Open Watcom v2 with NASM, builds it as well, with
+`TOOLS=cross` given to each `make`
+([building](docs/development.md#building)); some of the tests use it.
 
 The last line makes a bootable image of a 20 MB IDE disk. [Building and
 testing](docs/development.md) has the rest: SCSI disks, the tools, and

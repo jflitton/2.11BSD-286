@@ -6,8 +6,10 @@
 #
 #	make -C usr/src/i286
 #
-# makes each program in obj/bin, under its own name, and the libraries
-# they use in obj/lib/M, M being the model's letter.  GNU make.
+# makes each program in obj/nbin, under its own name, and the libraries
+# they use in obj/nlib/M, M being the model's letter, with the system's
+# own compiler, assembler and linker (TOOLS=native, below); with TOOLS=cross the
+# cross compiler makes them, in obj/bin and obj/lib/M.  GNU make.
 #
 # A program is listed with its sources, relative to usr/src unless they
 # are absolute, in NAME_SRCS, and may have NAME_FLAGS for the compiler
@@ -17,16 +19,24 @@
 # and linked in one run of tools/cc; what the compiler says goes to
 # obj/bin/log/NAME, and is shown only if it fails.
 #
-# With CCOM=1 they are made by the system's own compiler, assembler and
+# With TOOLS=native they are made by the system's own compiler, assembler and
 # linker, as built for this machine (tools/cc -ccom): the programs in
 # obj/nbin and the libraries in obj/nlib/M, libNAME.a, where the C
-# library as those make it is to be (make -C ../lib/libc/i286 CCOM=1).
+# library as those make it is to be (make -C ../lib/libc/i286 TOOLS=native).
 # The compiler's code is nearly a tenth larger than the cross
 # compiler's, and each program is of the model it has here.  That
 # linker reads a library once, so a program's libraries are named in
 # the order of what needs what, as they are for ld anywhere.
 
 TOP:=	$(abspath ../../..)
+# Whose tools make it: the system's own compiler, assembler and linker,
+# as built for this machine (TOOLS=native), or the cross compiler's
+# (TOOLS=cross).  CCOM is set for the first, and is not to be given.
+TOOLS?=	native
+ifeq ($(filter native cross,$(TOOLS)),)
+$(error TOOLS is native or cross)
+endif
+override CCOM:=	$(if $(filter native,$(TOOLS)),1)
 SRC:=	$(TOP)/usr/src
 O=	$(TOP)/obj/$(if $(CCOM),nbin,bin)
 NLIB=	$(TOP)/obj/nlib
@@ -669,7 +679,7 @@ trek_LIBS=	-lm
 # hack's sources, each run through the preprocessor and then crypt, a
 # program of hack's own built for this machine, which shortens the words
 # of the messages in its strings, as hack's Makefile has it.  The
-# preprocessor is the compiler's, the system's own with CCOM=1, whose
+# preprocessor is the compiler's, the system's own with TOOLS=native, whose
 # hack has its sources in a directory of its own.
 HGO=		$(GO)/$(if $(CCOM),nhack,hack)
 HACK=		hack.Decl.c hack.apply.c hack.bones.c hack.c hack.cmd.c \
@@ -1202,20 +1212,20 @@ R=	$(TOP)/obj/root
 ROOTSIZE= 24000
 ROOTDISK= wd0
 STRIP=	yes
-# The kernel that is /unix: the cross compiler's, or with
-# KERNEL=$(TOP)/obj/nPC/unix the one the system's own tools made
-# (usr/src/sys/PC CCOM=1); and /boot and the boot block in /mdec, the
-# cross build's, or with STAND=$(TOP)/obj/nstand those the system's own
-# tools made (usr/src/sys/i286stand CCOM=1).  root.proto has them from
+# The kernel that is /unix, and /boot and the boot block in /mdec: those
+# of the build this is, the system's own tools' (usr/src/sys/PC and
+# usr/src/sys/i286stand, in obj/nPC and obj/nstand) or with TOOLS=cross the
+# cross compiler's (obj/PC, obj/stand), unless KERNEL names another
+# kernel or STAND another directory.  root.proto has them from
 # kernel.proto, which is written again only when it changes.
-KERNEL=	$(TOP)/obj/PC/unix
-STAND=	$(TOP)/obj/stand
+KERNEL=	$(TOP)/obj/$(if $(CCOM),nPC,PC)/unix
+STAND=	$(TOP)/obj/$(if $(CCOM),nstand,stand)
 
 # The system has its compiler, and so the headers and the libraries
 # that a program is compiled and linked with there.  The libraries are
 # of the system's own objects, which the cross compiler's are not:
 # they are made, for each model, by the system's own compiler,
-# assembler and linker as built for this machine (CCOM=1, above), in
+# assembler and linker as built for this machine (TOOLS=native, above), in
 # obj/nlib, whichever compiler the programs are made by.  That is done
 # first, by a make of its own, and then the file system is made;
 # cc.proto lists them and /usr/include for root.proto
@@ -1230,13 +1240,13 @@ root:	syslibs
 
 syslibs:
 	@$(MAKE) --no-print-directory -C $(SRC)/lib/ccom/i286 host
-	@$(MAKE) --no-print-directory -C $(SRC)/lib/libc/i286 CCOM=1 \
+	@$(MAKE) --no-print-directory -C $(SRC)/lib/libc/i286 TOOLS=native \
 	    MODEL=s O=$(NLIB)/s
-	@$(MAKE) --no-print-directory -C $(SRC)/lib/libc/i286 CCOM=1 \
+	@$(MAKE) --no-print-directory -C $(SRC)/lib/libc/i286 TOOLS=native \
 	    MODEL=m O=$(NLIB)/m
-	@$(MAKE) --no-print-directory -C $(SRC)/lib/libc/i286 CCOM=1 \
+	@$(MAKE) --no-print-directory -C $(SRC)/lib/libc/i286 TOOLS=native \
 	    MODEL=l O=$(NLIB)/l
-	@$(MAKE) --no-print-directory CCOM=1 $(foreach m,s m l,\
+	@$(MAKE) --no-print-directory TOOLS=native $(foreach m,s m l,\
 	    $(foreach l,$(LIBRARIES),$(NLIB)/$(m)/lib$(l).a))
 
 # The compiler's passes want the C library of those tools before the
@@ -1246,7 +1256,7 @@ syslibs:
 # always, and every program with it.
 $(NLIB)/s/libc.a:
 	@$(MAKE) --no-print-directory -C $(SRC)/lib/ccom/i286 host
-	@$(MAKE) --no-print-directory -C $(SRC)/lib/libc/i286 CCOM=1 \
+	@$(MAKE) --no-print-directory -C $(SRC)/lib/libc/i286 TOOLS=native \
 	    MODEL=s O=$(NLIB)/s
 $(NLIB)/s/crt0.o: | $(NLIB)/s/libc.a ;
 

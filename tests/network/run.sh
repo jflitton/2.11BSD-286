@@ -26,7 +26,7 @@
 # them.
 #
 # The Ethernet card is 86Box's NETCARD, ne2k8 if it is not set, as in
-# tests/system.  NATIVE, NATIVE_KERNEL and NATIVE_PROGRAMS are as there
+# tests/system.  TOOLS, TOOLS_KERNEL and TOOLS_PROGRAMS are as there
 # too.  Run from the top of the repository after `. tools/env.sh`.
 set -e
 if [ "$EMU" = qemu ]; then

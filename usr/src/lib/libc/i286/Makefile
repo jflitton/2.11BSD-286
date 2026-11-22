@@ -4,10 +4,13 @@
 #
 #	make -C usr/src/lib/libc/i286
 #
-# makes, for each model, obj/lib/M/crt0.o, the start-up code every
-# program is linked with first, and obj/lib/M/libc.lib, the library: M
+# makes, for each model, obj/nlib/M/crt0.o, the start-up code every
+# program is linked with first, and obj/nlib/M/libc.a, the library: M
 # is s for the small model, m for the medium and l for the large.
-# MODEL=s, MODEL=m or MODEL=l makes only the one.  GNU make.
+# MODEL=s, MODEL=m or MODEL=l makes only the one.  GNU make.  That is
+# with the system's own tools (TOOLS=native, below), which make it unless
+# TOOLS=cross says the cross compiler is to: then obj/lib/M/crt0.o and
+# libc.lib.
 #
 # The medium model's code is far: each file's is a segment of its own,
 # and every function returns far.  Its data is near, in one segment, as
@@ -27,7 +30,7 @@
 # Each variable a file defines without a value gets common storage
 # (tools/commonize.py), as for programs (tools/cc).
 #
-# With CCOM=1 the library is made by the system's own tools, as built
+# With TOOLS=native the library is made by the system's own tools, as built
 # for this machine: the C compiled by its compiler (tools/ncc -O,
 # ../../cpp/i286, ../../ccom/i286 and ../../c2/i286) and the assembly,
 # which is the same, assembled by its assembler (../../../bin/as/i286).
@@ -71,6 +74,14 @@
 # compat-2.9.
 
 TOP:=	$(abspath ../../../../..)
+# Whose tools make it: the system's own compiler, assembler and linker,
+# as built for this machine (TOOLS=native), or the cross compiler's
+# (TOOLS=cross).  CCOM is set for the first, and is not to be given.
+TOOLS?=	native
+ifeq ($(filter native cross,$(TOOLS)),)
+$(error TOOLS is native or cross)
+endif
+override CCOM:=	$(if $(filter native,$(TOOLS)),1)
 LIBC:=	$(TOP)/usr/src/lib/libc
 MD:=	$(LIBC)/i286
 

@@ -13,7 +13,7 @@
 # are built as they would be for a real machine, as tests/system has
 # them.
 #
-# NATIVE, NATIVE_KERNEL and NATIVE_PROGRAMS are as in tests/system
+# TOOLS, TOOLS_KERNEL and TOOLS_PROGRAMS are as in tests/system
 # (tests/harness/system.sh).  With ROOTFS set, that root file system is
 # booted in place of the one made here, with the kernel that is /unix
 # in it given as KERNEL, or the one the switches choose.

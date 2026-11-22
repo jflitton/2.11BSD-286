@@ -11,12 +11,13 @@ cc -mm -o big big.c                 # medium model: far code
 cc -ml -o bigger bigger.c           # large model: far data as well
 ```
 
-The system is built either of two ways: by the cross compiler, Open
-Watcom ([building](development.md)), or by these same tools, compiled
-for the machine the system is built on: the programs (`tools/cc
--ccom`), the kernel ([below](#the-kernel)) and the programs that load
-it ([booting](boot.md)). The tests boot either, `NATIVE=0` or
-`NATIVE=1`, the second all their work
+The system is built by these same tools, compiled for the machine
+the system is built on: the programs (`tools/cc -ccom`), the kernel
+([below](#the-kernel)) and the programs that load it
+([booting](boot.md)); or, with `TOOLS=cross`, by the cross compiler, Open
+Watcom ([building](development.md)). The tests boot either, `TOOLS=cross` or
+`TOOLS=native`, the second all these tools' work and what they boot
+unless told
 ([tests](development.md#tests)), and what one's system writes
 the other's reads ([structures](unported.md#the-compiler-and-object-files)).
 And the system makes them of their
@@ -365,9 +366,9 @@ The same sources are compiled for the machine the system is built on
 | `tools/ncc` | compiles one file: `cpp`, given what `cc` gives `/lib/cpp` on the system, then `c0`, `c1`, `c2` with `-O`, and `as` |
 | `tools/cc -ccom` | `cc` with those in place of the cross compiler, `as` for assembly, and `ld` |
 | `tools/ar.py` | makes a library with its table of contents, as `ar` and `ranlib` do on the system |
-| `make -C usr/src/lib/libc/i286 CCOM=1` | the C library that way, in `obj/nlib` |
-| `make -C usr/src/i286 CCOM=1` | every program that way, in `obj/nbin` |
-| `make -C usr/src/sys/i286stand CCOM=1` | the boot blocks by `as -b` and `/boot` by `tools/ncc` and `ld -b`, in `obj/nstand` |
+| `make -C usr/src/lib/libc/i286` | the C library that way, in `obj/nlib` |
+| `make -C usr/src/i286` | every program that way, in `obj/nbin` |
+| `make -C usr/src/sys/i286stand` | the boot blocks by `as -b` and `/boot` by `tools/ncc` and `ld -b`, in `obj/nstand` |
 
 The libraries on the root file system are those of `obj/nlib` whichever
 compiler made the programs, since the cross compiler's objects are of
@@ -405,7 +406,7 @@ system is built.
 
 ## The kernel
 
-`make -C usr/src/sys/PC CCOM=1` makes the kernel with the system's own
+`make -C usr/src/sys/PC` makes the kernel with the system's own
 tools as they are built where the system is built, in `obj/nPC`: each
 C file by `tools/ncc -k -O -mm`, with the kernel's own `-I`
 directories in their order, and the network's with `-nd=NET` besides; the
@@ -424,8 +425,9 @@ rest) are in line by both compilers ([above](#in-line-functions)), and
 `tools/netcheck.py` reads its objects as it reads the cross compiler's,
 with what the compiler said of the network's pointers into SS
 ([the network](network.md#what-the-compiler-does-not-see-netcheck)).
-With `NATIVE_KERNEL=1`, or `NATIVE=1`, the tests that boot the system
-boot it with this kernel ([tests](development.md#tests)).
+The tests that boot the system boot it with this kernel, or with
+`TOOLS_KERNEL=cross`, or `TOOLS=cross`, the cross compiler's
+([tests](development.md#tests)).
 
 What the kernel took of the compiler was far variables, the two kinds
 of based pointer and `-nd` ([above](#far-variables-and-pointers-into-a-segment));

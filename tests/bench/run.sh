@@ -20,12 +20,12 @@
 # it here after.
 #
 # The system is built as in tests/system (tests/harness/system.sh):
-# NATIVE=0 boots the cross compiler's, NATIVE=1 one that is the work of
-# the system's own compiler, assembler and linker throughout, and
-# NATIVE_KERNEL, NATIVE_PROGRAMS or NATIVE_BOOT choose for the kernel
-# (usr/src/sys/PC CCOM=1), the programs, with the C library and the
-# others (usr/src/i286 CCOM=1, in obj/nbin), or the boot programs,
-# alone; without any it is the default build.  The profile is read with
+# TOOLS=cross boots the cross compiler's, TOOLS=native one that is the
+# work of the system's own compiler, assembler and linker throughout,
+# and TOOLS_KERNEL, TOOLS_PROGRAMS or TOOLS_BOOT choose for the kernel
+# (usr/src/sys/PC), the programs, with the C library and the others
+# (usr/src/i286), or the boot programs, alone; without any it is the
+# default build, the system's own tools'.  The profile is read with
 # the kernel and the programs that ran.  Each case has a directory of
 # its own, so that one may be compared with another: obj/tests/bench
 # for the cross compiler's, with -n after it for the system's own

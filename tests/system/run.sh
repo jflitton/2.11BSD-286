@@ -36,9 +36,9 @@
 # that is 8 bits wide, as the PicoMEM's is.  ne2k is one 16 bits wide,
 # and novell_ne1k an NE1000, with half the memory (tests/harness/runtest.py
 # says what they are, and docs/network.md how the driver finds out).
-# The system is the cross compiler's work with NATIVE=0, and its own
-# compiler's, assembler's and linker's with NATIVE=1; NATIVE_KERNEL,
-# NATIVE_PROGRAMS and NATIVE_BOOT choose for the kernel, the programs or
+# The system is the cross compiler's work with TOOLS=cross, and its own
+# compiler's, assembler's and linker's with TOOLS=native; TOOLS_KERNEL,
+# TOOLS_PROGRAMS and TOOLS_BOOT choose for the kernel, the programs or
 # the boot programs alone, and without any it is the default build
 # (tests/harness/system.sh).  Each case is in a directory of its own,
 # obj/tests/system-n and so on.

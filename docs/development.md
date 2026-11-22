@@ -42,8 +42,13 @@ Assembly is NASM syntax, in files ending `.s` as elsewhere in the tree.
 
 ## Toolchain
 
-The system is cross-compiled with Open Watcom v2, which runs on Linux (x64,
-arm64) and macOS (x64, arm64).
+The system is built by its own compiler, assembler and linker
+([the compiler](toolchain.md)), compiled for the machine it is built
+on by that machine's C compiler. It is built as well by a cross
+compiler, Open Watcom v2, which runs on Linux (x64, arm64) and macOS
+(x64, arm64), with NASM for the assembly: `TOOLS=cross` to `make`. That
+was the first way, it is kept working, and the tests build things
+with it.
 
 ```sh
 tools/fetch-reference.py toolchain   # the archive, about 150 MB
@@ -102,27 +107,25 @@ negative numbers in them, and nothing fails to compile either way.
 
 ```sh
 . tools/env.sh
-make -C usr/src/sys/PC              # the kernel, obj/PC/unix
-make -C usr/src/sys/PC CCOM=1       # the same by the system's own
-                                    # tools, obj/nPC/unix
-make -C usr/src/sys/i286stand       # the boot sectors and /boot, obj/stand
-make -C usr/src/sys/i286stand CCOM=1  # the same by the system's own
-                                    # tools, obj/nstand
-make -C usr/src/lib/libc/i286       # the C library, obj/lib
-make -C usr/src/i286 all root       # the programs, obj/bin, and the root
+make -C usr/src/sys/PC              # the kernel, obj/nPC/unix
+make -C usr/src/sys/i286stand       # the boot sectors and /boot, obj/nstand
+make -C usr/src/lib/libc/i286       # the C library, obj/nlib
+make -C usr/src/i286 all root       # the programs, obj/nbin, and the root
                                     # file system, obj/root/root.fs
-python3 tools/mkdisk.py -p -g 977,5,17 -b obj/stand/hdboot.bin \
-    -m obj/stand/mbr.bin disk.img a=obj/root/root.fs b=swap:4000
+python3 tools/mkdisk.py -p -g 977,5,17 -b obj/nstand/hdboot.bin \
+    -m obj/nstand/mbr.bin disk.img a=obj/root/root.fs b=swap:4000
 ```
+
+That is the system's own tools' work. With `TOOLS=cross` each `make` has
+the cross compiler do the same, in `obj/PC`, `obj/stand`, `obj/lib`
+and `obj/bin`, and the root is made of those.
 
 The last makes a bootable image of a 40 MB IDE disk with the root and
 2 MB of swap. The root file system is 24 MB, with 15 MB in it;
 `make root ROOTSIZE=` makes it larger, and `ROOTDISK=sd0` makes it for a
-SCSI disk, whose image `mkdisk.py -t scsi` makes; `make root
-KERNEL=$PWD/obj/nPC/unix` makes it with the kernel the system's own
-tools made ([the compiler](toolchain.md#the-kernel)), `make root CCOM=1`
-with the programs they made, in `obj/nbin`, and
-`STAND=$PWD/obj/nstand` with their `/boot` and boot block. [Booting](boot.md) and
+SCSI disk, whose image `mkdisk.py -t scsi` makes; `KERNEL=` and
+`STAND=` name another kernel, or directory of `/boot` and the boot
+block, than those of the build. [Booting](boot.md) and
 [disks](disks.md) say more, and [the root file
 system](userland.md#the-root-file-system) what is in it.
 
@@ -222,8 +225,7 @@ tests/pm/run.sh         # the kernel's start-up and trap entry: 54 checks
 tests/user/run.sh       # a process in ring 3: 58 checks
 tests/kernel/run.sh     # the kernel, with a test program as init, booted
                         # six times: 82 checks, then 98 on each of five
-                        # disks; with NATIVE_BOOT=1, by the boot
-                        # programs the system's own tools made
+                        # disks
 tests/libc/run.sh       # the C library, with a test program as init: 74
                         # checks in the small model, 74 in the medium
                         # and 84 in the large
@@ -296,14 +298,14 @@ tests/ve/run.sh         # the editor ve, built for that machine too: 115
 The tests that boot the system as a machine has it, `tests/system`,
 `tests/network`, `tests/programs`, `tests/bench`, `tests/libc` and
 `tests/ccom` with `self.sh` and `programs.sh`, boot either build of it:
-with `NATIVE=0` the cross compiler's, and with `NATIVE=1` the system's
+with `TOOLS=cross` the cross compiler's, and with `TOOLS=native` the system's
 own compiler's, assembler's and linker's throughout, the kernel, the
 libraries, every program on the disk and the boot programs
 (`tests/harness/system.sh`). Without it they boot the default build,
-the cross compiler's, which is one line of that file. `NATIVE_KERNEL`,
-`NATIVE_PROGRAMS` and `NATIVE_BOOT` choose for the kernel, the
-programs and the libraries, or `/boot` and the boot blocks, alone (and
-`CCOM=1` is `NATIVE_PROGRAMS=1` to `tests/libc`). Each case is in a
+the system's own tools', which is one line of that file. `TOOLS_KERNEL`,
+`TOOLS_PROGRAMS` and `TOOLS_BOOT` choose for the kernel, the
+programs and the libraries, or `/boot` and the boot blocks, alone:
+each is `native` or `cross`, as the Makefiles' `TOOLS` is. Each case is in a
 directory of its own in `obj/tests`, the suite's name for the cross
 compiler's and with `-n` after it for the system's own tools', or
 `-n` and `k`, `p` and `b` for the parts that are theirs when not all
@@ -342,7 +344,7 @@ and so on).
   passes on a C file and `c2` on a file of assembly, each of which is
   to make there exactly what it made here.
   The library is in `obj/nlib`, where `make -C usr/src/lib/libc/i286
-  CCOM=1` puts it and `tools/cc -ccom` looks for it.
+  TOOLS=native` puts it and `tools/cc -ccom` looks for it.
   `tests/ccom/programs.sh` has those tools make the system's programs,
   and the libraries they use, and runs `tests/programs` on a root file
   system of those; `obj/nbin/native` lists which they were, and
@@ -386,7 +388,7 @@ and so on).
   for each of the three models; the small one runs the medium one and
   then the large one when it is done, and the large one has checks of
   its own, of `malloc` over many segments and of `__huge` pointers.
-  With `NATIVE_PROGRAMS=1`, or `CCOM=1`, it does the same with the library and the
+  With `TOOLS_PROGRAMS=native` it does the same with the library and the
   program compiled by the system's own compiler, whose large-model one
   goes through its piece of more than 64K with `SEGADDR`, having no
   `__huge`.

@@ -3,11 +3,11 @@
 # a process (usr/src/sys/i286).  u_start.s and u_test.c are a small-model
 # program; k_main.c and the kernel's own start-up are a medium-model
 # kernel that carries that program as data, loads it and runs it.
-# With NATIVE=1 both are the work of the system's own compiler, assembler
-# and linker, and not the cross compiler's; NATIVE_PROGRAMS=1 and
-# NATIVE_KERNEL=1 say so of the process or the kernel alone
+# Both are the work of the system's own compiler, assembler and linker,
+# or with TOOLS=cross the cross compiler's; TOOLS_PROGRAMS and
+# TOOLS_KERNEL say which of the process or the kernel alone
 # (tests/harness/system.sh, which says what the directory in obj/tests
-# is called then).
+# is called for each).
 # Run from the top of the repository after `. tools/env.sh`.
 set -e
 if [ "$EMU" = qemu ]; then
@@ -20,11 +20,11 @@ sys=$top/usr/src/sys/i286
 crt=$top/usr/src/lib/libc/i286/crt
 here=$top/tests/user
 . "$top/tests/harness/system.sh"
-case $NATIVE_KERNEL$NATIVE_PROGRAMS in
-00) name=user ;;
-11) name=user-n ;;
-10) name=user-nk ;;
-01) name=user-np ;;
+case $TOOLS_KERNEL$TOOLS_PROGRAMS in
+crosscross) name=user ;;
+nativenative) name=user-n ;;
+nativecross) name=user-nk ;;
+crossnative) name=user-np ;;
 esac
 host=$top/obj/host/ccom
 if [ $name != user ]; then
@@ -36,14 +36,14 @@ mkdir -p "$out/u" "$out/k"
 # The process.
 cd "$out/u"
 objs=u_start.o
-if [ "$NATIVE_PROGRAMS" = 1 ]; then
+if [ "$TOOLS_PROGRAMS" = native ]; then
     "$host/as" -ms -o u_start.o "$here/u_start.s"
 else
     nasm -f obj -o u_start.o "$here/u_start.s"
 fi
 for f in "$crt/i4m.s" "$crt/i4d.s" "$crt/chp.s"; do
     o=$(basename "$f" .s).o
-    if [ "$NATIVE_PROGRAMS" = 1 ]; then
+    if [ "$TOOLS_PROGRAMS" = native ]; then
         "$host/as" -ms -I"$crt/" -o "$o" "$f"
     else
         nasm -f obj -I "$crt/" -o "$o" "$f"
@@ -52,14 +52,14 @@ for f in "$crt/i4m.s" "$crt/i4d.s" "$crt/chp.s"; do
 done
 for f in "$here/u_test.c" "$top/tests/harness/printf.c"; do
     o=$(basename "$f" .c).o
-    if [ "$NATIVE_PROGRAMS" = 1 ]; then
+    if [ "$TOOLS_PROGRAMS" = native ]; then
         "$top/tools/ncc" -ms -o "$o" "$f"
     else
         "$top/tools/cc286" -ms -wcd=131 -wcd=107 -o "$o" "$f"
     fi
     objs="$objs,$o"
 done
-if [ "$NATIVE_PROGRAMS" = 1 ]; then
+if [ "$TOOLS_PROGRAMS" = native ]; then
     "$host/ld" -ms -stack 1024 -o "$out/k/user" $(echo "$objs" | tr , ' ')
 else
     wlink op q format os2 name user.ne disable 1014 op nodefaultlibs,stack=1024 file "$objs"
@@ -72,7 +72,7 @@ objs=
 for f in "$sys/mch_start.s" "$sys/mch_trap.s" "$sys/mch_xxx.s" "$sys/mch_copy.s" \
     "$top/tests/pm/pm_asm.s" "$here/k_image.s" "$crt/i4m.s" "$crt/i4d.s"; do
     o=$(basename "$f" .s).o
-    if [ "$NATIVE_KERNEL" = 1 ]; then
+    if [ "$TOOLS_KERNEL" = native ]; then
         "$host/as" -mm -DFAR -I"$sys/" -I"$crt/" -o "$o" "$f"
     else
         nasm -f obj -DFAR -I "$sys/" -I "$crt/" -o "$o" "$f"
@@ -82,7 +82,7 @@ done
 for f in "$top/tests/harness/cons.c" "$top/tests/harness/kern.c" \
     "$top/tests/harness/printf.c" "$here/k_main.c"; do
     o=$(basename "$f" .c).o
-    if [ "$NATIVE_KERNEL" = 1 ]; then
+    if [ "$TOOLS_KERNEL" = native ]; then
         "$top/tools/ncc" -mm -I"$sys" -o "$o" "$f"
     else
         "$top/tools/cc286" -mm -wcd=131 -wcd=107 -I"$sys" -o "$o" "$f"
@@ -90,7 +90,7 @@ for f in "$top/tests/harness/cons.c" "$top/tests/harness/kern.c" \
     objs="$objs,$o"
 done
 # Message 1014 is the lack of a stack segment; mch_start.s has the stack.
-if [ "$NATIVE_KERNEL" = 1 ]; then
+if [ "$TOOLS_KERNEL" = native ]; then
     "$host/ld" -mm -gdt 16 -stack 0 -M -o kernel \
         $(echo "${objs#,}" | tr , ' ') > kernel.map
 else

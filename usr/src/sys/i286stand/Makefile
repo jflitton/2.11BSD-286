@@ -4,7 +4,7 @@
 #
 #	make -C usr/src/sys/i286stand
 #
-# makes, in obj/stand:
+# makes, in obj/nstand:
 #
 #	fdboot.bin	the diskette's boot sector, which holds a table of
 #			where on the diskette the kernel is (tools/mkfd.py)
@@ -14,9 +14,10 @@
 #			disk, which loads
 #	boot		the file /boot, which loads the kernel
 #
-#	make -C usr/src/sys/i286stand CCOM=1
+#	make -C usr/src/sys/i286stand TOOLS=cross
 #
-# makes the same in obj/nstand with the system's own compiler, assembler
+# makes them in obj/stand with the cross compiler and NASM; without it
+# they are made in obj/nstand with the system's own compiler, assembler
 # and linker, as they are built for this machine (tools/ncc,
 # docs/toolchain.md), and none of the cross compiler's or NASM's.
 #
@@ -24,6 +25,14 @@
 # has how they work.  GNU make.
 
 TOP:=	$(abspath ../../../..)
+# Whose tools make it: the system's own compiler, assembler and linker,
+# as built for this machine (TOOLS=native), or the cross compiler's
+# (TOOLS=cross).  CCOM is set for the first, and is not to be given.
+TOOLS?=	native
+ifeq ($(filter native cross,$(TOOLS)),)
+$(error TOOLS is native or cross)
+endif
+override CCOM:=	$(if $(filter native,$(TOOLS)),1)
 SYS:=	$(TOP)/usr/src/sys
 ifdef CCOM
 O=	$(TOP)/obj/nstand
