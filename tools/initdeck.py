@@ -11,7 +11,7 @@ CARDS.PCK is what monop reads (cards.c): a <deck.h> DECK for each deck,
 as the 286 lays it out, its number of cards and of the last one drawn
 (ints), whether its get-out-of-jail-free card is out (a char, then a
 byte to align what follows) and a pointer, which monop sets itself and
-is written as 0: 8 bytes; then the offset in the file of each card of
+initdeck writes as 0: 8 bytes; then the offset in the file of each card of
 the first deck and then of the second, a long each; then each card, its
 two characters, its number as an int, and its text with a NUL after it.
 Numbers are little-endian.  This reads the text as initdeck reads it,

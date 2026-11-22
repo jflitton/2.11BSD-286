@@ -23,6 +23,12 @@ one it was written from is.
                                 /usr/src
     OUT/programs, OUT/libraries the names of what the last makes
     OUT/installed               each program it installs, and where
+    OUT/data                    each file that is not a program that it
+                                makes (make data), after the name of
+                                what it is of (make data-NAME)
+    OUT/datainstalled           each of those it installs, and where;
+                                under "progs", what the programs'
+                                install does
 
 What make makes there is left where it is run, as upstream's Makefiles
 leave it: unix in /usr/src/sys/PC, as in a directory of /sys made by
@@ -39,6 +45,9 @@ import os
 import re
 import subprocess
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import mkman
 
 TOP = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(TOP, "usr", "src")
@@ -109,6 +118,33 @@ def archive(lib, objs, per=100):
                      objs[i:i + per]).replace("=\t", " ", 1).replace(
                          "\n\t", "\n\t    ")
     return cmds + "\tranlib %s\n" % lib
+
+
+def groups(name, words, per=40):
+    """The macros NAME1, NAME2 and so on, of PER words each, and their
+    names: a line that make reads, with what its macros stand for put
+    in, has room for some 7000 characters."""
+    text, names = "", []
+    for i in range(0, len(words), per):
+        names.append("%s%d" % (name, i // per + 1))
+        text += fold(names[-1], words[i:i + per])
+    return text, names
+
+
+def placed(path, where, own_mode):
+    """The command that puts PATH at WHERE, as install-progs puts a
+    program: a copy beside it is made what it is to be and then takes
+    its name."""
+    mode, _, own = own_mode.partition(":")
+    new = where + ".new"
+    cmd = "cp %s '%s'" % (path, new)
+    if own:
+        uid, _, gid = own.rpartition(".")
+        if uid:
+            cmd += " && chown %s '%s'" % (uid, new)
+        cmd += " && chgrp %s '%s'" % (gid, new)
+    return "\t%s && chmod %s '%s' && \\\n\t    mv -f '%s' '%s'\n" % (
+        cmd, mode, new, new, where)
 
 
 def kernel():
@@ -376,6 +412,14 @@ def programs():
     filtered = []       # (directory, program, its source and flags,
                         #  cc -E's flags, sources)
     sysrules = []
+    sysmacros = []      # (name, words)
+    single = []         # (target, what it depends on, the command)
+    data = []           # (what it is of, files)
+    site = []           # data that is made and never installed
+    progdata = []       # what a program reads that is made with it
+    placing = []        # (where, mode and owner, file)
+    linking = []        # (name, the file it is another name of)
+    given = []          # directories of usr/src to give besides
     inrules = False
     for line in lines("i286"):
         if inrules:
@@ -398,6 +442,26 @@ def programs():
             out, opts, srcs, deps = rest.split("|")
             mkstr.append((out.strip(), opts.strip(), srcs.split(),
                           deps.split()))
+            progdata.append(out.strip())
+        elif kind == "PROGDATA":
+            progdata += rest.split()
+        elif kind == "MACRO":
+            w = rest.split()
+            sysmacros.append((w[0], w[1:]))
+        elif kind == "RULE":
+            target, deps, cmd = rest.split("|", 2)
+            single.append((target.strip(), deps.split(), cmd.strip()))
+        elif kind == "DATA":
+            name, files = rest.split("|")
+            data.append((name.strip(), files.split()))
+        elif kind == "SITE":
+            site = rest.split()
+        elif kind == "DIRS":
+            given += rest.split()
+        elif kind == "INSTALL":
+            placing.append(tuple(rest.split()))
+        elif kind == "LINK":
+            linking.append(tuple(rest.split()))
         if kind == "PROG":
             head, flags, srcs, ls = rest.split("|")
             name, model = head.split()
@@ -433,7 +497,7 @@ def programs():
             if not (f.startswith(obj) and f[len(obj):] in gendirs):
                 return False
         return TOP not in re.sub(r"-I/\S+", "", flags)
-    dirs = set()
+    dirs = set(given)
     rules = []
     made, left = [], []
 
@@ -554,14 +618,79 @@ def programs():
         sorted("$S/%s/%s" % (h, f) for h in ("sys/h", "sys/i286")
                for f in os.listdir(os.path.join(SRC, h)) if f.endswith(".h"))
     macros, stamprule = stamp(hdrs)
+
+    # What is not a program.  The rules of one command each, and the
+    # manual: a page is formatted where its source is, as upstream's
+    # Makefiles format it, so that a file it reads (.so) is found.
+    for target, deps, cmd in single:
+        rules.append(fold(target + ":", deps).replace(":=\t", ":\t", 1) +
+                     "\t" + cmd + "\n")
+    wanted = mkman.pages(SRC, os.path.join(SRC, "i286", "man.list"))
+    names = mkman.others(wanted)
+    files = set()       # sources that are given without their directory
+    pages = []
+    for d, name, path in sorted(wanted):
+        rel = os.path.relpath(path, SRC)
+        files.add(rel)
+        for line in open(path, "rb"):
+            m = mkman.SO.match(line)
+            if m and not m.group(1).startswith(b"/"):
+                files.add(os.path.join(os.path.dirname(rel),
+                                       m.group(1).decode()))
+        pages.append("man/%s/%s" % (d, name))
+        rules.append("%s: $S/%s\n\tcd $S/%s && nroff -man -h %s > "
+                     "$S/i286/%s\n" % (pages[-1], rel, os.path.dirname(rel),
+                                       os.path.basename(rel), pages[-1]))
+    mandirs = sorted(set(d for d, _, _ in wanted))
+    mantext, mannames = groups("MAN", pages)
+    targets = "".join("data-man: $(%s)\n" % n for n in mannames) + \
+        "data-man: man/whatis\n\n"
+    rules.append(
+        "".join("man/whatis: $(%s)\n" % n for n in mannames) +
+        "\tfor d in %s; do for f in man/$$d/*.0; do \\\n"
+        "\t    sed -n -f $S/man/makewhatis.sed $$f; done; done | \\\n"
+        "\t    sort -u > man/whatis\n" % " ".join(mandirs))
+    files.add("man/makewhatis.sed")
+    # What the rules as they are written name of usr/src: a file, or a
+    # directory, which is then given whole.
+    for text in sysrules + [" ".join(w) for _, w in sysmacros] + \
+            [" ".join(d) + " " + c for _, d, c in single]:
+        for f in re.findall(r"\$S/([\w./+-]+)", text):
+            f = f.rstrip("/")
+            if os.path.isdir(os.path.join(SRC, f)):
+                dirs.add(f)
+            elif os.path.isfile(os.path.join(SRC, f)):
+                files.add(f)
+    datatext, every = mantext, []
+    for name, made_ in data:
+        text, ns = groups(name.upper(), made_)
+        datatext += text
+        targets += "".join("data-%s: $(%s)\n" % (name, n) for n in ns) + "\n"
+        every += made_
+    data.append(("man", pages + ["man/whatis"]))
+    every += data[-1][1]
+    # The directories they are made in, but zic's own, and games, which
+    # has more than these.
+    datadirs = sorted(set(os.path.dirname(f) for f in every) - {"games"})
+    datadirs = [d for d in datadirs if not d.startswith("zoneinfo/")]
     # Where each program is on the system, its mode and whose it is, as
     # the root file system has it (root.proto), and the other names it
     # has there.
     where = {}
     installed = []
-    cmds = ""
+    datainstalled = []  # (what it is of, file, where)
+    cmds = datacmds = ""
     for line in open(os.path.join(SRC, "i286", "root.proto")):
         w = line.split()
+        made_ = w[3][len("../../../obj/"):] if len(w) == 4 and \
+            w[0] == "f" and w[3].startswith("../../../obj/") else None
+        if made_ in progdata:
+            cmds += placed(made_, w[1], w[2])
+            datainstalled.append(("progs", made_, w[1]))
+        elif made_ in every and made_ not in site:
+            placing.append((w[1], w[2], made_))
+        elif len(w) == 3 and w[0] == "h" and w[2] in [p[0] for p in placing]:
+            linking.append((w[1], w[2]))
         if len(w) == 4 and w[0] == "f" and "/obj/root/bin/" in w[3] and \
                 os.path.basename(w[3]) in made:
             name = os.path.basename(w[3])
@@ -586,6 +715,29 @@ def programs():
                 cmd, mode, new, new, w[1])
         elif len(w) == 3 and w[0] == "h" and w[2] in where:
             cmds += "\trm -f '%s'\n\tln %s '%s'\n" % (w[1], w[2], w[1])
+    of = {f: name for name, made_ in data for f in made_}
+    at = {}
+    for dest, mode, f in placing:
+        datacmds += placed(f, dest, mode)
+        datainstalled.append((of[f], f, dest))
+        at[dest] = f
+    # The pages, a directory of them at a time, and then their other
+    # names, each in place of the one that was.
+    datacmds += (
+        "\tcd man && for d in %s; do for f in $$d/*.0; do \\\n"
+        "\t    cp $$f /usr/man/$$f.new && chmod 444 /usr/man/$$f.new && \\\n"
+        "\t    mv -f /usr/man/$$f.new /usr/man/$$f || exit 1; done; done\n"
+        % " ".join(mandirs) + placed("man/whatis", "/usr/man/whatis", "444"))
+    datainstalled += [("man", p, "/usr/" + p) for p in pages]
+    datainstalled.append(("man", "man/whatis", "/usr/man/whatis"))
+    for dest, target in linking:
+        datacmds += "\trm -f '%s'\n\tln '%s' '%s'\n" % (dest, target, dest)
+        datainstalled.append((of[at[target]], at[target], dest))
+    for (d, name), (pd, page) in sorted(names.items()):
+        datacmds += "\trm -f /usr/man/%s/%s\n\tln /usr/man/%s/%s " \
+            "/usr/man/%s/%s\n" % (d, name, pd, page, d, name)
+        datainstalled.append(("man", "man/%s/%s" % (pd, page),
+                              "/usr/man/%s/%s" % (d, name)))
     install = "".join(
         "\tcp %s %s/%s\n\tranlib %s/%s\n" % (
             a, USRLIB[a.split("/")[1]], os.path.basename(a),
@@ -606,6 +758,15 @@ def programs():
 #			is there until the new one is whole: all of
 #			them, if all are made, or none
 #	make bin/NAME	one program
+#	make data	what the system has that is not a program and
+#			is made: the databases and tables of /etc and
+#			/usr/share, spell's lists, the time zones, the
+#			games' files, the manual as it is read
+#	make data-NAME	some of that: """ + ", ".join(
+        n for n, _ in data).replace(", man", ",\n#\t\t\tman") + """
+#	make install-data  and each is where the system has it, but those
+#			that are a new system's and not this one's: the
+#			users, the mail aliases, the table of disks
 #	make clean	nothing made is left
 #
 # A program is one command of cc, which compiles every file of it, in
@@ -620,7 +781,9 @@ def programs():
            for i in range(0, len(left), 8)) if left else "") + """
 S=	/usr/src
 """ + macros + fold("LIBS", libnames) +
-            fold("PROGS", ["bin/" + n for n in made]) + """
+            fold("PROGS", ["bin/" + n for n in made]) +
+            "".join(fold(n, w) for n, w in sysmacros) + datatext +
+            """
 all:	libs progs
 
 libs:	$(LIBS)
@@ -632,13 +795,24 @@ install-libs: libs
 install-progs:
 	@for f in $(PROGS); do test -f $$f || { echo "$$f is not made"; exit 1; }; done
 """ + cmds + """
+data:	""" + " ".join("data-" + n for n, _ in data) + """
+
+""" + targets + """install-data: data
+""" + datacmds + """
 clean:
 	rm -f hdrs bin/* lib/*/*.a lib/*/*/*.o o/*.o mkstr bmkstr hcrypt
+	rm -f mkerrlst strfile initdeck bcomp setfiles sm mktab mktab.o
+	rm -rf """ + " ".join(d for d in datadirs if not any(
+        d.startswith(e + "/") for e in datadirs)) + """
+	mkdir """ + " ".join(datadirs) + """
+	rm -f games/fortunes """ + " ".join(
+        f for f in every if os.path.dirname(f) == "games") + """
 """ + "".join("\trm -f %s/*%s\n" % (d, ".[ch]" if any(
         g.startswith(d + "/") for g in gendirs) else "") for d in gendirs) + """\
 
 """ + stamprule + "\n" + "\n".join(rules))
-    return text, dirs, gendirs, [l[0] for l in libs], made, left, installed
+    return (text, dirs, gendirs, [l[0] for l in libs], made, left, installed,
+            files, datadirs, data, datainstalled)
 
 
 # What the system is given of usr/src besides what its programs and
@@ -667,10 +841,11 @@ def main():
         dirs |= used
         for f in stubs:
             made["%s/%s/%s" % (MD, m, f)] = None
-    text, used, gendirs, libs, progs, left, installed = programs()
+    text, used, gendirs, libs, progs, left, installed, files, datadirs, \
+        data, datainstalled = programs()
     made["i286/Makefile"] = text
     dirs |= used
-    empty += ["i286/" + d for d in gendirs]
+    empty += ["i286/" + d for d in gendirs + datadirs]
     empty += ["i286/lib/%s/%s" % (m, l) for m in "sml" for l in libs]
     made[MD + "/Makefile"] = HEAD % (
         "The C library, of each model: make, and each is made in its "
@@ -701,9 +876,15 @@ all install clean:
             rel = d + "/" + name
             p = os.path.join(SRC, rel)
             # A name for another file is given what that file has in
-            # it, which may be where the system has nothing.
-            if rel not in made and os.path.isfile(p):
+            # it, which may be where the system has nothing.  What the
+            # cross compiler says of a file is left beside it.
+            if rel not in made and os.path.isfile(p) and \
+                    not name.endswith(".err"):
                 proto.append("f /%s 644 %s" % (rel, p))
+    for rel in sorted(files):
+        if os.path.dirname(rel) not in dirs:
+            directory(os.path.dirname(rel))
+            proto.append("f /%s 644 %s" % (rel, os.path.join(SRC, rel)))
     for d in HEADERS:
         directory(d)
         for name in sorted(os.listdir(os.path.join(SRC, d))):
@@ -727,6 +908,11 @@ all install clean:
         f.write("\n".join(libs) + "\n")
     with open(os.path.join(out, "installed"), "w") as f:
         f.write("".join("%s %s\n" % i for i in installed))
+    with open(os.path.join(out, "data"), "w") as f:
+        f.write("".join("%s %s\n" % (name, p) for name, ps in data
+                        for p in ps))
+    with open(os.path.join(out, "datainstalled"), "w") as f:
+        f.write("".join("%s %s %s\n" % i for i in datainstalled))
     if left:
         sys.stderr.write("srcmk: not made on the system yet: %s\n" %
                          " ".join(left))

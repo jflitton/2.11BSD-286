@@ -864,6 +864,35 @@ table:
 	@:$(info FILTERED games/nhack | hcrypt games/hack/crypt.c -Di286 | -mm \
 	    -Igames/hack | $(addprefix games/hack/,$(HACK)))
 	@:$(info SYSGEN $(SYSGEN))
+	@:$(info PROGDATA games/battlestar/battle_strings)
+	@:$(foreach m,$(SYSMACROS),$(info MACRO $(m) $($(m))))
+	@:$(foreach g,$(DATAGROUPS),$(info DATA $(g) | $(DATA_$(g))))
+	@:$(info SITE $(SITE))
+	@:$(foreach f,$(MDOC),$(info RULE root/tmac/tmac.$(f) | \
+	    $$S/share/tmac/$(f) $$S/share/tmac/strip.sed | sed -f \
+	    $$S/share/tmac/strip.sed $$S/share/tmac/$(f) > root/tmac/tmac.$(f)))
+	@:$(foreach f,$(MEFILES),$(info RULE root/me/$(f) | \
+	    $$S/share/me/$(f) $$S/share/tmac/strip.sed | sed -f \
+	    $$S/share/tmac/strip.sed $$S/share/me/$(f) > root/me/$(f)))
+	@:$(foreach t,$(TERMS),$(info RULE root/term/tab$(t).tab | mktab.o \
+	    $$S/usr.bin/roff/nroff_term/tab$(t).c | cd o && rm -f *.o && cc -O \
+	    -I$$S/usr.bin/roff/common_source -o ../mktab ../mktab.o \
+	    $$S/usr.bin/roff/nroff_term/tab$(t).c && rm -f *.o && ../mktab > \
+	    ../root/term/tab$(t).tab))
+	@:$(info DIRS usr.bin/roff/nroff_term)
+	@:$(foreach f,getline getnum,$(info RULE root/$(f).o | \
+	    $$S/share/learn/C/$(f).c hdrs | cd root && cc -c -O \
+	    $$S/share/learn/C/$(f).c))
+	@:$(foreach n,0 1 2 3 4 5 6 7,$(info RULE games/warp/smap.$(n) | sm \
+	    $$S/games/warp/smp.$(n) | ./sm < $$S/games/warp/smp.$(n) > \
+	    games/warp/smap.$(n)))
+	@:$(foreach z,$(shell cd $(ZI) && awk '$$1 == "Zone" { print $$2 }' \
+	    $(ZDATA)),$(info INSTALL /usr/share/zoneinfo/$(z) 644 zoneinfo/$(z)))
+	@:$(foreach l,$(shell cd $(ZI) && awk '$$1 == "Link" { z = \
+	    "/usr/share/zoneinfo/"; print z $$3 ":" z $$2 }' $(ZDATA)),$(info \
+	    LINK $(subst $(colon), ,$(l))))
+	@:$(foreach f,getline getnum,$(info INSTALL /usr/share/learn/C/$(f).o \
+	    644 root/$(f).o))
 	@:$(foreach r,$(SYSRULES),$(info RULES)$(info $(value $(r)))$(info END))
 
 .PHONY:	all list ccprogs table root syslibs clean FORCE
@@ -1507,6 +1536,160 @@ $(R)/kernel.proto: FORCE
 	    echo "d /mdec 755"; \
 	    echo "f /mdec/wduboot 444 $(STAND)/hdboot.bin"; } > $@.new
 	@if cmp -s $@.new $@; then rm $@.new; else mv $@.new $@; fi
+
+# What the system makes of all that itself, in /usr/src/i286, with its
+# own programs where a program of this machine's, or of Python, does it
+# above (tools/srcmk.py, docs/self-hosting.md): `make data` there, and
+# `make install-data`.  A file is where it is in obj here: root/termcap
+# is obj/root/termcap.  DATA_x is what `make data-x` makes there.  Those
+# of SITE are a new system's, and are not installed over the ones a
+# system has: its users and its disks are its own.  SYSMACROS are given
+# to the system's make as they are here; a rule of SYSRULES is given as
+# it is written, and the table has one of a single command for each
+# file of a list (RULE).  The system is given each file of usr/src that
+# a rule names, and all of a directory that one does, or DIRS: a table
+# of nroff's includes others of its directory.
+DATA_etc=	$(addprefix root/,passwd passwd.dir passwd.pag aliases.dir \
+		aliases.pag fstab syserrlst termcap)
+SITE=		$(addprefix root/,passwd passwd.dir passwd.pag aliases.dir \
+		aliases.pag fstab)
+DATA_roff=	$(addprefix root/tmac/tmac.,$(MDOC)) \
+		$(addprefix root/me/,$(MEFILES)) \
+		$(patsubst %,root/term/tab%.tab,$(TERMS))
+DATA_learn=	root/getline.o root/getnum.o
+DATA_spell=	$(addprefix spell/,hlist hlista hlistb hstop)
+# A zone's file, and each name a Link gives one; the first is the one
+# zic is run for.
+ZONENAMES=	$(shell cd $(ZI) && awk '$$1 == "Zone" { print $$2 } \
+		$$1 == "Link" { print $$3 }' $(ZDATA))
+DATA_zones=	zoneinfo/GMT $(addprefix zoneinfo/,$(filter-out GMT,$(ZONENAMES)))
+ZONES=		$(filter-out zoneinfo/GMT,$(DATA_zones))
+ZSRCS=		$(addprefix $$S/share/zoneinfo/,$(ZDATA))
+DATA_games=	$(addprefix games/,fortunes.dat cards.pck crib.instr bogdict \
+		$(addprefix phantasia/,characs gold motd mess enemy lastdead \
+		void phant.help) $(addprefix warp/smap.,0 1 2 3 4 5 6 7))
+DATAGROUPS=	etc roff learn spell zones games
+SYSMACROS=	ROOTDISK ZDATA ZSRCS ZONES
+
+define etc_SYSRULES
+root/passwd: $S/etc/master.passwd
+	cp $S/etc/master.passwd root/master.passwd
+	/sbin/mkpasswd -p root/master.passwd
+	mv root/master.passwd.orig root/passwd
+	mv root/master.passwd.dir root/passwd.dir
+	mv root/master.passwd.pag root/passwd.pag
+	rm -f root/master.passwd
+
+root/passwd.dir root/passwd.pag: root/passwd
+
+root/aliases.dir: $S/etc/aliases
+	cp $S/etc/aliases root/aliases
+	/usr/sbin/sendmail -bi -oA$S/i286/root/aliases
+
+root/aliases.pag: root/aliases.dir
+
+root/fstab: $S/i286/etc/fstab
+	sed 's,^/dev/wd0,/dev/$(ROOTDISK),' $S/i286/etc/fstab > root/fstab
+
+mkerrlst: $S/usr.bin/mkerrlst/mkerrlst.c $S/usr.lib/liberrlst/errlst.c
+	cd o && rm -f *.o && cc -O -o ../mkerrlst $S/usr.bin/mkerrlst/mkerrlst.c \
+	    $S/usr.lib/liberrlst/errlst.c && rm -f *.o
+
+root/syserrlst: mkerrlst
+	./mkerrlst -o root/syserrlst
+
+root/termcap: $S/share/termcap/termcap.src $S/share/termcap/termcap.local \
+		$S/share/termcap/reorder
+	cd $S/share/termcap && ex - termcap.src < reorder
+	mv $S/share/termcap/termcap root/termcap
+endef
+SYSRULES+= etc_SYSRULES
+
+define spell_SYSRULES
+spell/hlist: /usr/dict/words
+	spellin < /usr/dict/words > spell/hlist
+
+spell/hlista: $S/usr.bin/spell/american $S/usr.bin/spell/local spell/hlist
+	cat $S/usr.bin/spell/american $S/usr.bin/spell/local | \
+	    spellin spell/hlist > spell/hlista
+
+spell/hlistb: $S/usr.bin/spell/british $S/usr.bin/spell/local spell/hlist
+	cat $S/usr.bin/spell/british $S/usr.bin/spell/local | \
+	    spellin spell/hlist > spell/hlistb
+
+spell/hstop: $S/usr.bin/spell/stop
+	spellin < $S/usr.bin/spell/stop > spell/hstop
+endef
+SYSRULES+= spell_SYSRULES
+
+# zic makes the directories of the zones that have one.
+define zones_SYSRULES
+zoneinfo/GMT: $(ZSRCS)
+	rm -rf zoneinfo
+	mkdir zoneinfo
+	cd $S/share/zoneinfo && /usr/sbin/zic -d $S/i286/zoneinfo $(ZDATA)
+
+$(ZONES): zoneinfo/GMT
+endef
+SYSRULES+= zones_SYSRULES
+
+# The games' own programs, compiled there as they are here.  strfile is
+# given a random() that is rand() from its first number, and a srandom()
+# that does nothing (norandom.c), as tools/strfile.py has it: a file
+# that is the same each time it is made.  It has the place of every
+# string in memory, 40K of them, and is of the large model.  setfiles
+# is told that phantasia's directory is the one it is made in.
+define games_SYSRULES
+strfile: $S/games/fortune/strfile.c $S/i286/norandom.c
+	cd o && rm -f *.o && cc -O -ml -o ../strfile $S/games/fortune/strfile.c \
+	    $S/i286/norandom.c && rm -f *.o
+
+games/fortunes.dat: strfile $S/games/fortune/scene $S/games/fortune/obscene
+	(cat $S/games/fortune/scene; echo "%-"; cat $S/games/fortune/obscene) \
+	    > games/fortunes
+	./strfile -r games/fortunes games/fortunes.dat
+
+initdeck: $S/games/monop/initdeck.c $S/games/monop/deck.h
+	cd o && rm -f *.o && cc -O -o ../initdeck $S/games/monop/initdeck.c && \
+	    rm -f *.o
+
+games/cards.pck: initdeck $S/games/monop/cards.inp
+	./initdeck - $S/games/monop/cards.inp games/cards.pck
+
+games/crib.instr: $S/games/cribbage/cribbage.n $S/games/cribbage/macro
+	cd $S/games/cribbage && nroff cribbage.n > $S/i286/games/crib.instr
+
+bcomp:	$S/games/boggle/comp.c
+	cd o && rm -f *.o && cc -O -o ../bcomp $S/games/boggle/comp.c && rm -f *.o
+
+games/bogdict: bcomp /usr/dict/words $S/games/boggle/sfile
+	sed -f $S/games/boggle/sfile /usr/dict/words | uniq | ./bcomp > games/bogdict
+
+setfiles: $S/games/phantasia/setfiles.c $S/games/phantasia/phant.h
+	cd o && rm -f *.o && cc -O -I$S/games/phantasia \
+	    '-DPATH="/usr/src/i286/games/phantasia"' '-DWIZARD="daemon"' \
+	    -DUID=1 -DRAND=32768.0 -DENEMY -o ../setfiles \
+	    $S/games/phantasia/setfiles.c -lm && rm -f *.o
+
+games/phantasia/characs: setfiles
+	rm -f games/phantasia/characs
+	./setfiles
+
+games/phantasia/gold games/phantasia/motd games/phantasia/mess \
+games/phantasia/enemy games/phantasia/lastdead games/phantasia/void: \
+		games/phantasia/characs
+
+games/phantasia/phant.help: $S/games/phantasia/phant.nr
+	nroff -man -Ttn300 $S/games/phantasia/phant.nr > games/phantasia/phant.help
+
+sm:	$S/games/warp/sm.c $S/games/warp/config.h
+	cd o && rm -f *.o && cc -O -I$S/games/warp -o ../sm $S/games/warp/sm.c && \
+	    rm -f *.o
+
+mktab.o: $S/usr.bin/roff/nroff_term/mktab.c $S/usr.bin/roff/common_source/tw.h
+	cc -c -O -I$S/usr.bin/roff/common_source $S/usr.bin/roff/nroff_term/mktab.c
+endef
+SYSRULES+= games_SYSRULES
 
 clean:
 	rm -rf $(O) $(EXO) $(TCO) $(H) $(G) $(R) $(MANO) $(GO) $(SO) $(ZO) \

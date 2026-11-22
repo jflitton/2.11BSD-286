@@ -244,9 +244,10 @@ tests/ccom/self.sh      # the system making its compiler: cc, cpp, the
                         # second time with the ones it had just made,
                         # each to be what is made of it here
 tests/self/run.sh       # the system making itself: the kernel, /boot,
-                        # the libraries and the programs from
-                        # /usr/src on the 286, each to be what is made
-                        # of it here; installed, and started again
+                        # the libraries, the programs, and its
+                        # databases, tables and manual, from /usr/src
+                        # on the 286, each to be what is made of it
+                        # here; installed, and started again
                         # (docs/self-hosting.md)
 tests/ccom/programs.sh  # the same compiler, assembler and linker on
                         # the system's programs: tests/programs, with

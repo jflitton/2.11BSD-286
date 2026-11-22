@@ -30,6 +30,7 @@ FILE	*inf, *outf;
 main(ac, av)
 int	ac;
 char	*av[]; {
+	long	*cc_offs, *ch_offs;
 
 	getargs(ac, av);
 	if ((inf = fopen(infile, "r")) == NULL) {
@@ -55,9 +56,16 @@ char	*av[]; {
 
 	fclose(inf);
 	fseek(outf, 0, 0L);
+	/*
+	 * monop sets each deck's pointer when it has read the file:
+	 * where the tables were here is not written.
+	 */
+	cc_offs = CC_D.offsets;
+	ch_offs = CH_D.offsets;
+	CC_D.offsets = CH_D.offsets = NULL;
 	fwrite(deck, sizeof (DECK), 2, outf);
-	fwrite(CC_D.offsets, sizeof (long), CC_D.num_cards, outf);
-	fwrite(CH_D.offsets, sizeof (long), CH_D.num_cards, outf);
+	fwrite(cc_offs, sizeof (long), CC_D.num_cards, outf);
+	fwrite(ch_offs, sizeof (long), CH_D.num_cards, outf);
 	fclose(outf);
 	printf("There were %d com. chest and %d chance cards\n", CC_D.num_cards, CH_D.num_cards);
 	exit(0);

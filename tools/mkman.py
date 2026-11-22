@@ -163,30 +163,15 @@ def links(makefile):
     return out
 
 
-def main():
-    if len(sys.argv) != 5:
-        sys.exit(__doc__)
-    nroff, src, listing, out = sys.argv[1:]
-    nroff = os.path.abspath(nroff)
-    top = os.path.dirname(os.path.dirname(os.path.abspath(src)))
-    wanted = pages(src, listing)
-
-    for d in glob.glob(os.path.join(out, "cat*")):
-        shutil.rmtree(d)
+def others(wanted):
+    """The other names of the pages WANTED, as the Makefiles beside
+    their sources link them: (directory, name) to the page's."""
     made = {}
     for d, name, path in wanted:
         if (d, name) in made:
             fail("%s/%s from both %s and %s" % (d, name, made[d, name], path))
         made[d, name] = path
-        r = subprocess.run([nroff, "-man", "-h"], input=source(path, top),
-                           capture_output=True, cwd=os.path.dirname(nroff))
-        if r.returncode or r.stderr:
-            fail("%s: %s" % (path, r.stderr.decode("latin-1").strip() or
-                             "nroff exits %d" % r.returncode))
-        os.makedirs(os.path.join(out, d), exist_ok=True)
-        open(os.path.join(out, d, name), "wb").write(r.stdout)
-
-    others = {}
+    out = {}
     for mk in sorted({os.path.join(os.path.dirname(p), "Makefile")
                       for _, _, p in wanted}):
         if not os.path.exists(mk):
@@ -196,7 +181,31 @@ def main():
                 continue
             if (d, name) in made:
                 fail("%s links %s/%s, which is a page" % (mk, d, name))
-            others[d, name] = (pd, page)
+            out[d, name] = (pd, page)
+    return out
+
+
+def main():
+    if len(sys.argv) != 5:
+        sys.exit(__doc__)
+    nroff, src, listing, out = sys.argv[1:]
+    nroff = os.path.abspath(nroff)
+    top = os.path.dirname(os.path.dirname(os.path.abspath(src)))
+    wanted = pages(src, listing)
+    linked = others(wanted)
+
+    for d in glob.glob(os.path.join(out, "cat*")):
+        shutil.rmtree(d)
+    made = {}
+    for d, name, path in wanted:
+        made[d, name] = path
+        r = subprocess.run([nroff, "-man", "-h"], input=source(path, top),
+                           capture_output=True, cwd=os.path.dirname(nroff))
+        if r.returncode or r.stderr:
+            fail("%s: %s" % (path, r.stderr.decode("latin-1").strip() or
+                             "nroff exits %d" % r.returncode))
+        os.makedirs(os.path.join(out, d), exist_ok=True)
+        open(os.path.join(out, d, name), "wb").write(r.stdout)
 
     lines = []
     for d, name in sorted(made):
@@ -213,14 +222,14 @@ def main():
     with open(os.path.join(out, "man.proto"), "w") as f:
         f.write("# The manual's pages, made by tools/mkman.py from %s.\n"
                 % os.path.relpath(listing, top))
-        for d in sorted({d for d, _ in made} | {d for d, _ in others}):
+        for d in sorted({d for d, _ in made} | {d for d, _ in linked}):
             f.write("d /usr/man/%s 755\n" % d)
         for d, name in sorted(made):
             f.write("f /usr/man/%s/%s 444 %s/%s\n" % (d, name, d, name))
-        for (d, name), (pd, page) in sorted(others.items()):
+        for (d, name), (pd, page) in sorted(linked.items()):
             f.write("h /usr/man/%s/%s /usr/man/%s/%s\n" % (d, name, pd, page))
         f.write("f /usr/man/whatis 444 whatis\n")
-    print("mkman.py: %d pages and %d links to them" % (len(made), len(others)))
+    print("mkman.py: %d pages and %d links to them" % (len(made), len(linked)))
 
 
 if __name__ == "__main__":

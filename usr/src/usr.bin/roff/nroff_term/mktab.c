@@ -56,8 +56,12 @@ main(int argc, char *argv[])
 
 
 	ip = (int *)&t;
+	/*
+	 * Unsigned: nroff reads digits and nothing else (ptinit, n10.c),
+	 * and where an int is 16 bits breset's bits make it negative.
+	 */
 	for (i = 0; i <= (&t.Adj - &t.bset); i++)
-		printf("%s	%d\n", ints[i], ip[i]);
+		printf("%s	%u\n", ints[i], ip[i]);
 
 	cp = (unsigned char **)&t.twinit;
 	for (i = 0; i <= (&t.left - &t.twinit); i++) {

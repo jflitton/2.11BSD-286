@@ -66,6 +66,8 @@ char	stbuf[128];
 	/* do not reset character file if it already exists */
 	if (stat(peoplefile,&fbuf) < 0)
 		{
+		/* what is not set below is written too */
+		bzero((char *) &sbuf,sizeof(sbuf));
 		buildchar(&sbuf);
 		strcpy(sbuf.name,"<null>");
 		if ((fp = fopen(peoplefile,"w")) == NULL)
@@ -76,6 +78,7 @@ char	stbuf[128];
 			fclose(fp);
 			}
 		}
+	bzero((char *) &grail,sizeof(grail));
 	grail.active = TRUE;
 	grail.x = roll(-1.0e6,2.0e6);
 	grail.y = roll(-1.0e6,2.0e6);

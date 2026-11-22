@@ -13,8 +13,8 @@ numbers, and IEEE doubles, as the 287 has them.
 
 setfiles never seeds rand(), so what it rolls is the library's sequence
 from its start, the same on the 286 as on the PDP-11: the character's
-place and gold, and then where the grail is.  It leaves the members it
-does not set as its stack had them; here they are zero.
+place and gold, and then where the grail is.  The members it does not
+set are zero, there as here.
 """
 import math
 import os

@@ -6,15 +6,22 @@
 # the C library of each model, which is then installed; the other
 # libraries, which are installed too; and the programs, linked with
 # those, which are then installed as well, each in place of the one the
-# system came with.  Each object, and each program, the kernel and /boot, is to be
+# system came with; and what it has that is not a program and is made:
+# the databases and tables of /etc and /usr/share, spell's lists, the
+# time zones, the games' files and the manual as it is read, which are
+# installed too.  Each object, each program, the kernel and /boot, and
+# each of those files, is to be
 # to the byte what the same sources make where the system is built,
 # with the system's own tools as they are compiled for that machine
 # (obj/nstand, obj/nPC, obj/nlib, obj/nbin), which the disk has on
 # another file system to compare with.  A library is compared by its
 # members, and by which they are and their order: the archive has the
-# day it was made in it.  And each program
+# day it was made in it.  A page of the manual has the day it was
+# formatted at its foot, and is compared without it if that is all that
+# differs.  And each program
 # as it is installed, without its symbols, is to be what the root file
-# system has of it where the system is built (obj/root/bin).
+# system has of it where the system is built (obj/root/bin), and each
+# of the other files, as installed, what the system made.
 #
 # The kernel is then made once more, to say of itself that it was made
 # there, and installed with /boot (make install); the machine is
@@ -22,11 +29,11 @@
 # with the one it was built on beside it as /unix.old, and on the
 # programs it made: init, getty, login, the shell.
 #
-# PARTS is what is made, any of "stand kernel libc libs progs", and by
-# default all of it: half a day of the machine's time.  The programs
-# whose sources are themselves made by a program of their own are not
-# among them yet (tools/srcmk.py says which).  With ONLY set, the
-# programs made are those it names and no others.
+# PARTS is what is made, any of "stand kernel libc libs progs data", and
+# by default all of it: half a day of the machine's time.  With ONLY
+# set, the programs made are those it names and no others; with DATA,
+# the files that are not programs are those of the kinds it names, of
+# "etc roff learn spell zones games man", and none is installed.
 #
 # TOOLS, TOOLS_KERNEL, TOOLS_PROGRAMS and TOOLS_BOOT are as in
 # tests/system (tests/harness/system.sh) and say whose work the system
@@ -64,11 +71,12 @@ nstand=$top/obj/nstand
 # What of it is made, of: stand, /boot and the boot blocks; kernel; libc,
 # the C library of each model; libs, the other libraries; progs, the
 # programs.
-PARTS=${PARTS:-"stand kernel libc libs progs"}
+PARTS=${PARTS:-"stand kernel libc libs progs data"}
 for p in $PARTS; do
     case $p in
-    stand|kernel|libc|libs|progs) ;;
-    *)  echo "PARTS is of stand, kernel, libc, libs and progs, not $p" >&2
+    stand|kernel|libc|libs|progs|data) ;;
+    *)  echo "PARTS is of stand, kernel, libc, libs, progs and data," \
+            "not $p" >&2
         exit 2 ;;
     esac
 done
@@ -149,12 +157,17 @@ if has progs; then
     done
     want i286/bin $(echo ${ONLY:-$(cat fs/src/programs)} | tr ' ' '\n' |
         sed "s|^|$top/obj/nbin/|")
-    # The files of ex's messages and tcsh's, which mkstr writes.
+    # The files of ex's messages and tcsh's, which mkstr writes, and
+    # of battlestar's, which its own does.
     case " ${ONLY:-ex} " in *" ex "*)
         want i286/ex "$top/obj/ex/exstrings" ;;
     esac
     case " ${ONLY:-tcsh} " in *" tcsh "*)
         want i286/tcsh "$top/obj/tcsh/tcsh6.00strgs" ;;
+    esac
+    case " ${ONLY:-battlestar} " in *" battlestar "*)
+        want i286/games/battlestar \
+            "$top/obj/games/battlestar/battle_strings" ;;
     esac
     if [ -z "$ONLY" ]; then
         # The programs as the system has them, and what compares them.
@@ -166,21 +179,67 @@ if has progs; then
             echo "if cmp -s /mnt/rootbin/$p '$where'; then n=\`expr \$n + 1\`;" \
                 "else echo 'DIFFERS $where'; fi" >> fs/installed.sh
         done < fs/src/installed
+        # And the files the programs read that are made with them.
+        awk '$1 == "progs" { print "if cmp -s /usr/src/i286/" $2 " " $3 \
+            "; then n=`expr $n + 1`; else echo \"DIFFERS " $3 "\"; fi" }' \
+            fs/src/datainstalled >> fs/installed.sh
         echo 'echo "same installed $n"' >> fs/installed.sh
         echo "f /installed.sh 644 fs/installed.sh" >> want.proto
-        ninst=$(wc -l < fs/src/installed | tr -d ' ')
+        ninst=$(($(wc -l < fs/src/installed) +
+            $(grep -c '^progs ' fs/src/datainstalled)))
     fi
 fi
-n=$(awk '$1 == "f" && $2 !~ /^\/rootbin\// && $2 != "/installed.sh" { n++ }
+# What is not a program: each file as it is made here, in the directory
+# of obj it is in here, which is the one of /usr/src/i286 it is made in
+# there; and, when all of it is made, what compares each as installed
+# with what the system made.
+datadirs=
+if has data; then
+    kinds=$(awk '{ print $1 }' fs/src/data | uniq)
+    for k in $DATA; do
+        echo "$kinds" | grep -qx "$k" || {
+            echo "DATA is of" $kinds, "not $k" >&2
+            exit 2
+        }
+    done
+    awk -v kinds=" ${DATA:-$(echo $kinds)} " 'index(kinds, " " $1 " ") {
+        print $2 }' fs/src/data > data.files
+    datadirs=$(sed 's|/[^/]*$||' data.files | sort -u)
+    for d in $datadirs; do
+        want i286/$d
+    done
+    sed "s|.*|f /i286/& 644 $top/obj/&|" data.files >> want.proto
+    if [ -z "$DATA" ]; then
+        {
+            echo "n=0"
+            awk '$1 != "progs" { print "if cmp -s /usr/src/i286/" $2 " \047" \
+                $3 "\047; then n=`expr $n + 1`; else echo \"DIFFERS " $3 \
+                "\"; fi" }' fs/src/datainstalled
+            echo 'echo "same data-installed $n"'
+        } > fs/datainstalled.sh
+        echo "f /datainstalled.sh 644 fs/datainstalled.sh" >> want.proto
+        ninst=$((${ninst:-0} + $(grep -vc '^progs ' fs/src/datainstalled)))
+    fi
+fi
+n=$(awk '$1 == "f" && $2 !~ /^\/rootbin\// && $2 !~ /installed.sh$/ { n++ }
     END { print n + 0 }' want.proto)
 n=$((n + ${ninst:-0}))
+# A page of the manual says at its foot the day it was formatted: two
+# that differ are compared again without those lines.
 cat > fs/check.sh <<'EOF'
 n=0
+t=/tmp/chk$$
+d='s,Printed [0-9]*/[0-9]*/[0-9]*,Printed,'
 for f in `ls /mnt/$1`
 do
 	if test -f /mnt/$1/$f
 	then
 		if cmp -s /mnt/$1/$f /usr/src/$1/$f
+		then
+			n=`expr $n + 1`
+		elif grep 'Printed [0-9]' /mnt/$1/$f >/dev/null &&
+		    sed "$d" /mnt/$1/$f >$t &&
+		    sed "$d" /usr/src/$1/$f | cmp -s - $t
 		then
 			n=`expr $n + 1`
 		else
@@ -236,6 +295,9 @@ EOF
         fi
         echo "cd /usr/src/i286 && make -k $targets"
         echo "sh /mnt/check.sh i286/ex; sh /mnt/check.sh i286/tcsh"
+        case " ${ONLY:-battlestar} " in *" battlestar "*)
+            echo "sh /mnt/check.sh i286/games/battlestar" ;;
+        esac
         echo "sh /mnt/check.sh i286/bin > /tmp/checked"
         echo "cat /tmp/checked"
         if [ -z "$ONLY" ]; then
@@ -244,6 +306,27 @@ EOF
             echo "	echo 'self: programs not installed'"
             echo "else"
             echo "	make install-progs && sh /mnt/installed.sh"
+            echo "fi"
+        fi
+    fi
+    if has data; then
+        echo "date"
+        targets=data
+        if [ -n "$DATA" ]; then
+            targets=$(echo $DATA | tr ' ' '\n' | sed 's|^|data-|' | tr '\n' ' ')
+        fi
+        echo "cd /usr/src/i286 && make -k $targets"
+        echo "for d in" $datadirs
+        echo "do"
+        echo "	sh /mnt/check.sh i286/\$d"
+        echo "done > /tmp/checked"
+        echo "cat /tmp/checked"
+        if [ -z "$DATA" ]; then
+            echo "if grep DIFFERS /tmp/checked >/dev/null"
+            echo "then"
+            echo "	echo 'self: data not installed'"
+            echo "else"
+            echo "	make install-data && sh /mnt/datainstalled.sh"
             echo "fi"
         fi
     fi
@@ -273,7 +356,7 @@ geometry=$(python3 -I "$top/tools/mkdisk.py" -p -g 1000,16,17 \
     b=swap:8000 d=src.fs e=want.fs | tail -1)
 install='sh /mnt/install.sh; '
 has kernel && has stand || install=
-TIMEOUT=${TIMEOUT:-60000} python3 -I "$top/tests/harness/runtest.py" \
+TIMEOUT=${TIMEOUT:-90000} python3 -I "$top/tests/harness/runtest.py" \
     --hd self.img,$geometry,xtide --until halting \
     --type "login: " "root" \
     --type "# " 'mount /dev/wd0d /usr/src; mount /dev/wd0e /mnt; sh /mnt/self.sh' \

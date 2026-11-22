@@ -4,9 +4,9 @@ The system is built where it is developed, by its own compiler,
 assembler and linker compiled for that machine
 ([building](development.md#building)). It can also be built on
 itself: with its sources on a disk, the 286 makes its own kernel, the
-programs that load it, its libraries and its programs, each to the byte
-what the other build makes, installs them, and starts again on what it
-made.
+programs that load it, its libraries, its programs, and the databases,
+tables and manual it has besides, each to the byte what the other build
+makes, installs them, and starts again on what it made.
 
 ## The sources
 
@@ -45,6 +45,7 @@ cd /usr/src/lib/libc/i286; make; make install    # the C library, three models
 cd /usr/src/i286
 make libs; make install-libs                     # the other libraries
 make progs; make install-progs                   # the programs
+make data; make install-data                     # what is not a program
 ```
 
 | in | `make` makes | `make install` |
@@ -53,6 +54,7 @@ make progs; make install-progs                   # the programs
 | `sys/PC` | `unix`, and `unix.map` | `/unix`; the one that was is `/unix.old` |
 | `lib/libc/i286/s`, `m`, `l` | `libc.a`, `crt0.o` | `/lib`, `/lib/m`, `/lib/l` |
 | `i286` | `lib/MODEL/libNAME.a`; `bin/NAME` | `/usr/lib`, `/usr/lib/m`, `/usr/lib/l`; each program where the root file system has it, without its symbols, with its mode and owner |
+| `i286`, `make data` | [what is not a program](#what-is-not-a-program) | each where the root file system has it |
 
 A kernel that does not start is left behind by naming the other to
 `/boot`: `wd(0,0)unix.old` ([booting](boot.md)). `make bin/NAME` in
@@ -73,6 +75,36 @@ that one has in `obj`: `yacc` and `lex` their parsers and scanners;
 `battlestar`'s likewise by its own; `hack`'s files through the
 preprocessor and its `crypt`.
 
+## What is not a program
+
+`make data` makes the files the system has that are neither programs
+nor copies of a source, with the system's own programs, where the
+other build has a program of the machine it runs on, or of Python,
+that does what they do. `make data-NAME` makes one kind:
+
+| | made | by |
+|---|---|---|
+| `etc` | `/etc/passwd` and its database; the database of `/etc/aliases`; `/etc/fstab` | `mkpasswd -p`; `sendmail -bi`; `sed` |
+| | `/etc/syserrlst`; `/usr/share/misc/termcap` | `mkerrlst`, compiled there; `ex`, as `share/termcap`'s Makefile runs it |
+| `roff` | `mdoc`'s macros and `-me`'s without their comments; the 25 tables of `/usr/share/term` | `sed`; each table's C compiled with `mktab` and run |
+| `learn` | the two objects `learn`'s lessons in C link with | `cc` |
+| `spell` | `/usr/dict/hlista`, `hlistb`, `hstop` | `spellin` |
+| `zones` | `/usr/share/zoneinfo` | `zic` |
+| `games` | `fortunes.dat`; `monop`'s cards; `boggle`'s dictionary; `phantasia`'s files and help; `cribbage`'s instructions; `warp`'s maps | the games' own `strfile`, `initdeck`, `comp`, `setfiles` and `sm`, compiled there; `nroff` |
+| `man` | the 621 pages of `/usr/man/cat1` to `cat8`, and `whatis` | `nroff -man -h`; `sed` and `sort` |
+
+Each is made in the directory of `/usr/src/i286` that the other build
+has it in in `obj`: `root/termcap`, `spell/hlista`, `zoneinfo/GMT`,
+`games/fortunes.dat`, `man/cat1/ls.0`. `make install-data` puts each
+where the system has it, and gives a file's other names to the new one:
+a zone's, a page's (317 of them), a table's. The password file and its
+database, the aliases' and `fstab` are made and not installed: they are
+a new system's, and a system that is in use has its own users and
+disks.
+
+`/usr/games/lib/battle_strings`, and the files of `ex`'s messages and
+`tcsh`'s, are made with those programs and installed with them.
+
 ## What it takes
 
 On the machine the tests run, a 10 MHz 286 with 4 MB as 86Box has it
@@ -85,7 +117,8 @@ On the machine the tests run, a 10 MHz 286 with 4 MB as 86Box has it
 | the other libraries, in the three models | 24 minutes |
 | the 318 programs | 7 hours 10 minutes |
 | installing the programs | 7 minutes |
-| all of it | 9 and a half hours |
+| what is not a program, and installing it | 2 hours 40 minutes |
+| all of it | 12 hours |
 
 The compiler does some 20 lines a second ([performance](performance.md)).
 Of the programs, `tcsh`, `ex`, `hack`, `sendmail` and `window` are half
@@ -95,20 +128,25 @@ an hour each or more.
 
 `tests/self/run.sh` boots the system with that file system, has it make
 everything above, and compares each object, each program, the kernel
-and `/boot` with what the same sources make where the system is built:
-1814 files. A library is compared by its members, and by which they
-are and in what order, since the archive has the day it was made in
-it. The libraries are installed before the
+and `/boot`, and each file that is not a program, with what the same
+sources make where the system is built: 2600 files. A library is
+compared by its members, and by which they are and in what order, since
+the archive has the day it was made in it; a page of the manual has at
+its foot the day it was formatted, and two that differ are compared
+again without those lines. The libraries are installed before the
 programs are linked, so the programs are linked with what the system
 made; the programs are then installed, and each of the 317 as
 installed, stripped, must be what the root file system has from the
-other build. Last the
+other build. What is not a program is made by the programs the system
+has just made and installed, and is installed too: each of 1103 files
+and other names of one must be what was made. Last the
 kernel is made to say that it was made there, installed with `/boot`,
 and the machine started again: it must come up on that kernel, with
 `init`, `getty`, `login` and the shell that it made.
 
 `PARTS="stand kernel"` makes less (`stand`, `kernel`, `libc`, `libs`,
-`progs`), and `ONLY="awk make"` only those programs.
+`progs`, `data`), `ONLY="awk make"` only those programs, and
+`DATA="man zones"` only those kinds of what is not a program.
 
 ## What it needed
 
@@ -138,13 +176,28 @@ and the machine started again: it must come up on that kernel, with
 - `/usr/include/DEFS.inc`, the library's conventions for a file of
   assembly, and `cc` has the assembler look there; and
   `/usr/include/netimp`, for `netstat`.
+- A file that is to be the same each time it is made cannot have in it
+  what a program's memory happened to hold, or the time. `setfiles`
+  wrote the members it had not set of `phantasia`'s structures as its
+  stack had them, and `initdeck` the addresses of its tables: both
+  write zeros now. `strfile -r` seeds its generator with the time; the
+  one that makes `fortunes.dat` is linked with a `random()` that is
+  `rand()` from its first number (`usr/src/i286/norandom.c`), as the
+  other build's stand-in for it has it.
+- `mktab` wrote a table's numbers with `%d`, and `nroff` reads digits
+  and nothing else: where an `int` is 16 bits, the bits a printer's
+  table has `nroff` clear of the terminal's modes are a negative
+  number, which it read as 0. The tables the other build made were
+  right, an `int` being longer there; `mktab` writes them unsigned.
+- `make install-progs` puts the files of `ex`'s messages, `tcsh`'s and
+  `battlestar`'s in place with those programs: each has in it where in
+  its file a message is.
 
 ## What it does not make yet
 
-- The files of the root file system that are not programs: the manual
-  as formatted, the databases of `passwd`, `termcap`, `spell` and the
-  time zones, the games' data ([programs](userland.md)). The tools
-  that make them are Python, where the system is built.
+- The files of the root file system that are copies of a source, or
+  empty: `/etc`'s, the headers, the logs. Nothing makes them; a new
+  disk would have them from `/usr/src`.
 - The system calls' stubs of the C library, which `tools/mkstubs.py`
   writes from `syscalls.tab`: `srcmk.py` runs it, and the system
   assembles what it wrote.

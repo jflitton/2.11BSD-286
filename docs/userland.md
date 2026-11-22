@@ -1856,12 +1856,15 @@ written by a tool of this port's own, laid out as the 286 has it:
 - `monop`'s cards, `cards.pck`, are packed by `tools/initdeck.py` as
   `initdeck` packs them: the same bytes as upstream's file but for the
   order of a long's words, and a pointer, which `monop` sets as it reads
-  the file and upstream's has as `initdeck`'s memory had it.
+  the file and upstream's has as `initdeck`'s memory had it; `initdeck`
+  writes it as 0 now.
 - `phantasia`'s files are made by its `setfiles` as it is installed;
   `tools/setfiles.py` makes them: its file of characters, with the one
   `<null>`, and where the grail is, both structures with doubles, and
   the empty files. `setfiles` never seeds `rand()`, so where it puts
-  them is the library's sequence from its start, which is the same here.
+  them is the library's sequence from its start, which is the same here;
+  what it did not set of a structure it wrote as its stack had it, and
+  writes as 0 now.
   Its help, `phant.help`, is formatted with `tbl` and `nroff -Ttn300`;
   the build's machine has no `tbl`, which keeps pointers in `int`s, and
   the host's `nroff` formats it alone, as the Makefile formats the manual
