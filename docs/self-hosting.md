@@ -6,7 +6,9 @@ assembler and linker compiled for that machine
 itself: with its sources on a disk, the 286 makes its own kernel, the
 programs that load it, its libraries, its programs, and the databases,
 tables and manual it has besides, each to the byte what the other build
-makes, installs them, and starts again on what it made.
+makes, installs them, and starts again on what it made; and it makes of
+another disk one that starts the system, with all of that and the
+sources on it, as 2.11BSD has a disk made.
 
 ## The sources
 
@@ -109,6 +111,68 @@ disks.
 `/usr/games/lib/battle_strings`, and the files of `ex`'s messages and
 `tcsh`'s, are made with those programs and installed with them.
 
+## A disk
+
+A disk that starts the system is made as 2.11BSD has one made
+(`usr/doc/2.10/setup.2.10`), by the same programs, with the system
+itself where upstream has a tape: the root is a dump of the root of
+the system that made and installed itself above, and the sources are
+`/usr/src`. For the AT disk controller's second drive, as root (`sd1`
+is the second SCSI disk):
+
+```sh
+disklabel wd1 > label           # the label it has, or the kernel's for it
+ed label                        # its partitions, as below
+disklabel -W wd1; disklabel -R -r wd1 label; disklabel -N wd1
+
+newfs -i 8192 wd1a              # the root
+dump 0f - /dev/rwd0a | restor rf - /dev/rwd1a
+fsck -y /dev/rwd1a
+disklabel -B wd1                # the boot block, /mdec/wduboot
+
+newfs wd1d                      # the sources
+mount /dev/wd1d /mnt
+cd /usr/src; tar cf - . | (cd /mnt; tar xpf -)
+cd /; umount /mnt
+fsck -y -t /tmp/scratch /dev/rwd1d
+```
+
+The label is given a root, a swap area, the whole of the disk as is the
+custom, and room for the sources, in sectors:
+
+```
+4 partitions:
+  a: 96000 0 2.11BSD 1024 1024
+  b: 32768 96000 swap
+  c: 272000 0 unused 0 0
+  d: 128000 128768 2.11BSD 1024 1024
+```
+
+- A disk with no label has one partition, all of what the system has
+  of it ([disks](disks.md#whose-disk-it-is)), which `disklabel` has
+  open and the new label makes smaller: `-W` has the kernel let it be
+  changed, and `-N` not again. `-r` writes the sector, the kernel
+  writing a label only over one.
+- The root is to have no more inodes than `fsck` can check as the
+  system starts, where it has no scratch file: 6000 on one of 48000
+  blocks, which is `newfs -i 8192`
+  ([userland](userland.md#tested-and-not)). It can be no smaller
+  than the one that is dumped.
+- `restor` writes the file system through its raw device and leaves
+  the list of free blocks to `fsck`, as upstream's document says to
+  have it checked; `fsck` also marks it clean, so that the system
+  starts from it without checking it and starting again.
+- The dump is of a root that is in use, and has what a running system
+  writes: its logs, `/var/run`, `/tmp`. From single user it has less.
+- `/etc/fstab` is the old disk's, which is right for a disk of the same
+  kind that will be the first of it: `wd0`. One that will be `sd0` has
+  it edited.
+- `tar` takes what was made in `/usr/src` with the sources; `make
+  clean` in each directory first leaves the sources alone.
+- A disk shared with another system has the table of both in its first
+  sector, which the system cannot write: it boots if what is there
+  loads the boot block of the system's part, as `mbr.bin` does.
+
 ## What it takes
 
 On the machine the tests run, a 10 MHz 286 with 4 MB as 86Box has it
@@ -123,6 +187,7 @@ On the machine the tests run, a 10 MHz 286 with 4 MB as 86Box has it
 | installing the programs | 7 minutes |
 | what is not a program, and installing it | 2 hours 40 minutes |
 | all of it | 12 hours |
+| a disk of it, with the sources | 20 minutes, on the emulator's disks, which answer at once |
 
 The compiler does some 20 lines a second ([performance](performance.md)).
 Of the programs, `tcsh`, `ex`, `hack`, `sendmail` and `window` are half
@@ -152,6 +217,16 @@ and the machine started again: it must come up on that kernel, with
 `PARTS="stand kernel"` makes less (`stand`, `kernel`, `libc`, `libs`,
 `progs`, `data`), `ONLY="awk make"` only those programs, and
 `DATA="man zones"` only those kinds of what is not a program.
+
+`tests/disk/run.sh` has the system make a disk that way, of a second
+drive of 133 MB with nothing on it, not a label. `tools/fsck.py` must
+find nothing wrong with the new disk's two file systems, and lists
+each (`-l`): the root must have what the system's own has, name for
+name, each file's contents, mode and owner, each other name, link and
+device, but for what a system that is running writes; and the sources
+what `/usr/src` has. Then the machine is started from that disk alone,
+and must come up and make `/boot` and the boot block from its sources,
+the same as the ones it started from.
 
 ## What it needed
 
@@ -200,12 +275,9 @@ and the machine started again: it must come up on that kernel, with
 
 ## What it does not make yet
 
-- The files of the root file system that are copies of a source, or
-  empty: `/etc`'s, the headers, the logs. Nothing makes them; a new
-  disk would have them from `/usr/src`.
 - The Makefiles themselves, as above: they are written from the
   repository's, and a change made to one on the system is lost when
   they are written again.
-- The file system images and the disk (`tools/mkfs.py`,
-  `tools/mkdisk.py`): the system installs what it makes onto the disk
-  it runs from.
+- A disk's first sector when it is shared with another system
+  (`mbr.bin`, which is made): there is no device for it.
+- A diskette: the kernel has no driver for one.

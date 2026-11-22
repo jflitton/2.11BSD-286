@@ -226,8 +226,11 @@ adapter and `sd.c` the disks on it.
 none, a label, partitions filled from file system images or left for a
 file system that `newfs` is to make, and the sectors that boot it.
 `tools/fsck.py` checks a file system in an image, or in a partition of a
-disk image, without changing it, and can print a file from it. It is how
-the tests see what the kernel left on a disk.
+disk image, without changing it, and can print a file from it or list
+what is in it. It is how the tests see what the kernel left on a disk.
+On the system a disk that boots is made as upstream has one made, with
+`disklabel`, `newfs`, `dump`, `restor` and `tar`
+([the system makes itself](self-hosting.md#a-disk)).
 
 ## Tested, and not
 

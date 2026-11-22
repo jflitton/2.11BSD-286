@@ -1419,7 +1419,12 @@ kernel opens no disk's raw device for writing while the block device is
 mounted (securelevel 1, `sys_inode.c`): the label of the disk the root
 is on, which is its partition `a`, can be written only from single user,
 where `init` puts the securelevel back to 0. Another disk's can be
-written at any time, its partitions that are open kept where they are. Its `-w`, which makes the label of
+written at any time, its partitions that are open kept where they are.
+A disk with no label is given its first with `-r`, which writes the
+sector, the kernel writing a label only over one; and after `-W`,
+since the one partition such a disk has is open to `disklabel` itself
+and the new label makes it smaller
+([the system makes itself](self-hosting.md#a-disk)). Its `-w`, which makes the label of
 a kind of disk that `/etc/disktab` describes, has no use here: upstream's
 `disktab` describes DEC's disks, and is not installed. A description
 has no line for the number of sectors on the disk, so a label made from
@@ -2563,9 +2568,11 @@ Not done, or not tested:
   65536 does not fit in an `unsigned int` of 16 bits. `mkfs` prints its
   usage and makes nothing. Upstream's, and not put right.
 - `fsck` keeps its tables in what is left of 56K of data, as on the
-  PDP-11: room for a file system of about 40 MB with an inode for each
-  4K, `newfs`'s default. A bigger one needs a scratch file, `fsck -t`,
-  which `/etc/rc` names on the root.
+  PDP-11, an eighth of a byte for each block and two and a quarter for
+  each inode: room for a file system of 24 MB with an inode for each
+  4K, `newfs`'s default, or one of 48 MB with 6000 inodes and not with
+  6848. A bigger one needs a scratch file, `fsck -t`, which `/etc/rc`
+  names on the root, and so the root cannot be one.
 - A program that overflows its stack runs into its data without a fault
   ([processes](processes.md)).
 - With every call printed (`sctrace=2`), the kernel's printing can stall

@@ -3,6 +3,7 @@
 
 usage: fsck.py [-p LETTER] IMAGE
        fsck.py [-p LETTER] -x PATH IMAGE
+       fsck.py [-p LETTER] -l IMAGE
 
 IMAGE is a file system as this kernel keeps one (tools/mkfs.py), or a
 whole disk (tools/mkdisk.py), in which case the file system is the one in
@@ -17,7 +18,16 @@ It prints what is wrong and exits 1, or prints a line of totals and exits
 synchronized and then left alone, and repairs nothing.
 
 The second form writes the contents of the file PATH to standard output.
+
+The third lists what is in the file system, a line for each name in the
+order of the names: a directory (d), with its mode and whose it is; a
+file (f), with those, its size and a digest of what is in it, and if it
+has other names, the first of them all; a symbolic link (l) and what it
+says; a device (c, b) and its numbers; a socket (s).  Two file systems with the same
+things in them list the same, wherever their blocks are and whenever
+they were made.
 """
+import hashlib
 import struct
 import sys
 
@@ -31,8 +41,8 @@ DIRBLKSIZ = 512
 ROOTINO = 2
 DISKMAGIC = 0x82564557
 PCP_2BSD = 0xB9
-IFMT, IFDIR, IFCHR, IFBLK, IFREG, IFLNK = (
-    0o170000, 0o40000, 0o20000, 0o60000, 0o100000, 0o120000)
+IFMT, IFDIR, IFCHR, IFBLK, IFREG, IFLNK, IFSOCK = (
+    0o170000, 0o40000, 0o20000, 0o60000, 0o100000, 0o120000, 0o140000)
 SB = "<Hlh%dlh%dH4bllHhh12sHHH" % (NICFREE, NICINOD)
 
 
@@ -90,7 +100,8 @@ class Fs:
     def inode(self, n):
         off = (n + 2 * INOPB - 1) * 64
         f = struct.unpack_from("<HHHHl7L5HH3l", self.img, off)
-        return {"mode": f[0], "nlink": f[1], "size": f[4], "addr": f[5:12]}
+        return {"mode": f[0], "nlink": f[1], "uid": f[2], "gid": f[3],
+                "size": f[4], "addr": f[5:12]}
 
     def claim(self, b, who):
         """Block B belongs to WHO; False if it cannot."""
@@ -166,8 +177,8 @@ class Fs:
         ndirs = 0
         for n, ip in inodes.items():
             kind = ip["mode"] & IFMT
-            if kind in (IFCHR, IFBLK):
-                continue
+            if kind in (IFCHR, IFBLK, IFSOCK):
+                continue        # a device or a socket has no blocks
             if kind not in (IFDIR, IFREG, IFLNK):
                 self.bad("inode %d: mode %o is no kind of file" % (n, ip["mode"]))
                 continue
@@ -244,11 +255,49 @@ class Fs:
                 return None
         return n
 
+    def tree(self):
+        """A line for each name in the file system, in their order."""
+        out = []
+        first = {}              # inode: the first of its names
+
+        def walk(n, path):
+            ip = self.inode(n)
+            kind = ip["mode"] & IFMT
+            who = "%o %d.%d" % (ip["mode"] & 0o7777, ip["uid"], ip["gid"])
+            if kind == IFDIR:
+                out.append("%s d %s" % (path or "/", who))
+                for name, m in sorted(self.entries(n, self.read(n, ip))):
+                    if name not in (".", ".."):
+                        walk(m, path + "/" + name)
+            elif kind == IFLNK:
+                out.append("%s l %s" % (path, self.read(n, ip).decode("latin-1")))
+            elif kind == IFSOCK:
+                out.append("%s s %s" % (path, who))
+            elif kind in (IFCHR, IFBLK):
+                dev = ip["addr"][0] >> 16
+                out.append("%s %s %s %d %d" % (
+                    path, "c" if kind == IFCHR else "b", who, dev >> 8,
+                    dev & 255))
+            else:
+                data = self.read(n, ip)
+                line = "%s f %s %d %s" % (
+                    path, who, len(data), hashlib.sha256(data).hexdigest()[:16])
+                if ip["nlink"] > 1:
+                    line += " = " + first.setdefault(n, path)
+                out.append(line)
+
+        walk(ROOTINO, "")
+        return out
+
 
 def main():
     args = sys.argv[1:]
-    letter, path = "a", None
-    while len(args) > 1 and args[0] in ("-p", "-x"):
+    letter, path, listing = "a", None, False
+    while len(args) > 1 and args[0] in ("-p", "-x", "-l"):
+        if args[0] == "-l":
+            listing = True
+            del args[:1]
+            continue
         if args[0] == "-p":
             letter = args[1]
         else:
@@ -257,6 +306,9 @@ def main():
     if len(args) != 1 or len(letter) != 1 or letter not in "abcdefgh":
         sys.exit(__doc__)
     fs = Fs(partition(args[0], letter))
+    if listing:
+        print("\n".join(fs.tree()))
+        return
     if path is not None:
         n = fs.lookup(path)
         if n is None:

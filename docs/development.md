@@ -191,7 +191,7 @@ driver talks to.
 | `tools/mkfd.py` | makes a bootable diskette image from an executable, with a file system image for the kernel's RAM disk if wanted |
 | `tools/mkfs.py` | makes a file system image from a list of files, with their modes, owners and groups |
 | `tools/mkdisk.py` | makes a hard disk image: a partition table or none, a label, partitions, and the sectors that boot it |
-| `tools/fsck.py` | checks a file system in an image without changing it, or prints a file from it |
+| `tools/fsck.py` | checks a file system in an image without changing it, prints a file from it, or lists what is in it |
 | `tools/kpatch.py` | changes a variable in an executable file, by name |
 | `tools/kprof.py` | says where the system spent its time: the functions, in the kernel and in programs, that the samples `runtest.py --profile` took of the emulated processor fell in |
 | `tools/strip.py` | copies an executable file without its symbol table, as `strip` leaves one: the programs in the root file system are such copies, unless it is made with `STRIP=no` |
@@ -248,6 +248,11 @@ tests/self/run.sh       # the system making itself: the kernel, /boot,
                         # on the 286, each to be what is made of it
                         # here; installed, and started again
                         # (docs/self-hosting.md)
+tests/disk/run.sh       # the system making a disk, as upstream has one
+                        # made: a label, a dump of its root restored,
+                        # the boot block and its sources on a second
+                        # drive, which must have what the system has,
+                        # and start it
 tests/ccom/programs.sh  # the same compiler, assembler and linker on
                         # the system's programs: tests/programs, with
                         # all of them made that way

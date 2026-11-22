@@ -68,7 +68,10 @@ pcpart(dev, strat, sizep)
 
 /*
  * A label for a drive that has none, or before its own is read: one
- * partition, of size sectors.
+ * partition, of size sectors.  The speed, the interleave and the sizes
+ * of the boot block and the super block are what a label that is
+ * written has (tools/mkdisk.py), which disklabel complains of the lack
+ * of.
  */
 static
 dfltlabel(dk, lp, gp, size)
@@ -87,6 +90,10 @@ dfltlabel(dk, lp, gp, size)
 	lp->d_ncylinders = gp->pg_cyls;
 	lp->d_secpercyl = gp->pg_heads * gp->pg_sects;
 	lp->d_secperunit = size;
+	lp->d_rpm = 3600;
+	lp->d_interleave = 1;
+	lp->d_bbsize = 512;
+	lp->d_sbsize = 1024;
 	lp->d_npartitions = 1;
 	pi->p_size = size;
 	pi->p_fstype = FS_V71K;
