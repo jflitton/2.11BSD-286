@@ -1101,7 +1101,7 @@ getree()
 	char s[80];		/* big for asm() stuff & long variable names */
 	struct swtab *swp;
 	int lbl, cond, jump;
-	double atof();
+	double ctod();
 
 	xsettle();
 	sp = expstack;
@@ -1347,7 +1347,7 @@ getree()
 		tp->t.op = FCON;
 		tp->t.type = t;
 		tp->f.value = isn++;
-		tp->f.fvalue = atof(s);
+		tp->f.fvalue = ctod(s);
 		*sp++ = tp;
 		break;
 

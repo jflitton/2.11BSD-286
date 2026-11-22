@@ -107,7 +107,7 @@ from is often far bigger than a terminal was: it holds 200 columns by 80
 lines, and the widest window is 256 columns. `vi` refuses a bigger
 window, as upstream's does, with "Screen too large for internal buffer".
 Its error messages are in `/usr/share/misc/exstrings`, as on the PDP-11,
-not in its data. `tools/mkstr.py` does what `mkstr` did: it takes each
+not in its data. `usr/src/i286/mkstr.c` does what `mkstr` did: it takes each
 message out of a copy of the C, in `obj/ex`, and puts the message's
 offset in the file in its place. That moves 5.7K out of the data
 segment. `/usr/share/misc/termcap` is upstream's, with the commonest
@@ -127,7 +127,7 @@ change the case of a character.
 data segment has 26K of data and 8K of stack, leaving about 30K for its
 heap. Its own `mkprstr` took the format of each `xprintf` out of its C
 and into `/etc/tcsh6.00strgs`, and made the call one to `mkprintf`,
-which reads the format from the file; `tools/mkstr.py` does that too
+which reads the format from the file; `mkstr.c` does that too
 (`-e xprintf=mkprintf -n 5`), and moves 6.5K. Three of its headers are
 made from its C, as its Makefile makes them: `sh.err.h` with the
 16-bit flags of its error numbers, which its Makefile chose with

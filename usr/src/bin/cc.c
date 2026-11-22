@@ -19,11 +19,18 @@ static	char sccsid[] = "@(#)cc.c 5.2 (2.11BSD) 2026/8/29";
  * name that is not defined has to be said to be external, which the
  * second pass does.  A file of assembly is given FAR defined in the
  * medium and large models, and FARDATA too in the large, as the C
- * library's own are (lib/libc/i286/crt/DEFS.inc).  In the large model
+ * library's own are (lib/libc/i286/crt/DEFS.inc), which is in
+ * /usr/include, where the assembler is told to look for what such a
+ * file includes, after the directories of -I.  In the large model
  * the preprocessor is given __LARGE__ defined, as the headers know the
  * model by, and NULL as 0L, which is four bytes, as a pointer is, where
  * it is passed to a function that has no prototype; in the medium,
  * __MEDIUM__.
+ *
+ * c2 has a function in memory whole, and one too long for its data
+ * segment it says it has no space for: the file is then given to
+ * /lib/c2l, the same program of the large model, which is slower and
+ * has the memory.
  *
  * With -nd=NAME a file's data is not in the program's data segment,
  * which is the stack's, but in one of its own, NAME_DATA and NAME_BSS
@@ -42,6 +49,9 @@ char	*cpp = "/lib/cpp";
 char	*ccom = "/lib/c0";
 char	*ccom1 = "/lib/c1";
 char	*c2 = "/lib/c2";
+#ifdef i286
+char	*c2big = "/lib/c2l";	/* c2 of the large model */
+#endif
 char	*as = "/bin/as";
 char	*ld = "/bin/ld";
 char	*crt0 = "/lib/crt0.o";
@@ -208,6 +218,9 @@ main(argc, argv)
 			continue;
 		case '2':
 			c2 = strspl(npassname, "c2");
+#ifdef i286
+			c2big = strspl(npassname, "c2l");
+#endif
 			continue;
 		case 'p':
 			cpp = strspl(npassname, "cpp");
@@ -309,7 +322,11 @@ main(argc, argv)
 		}
 		if (oflag) {
 			av[0] = "c2"; av[1] = tmp5; av[2] = tmp3; av[3] = 0;
-			if (callsys(c2, av)) {
+			if (callsys(c2, av)
+#ifdef i286
+			    && callsys(c2big, av)
+#endif
+			    ) {
 				unlink(tmp3);
 				tmp3 = assource = tmp5;
 			} else
@@ -326,6 +343,13 @@ main(argc, argv)
 		na = 3;
 		if (large)
 			av[na++] = "-DFARDATA";
+		if (assource == clist[i]) {
+			/* DEFS.inc, and what the file includes of its own */
+			av[na++] = "-I/usr/include";
+			for (j = 0; j < np; j++)
+				if (plist[j][1] == 'I')
+					av[na++] = plist[j];
+		}
 #else
 		av[0] = "as"; av[1] = "-V";
 		av[2] = "-u"; na = 3;

@@ -88,6 +88,8 @@ the tests, which boot the system in 86Box and check what it does.
 
 - [Building and testing](docs/development.md): the layout, the
   toolchain, the tools and the tests.
+- [The system makes itself](docs/self-hosting.md): building it on the
+  286, from `/usr/src`.
 - [The upstream branch](docs/upstream.md): 2.11BSD as distributed, so
   that `git diff upstream main` is the port.
 - The design: [memory model](docs/memory-model.md), [calling convention

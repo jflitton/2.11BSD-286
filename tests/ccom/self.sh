@@ -108,7 +108,7 @@ do
 		cd /mnt/new1
 		cp cc as ld ar nm size /bin
 		cp ranlib /usr/bin
-		cp cpp c0 c1 c2 /lib
+		cp cpp c0 c1 c2 c2l /lib
 		cd /mnt/src
 		echo "installed"
 	fi

@@ -39,6 +39,15 @@ typedef long int TIMETYPE;
 #define OUTMAX 7000
 #define MAXDIR 10
 #endif /* pdp11 */
+#ifdef i286
+/*
+ * The Makefile of the system's programs, /usr/src/i286's, names some
+ * 4000 files.  The table is the heap's (misc.c), make being a program
+ * of the large model: 8191 pointers are 32K.
+ */
+#undef HASHSIZE
+#define HASHSIZE 8191
+#endif
 #define QBUFMAX 5000
 
 #define ALLDEPS  1

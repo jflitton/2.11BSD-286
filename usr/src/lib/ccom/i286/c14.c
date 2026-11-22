@@ -560,3 +560,209 @@ double v;
 		printf("\tdw\t%u,%u,%u,%u\n", u.w[0], u.w[1], u.w[2], u.w[3]);
 	}
 }
+
+/*
+ * A floating constant's value from its text: the double nearest to
+ * what is written, and of two as near, the one whose last bit is 0.
+ * It is worked out in integers, so that a constant is the same bits
+ * wherever the compiler runs: the library's atof does it in floating
+ * point, and on the 286 is one off in the last place for a constant in
+ * ten or so, which what compiled the same file elsewhere was not.
+ *
+ * A number is NW words of 16 bits, the least first.  The constant is
+ * num/den, a whole number of its digits over a power of 10, or times
+ * one; they are shifted until the quotient has 54 or 55 bits, which
+ * are found a bit at a time, and those are rounded to 53.  The
+ * smallest numbers, which have fewer bits than that, are 0 here.
+ * nw is how many words the longer of the two has in use.
+ */
+#define	NW	100
+
+static unsigned short num[NW], den[NW];
+static int nw;
+
+static
+mul10(a, d)
+register unsigned short *a;
+{
+	register int i;
+	unsigned long c;
+
+	c = d;
+	for (i = 0; i < nw; i++) {
+		c += (unsigned long)a[i] * 10;
+		a[i] = c & 0177777;
+		c >>= 16;
+	}
+	if (c && nw < NW)
+		a[nw++] = c;
+}
+
+static
+nbits(a)
+register unsigned short *a;
+{
+	register int i, n;
+	register unsigned w;
+
+	for (i = nw-1; i >= 0 && a[i]==0; i--)
+		;
+	if (i < 0)
+		return(0);
+	n = i*16;
+	for (w = a[i]; w; w >>= 1)
+		n++;
+	return(n);
+}
+
+static
+shl(a, n)
+register unsigned short *a;
+{
+	register int i, w;
+	int b;
+
+	w = n >> 4;
+	b = n & 017;
+	if ((nw += w+1) > NW)
+		nw = NW;
+	for (i = nw-1; i >= 0; i--) {
+		a[i] = i>=w ? a[i-w] << b : 0;
+		if (b && i > w)
+			a[i] |= a[i-w-1] >> (16-b);
+	}
+}
+
+static
+shr1(a)
+register unsigned short *a;
+{
+	register int i;
+
+	for (i = 0; i < nw-1; i++)
+		a[i] = (a[i]>>1) | ((a[i+1]&1) << 15);
+	a[nw-1] >>= 1;
+}
+
+/*
+ * If a is not less than b, take b from it.
+ */
+static
+sub(a, b)
+register unsigned short *a, *b;
+{
+	register int i;
+	long c;
+
+	for (i = nw-1; i >= 0; i--)
+		if (a[i] != b[i]) {
+			if (a[i] < b[i])
+				return(0);
+			break;
+		}
+	c = 0;
+	for (i = 0; i < nw; i++) {
+		c += (long)a[i] - (long)b[i];
+		a[i] = c & 0177777;
+		c = c<0 ? -1 : 0;
+	}
+	return(1);
+}
+
+double
+ctod(s)
+register char *s;
+{
+	union {
+		double	d;
+		unsigned short w[4];
+	} u;
+	unsigned short q[4];
+	register int i, c;
+	int e, e10, dot, minus, sh, drop, low, half, field;
+
+	for (i = 0; i < NW; i++)
+		num[i] = den[i] = 0;
+	den[0] = 1;
+	nw = 1;
+	u.w[0] = u.w[1] = u.w[2] = u.w[3] = 0;
+	e10 = 0;
+	dot = 0;
+	for (; (c = *s) != 0; s++) {
+		if (c=='.') {
+			dot++;
+			continue;
+		}
+		if (c<'0' || c>'9')
+			break;
+		mul10(num, c-'0');
+		if (dot)
+			e10--;
+	}
+	if (c=='e' || c=='E') {
+		minus = 0;
+		if (*++s=='+')
+			s++;
+		else if (*s=='-') {
+			minus++;
+			s++;
+		}
+		for (e = 0; *s>='0' && *s<='9'; s++)
+			if (e < 1000)
+				e = e*10 + *s-'0';
+		e10 += minus ? -e : e;
+	}
+	if (nbits(num)==0 || e10 < -420)
+		return(u.d);
+	if (e10 > 330) {
+		u.w[3] = 077760;
+		return(u.d);
+	}
+	for (; e10 > 0; e10--)
+		mul10(num, 0);
+	for (; e10 < 0; e10++)
+		mul10(den, 0);
+	sh = 54 - (nbits(num) - nbits(den));
+	if (sh > 0)
+		shl(num, sh);
+	else
+		shl(den, -sh);
+	shl(den, 54);
+	q[0] = q[1] = q[2] = q[3] = 0;
+	for (i = 54; i >= 0; i--) {
+		if (sub(num, den))
+			q[i>>4] |= 1 << (i&017);
+		shr1(den);
+	}
+	/* 54 bits or 55: 1 or 2 are dropped, and what is left of num. */
+	drop = q[3] & 0100 ? 2 : 1;
+	low = q[0] & ((1<<drop) - 1);
+	half = 1 << (drop-1);
+	for (i = 0; i < drop; i++) {
+		q[0] = (q[0]>>1) | ((q[1]&1) << 15);
+		q[1] = (q[1]>>1) | ((q[2]&1) << 15);
+		q[2] = (q[2]>>1) | ((q[3]&1) << 15);
+		q[3] >>= 1;
+	}
+	if (low > half || low==half && (nbits(num) || q[0]&1)) {
+		for (i = 0; i < 4 && ++q[i]==0; i++)
+			;
+		if (q[3] & 040) {
+			/* 2^53: its low bits are all 0 */
+			q[3] >>= 1;
+			drop++;
+		}
+	}
+	field = 1023 + 52 + drop - sh;
+	if (field <= 0)
+		return(u.d);
+	if (field >= 2047) {
+		u.w[3] = 077760;
+		return(u.d);
+	}
+	u.w[0] = q[0];
+	u.w[1] = q[1];
+	u.w[2] = q[2];
+	u.w[3] = (q[3] & 017) | (field << 4);
+	return(u.d);
+}

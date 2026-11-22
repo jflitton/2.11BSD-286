@@ -33,6 +33,7 @@ sources itself ([below](#the-system-makes-its-own-compiler)).
 | `/lib/c0` | the compiler's first pass: C to trees | upstream's (`lib/ccom`), with what differs for the 286 under `#ifdef i286` |
 | `/lib/c1` | its second pass: trees to assembly | the 286's own (`lib/ccom/i286`): upstream's reader and optimizer of trees, with a code generator in place of the PDP-11's tables |
 | `/lib/c2` | with `-O`, the object code improver | the 286's own (`lib/c2/i286`), on upstream's plan |
+| `/lib/c2l` | the same, of the large model: `cc` gives it a file that has a function `c2` has no room for, which is a function of some 600 lines | the same sources |
 | `/bin/as` | the assembler | new (`bin/as/i286`) |
 | `/bin/ld` | the linker | new (`bin/ld/i286`), on upstream's plan |
 
@@ -384,16 +385,19 @@ there (`lib/cpp/i286`), so that it writes what `/lib/cpp` writes.
 
 ## The system makes its own compiler
 
+It makes all of itself ([the system makes itself](self-hosting.md));
+this is the part of that which was first, and which is done twice.
+
 `tests/ccom/self.sh` boots the system from a disk that has, on a file
-system of their own, the sources of the eleven programs above that are
-C: `cc`, `cpp`, `c0`, `c1`, `c2`, `as`, `ld`, `ar`, `ranlib`, `nm` and
-`size` (`make -C usr/src/i286 ccprogs` lists what each is made of). The
+system of their own, the sources of the twelve programs above that are
+C: `cc`, `cpp`, `c0`, `c1`, `c2`, `c2l`, `as`, `ld`, `ar`, `ranlib`, `nm`
+and `size` (`make -C usr/src/i286 ccprogs` lists what each is made of). The
 system compiles, assembles and links each one, and each must be, to the
 byte, what `tools/cc -ccom` makes of it where the system is built. Then
 it puts them where the ones it booted with were, and does it again with
 those: the second time the compiler is the one the system made.
 
-All 22 are the same. Where the system is built the files go through
+All 24 are the same. Where the system is built the files go through
 its own preprocessor too, built for that machine, so that what is
 compared is the preprocessor's work as well.
 

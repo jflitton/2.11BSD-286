@@ -81,7 +81,7 @@ csh_MODEL=	m
 
 # ex, which is also vi.  Its error messages are taken out of its C into
 # a file, /usr/share/misc/exstrings, that it reads them from
-# (tools/mkstr.py): the PDP-11 needed the room in its 64K of data, and
+# (mkstr.c, here): the PDP-11 needed the room in its 64K of data, and
 # so does the medium model.  The sources mkstr makes are in obj/ex.
 EX=	ex.c ex_addr.c ex_cmds.c ex_cmds2.c ex_cmdsub.c ex_data.c \
 	ex_extern.c ex_get.c ex_io.c ex_put.c ex_re.c ex_set.c ex_subr.c \
@@ -749,8 +749,12 @@ c1_SRCS=	$(addprefix lib/ccom/i286/,c10.c c11.c c12.c c13.c c14.c c15.c)
 c2_SRCS=	lib/c2/i286/c20.c lib/c2/i286/c21.c
 # c2 has a whole function in memory, and of the kernel's two longest,
 # namei and tcp_input, each is more than the 64K of a data segment
-# hold: it is of the large model, and its memory is its own.
-c2_MODEL=	l
+# hold: c2l is c2 of the large model, whose memory is its own, and cc
+# gives it what c2 had no room for (bin/cc.c).  It is the slower of
+# the two.
+c2l_SRCS=	$(c2_SRCS)
+c2l_MODEL=	l
+c2l_CCOM=	1
 c0_CCOM=	1
 c1_CCOM=	1
 c2_CCOM=	1
@@ -765,7 +769,7 @@ ranlib_FLAGS=	-I$(SRC)/bin/ar
 nm_SRCS=	bin/nm/nm.c
 nm_FLAGS=	-I$(SRC)/bin/ar
 size_SRCS=	bin/size.c
-CCPROGS=	cc cpp c0 c1 c2 as ld ar ranlib nm size
+CCPROGS=	cc cpp c0 c1 c2 c2l as ld ar ranlib nm size
 
 # What waited for the compiler: calendar's program, which writes the
 # dates that its script has /lib/cpp and egrep look for; and learn,
@@ -841,14 +845,26 @@ ccprogs:
 # What the system's own Makefile for its programs and libraries is
 # written from (tools/srcmk.py): for each program its name and model,
 # and after a bar each, its flags, its sources and its libraries; for
-# each library its name, its flags and its sources.  What is in
-# usr/src is named from there, and what is made here, by its place in
-# obj.
+# each library its name, its flags and its sources; what yacc and lex
+# make (YACCED, LEXED), and mkstr, and hack's crypt of its files as the
+# preprocessor leaves them; and the rules that are written here for the
+# system's make as they are (SYSGEN, SYSRULES).  What is in usr/src is
+# named from there, and what is made here, by its place in obj.
 table:
 	@:$(foreach p,$(PROGS),$(info PROG $(p) $(call model,$(p)) | $(subst \
 	    $(SRC)/,,$($(p)_FLAGS)) | $(subst $(SRC)/,,$($(p)_SRCS)) | $($(p)_LIBS)))
 	@:$(foreach l,$(LIBRARIES),$(info LIB $(l) | $(subst \
 	    $(SRC)/,,$($(l)_LIBFLAGS)) | $($(l)_LIB)))
+	@:$(foreach y,$(YACCED),$(info YACC $(subst $(colon), ,$(y))))
+	@:$(foreach l,$(LEXED),$(info LEX $(subst $(colon), ,$(l))))
+	@:$(info MKSTR ex/exstrings | $(ex_MKSTR) | $(addprefix \
+	    ucb/ex/,$(EX)) | )
+	@:$(info MKSTR tcsh/tcsh6.00strgs | $(tcsh_MKSTR) | $(addprefix \
+	    bin/tcsh/,$(TCSH)) | $(tcsh_MKSTRDEPS))
+	@:$(info FILTERED games/nhack | hcrypt games/hack/crypt.c -Di286 | -mm \
+	    -Igames/hack | $(addprefix games/hack/,$(HACK)))
+	@:$(info SYSGEN $(SYSGEN))
+	@:$(foreach r,$(SYSRULES),$(info RULES)$(info $(value $(r)))$(info END))
 
 .PHONY:	all list ccprogs table root syslibs clean FORCE
 
@@ -937,45 +953,48 @@ yacc=	rm -rf $(2).d && mkdir -p $(2).d && cd $(2).d && \
 lex=	rm -rf $(2).d && mkdir -p $(2).d && cd $(2).d && \
 	$(LEX) $(1) && mv lex.yy.c $(2) && cd .. && rm -rf $(2).d
 
-$(G)/expr.c: $(SRC)/bin/expr.y $(YACC) | $(G)
-	@echo yacc expr.y
-	@$(call yacc,$<,$@)
-$(G)/lex.c: $(LSRC)/parser.y $(YACC) | $(G)
-	@echo yacc lex/parser.y
-	@$(call yacc,$<,$@)
+# What yacc and lex make: for each, the C, named from obj, a colon and
+# what it is made of, named from usr/src; and for yacc -d another colon
+# and the file of the tokens' numbers, named from obj.  The system makes
+# the same of them itself, in /usr/src/i286 (tools/srcmk.py).
+YACCED=	gen/expr.c:bin/expr.y gen/lex.c:usr.bin/lex/parser.y \
+	gen/egrep.c:usr.bin/egrep.y gen/bc.c:usr.bin/bc.y \
+	gen/make.c:bin/make/gram.y gen/ftpcmd.c:libexec/ftpd/ftpcmd.y \
+	gen/eqn/e.c:usr.bin/eqn/e.y:gen/eqn/e.def \
+	gen/awk/awk.g.c:bin/awk/awk.g.y:gen/awk/awk.h \
+	games/atc/grammar.c:games/atc/grammar.y:games/atc/y.tab.h
+LEXED=	gen/diction/wdslex.c:usr.bin/diction/nwords.l \
+	gen/diction/endlex.c:usr.bin/diction/end.l \
+	gen/diction/prtlex.c:usr.bin/diction/part.l \
+	gen/awk/awk.lx.c:bin/awk/awk.lx.l games/atc/lex.c:games/atc/lex.l
+OBJ=	$(TOP)/obj
+comma:=	,
+define yacced
+$(OBJ)/$(1): $(SRC)/$(2) $(YACC) | $(patsubst %/,%,$(dir $(OBJ)/$(1)))
+	@echo yacc $(2)
+	@$$(call yacc,$$<,$$@$(if $(3),$(comma)$(OBJ)/$(3)))
+$(if $(3),$(OBJ)/$(3): $(OBJ)/$(1) ;)
+endef
+define lexed
+$(OBJ)/$(1): $(SRC)/$(2) $(LEX) | $(patsubst %/,%,$(dir $(OBJ)/$(1)))
+	@echo lex $(2)
+	@$$(call lex,$$<,$$@)
+endef
+colon:=	:
+$(foreach y,$(YACCED),$(eval $(call yacced,$(word 1,$(subst $(colon), \
+	,$(y))),$(word 2,$(subst $(colon), ,$(y))),$(word 3,$(subst \
+	$(colon), ,$(y))))))
+$(foreach l,$(LEXED),$(eval $(call lexed,$(word 1,$(subst $(colon), \
+	,$(l))),$(word 2,$(subst $(colon), ,$(l))))))
 
-$(G)/egrep.c: $(SRC)/usr.bin/egrep.y $(YACC) | $(G)
-	@echo yacc egrep.y
-	@$(call yacc,$<,$@)
-$(G)/bc.c: $(SRC)/usr.bin/bc.y $(YACC) | $(G)
-	@echo yacc bc.y
-	@$(call yacc,$<,$@)
-$(G)/make.c: $(SRC)/bin/make/gram.y $(YACC) | $(G)
-	@echo yacc make/gram.y
-	@$(call yacc,$<,$@)
-$(G)/ftpcmd.c: $(SRC)/libexec/ftpd/ftpcmd.y $(YACC) | $(G)
-	@echo yacc ftpd/ftpcmd.y
-	@$(call yacc,$<,$@)
+
 
 # eqn's grammar, with e.def, the tokens' numbers, which the rest of eqn
 # and neqn include.  diction's three scanners, which include its tables of
 # words and the functions that look in them, from its directory.
 $(G)/eqn $(G)/diction:
 	mkdir -p $@
-$(G)/eqn/e.c: $(SRC)/usr.bin/eqn/e.y $(YACC) | $(G)/eqn
-	@echo yacc eqn/e.y
-	@$(call yacc,$<,$@,$(G)/eqn/e.def)
-$(G)/eqn/e.def: $(G)/eqn/e.c ;
 $(O)/eqn $(O)/neqn: $(G)/eqn/e.def $(SRC)/usr.bin/eqn/e.h
-$(G)/diction/wdslex.c: $(DI)/nwords.l $(LEX) | $(G)/diction
-	@echo lex diction/nwords.l
-	@$(call lex,$<,$@)
-$(G)/diction/endlex.c: $(DI)/end.l $(LEX) | $(G)/diction
-	@echo lex diction/end.l
-	@$(call lex,$<,$@)
-$(G)/diction/prtlex.c: $(DI)/part.l $(LEX) | $(G)/diction
-	@echo lex diction/part.l
-	@$(call lex,$<,$@)
 $(O)/style1: $(addprefix $(DI)/,nhash.c dict.c ydict.c abbrev.c names.h)
 $(O)/style2: $(addprefix $(DI)/,ehash.c edict.c names.h)
 $(O)/style3: $(addprefix $(DI)/,names.h conp.h style.h)
@@ -983,13 +1002,6 @@ $(O)/tbl: $(SRC)/usr.bin/tbl/t..c
 $(O)/spell $(O)/spellin $(O)/spellout: $(SRC)/usr.bin/spell/spell.h
 
 A=	$(SRC)/bin/awk
-$(AWKG)/awk.g.c: $(A)/awk.g.y $(YACC) | $(AWKG)
-	@echo yacc awk.g.y
-	@$(call yacc,$<,$@,$(AWKG)/awk.h)
-$(AWKG)/awk.h: $(AWKG)/awk.g.c ;
-$(AWKG)/awk.lx.c: $(A)/awk.lx.l $(LEX) | $(AWKG)
-	@echo lex awk.lx.l
-	@$(call lex,$<,$@)
 $(AWKG)/token.c: $(A)/token.c $(AWKG)/awk.h
 	@{ sed '/= *{$$/q' $<; \
 	  sed -n 's/^# *define *\([^ ]*\) \(.*\)/"\1", \2,/p' $(AWKG)/awk.h; \
@@ -1000,6 +1012,23 @@ $(H)/awkproc: $(A)/proc.c $(AWKG)/token.c $(AWKG)/awk.h | $(H)
 $(AWKG)/proctab.c: $(H)/awkproc
 	@$(H)/awkproc > $@.new && mv $@.new $@
 $(O)/awk: $(A)/awk.def
+# The same for the system's own make, which makes awk in /usr/src/i286
+# (tools/srcmk.py).  SYSGEN is what such rules make, named from obj as
+# YACCED is, and SYSRULES names the rules: in them S is /usr/src, and
+# a file is named from /usr/src/i286, where what is in obj here is.
+SYSGEN+= gen/awk/token.c gen/awk/proctab.c
+define awk_SYSRULES
+$S/i286/gen/awk/token.c: $S/bin/awk/token.c $S/i286/gen/awk/awk.g.c
+	(sed '/= *{$$/q' $S/bin/awk/token.c; \
+	 sed -n 's/^# *define *\([^ ]*\) \(.*\)/"\1", \2,/p' gen/awk/awk.h; \
+	 sed -n '/^};$$/,$$p' $S/bin/awk/token.c) > gen/awk/token.c
+
+$S/i286/gen/awk/proctab.c: $S/bin/awk/proc.c $S/i286/gen/awk/token.c
+	cd o && rm -f *.o && cc -O -I$S/i286/gen/awk -o ../gen/awk/proc \
+	    $S/bin/awk/proc.c $S/i286/gen/awk/token.c && rm -f *.o
+	gen/awk/proc > gen/awk/proctab.c
+endef
+SYSRULES+= awk_SYSRULES
 $(O)/yacc: $(YSRC)/dextern $(YSRC)/files
 $(O)/lex: $(LSRC)/ldefs.c $(LSRC)/once.c
 
@@ -1008,13 +1037,6 @@ $(O)/lex: $(LSRC)/ldefs.c $(LSRC)/once.c
 # second includes.
 $(GO)/atc $(GO)/battlestar:
 	mkdir -p $@
-$(GO)/atc/grammar.c: $(SRC)/games/atc/grammar.y $(YACC) | $(GO)/atc
-	@echo yacc atc/grammar.y
-	@$(call yacc,$<,$@,$(GO)/atc/y.tab.h)
-$(GO)/atc/y.tab.h: $(GO)/atc/grammar.c ;
-$(GO)/atc/lex.c: $(SRC)/games/atc/lex.l $(LEX) | $(GO)/atc
-	@echo lex atc/lex.l
-	@$(call lex,$<,$@)
 $(O)/atc: $(GO)/atc/y.tab.h
 
 # battlestar's descriptions of its places and things are in
@@ -1034,6 +1056,23 @@ $(GO)/battlestar/battle_strings: $(addprefix $(BS)/,dayfile.c nightfile.c \
 	@cd $(BS) && rm -f $@ && for f in globals.c dayfile.c nightfile.c; do \
 	    $(H)/bmkstr - $@ $(GO)/battlestar/xx $$f || exit 1; done
 $(BSTR): $(GO)/battlestar/battle_strings ;
+# The same for the system's own make (SYSRULES, above).
+SYSGEN+= $(addprefix games/battlestar/xx,dayfile.c nightfile.c globals.c)
+define battlestar_SYSRULES
+bmkstr:	$S/games/battlestar/mkstr.c
+	cd o && rm -f *.o && cc -O -o ../bmkstr $S/games/battlestar/mkstr.c && rm -f *.o
+
+$S/i286/games/battlestar/battle_strings: bmkstr $S/games/battlestar/dayfile.c \
+		$S/games/battlestar/nightfile.c $S/games/battlestar/globals.c
+	rm -f games/battlestar/battle_strings
+	cd $S/games/battlestar && for f in globals.c dayfile.c nightfile.c; do \
+	    $S/i286/bmkstr - $S/i286/games/battlestar/battle_strings \
+	    $S/i286/games/battlestar/xx $$f || exit 1; done
+
+$S/i286/games/battlestar/xxdayfile.c $S/i286/games/battlestar/xxnightfile.c \
+$S/i286/games/battlestar/xxglobals.c: $S/i286/games/battlestar/battle_strings
+endef
+SYSRULES+= battlestar_SYSRULES
 
 # hack's sources as they are compiled, and crypt, which is built for this
 # machine and reads and writes C, with -Di286 for the system's compiler,
@@ -1169,9 +1208,19 @@ GAMEDATA=	$(GO)/battlestar/battle_strings $(GO)/fortunes.dat \
 		$(addprefix $(GO)/warp/smap.,0 1 2 3 4 5 6 7)
 
 # ex's sources with its messages taken out, and the file they are in.
+# mkstr is this directory's, compiled for the machine the system is
+# built on; the system compiles it for itself when it makes these
+# (tools/srcmk.py), and is told the same of each: what mkstr is given
+# besides the files, and what else must be made first, named from obj.
+$(H)/mkstr: $(SRC)/i286/mkstr.c | $(H)
+	@echo hostcc mkstr
+	@$(HOSTCC) $(HOSTCFLAGS) -o $@ $<
+ex_MKSTR=
+tcsh_MKSTR=	-e xprintf=mkprintf -n 5
+tcsh_MKSTRDEPS=	tcsh/sh.err.h tcsh/ed.defns.h tcsh/tc.const.h
 $(EXO)/exstrings: $(addprefix $(SRC)/ucb/ex/,$(EX)) \
-		$(wildcard $(SRC)/ucb/ex/*.h) $(TOP)/tools/mkstr.py | $(EXO)
-	python3 -I $(TOP)/tools/mkstr.py $@ $(EXO) \
+		$(wildcard $(SRC)/ucb/ex/*.h) $(H)/mkstr | $(EXO)
+	$(H)/mkstr $(ex_MKSTR) $@ $(EXO) \
 	    $(addprefix $(SRC)/ucb/ex/,$(EX))
 $(ex_SRCS): $(EXO)/exstrings ;
 
@@ -1182,8 +1231,8 @@ $(ex_SRCS): $(EXO)/exstrings ;
 # constant strings.
 T=	$(SRC)/bin/tcsh
 $(TCO)/tcsh6.00strgs: $(addprefix $(T)/,$(TCSH)) $(wildcard $(T)/*.h) \
-		$(TOP)/tools/mkstr.py | $(TCO)
-	python3 -I $(TOP)/tools/mkstr.py -e xprintf=mkprintf -n 5 $@ $(TCO) \
+		$(H)/mkstr | $(TCO)
+	$(H)/mkstr $(tcsh_MKSTR) $@ $(TCO) \
 	    $(addprefix $(T)/,$(TCSH))
 $(tcsh_SRCS): $(TCO)/tcsh6.00strgs $(TCHDRS) ;
 $(TCO)/sh.err.h: $(T)/sh.err.c | $(TCO)
@@ -1196,6 +1245,24 @@ $(TCO)/ed.defns.h: $(T)/ed.defns.c | $(TCO)
 $(TCO)/tc.const.h: $(T)/tc.const.c | $(TCO)
 	grep '^Char STR' $< | \
 	    sed 's/Char \([a-zA-Z0-9_]*\).*/extern Char \1[];/' | sort > $@
+
+# The three headers for the system's own make (SYSRULES, above).
+SYSGEN+= $(tcsh_MKSTRDEPS)
+define tcsh_SYSRULES
+$S/i286/tcsh/sh.err.h: $S/bin/tcsh/sh.err.c
+	(echo '#ifndef _h_sh_err'; echo '#define _h_sh_err'; \
+	 sed '/^#if.*pdp11/,/^#else/d' $S/bin/tcsh/sh.err.c | grep '^#define.*ERR_'; \
+	 echo '#endif') > tcsh/sh.err.h
+
+$S/i286/tcsh/ed.defns.h: $S/bin/tcsh/ed.defns.c
+	(echo '#ifndef _h_ed_defns'; echo '#define _h_ed_defns'; \
+	 grep '^#define.*[FV]_' $S/bin/tcsh/ed.defns.c; echo '#endif') > tcsh/ed.defns.h
+
+$S/i286/tcsh/tc.const.h: $S/bin/tcsh/tc.const.c
+	grep '^Char STR' $S/bin/tcsh/tc.const.c | \
+	    sed 's/Char \([a-zA-Z0-9_]*\).*/extern Char \1[];/' | sort > tcsh/tc.const.h
+endef
+SYSRULES+= tcsh_SYSRULES
 
 define library
 $(LIB)/$(2)/lib$(1).$(LX): $(addprefix $(SRC)/,$($(1)_LIB)) $(HDRS) \

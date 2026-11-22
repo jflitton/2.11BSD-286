@@ -8,10 +8,12 @@ takes them in): /usr/include, and the libraries.
 
 /usr/include is TOP/usr/include as the tree has it: its own files, and
 the kernel's headers that it reaches through links, sys (sys/h), i286
-with machine as another name for it (sys/i286), net, netinet and
-netns.  What is of the PDP-11 alone is left out (pdp, pdpif, pdpuba,
-netimp), and pascal's.  A header that is a link in the tree is one
-there.
+with machine as another name for it (sys/i286), net, netimp, netinet
+and netns.  What is of the PDP-11 alone is left out (pdp, pdpif,
+pdpuba), and pascal's; netimp is not, netstat being compiled with it.
+A header that is a link in the tree is one there.  DEFS.inc is there
+too, the C library's conventions for a file of assembly
+(usr/src/lib/libc/i286/crt), where cc has the assembler look for it.
 
 The libraries are the system's own objects (a.out.h), as its own
 compiler, assembler and tools/ar.py made them in TOP/obj/nlib: for the
@@ -24,7 +26,7 @@ libln.a, is libl.a as well, a link, as upstream installs it: -ll.
 import os
 import sys
 
-LINKED = ["sys", "i286", "net", "netinet", "netns"]
+LINKED = ["sys", "i286", "net", "netimp", "netinet", "netns"]
 OWN = ["arpa", "protocols"]
 
 
@@ -51,6 +53,10 @@ def main():
         out.append("d /usr/include/%s 755" % d)
         headers(os.path.realpath(os.path.join(inc, d)), "/usr/include/" + d)
     out.append("l /usr/include/machine i286")
+    # What a file of assembly includes for the library's conventions,
+    # where cc has the assembler look.
+    out.append("f /usr/include/DEFS.inc 444 %s" % os.path.join(
+        top, "usr", "src", "lib", "libc", "i286", "crt", "DEFS.inc"))
 
     nlib = os.path.join(top, "obj", "nlib")
     out += ["d /lib 755", "d /lib/m 755", "d /lib/l 755", "d /usr/lib 755",

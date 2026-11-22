@@ -39,6 +39,11 @@ d /lost+found 755
 d /mnt 755
 d /home 755
 d /usr/skel 755
+# Where the system's sources are, when it has them: a file system of
+# their own, as tools/srcmk.py lists it, which is mounted here, and the
+# system makes itself there (docs/self-hosting.md).  /sys is the kernel's.
+d /usr/src 755
+l /sys usr/src/sys
 i ../../../obj/root/kernel.proto
 h /mdec/sduboot /mdec/wduboot
 f /etc/init 700 ../../../obj/root/bin/init
@@ -341,6 +346,7 @@ f /lib/cpp 755 ../../../obj/root/bin/cpp
 f /lib/c0 755 ../../../obj/root/bin/c0
 f /lib/c1 755 ../../../obj/root/bin/c1
 f /lib/c2 755 ../../../obj/root/bin/c2
+f /lib/c2l 755 ../../../obj/root/bin/c2l
 # And what waited for it.  lint is upstream's, which says why there is
 # none.  learn is in two places, as upstream installs it; its lessons
 # and their logs are in learn.proto, which the Makefile makes.

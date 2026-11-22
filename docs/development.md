@@ -239,10 +239,15 @@ tests/ccom/run.sh       # the system's own C compiler, run here: 1781
                         # compiler's two passes and c2 as it compiled
                         # them, run there too
 tests/ccom/self.sh      # the system making its compiler: cc, cpp, the
-                        # passes, as, ld and the rest, eleven programs
+                        # passes, as, ld and the rest, twelve programs
                         # from their sources on the 286, twice, the
                         # second time with the ones it had just made,
                         # each to be what is made of it here
+tests/self/run.sh       # the system making itself: the kernel, /boot,
+                        # the libraries and the programs from
+                        # /usr/src on the 286, each to be what is made
+                        # of it here; installed, and started again
+                        # (docs/self-hosting.md)
 tests/ccom/programs.sh  # the same compiler, assembler and linker on
                         # the system's programs: tests/programs, with
                         # all of them made that way
@@ -324,12 +329,13 @@ and so on).
 - `tests/ccom` is another, whose tests are compiled by the tree's own
   compiler, `usr/src/lib/ccom`, with the second pass for the 286,
   `usr/src/lib/ccom/i286`. Both passes are built for the machine the
-  system is built on and run there by `tools/ncc`; for these tests NASM
-  assembles what they write and the cross tools link it, since the
-  tests call the cross compiler's code to have each value checked: the
-  two compilers' calling conventions are tested against each other.
-  `REF=1` compiles the tests with the cross compiler instead, to check
-  a test. `t_nd.c` is compiled with `-nd=ND`, so that its DS is not SS,
+  system is built on and run there by `tools/ncc`. What checks each
+  value, `support.c`, is compiled as the harness compiles a program:
+  by the same compiler, or with `TOOLS_PROGRAMS=cross` by the cross
+  compiler, NASM then assembling what the tests' compiler wrote and
+  the cross tools linking it, which tests the two compilers' calling
+  conventions against each other. `REF=1` compiles the tests with the
+  cross compiler too, to check a test. `t_nd.c` is compiled with `-nd=ND`, so that its DS is not SS,
   as the kernel's network's is not, and `nd.s` sets its DS as it is
   entered and gives the checks theirs back. The tests are run twice: as the two passes leave them, and
   with `tools/ncc -O`, which has `c2` improve the code

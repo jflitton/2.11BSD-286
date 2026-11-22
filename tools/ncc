@@ -132,9 +132,12 @@ def main():
         sys.stderr.write(r.stderr.decode("latin-1"))
         if r.returncode != 0:
             sys.exit(1)
-        # c0 has 64 characters for a file's name, which here begins
-        # with where the tree is.
-        text = r.stdout.replace(b'"' + TOP.encode() + b"/", b'"')
+        # A file is named as it is on the system, where the tree's
+        # usr/src is /usr/src: the name is in what assert() says, and
+        # the system, making the same file from its own /usr/src
+        # (docs/self-hosting.md), is to make the same of it.  And c0
+        # has 64 characters for a name.
+        text = r.stdout.replace(b'"' + TOP.encode() + b"/", b'"/')
         pre = out if pre_only else os.path.join(tmp, base + ".i")
         with open(pre, "wb") as f:
             f.write(text)

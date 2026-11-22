@@ -22,6 +22,7 @@ one it was written from is.
     OUT/proto                   the file system, to be mounted on
                                 /usr/src
     OUT/programs, OUT/libraries the names of what the last makes
+    OUT/installed               each program it installs, and where
 
 What make makes there is left where it is run, as upstream's Makefiles
 leave it: unix in /usr/src/sys/PC, as in a directory of /sys made by
@@ -29,8 +30,10 @@ config.  Each is to be, to the byte, what is made of the same sources
 here (tests/self).
 
 Each Makefile has "install", which puts what was made where the system
-boots it from: the kernel as /unix, the one that was there as
-/unix.old, which /boot loads if it is named to it.
+has it: the kernel as /unix, the one that was there as /unix.old, which
+/boot loads if it is named to it; the libraries where cc looks for
+them; the programs where the root file system has them
+(usr/src/i286/root.proto), with its modes and owners.
 """
 import os
 import re
@@ -94,6 +97,18 @@ def stamp(hdrs):
         macros += fold(n, hdrs[i:i + 40])
         rule += "hdrs:\t$(%s)\n" % n
     return macros, rule + "\ttouch hdrs\n"
+
+
+def archive(lib, objs, per=100):
+    """The commands that make the library of the objects, in their
+    order: make gives a command 254 arguments at most, and the kernel
+    5120 characters of them."""
+    cmds = "\trm -f %s\n" % lib
+    for i in range(0, len(objs), per):
+        cmds += fold("\tar %s %s" % ("r" if i else "cr", lib),
+                     objs[i:i + per]).replace("=\t", " ", 1).replace(
+                         "\n\t", "\n\t    ")
+    return cmds + "\tranlib %s\n" % lib
 
 
 def kernel():
@@ -321,14 +336,12 @@ CFLAGS=	-O -m%s -I/usr/include
 ASM=	as -m%s -I$(CRT)%s
 """ % (LIBDIR[model], LIBDIR[model], model, model, model, FAR[model]) +
             macros +
-            fold("OBJS", [b + ".o" for b in t["OBJS"]]) +
-            fold("STUBS", ["sys/" + f[:-2] + ".o" for f in stubs]) + """
+            fold("OBJS", [b + ".o" for b in t["OBJS"]]) + """
 all:	crt0.o libc.a
 
 libc.a:	$(OBJS) sys/made
-	rm -f libc.a
-	ar cr libc.a $(OBJS) $(STUBS)
-	ranlib libc.a
+""" + archive("libc.a", [b + ".o" for b in t["OBJS"]] +
+              ["sys/" + f[:-2] + ".o" for f in stubs]) + """\
 
 crt0.o:	$S/lib/libc/i286/csu/crt0.s $(CRT)/DEFS.inc
 	$(ASM) -o crt0.o $S/lib/libc/i286/csu/crt0.s
@@ -352,11 +365,39 @@ clean:
 
 def programs():
     """The Makefile of the programs and of the libraries that are not
-    the C library; the directories of usr/src they are made from; the
-    names of the programs it makes, and of those it does not."""
+    the C library; the directories of usr/src they are made from, and
+    those of /usr/src/i286 that what yacc and lex make is put in; the
+    names of the libraries, of the programs it makes, and of those it
+    does not."""
     progs, libs = [], []
+    gen = {}            # what yacc and lex make: (which, of what, header)
+    sysgen = []         # what the rules written for the system make
+    mkstr = []          # (strings, options, sources, what is made first)
+    filtered = []       # (directory, program, its source and flags,
+                        #  cc -E's flags, sources)
+    sysrules = []
+    inrules = False
     for line in lines("i286"):
+        if inrules:
+            if line == "END":
+                inrules = False
+            else:
+                sysrules[-1] += line + "\n"
+            continue
         kind, _, rest = line.partition(" ")
+        if kind == "RULES":
+            inrules = True
+            sysrules.append("")
+        elif kind == "SYSGEN":
+            sysgen = rest.split()
+        elif kind == "FILTERED":
+            d, prog, flags, srcs = rest.split("|")
+            filtered.append((d.strip(), prog.split(), flags.split(),
+                             srcs.split()))
+        elif kind == "MKSTR":
+            out, opts, srcs, deps = rest.split("|")
+            mkstr.append((out.strip(), opts.strip(), srcs.split(),
+                          deps.split()))
         if kind == "PROG":
             head, flags, srcs, ls = rest.split("|")
             name, model = head.split()
@@ -365,6 +406,33 @@ def programs():
         elif kind == "LIB":
             name, flags, srcs = rest.split("|")
             libs.append((name.strip(), flags.strip(), srcs.split()))
+        elif kind in ("YACC", "LEX"):
+            w = rest.split()
+            gen[w[0]] = (kind, w[1], w[2] if len(w) > 2 else None)
+    # What is made in obj where the system is built is made in
+    # /usr/src/i286 on the system, in the same directory of it.
+    obj = os.path.join(TOP, "obj") + "/"
+    # mkstr's copy of a file is beside its messages, under the
+    # file's own name.
+    for out, opts, srcs, deps in mkstr:
+        sysgen += [os.path.dirname(out) + "/" + os.path.basename(f)
+                   for f in srcs]
+    for d, prog, flags, srcs in filtered:
+        sysgen += [d + "/" + os.path.basename(f) for f in srcs]
+    gendirs = sorted(set(os.path.dirname(g) for g in list(gen) + sysgen))
+
+    def known(flags, srcs):
+        """Whether the system can make every source that is not in
+        usr/src, and has every directory the flags name."""
+        for f in srcs:
+            if f.startswith("/") and not (
+                    f.startswith(obj) and (f[len(obj):] in gen or
+                                           f[len(obj):] in sysgen)):
+                return False
+        for f in re.findall(r"-I(/\S+)", flags):
+            if not (f.startswith(obj) and f[len(obj):] in gendirs):
+                return False
+        return TOP not in re.sub(r"-I/\S+", "", flags)
     dirs = set()
     rules = []
     made, left = [], []
@@ -374,7 +442,9 @@ def programs():
         usr/src is named from /usr/src."""
         out = []
         for f in re.findall(r"'[^']*'|\S+", flags):
-            if f.startswith("-I") and not f.startswith("-I/"):
+            if f.startswith("-I" + obj):
+                f = "-I$S/i286/" + f[2 + len(obj):]
+            elif f.startswith("-I") and not f.startswith("-I/"):
                 dirs.add(f[2:])
                 f = "-I$S/" + f[2:]
             out.append(f)
@@ -384,9 +454,14 @@ def programs():
         bases = [os.path.basename(f) for f in srcs]
         if len(set(bases)) != len(bases):
             sys.exit("srcmk: two sources of one name among %s" % srcs)
+        out = []
         for f in srcs:
-            dirs.add(os.path.dirname(f))
-        return ["$S/" + f for f in srcs]
+            if f.startswith(obj):
+                out.append("$S/i286/" + f[len(obj):])
+            else:
+                dirs.add(os.path.dirname(f))
+                out.append("$S/" + f)
+        return out
 
     libnames = []
     for name, flags, srcs in libs:
@@ -404,8 +479,63 @@ def programs():
                     m, name, m, flagged(flags),
                     " \\\n\t    ".join(sources(srcs)), a, m, name, name,
                     objs, a))
+    for g in sorted(gen):
+        which, src, hdr = gen[g]
+        dirs.add(os.path.dirname(src))
+        d, c = os.path.split(g)
+        if which == "YACC":
+            cmd = "yacc %s$S/%s && mv y.tab.c %s" % (
+                "-d " if hdr else "", src, c)
+            if hdr and os.path.basename(hdr) != "y.tab.h":
+                cmd += " && mv y.tab.h %s" % os.path.basename(hdr)
+        else:
+            cmd = "lex $S/%s && mv lex.yy.c %s" % (src, c)
+        rules.append("$S/i286/%s: $S/%s\n\tcd %s && %s\n" % (g, src, d, cmd))
+    rules += sysrules
+    # A file as the preprocessor leaves it, through a program of the
+    # game's own: hack's.
+    for d, prog, flags, srcs in filtered:
+        name, src, pflags = prog[0], prog[1], prog[2:]
+        dirs.add(os.path.dirname(src))
+        rules.append("%s:\t$S/%s\n\tcd o && rm -f *.o && cc -O%s -o ../%s "
+                     "$S/%s && rm -f *.o\n" % (
+                         name, src, "".join(" " + f for f in pflags), name,
+                         src))
+        eflags = "".join(" -I$S/" + f[2:] if f.startswith("-I") else " " + f
+                         for f in flags)
+        own = sorted(set(
+            "$S/%s/%s" % (os.path.dirname(f), h) for f in srcs
+            for h in os.listdir(os.path.join(SRC, os.path.dirname(f)))
+            if h.endswith(".h")))
+        m = name.upper() + "HDRS"
+        rules.append(fold(m, own))
+        for f in srcs:
+            dirs.add(os.path.dirname(f))
+            c = d + "/" + os.path.basename(f)
+            rules.append(
+                "$S/i286/%s: $S/%s %s hdrs $(%s)\n"
+                "\tcc -E%s $S/%s > %s.i\n"
+                "\t./%s < %s.i > %s\n\trm -f %s.i\n" % (
+                    c, f, name, m, eflags, f, c, name, c, c, c))
+    if mkstr:
+        dirs.add("i286")
+        rules.append("mkstr:\t$S/i286/mkstr.c\n\tcd o && rm -f *.o && "
+                     "cc -O -o ../mkstr $S/i286/mkstr.c && rm -f *.o\n")
+    for out, opts, srcs, deps in mkstr:
+        d = os.path.dirname(out)
+        for f in srcs:
+            dirs.add(os.path.dirname(f))
+        rules.append(
+            fold("$S/i286/%s:\tmkstr" % out, ["$S/" + f for f in srcs] +
+                 ["$S/i286/" + f for f in deps]).replace("=\t", " ", 1) +
+            "\t./mkstr%s %s %s \\\n\t    %s\n" % (
+                " " + opts if opts else "", out, d,
+                " \\\n\t    ".join("$S/" + f for f in srcs)) +
+            fold("#", ["$S/i286/%s/%s" % (d, os.path.basename(f))
+                       for f in srcs]).replace("#=\t", "", 1).rstrip("\n") +
+            ": $S/i286/%s\n" % out)
     for name, model, flags, srcs, ls in progs:
-        if any(TOP in x for x in [flags] + srcs):
+        if not known(flags, srcs):
             left.append(name)
             continue
         made.append(name)
@@ -424,6 +554,38 @@ def programs():
         sorted("$S/%s/%s" % (h, f) for h in ("sys/h", "sys/i286")
                for f in os.listdir(os.path.join(SRC, h)) if f.endswith(".h"))
     macros, stamprule = stamp(hdrs)
+    # Where each program is on the system, its mode and whose it is, as
+    # the root file system has it (root.proto), and the other names it
+    # has there.
+    where = {}
+    installed = []
+    cmds = ""
+    for line in open(os.path.join(SRC, "i286", "root.proto")):
+        w = line.split()
+        if len(w) == 4 and w[0] == "f" and "/obj/root/bin/" in w[3] and \
+                os.path.basename(w[3]) in made:
+            name = os.path.basename(w[3])
+            mode, _, own = w[2].partition(":")
+            where[w[1]] = name
+            installed.append((name, w[1]))
+            # A copy beside the one that is there is made what it is
+            # to be, and then takes its name: the other is whole until
+            # then, and is the one still if anything fails; mv -f,
+            # since it asks before it replaces one that is running.  install
+            # -s takes the old one away first, and the new one too if
+            # strip does not run, as it does not when it is strip that
+            # is being installed.
+            new = w[1] + ".new"
+            cmd = "cp bin/%s %s && strip %s" % (name, new, new)
+            if own:
+                uid, _, gid = own.rpartition(".")
+                if uid:
+                    cmd += " && chown %s %s" % (uid, new)
+                cmd += " && chgrp %s %s" % (gid, new)
+            cmds += "\t%s && chmod %s %s && \\\n\t    mv -f %s %s\n" % (
+                cmd, mode, new, new, w[1])
+        elif len(w) == 3 and w[0] == "h" and w[2] in where:
+            cmds += "\trm -f '%s'\n\tln %s '%s'\n" % (w[1], w[2], w[1])
     install = "".join(
         "\tcp %s %s/%s\n\tranlib %s/%s\n" % (
             a, USRLIB[a.split("/")[1]], os.path.basename(a),
@@ -439,16 +601,23 @@ def programs():
 #			/usr/lib/l, where cc -l finds them
 #	make progs	the programs alone, with the libraries that are
 #			in /lib and /usr/lib
+#	make install-progs  and each is where the system has it, without
+#			its symbols, in place of the one that was, which
+#			is there until the new one is whole: all of
+#			them, if all are made, or none
 #	make bin/NAME	one program
 #	make clean	nothing made is left
 #
 # A program is one command of cc, which compiles every file of it, in
-# the directory o, and leaves nothing there.  Those whose sources are
-# themselves made, by yacc or lex or a program of their own, are not
-# made here yet:
-#
-""" + "".join("#\t%s\n" % " ".join(left[i:i + 8])
-              for i in range(0, len(left), 8)) + """
+# the directory o, and leaves nothing there.  What yacc and lex make
+# of a grammar is in gen and games, as it is in obj where the system
+# is built, in the directory it is made in there; so is what mkstr
+# makes of ex's files and tcsh's, in ex and tcsh, and what the games'
+# own programs make of theirs.
+""" + ("# Not made here, their sources being made by something the system "
+       "does not\n# have:\n#\n" + "".join(
+           "#\t%s\n" % " ".join(left[i:i + 8])
+           for i in range(0, len(left), 8)) if left else "") + """
 S=	/usr/src
 """ + macros + fold("LIBS", libnames) +
             fold("PROGS", ["bin/" + n for n in made]) + """
@@ -460,11 +629,16 @@ progs:	$(PROGS)
 
 install-libs: libs
 """ + install + """
+install-progs:
+	@for f in $(PROGS); do test -f $$f || { echo "$$f is not made"; exit 1; }; done
+""" + cmds + """
 clean:
-	rm -f hdrs bin/* lib/*/*.a lib/*/*/*.o o/*.o
+	rm -f hdrs bin/* lib/*/*.a lib/*/*/*.o o/*.o mkstr bmkstr hcrypt
+""" + "".join("\trm -f %s/*%s\n" % (d, ".[ch]" if any(
+        g.startswith(d + "/") for g in gendirs) else "") for d in gendirs) + """\
 
 """ + stamprule + "\n" + "\n".join(rules))
-    return text, dirs, [l[0] for l in libs], made, left
+    return text, dirs, gendirs, [l[0] for l in libs], made, left, installed
 
 
 # What the system is given of usr/src besides what its programs and
@@ -493,9 +667,10 @@ def main():
         dirs |= used
         for f in stubs:
             made["%s/%s/%s" % (MD, m, f)] = None
-    text, used, libs, progs, left = programs()
+    text, used, gendirs, libs, progs, left, installed = programs()
     made["i286/Makefile"] = text
     dirs |= used
+    empty += ["i286/" + d for d in gendirs]
     empty += ["i286/lib/%s/%s" % (m, l) for m in "sml" for l in libs]
     made[MD + "/Makefile"] = HEAD % (
         "The C library, of each model: make, and each is made in its "
@@ -525,8 +700,9 @@ all install clean:
         for name in sorted(os.listdir(os.path.join(SRC, d))):
             rel = d + "/" + name
             p = os.path.join(SRC, rel)
-            if rel not in made and os.path.isfile(p) and \
-                    not os.path.islink(p):
+            # A name for another file is given what that file has in
+            # it, which may be where the system has nothing.
+            if rel not in made and os.path.isfile(p):
                 proto.append("f /%s 644 %s" % (rel, p))
     for d in HEADERS:
         directory(d)
@@ -549,6 +725,8 @@ all install clean:
         f.write("\n".join(progs) + "\n")
     with open(os.path.join(out, "libraries"), "w") as f:
         f.write("\n".join(libs) + "\n")
+    with open(os.path.join(out, "installed"), "w") as f:
+        f.write("".join("%s %s\n" % i for i in installed))
     if left:
         sys.stderr.write("srcmk: not made on the system yet: %s\n" %
                          " ".join(left))

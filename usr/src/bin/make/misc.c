@@ -1,23 +1,38 @@
 /* static	char *sccsid = "@(#)misc.c	4.5 (2.11BSD) 2026/9/15"; */
 #include "defs"
 
+#ifdef i286
+FSTATIC struct nameblock **hashtab;
+#else
 FSTATIC struct nameblock *hashtab[HASHSIZE];
+#endif
 FSTATIC int nhashed	= 0;
 
 /* simple linear hash.  hash function is sum of
    characters mod hash table size.
+   On the 286 the table is allocated, and the function is one that
+   spreads some thousands of names that are much alike over it: the
+   sum of a name's characters is under a tenth of the table's size.
 */
 hashloc(s)
 char *s;
 {
 register int i;
-register int hashval;
+register unsigned hashval;
 register char *t;
 
 hashval = 0;
 
+#ifdef i286
+if(hashtab == 0)
+	hashtab = (struct nameblock **)
+		ckalloc(HASHSIZE * sizeof(struct nameblock *));
+for(t=s; *t!='\0' ; ++t)
+	hashval = hashval*31 + *t;
+#else
 for(t=s; *t!='\0' ; ++t)
 	hashval += *t;
+#endif
 
 hashval %= HASHSIZE;
 
