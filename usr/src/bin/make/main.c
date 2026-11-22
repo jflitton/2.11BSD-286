@@ -388,5 +388,5 @@ setmachine()
 
 	if	(uname(&foo) < 0)
 		strcpy(foo.machine, "?");
-	setvar("MACHINE", foo.machine);
+	setvar("MACHINE", copys(foo.machine));
 	}

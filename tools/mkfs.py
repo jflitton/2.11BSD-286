@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """Make a file system image for the 286 kernel.
 
-usage: mkfs.py [-s BLOCKS] [-i INODES] PROTO IMAGE
+usage: mkfs.py [-s BLOCKS] [-i INODES] [-t TIME] PROTO IMAGE
 
 The image is a 2.11BSD file system (usr/src/sys/h/fs.h, inode.h, dir.h)
 with every number little-endian, which is how this kernel reads and
 writes one: 1K blocks, the super block in block 1, the inodes from block
 2, and after them the files.  BLOCKS is its size, by default the smallest
 that holds everything with a quarter over; INODES by default is enough for
-the files with as many again.
+the files with as many again.  Everything has the time TIME, in seconds
+since 1970, and by default the time it is now: an earlier one is for a
+file system of sources, which make on the system must not find newer
+than what it makes of them, whatever its clock says.
 
 PROTO lists what goes in it, a line for each thing, in any order that
 names a directory before what is in it.  Blank lines and lines beginning
@@ -90,9 +93,12 @@ def dirdata(entries):
 def main():
     args = sys.argv[1:]
     nblocks = ninodes = None
-    while args and args[0] in ("-s", "-i"):
+    now = int(time.time())
+    while args and args[0] in ("-s", "-i", "-t"):
         if args[0] == "-s":
             nblocks = int(args[1])
+        elif args[0] == "-t":
+            now = int(args[1])
         else:
             ninodes = int(args[1])
         del args[:2]
@@ -203,7 +209,6 @@ def main():
         img[b * BSIZE:b * BSIZE + len(data)] = data
         return b
 
-    now = int(time.time())
     for number, ip in inodes.items():
         addr = [0] * 7
         if ip.mode & 0o170000 in (IFCHR, IFBLK):

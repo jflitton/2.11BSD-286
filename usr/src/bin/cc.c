@@ -24,6 +24,12 @@ static	char sccsid[] = "@(#)cc.c 5.2 (2.11BSD) 2026/8/29";
  * model by, and NULL as 0L, which is four bytes, as a pointer is, where
  * it is passed to a function that has no prototype; in the medium,
  * __MEDIUM__.
+ *
+ * With -nd=NAME a file's data is not in the program's data segment,
+ * which is the stack's, but in one of its own, NAME_DATA and NAME_BSS
+ * of the group NAME_GROUP: the first pass is told that SS is not the
+ * data segment (-S), and the second the name (-NNAME).  The kernel's
+ * network is made so (sys/PC/Makefile).
  */
 #include <sys/param.h>
 #include <stdio.h>
@@ -42,6 +48,7 @@ char	*crt0 = "/lib/crt0.o";
 #ifdef i286
 int	medium;			/* -mm, or -ml */
 int	large;			/* -ml */
+char	*ndata;			/* -nd=NAME: -NNAME, for c1 */
 char	*textseg();
 #endif
 
@@ -165,6 +172,12 @@ main(argc, argv)
 				exit(8);
 			}
 			continue;
+		case 'n':
+			if (strncmp(argv[i], "-nd=", 4) == 0 && argv[i][4]) {
+				ndata = strspl("-N", argv[i]+4);
+				continue;
+			}
+			break;
 #endif
 		}
 		t = argv[i];
@@ -270,6 +283,8 @@ main(argc, argv)
 #ifdef i286
 		if (medium)
 			av[na++] = large ? "-L" : "-M";
+		if (ndata)
+			av[na++] = "-S";
 #endif
 		av[na] = 0;
 		if (callsys(ccom, av)) {
@@ -279,13 +294,14 @@ main(argc, argv)
 		}
 		av[0] = "c1"; av[1] = tmp1; av[2] = tmp2;
 		av[3] = oflag ? tmp5 : tmp3;
-		av[4] = 0;
+		na = 4;
 #ifdef i286
-		if (medium) {
-			av[4] = textseg(clist[i]);
-			av[5] = 0;
-		}
+		if (medium)
+			av[na++] = textseg(clist[i]);
+		if (ndata)
+			av[na++] = ndata;
 #endif
+		av[na] = 0;
 		if (callsys(ccom1, av)) {
 			cflag++;
 			eflag++;

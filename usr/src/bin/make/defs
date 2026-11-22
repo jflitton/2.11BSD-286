@@ -138,7 +138,7 @@ struct chain
 	char *datap;
 	};
 
-char *copys(), *concat(), *subst();
+char *copys(), *concat(), *subst(), *calloc();
 int *ckalloc();
 struct nameblock *srchname(), *makename();
 TIMETYPE exists();

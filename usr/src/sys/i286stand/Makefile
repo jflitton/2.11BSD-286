@@ -115,5 +115,10 @@ $(O)/boot: $(addprefix $(O)/,srt0.o boot.o i4m.o i4d.o)
 	mv $(O)/boot.com $@
 endif
 
+# What the system's own Makefile for these is written from, the one
+# its make runs in /usr/src/sys/i286stand (tools/srcmk.py).
+table:
+	@echo HDRS $(subst $(TOP)/usr/src/,,$(HDRS))
+
 clean:
 	rm -rf $(O)

@@ -196,6 +196,16 @@ endif
 $(O)/unix.img: $(O)/unix $(O)/fdboot.bin
 	python3 -I $(TOP)/tools/mkfd.py $(O)/fdboot.bin $(O)/unix $@
 
+# What the system's own Makefile for its kernel is written from, the one
+# its make runs in /usr/src/sys/PC (tools/srcmk.py): where a source is
+# looked for, the options, the network's objects, and every object.
+table:
+	@echo VPATH $(subst $(TOP)/usr/src/,,$(subst :, ,$(VPATH)))
+	@echo HDRS $(subst $(TOP)/usr/src/,,$(HDRS))
+	@echo OPTS $(OPTS)
+	@echo NET $(NET)
+	@echo OBJS $(OBJS)
+
 clean:
 	rm -rf $(O)
 

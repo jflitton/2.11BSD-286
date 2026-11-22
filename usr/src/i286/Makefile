@@ -294,7 +294,13 @@ bc_SRCS=	$(G)/bc.c
 dc_SRCS=	usr.bin/dc/dc.c
 make_SRCS=	$(addprefix bin/make/,ident.c main.c doname.c misc.c files.c \
 		dosys.c) $(G)/make.c
-make_FLAGS=	-I$(SRC)/bin/make -I$(SRC)/bin/ar
+# make is of the large model: what it knows of a Makefile is then
+# in memory of its own, as much as there is, and not in what the 64K
+# of a data segment have left; the kernel's Makefile alone would fill
+# that (tools/srcmk.py).  Its stack has the lines it reads and the
+# commands it runs, four buffers of 7000 bytes (bin/make/defs).
+make_MODEL=	l
+make_FLAGS=	-I$(SRC)/bin/make -I$(SRC)/bin/ar -stack 30000
 YACCPROGS=	expr yacc lex awk egrep bc dc make
 
 # Those that work on text and files and need nothing but themselves:
@@ -741,6 +747,10 @@ c0_SRCS=	$(addprefix lib/ccom/,c00.c c01.c c02.c c03.c c04.c c05.c \
 		ansi.c)
 c1_SRCS=	$(addprefix lib/ccom/i286/,c10.c c11.c c12.c c13.c c14.c c15.c)
 c2_SRCS=	lib/c2/i286/c20.c lib/c2/i286/c21.c
+# c2 has a whole function in memory, and of the kernel's two longest,
+# namei and tcp_input, each is more than the 64K of a data segment
+# hold: it is of the large model, and its memory is its own.
+c2_MODEL=	l
 c0_CCOM=	1
 c1_CCOM=	1
 c2_CCOM=	1
@@ -828,7 +838,19 @@ ccprogs:
 	@$(foreach p,$(CCPROGS),echo $(p) $(if $($(p)_MODEL),-m$($(p)_MODEL)) \
 	    $(subst $(SRC)/,,$($(p)_FLAGS) $($(p)_SRCS));)
 
-.PHONY:	all list ccprogs root syslibs clean FORCE
+# What the system's own Makefile for its programs and libraries is
+# written from (tools/srcmk.py): for each program its name and model,
+# and after a bar each, its flags, its sources and its libraries; for
+# each library its name, its flags and its sources.  What is in
+# usr/src is named from there, and what is made here, by its place in
+# obj.
+table:
+	@:$(foreach p,$(PROGS),$(info PROG $(p) $(call model,$(p)) | $(subst \
+	    $(SRC)/,,$($(p)_FLAGS)) | $(subst $(SRC)/,,$($(p)_SRCS)) | $($(p)_LIBS)))
+	@:$(foreach l,$(LIBRARIES),$(info LIB $(l) | $(subst \
+	    $(SRC)/,,$($(l)_LIBFLAGS)) | $($(l)_LIB)))
+
+.PHONY:	all list ccprogs table root syslibs clean FORCE
 
 $(O) $(O)/log $(EXO) $(TCO) $(H) $(G) $(AWKG):
 	mkdir -p $@

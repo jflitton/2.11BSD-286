@@ -139,6 +139,17 @@ the directory \fB/usr/c/\fP is used.
 Debug; print what programs the compiler is calling,
 with their arguments.
 .TP
+.BI \-nd= name
+On the 80286, put the file's variables in a data segment of their own,
+.IB name _DATA
+and
+.IB name _BSS
+of the group
+.IB name _GROUP ,
+and not in the program's, which is the stack's: what is in a
+function's frame is then reached through SS.
+The kernel's network is compiled so.
+.TP
 .BR \-ms ", " \-mm ", " \-ml
 On the 80286, compile and load for the small model, which is the
 default, for the medium model, or for the large.

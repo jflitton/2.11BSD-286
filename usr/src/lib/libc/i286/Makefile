@@ -268,6 +268,11 @@ $(O)/libc.a: $(OBJS) $(OBJ)/sys/made $(MD)/Makefile $(TOP)/tools/ar.py
 	@rm -f $@ $(O)/libc.lib
 	@python3 -I $(TOP)/tools/ar.py $@ $(OBJS) $(OBJ)/sys/*.o
 
+# What the system's own Makefile for this model's library is written
+# from (tools/srcmk.py): its objects, in their order in the library.
+table:
+	@echo OBJS $(COBJS) $(SOBJS)
+
 clean:
 	rm -rf $(O)
 
