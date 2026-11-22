@@ -19,7 +19,8 @@ STACK   equ     0xF000          ; 0100:F000 is 64K
         extern  _main
         extern  _edata:wrt DGROUP, _end:wrt DGROUP
         global  _biosgeom, _biosread, _biosreset, _biosputc, _bioskey
-        global  _biosmem, _inb, _outb, _fcopy, _fclear, _startkernel
+        global  _biosmem, _biosext, _extmove, _inb, _outb, _fcopy, _fclear
+        global  _startkernel
 
         segment _TEXT public align=2 class=CODE
         group   DGROUP _TEXT
@@ -129,6 +130,57 @@ _bioskey:
 _biosmem:
         int     0x12
         ret
+
+; biosext(): K of memory above 1M.
+_biosext:
+        mov     ah, 0x88
+        int     0x15
+        jnc     .out
+        xor     ax, ax
+.out:   ret
+
+; extmove(buffer, low, high): have the BIOS copy the 1024 bytes at
+; buffer to the physical address high:low, which may be above 1M, where
+; nothing else reaches from real mode.  Returns 0, or -1 if it did not.
+_extmove:
+        push    bp
+        mov     bp, sp
+        push    si
+        push    di
+        push    ds
+        pop     es
+        mov     di, mvgdt
+        mov     si, di
+        mov     cx, 24
+        xor     ax, ax
+        rep stosw
+        mov     word [si+16], 0xFFFF    ; from the buffer
+        mov     ax, ds
+        mov     dx, ax
+        shl     ax, 4
+        shr     dx, 12
+        add     ax, [bp+4]
+        adc     dx, 0
+        mov     [si+18], ax
+        mov     [si+20], dl
+        mov     byte [si+21], 0x93      ; data, to be written
+        mov     word [si+24], 0xFFFF    ; to there
+        mov     ax, [bp+6]
+        mov     [si+26], ax
+        mov     al, [bp+8]
+        mov     [si+28], al
+        mov     byte [si+29], 0x93
+        mov     cx, 512                 ; words
+        mov     ah, 0x87
+        int     0x15
+        mov     ax, -1
+        jc      .out
+        xor     ax, ax
+.out:   pop     di
+        pop     si
+        pop     bp
+        ret
+mvgdt:  times   48 db 0         ; the descriptors the BIOS moves by
 
 ; inb(port), outb(port, value)
 _inb:   push    bp

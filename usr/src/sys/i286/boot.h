@@ -22,7 +22,9 @@ struct bootinfo {
 	unsigned short	bi_dseg;	/* the data segment, from 1 */
 	unsigned short	bi_drive;	/* the BIOS's drive number */
 	unsigned short	bi_rdsect;	/* a RAM disk image on that drive: */
-	unsigned short	bi_rdsize;	/*   first sector, and how many */
+	unsigned short	bi_rdsize;	/*   first sector, and how many; or
+					   with no first sector, one the
+					   boot program has put above 1M */
 	unsigned short	bi_root;	/* the device the kernel came from, as
 					   the kernel numbers them, or 0 if
 					   the boot program cannot say */

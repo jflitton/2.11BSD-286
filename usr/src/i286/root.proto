@@ -687,6 +687,7 @@ f /usr/games/lib/warp/warp.news 644:3.10 ../games/warp/warp.news
 f /usr/games/words 755 ../games/words/words.sh
 f /usr/games/lib/words1 755:10 ../../../obj/root/bin/words1
 i ../../../obj/man/man.proto
+f /dev/MAKEDEV 755 etc/MAKEDEV
 c /dev/console 622 0 0
 c /dev/ttyv1 666 0 1
 c /dev/ttyv2 666 0 2

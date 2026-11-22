@@ -252,6 +252,10 @@ tests/floppy/run.sh     # the system formatting diskettes and making
                         # ones that start it, of 1.44 MB and 1.2 MB,
                         # and the machine started from each; one of
                         # 720K for tar and for a file system
+tests/install/run.sh    # the system making the diskette a machine
+                        # with nothing on its disk starts from, and
+                        # that machine restoring a dump of the root
+                        # and starting from its disk
 tests/disk/run.sh       # the system making a disk, as upstream has one
                         # made: a label, a dump of its root restored,
                         # the boot block and its sources on a second

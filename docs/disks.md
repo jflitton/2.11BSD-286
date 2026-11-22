@@ -80,8 +80,9 @@ Three things to know:
 
 ## Where the root is
 
-If the boot program loaded a RAM disk image, that is the root, and the
-swap area is the second disk in memory. If it did not, the root is the
+If the boot program loaded a RAM disk image, or named one for the
+kernel to load, that is the root, and the swap area is the second disk
+in memory. If it did not, the root is the
 device the boot program says it loaded the kernel from, and the swap
 area is partition `b` of the same drive.
 

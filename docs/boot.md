@@ -99,6 +99,13 @@ disk's first partition as its root unless another device is typed.
 `tests/floppy` starts the system so from diskettes of 1.44 MB and
 1.2 MB that the system made.
 
+If the diskette has a file `miniroot` in its root directory, `/boot`
+loads that too, a block at a time through the BIOS to 1M and up, and
+says in the table how many sectors it is, with no first sector. The
+kernel then has it as its RAM disk and its root, as it has an image
+that it loads itself
+([the system makes itself](self-hosting.md#a-machine-with-nothing-on-its-disk)).
+
 Memory while they run:
 
 | from | |

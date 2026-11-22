@@ -192,8 +192,51 @@ dd if=/mdec/fluboot of=/dev/rfl0b count=1
 
 In a 5.25 inch drive it is `fl1200`, a diskette of 1.2 MB. A diskette
 of 720K is `fl0a` and `fl720`, and is for files: `newfs` and `mount`,
-or `tar cf /dev/rfl0a`. `dump 0Bf 1440 /dev/rfl0b` writes a dump to as
-many diskettes as it takes, 1440 blocks to each.
+or `tar cf /dev/rfl0a`.
+
+## A machine with nothing on its disk
+
+It is started from a diskette that has, beside `/boot` and the kernel,
+the file `miniroot`: a root file system of 800K that `/boot` loads into
+memory with the kernel, with the programs that label a disk, make a
+file system and restore a dump. 2.11BSD started its own such programs
+from tape with no kernel under them, each with drivers of its own
+(`sys/pdpstand`); the 286's kernel runs with its root in memory, so the
+programs are the system's and the drivers the kernel's, as on 4.3BSD's
+miniroot. The diskette is made after 4.3BSD's `buildmini`, on a
+formatted diskette, and the root goes with it as a dump:
+
+```
+flformat /dev/rfl0b
+sh /usr/src/sys/i286stand/buildmini fl0b fl1440
+dump 0Bf 1440 /dev/rfl0b /dev/rwd0a
+```
+
+`dump` asks for the next diskette as each is full, 1440 blocks to
+each; the root as it is made would take about twelve. On the new machine, started
+from the first diskette, the shell is at the console, and the rest is
+as [a disk](#a-disk) is made, the dump read from the diskettes:
+
+```
+disklabel wd0 > label
+ed label
+disklabel -W wd0
+disklabel -R -r wd0 label
+disklabel -N wd0
+newfs -i 8192 wd0a
+restor rf /dev/rfl0b /dev/rwd0a
+fsck /dev/rwd0a
+disklabel -B wd0
+reboot
+```
+
+- The miniroot's devices are made by `/dev/MAKEDEV`, which is
+  upstream's with the 286's devices in place of the PDP-11's
+  (`usr/src/i286/etc/MAKEDEV`); the root's own are still listed in
+  `root.proto`, and the two agree.
+- The machine needs 800K above 1M for the miniroot, and what the
+  programs take beside.
+- `/boot` loads `miniroot` only from a diskette.
 
 ## What it takes
 
@@ -261,6 +304,15 @@ started from that one, it formats a diskette of 720K, writes the kernel
 and the boot programs to it with `tar` and reads them back the same,
 and makes a file system on it.
 
+`tests/install/run.sh` has it make the diskette to install from, and
+dump its root to a second disk as to a tape. A machine with that
+diskette and a disk with nothing on it is then started: it must come
+up on the miniroot, and there label the disk, make the file system,
+restore the dump, check it and write the boot block. The disk must
+have nothing wrong with it and hold what the system's root has, as
+`tests/disk` compares one, and the machine must start from it alone. A
+dump on more than one diskette has not been run.
+
 ## What it needed
 
 - `make` is a program of the large model. It was compiled with the
@@ -313,6 +365,3 @@ and makes a file system on it.
   they are written again.
 - A disk's first sector when it is shared with another system
   (`mbr.bin`, which is made): there is no device for it.
-- A diskette to install from, on a machine with nothing on its disk:
-  the ones it makes start the kernel, and the root must be on a disk
-  already.

@@ -1,0 +1,163 @@
+#!/bin/sh -
+#
+#	@(#)MAKEDEV	1.0 (2.11BSD) 2026/11/22
+#
+# Device "make" file for the 286: upstream's (/usr/src/etc/MAKEDEV)
+# with this machine's devices in place of the PDP-11's.  Valid arguments:
+#	std	standard devices
+#	local	configuration specific devices
+#	fd	file descriptor driver
+# Disks:
+#	wd*	hard disks on the AT disk controller
+#	sd*	SCSI disks on an Adaptec AHA-154x
+#	fl*	diskettes
+# Terminals:
+#	vt	the console's other screens
+#	com*	serial ports
+# Pseudo terminals:
+#	pty*	set of 16 master and slave pseudo terminals
+# Special purpose devices:
+#	ram	memory disks
+
+PATH=/etc:/sbin:/usr/sbin:/bin:/usr/bin
+umask 77
+for i
+do
+case $i in
+
+std)
+	mknod console	c 0 0	; chmod 622 console
+	mknod kmem	c 1 1	; chmod 640 kmem ; chgrp kmem kmem
+	mknod mem	c 1 0	; chmod 640 mem ; chgrp kmem mem
+	mknod null	c 1 2	; chmod 666 null
+	mknod tty	c 2 0	; chmod 666 tty
+	mknod klog	c 3 0	; chmod 600 klog
+	mknod errlog	c 3 1	; chmod 600 errlog
+	mknod acctlog	c 3 2	; chmod 600 acctlog
+	;;
+
+fd)
+	umask 0
+	rm -rf fd
+	rm -f stdin stdout stderr
+	mkdir fd
+	chmod 755 fd
+	mknod stdin c 4 0
+	mknod stdout c 4 1
+	mknod stderr c 4 2
+	eval `echo "" | awk '{ for (i = 0; i < 32; i++)
+			printf("mknod fd/%d c 4 %d; ",i,i); }'`
+	;;
+
+wd*|sd*)
+	umask 2
+	unit=`expr $i : '..\(.*\)'`
+	case $i in
+	wd*) name=wd; blk=1; chr=8;;
+	sd*) name=sd; blk=2; chr=9;;
+	esac
+	case $unit in
+	0|1|2|3|4|5|6|7)
+		mknod ${name}${unit}a b $blk `expr $unit '*' 8 + 0`
+		mknod ${name}${unit}b b $blk `expr $unit '*' 8 + 1`
+		mknod ${name}${unit}c b $blk `expr $unit '*' 8 + 2`
+		mknod ${name}${unit}d b $blk `expr $unit '*' 8 + 3`
+		mknod ${name}${unit}e b $blk `expr $unit '*' 8 + 4`
+		mknod ${name}${unit}f b $blk `expr $unit '*' 8 + 5`
+		mknod ${name}${unit}g b $blk `expr $unit '*' 8 + 6`
+		mknod ${name}${unit}h b $blk `expr $unit '*' 8 + 7`
+		mknod r${name}${unit}a c $chr `expr $unit '*' 8 + 0`
+		mknod r${name}${unit}b c $chr `expr $unit '*' 8 + 1`
+		mknod r${name}${unit}c c $chr `expr $unit '*' 8 + 2`
+		mknod r${name}${unit}d c $chr `expr $unit '*' 8 + 3`
+		mknod r${name}${unit}e c $chr `expr $unit '*' 8 + 4`
+		mknod r${name}${unit}f c $chr `expr $unit '*' 8 + 5`
+		mknod r${name}${unit}g c $chr `expr $unit '*' 8 + 6`
+		mknod r${name}${unit}h c $chr `expr $unit '*' 8 + 7`
+		chgrp operator ${name}${unit}[a-h] r${name}${unit}[a-h]
+		chmod 640 ${name}${unit}[a-h] r${name}${unit}[a-h]
+		# the swap area, for the programs that read it
+		chgrp kmem ${name}${unit}b
+		;;
+	*)
+		echo bad unit for disk in: $i
+		;;
+	esac
+	umask 77
+	;;
+
+fl*)
+	# As with the RX driver, 'a' is double density and 'b' is high.
+	umask 2
+	unit=`expr $i : '..\(.*\)'`
+	case $unit in
+	0|1)
+		mknod fl${unit}a b 3 `expr $unit '*' 8 + 0`
+		mknod fl${unit}b b 3 `expr $unit '*' 8 + 1`
+		mknod rfl${unit}a c 11 `expr $unit '*' 8 + 0`
+		mknod rfl${unit}b c 11 `expr $unit '*' 8 + 1`
+		chgrp operator fl${unit}[ab] rfl${unit}[ab]
+		chmod 640 fl${unit}[ab] rfl${unit}[ab]
+		;;
+	*)
+		echo bad unit for diskette in: $i
+		;;
+	esac
+	umask 77
+	;;
+
+ram)
+	mknod rd0 b 0 0
+	mknod rd1 b 0 1
+	chmod 600 rd0 rd1
+	;;
+
+vt)
+	mknod ttyv1 c 0 1
+	mknod ttyv2 c 0 2
+	mknod ttyv3 c 0 3
+	chmod 666 ttyv1 ttyv2 ttyv3
+	;;
+
+com*)
+	unit=`expr $i : 'com\(.*\)'`
+	case $unit in
+	0|1)
+		mknod tty0$unit c 10 $unit
+		chmod 666 tty0$unit
+		;;
+	*)
+		echo bad unit for com in: $i
+		;;
+	esac
+	;;
+
+pty*)
+	class=`expr $i : 'pty\(.*\)'`
+	case $class in
+	0) offset=0 name=p;;
+	1) offset=16 name=q;;
+	2) offset=32 name=r;;
+	3) offset=48 name=s;;
+	4) offset=64 name=t;;
+	5) offset=80 name=u;;
+	*) echo bad unit for pty in: $i;;
+	esac
+	case $class in
+	0|1|2|3|4|5)
+		umask 0
+		eval `echo $offset $name | awk ' { b=$1; n=$2 } END {
+			for (i = 0; i < 16; i++)
+				printf("mknod tty%s%x c 6 %d; \
+					mknod pty%s%x c 5 %d; ", \
+					n, i, b+i, n, i, b+i); }'`
+		umask 77
+		;;
+	esac
+	;;
+
+local)
+	sh MAKEDEV.local
+	;;
+esac
+done

@@ -241,6 +241,8 @@ RDBUF   equ     0x8000          ; the buffer, as a real-mode segment
 
 rdload: cmp     word [_bootinfo + BI_RDSIZE], 0
         je      .done
+        cmp     word [_bootinfo + BI_RDSECT], 0 ; it is there already
+        je      .done
         cmp     word [_extmem], 0
         je      .fail
         mov     dl, [_bootinfo + BI_DRIVE]

@@ -18,7 +18,8 @@
  * Disks are read through the BIOS, and only the one booted from: the
  * drive number typed is what the kernel is told, and no more.  From a
  * diskette the kernel is so told that its root is the first hard disk,
- * unless another is typed.  What
+ * unless another is typed; but if the diskette has a file miniroot
+ * beside the kernel, that is loaded too, above 1M, and is the root.  What
  * device the kernel will make of the BIOS's drive is a guess, shown in
  * the first line; docs/boot.md says how it is made and when it is wrong.
  *
@@ -68,6 +69,7 @@ daddr_t	ind[2][NINDIR];		/* two of its blocks of block numbers, */
 daddr_t	indbn[2];		/*   which are these of the file system */
 
 struct	bootinfo bi;
+int	quiet;			/* fopen is not to say what it did not find */
 
 int	printf(char *, ...);
 
@@ -493,7 +495,8 @@ fopen(path)
 			;
 		if ((ino.di_mode & IFMT) != IFDIR ||
 		    (n = dlook(path, cp - path)) == 0) {
-			printf("no such file\n");
+			if (!quiet)
+				printf("no such file\n");
 			return (-1);
 		}
 		path = cp;
@@ -503,6 +506,36 @@ fopen(path)
 		return (-1);
 	}
 	return (0);
+}
+
+/*
+ * A diskette may have a root file system for the kernel to keep in
+ * memory, the file miniroot (buildmini): put it above 1M, where the
+ * kernel has its RAM disk, a block at a time through the BIOS.  The
+ * kernel is in memory by now, and only blk is read into.
+ */
+miniroot()
+{
+	long size, lbn;
+
+	quiet = 1;
+	lbn = fopen("miniroot");
+	quiet = 0;
+	if (lbn < 0)
+		return;
+	size = (ino.di_size + DEV_BSIZE - 1) / DEV_BSIZE;
+	printf(", miniroot %ldK", size);
+	if (size > biosext()) {
+		printf(": more than there is above 1M");
+		return;
+	}
+	for (lbn = 0; lbn < size; lbn++)
+		if (getblk(lbn) < 0 || extmove(blk, (u_int)(lbn << 10),
+		    0x10 + (u_int)(lbn >> 6)) < 0) {
+			printf(": not loaded");
+			return;
+		}
+	bi.bi_rdsize = size * (DEV_BSIZE / SECTOR);
 }
 
 /*
@@ -573,6 +606,8 @@ load(root)
 	bi.bi_drive = drive;
 	bi.bi_rdsect = bi.bi_rdsize = 0;
 	bi.bi_root = root;
+	if ((drive & 0x80) == 0)
+		miniroot();
 	printf("\n");
 	startkernel(&bi, bi.bi_seg[x.a_eseg - 1].bs_para, x.a_entry,
 	    bi.bi_seg[x.a_dseg - 1].bs_para);
