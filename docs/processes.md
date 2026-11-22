@@ -167,10 +167,10 @@ lists of arguments and environment given to `execve`, which may be long:
 the kernel reads them as the calling program's model has them, near
 pointers in the list's own segment or far ones.
 
-Stubs are written from a table of each call's arguments by
-`tools/mkstubs.py`, for the small model or the medium, where a stub is
-called far and a pointer to a function is already far. The C library's
-table is
+Stubs are written from a table of each call's arguments by the C
+library's `mkstubs` (`usr/src/lib/libc/i286/sys/mkstubs.c`), for the
+small model or the medium, where a stub is called far and a pointer to
+a function is already far. The C library's table is
 `usr/src/lib/libc/i286/sys/syscalls.tab`, and each line of it is checked
 against the kernel's own table: the stub must pass as many words as the
 kernel takes for the call. `vfork` needs a stub of

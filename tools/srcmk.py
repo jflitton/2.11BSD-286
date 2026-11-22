@@ -16,8 +16,7 @@ one it was written from is.
     OUT/sys/i286stand/Makefile  /boot and the boot blocks
     OUT/lib/libc/i286/Makefile  the C library, which is made for each
                                 model in s, m and l there, each with a
-                                Makefile of its own and the system
-                                calls' stubs (tools/mkstubs.py)
+                                Makefile of its own
     OUT/i286/Makefile           the other libraries, and the programs
     OUT/proto                   the file system, to be mounted on
                                 /usr/src
@@ -301,10 +300,9 @@ USRLIB = {"s": "/usr/lib", "m": "/usr/lib/m", "l": "/usr/lib/l"}
 FAR = {"s": "", "m": " -DFAR", "l": " -DFAR -DFARDATA"}
 
 
-def libc(model, out):
-    """The Makefile of one model's C library, and its system call
-    stubs, which are written here into OUT (tools/mkstubs.py) for the
-    system to assemble: the names of the files that were."""
+def libc(model):
+    """The Makefile of one model's C library, and the directories its
+    sources are in."""
     t = table(MD, "MODEL=" + model)
     rules = []
     used = set()
@@ -329,22 +327,7 @@ def libc(model, out):
         else:
             rules.append("%s.o: %s $(CRT)/DEFS.inc\n\t$(ASM) -o %s.o %s\n"
                          % (base, s, base, s))
-    d = os.path.join(out, MD, model, "sys")
-    os.makedirs(d, exist_ok=True)
-    for f in os.listdir(d):
-        os.unlink(os.path.join(d, f))
-    r = subprocess.run(
-        ["python3", "-I", os.path.join(TOP, "tools", "mkstubs.py"),
-         "--model", model, "--sysent",
-         os.path.join(SRC, "sys/sys/init_sysent.c"), "-d", d,
-         os.path.join(SRC, MD, "sys/syscalls.tab"),
-         os.path.join(TOP, "usr/include/syscall.h")])
-    if r.returncode != 0:
-        sys.exit("srcmk: mkstubs.py failed")
-    # In the order the library has them where the system is built,
-    # which is the shell's there.
-    stubs = subprocess.run("echo *.s", shell=True, cwd=d, text=True,
-                           capture_output=True).stdout.split()
+    stubs = t["STUBS"]
     hdrs = sorted("/usr/include/" + f for f in os.listdir(
         os.path.join(TOP, "usr/include")) if f.endswith(".h")) + \
         sorted("$S/%s/%s" % (h, f) for h in ("sys/h", "sys/i286",
@@ -362,12 +345,14 @@ def libc(model, out):
 #			cc -m%s links a program with
 #	make clean	nothing made is left
 #
-# The system calls' stubs, in sys, were written where the system is
-# built, from i286/sys/syscalls.tab (tools/mkstubs.py).  Every object
-# is made again when any header changes.
+# The system calls' stubs are written in sys, a file each, from
+# i286/sys/syscalls.tab, by i286/sys/mkstubs.c, which is compiled
+# there, and each is checked against the kernel's table of calls.
+# Every object is made again when any header changes.
 
 S=	/usr/src
 CRT=	$S/lib/libc/i286/crt
+SYS=	$S/lib/libc/i286/sys
 CFLAGS=	-O -m%s -I/usr/include
 ASM=	as -m%s -I$(CRT)%s
 """ % (LIBDIR[model], LIBDIR[model], model, model, model, FAR[model]) +
@@ -377,12 +362,19 @@ all:	crt0.o libc.a
 
 libc.a:	$(OBJS) sys/made
 """ + archive("libc.a", [b + ".o" for b in t["OBJS"]] +
-              ["sys/" + f[:-2] + ".o" for f in stubs]) + """\
+              ["sys/" + f + ".o" for f in stubs]) + """\
 
 crt0.o:	$S/lib/libc/i286/csu/crt0.s $(CRT)/DEFS.inc
 	$(ASM) -o crt0.o $S/lib/libc/i286/csu/crt0.s
 
-sys/made: $S/lib/libc/i286/sys/syscalls.tab
+sys/mkstubs: $(SYS)/mkstubs.c
+	cd sys && cc -O -o mkstubs $(SYS)/mkstubs.c && rm -f mkstubs.o
+
+sys/made: sys/mkstubs $(SYS)/syscalls.tab /usr/include/syscall.h \\
+		$S/sys/sys/init_sysent.c
+	rm -f sys/*.s sys/*.o
+	sys/mkstubs -m %s -k $S/sys/sys/init_sysent.c -d sys \\
+	    $(SYS)/syscalls.tab /usr/include/syscall.h
 	cd sys; for f in *.s; do as -m%s -o `basename $$f .s`.o $$f || exit 1; done
 	touch sys/made
 
@@ -392,11 +384,11 @@ install: all
 	ranlib %s/libc.a
 
 clean:
-	rm -f *.o sys/*.o sys/made libc.a hdrs
+	rm -f *.o sys/*.o sys/*.s sys/mkstubs sys/made libc.a hdrs
 
-""" % (model, LIBDIR[model], LIBDIR[model], LIBDIR[model]) + hdrs + "\n" +
-            "\n".join(rules))
-    return text, ["sys/" + f for f in stubs], used
+""" % (model, model, LIBDIR[model], LIBDIR[model], LIBDIR[model]) + hdrs +
+            "\n" + "\n".join(rules))
+    return text, used
 
 
 def programs():
@@ -836,11 +828,10 @@ def main():
     dirs = set(DIRS)
     empty = ["i286/bin", "i286/o"]
     for m in "sml":
-        text, stubs, used = libc(m, out)
+        text, used = libc(m)
         made["%s/%s/Makefile" % (MD, m)] = text
         dirs |= used
-        for f in stubs:
-            made["%s/%s/%s" % (MD, m, f)] = None
+        empty.append("%s/%s/sys" % (MD, m))
     text, used, gendirs, libs, progs, left, installed, files, datadirs, \
         data, datainstalled = programs()
     made["i286/Makefile"] = text

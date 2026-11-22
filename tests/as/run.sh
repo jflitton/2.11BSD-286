@@ -10,7 +10,7 @@
 # the boot blocks, made images by each (as -b, nasm -f bin), and
 # /boot's start-up; the C library's own assembly, for each model, with
 # the start-up
-# code; the system call stubs as tools/mkstubs.py writes them, for
+# code; the system call stubs as the library's mkstubs writes them, for
 # each; the kernel's assembly; and what the system's C compiler writes
 # for the programs of tests/ccom, in each model, as its second pass
 # leaves it and as the object code improver does.
@@ -76,10 +76,11 @@ done
 # and ve's, the one program with assembly of its own
 both "$top/usr/src/i286/ve/fmem.s" -I "$libc/crt/"
 both "$top/usr/src/i286/ve/fmem.s" -I "$libc/crt/" -DFAR
+${HOSTCC:-cc} -std=gnu89 -w -o "$out/mkstubs" "$libc/sys/mkstubs.c"
 for m in s m l; do
     rm -rf "$out/stubs/$m"
     mkdir -p "$out/stubs/$m"
-    python3 -I "$top/tools/mkstubs.py" --model $m -d "$out/stubs/$m" \
+    "$out/mkstubs" -m $m -d "$out/stubs/$m" \
         "$libc/sys/syscalls.tab" "$top/usr/include/syscall.h"
     for f in "$out/stubs/$m"/*.s; do
         both "$f"

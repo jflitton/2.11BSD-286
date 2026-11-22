@@ -93,7 +93,7 @@ lay a program out alike, and their libraries' assembly is the same.
   (`<segment.h>`) gives the address of a byte of such a piece.
 - Start-up, `setjmp` and `longjmp`, the signal trampoline and the system
   call stubs each have a form for the model, the stubs from the same
-  table as the others (`tools/mkstubs.py --model l`).
+  table as the others (`mkstubs -m l`).
 
 `tools/lmlint.py` looks a program over for what the model breaks before
 it is tried: a `0` passed for a pointer or a pointer for an `int`, a

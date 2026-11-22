@@ -30,7 +30,9 @@ fi
 
 # The test programs: small model.
 cd "$out"
-python3 -I "$top/tools/mkstubs.py" --sysent "$top/usr/src/sys/sys/init_sysent.c" \
+${HOSTCC:-cc} -std=gnu89 -w -o mkstubs \
+    "$top/usr/src/lib/libc/i286/sys/mkstubs.c"
+./mkstubs -k "$top/usr/src/sys/sys/init_sysent.c" \
     "$here/syscalls.tab" "$top/usr/include/syscall.h" > stubs.s
 if [ "$TOOLS_PROGRAMS" = native ]; then
     mk -C "$top/usr/src/lib/ccom/i286" host

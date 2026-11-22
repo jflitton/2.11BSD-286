@@ -47,7 +47,7 @@
 #
 #	csu	start-up
 #	sys	the system call stubs, made from sys/syscalls.tab by
-#		tools/mkstubs.py, and the calls that need more than a stub
+#		sys/mkstubs.c, and the calls that need more than a stub
 #	gen	setjmp and longjmp, and the floating-point routines the
 #		PDP-11 has in assembly; its other assembly (strings, bcopy
 #		and the like) is replaced by the C in ../gen that it stood
@@ -245,33 +245,49 @@ $(O)/crt0.o: $(MD)/csu/crt0.s $(MD)/crt/DEFS.inc $(NCC) | $(OBJ)
 	$(AS) -o $@ $<
 
 # The stubs: one file each, so that a program gets only the calls it
-# makes.  Each is checked against the kernel's table of calls.
-$(OBJ)/sys/made: $(MD)/sys/syscalls.tab $(TOP)/tools/mkstubs.py \
+# makes.  Each is checked against the kernel's table of calls.  What
+# writes them is sys/mkstubs.c, compiled for the machine this is run on
+# as the system compiles it for itself when it makes its library
+# (tools/srcmk.py).  STUBS is their names, the error path's among them,
+# in the order the library has them.
+HOSTCC=	cc
+HOSTCFLAGS= -std=gnu89 -w
+MKSTUBS= $(TOP)/obj/host/mkstubs
+STUBS:=	$(shell { echo cerror; awk '$$1 !~ /^\#/ && NF { sub(/=.*/, "", $$1); \
+	print $$1 }' $(MD)/sys/syscalls.tab; } | LC_ALL=C sort)
+STUBOBJS= $(addprefix $(OBJ)/sys/,$(addsuffix .o,$(STUBS)))
+
+$(MKSTUBS): $(MD)/sys/mkstubs.c
+	@mkdir -p $(@D)
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ $<
+
+$(OBJ)/sys/made: $(MD)/sys/syscalls.tab $(MKSTUBS) \
 		$(TOP)/usr/include/syscall.h $(TOP)/usr/src/sys/sys/init_sysent.c \
 		$(NCC) | $(OBJ)/sys
 	rm -f $(OBJ)/sys/*.s $(OBJ)/sys/*.o
-	python3 -I $(TOP)/tools/mkstubs.py --model $(MODEL) \
-	    --sysent $(TOP)/usr/src/sys/sys/init_sysent.c -d $(OBJ)/sys \
-	    $(MD)/sys/syscalls.tab $(TOP)/usr/include/syscall.h
-	cd $(OBJ)/sys && for f in *.s; do \
-	    $(SAS) -o $${f%.s}.o $$f || exit 1; done
+	$(MKSTUBS) -m $(MODEL) -k $(TOP)/usr/src/sys/sys/init_sysent.c \
+	    -d $(OBJ)/sys $(MD)/sys/syscalls.tab $(TOP)/usr/include/syscall.h
+	cd $(OBJ)/sys && for f in $(STUBS); do \
+	    $(SAS) -o $$f.o $$f.s || exit 1; done
 	touch $@
 
 $(O)/libc.lib: $(OBJS) $(OBJ)/sys/made $(MD)/Makefile
 	@echo wlib libc.lib
 	@rm -f $@ $(OBJ)/libc.rsp
-	@for f in $(OBJS) $(OBJ)/sys/*.o; do echo "+$$f"; done > $(OBJ)/libc.rsp
+	@for f in $(OBJS) $(STUBOBJS); do echo "+$$f"; done > $(OBJ)/libc.rsp
 	@wlib -q -n -b $@ @$(OBJ)/libc.rsp
 
 $(O)/libc.a: $(OBJS) $(OBJ)/sys/made $(MD)/Makefile $(TOP)/tools/ar.py
 	@echo ar libc.a
 	@rm -f $@ $(O)/libc.lib
-	@python3 -I $(TOP)/tools/ar.py $@ $(OBJS) $(OBJ)/sys/*.o
+	@python3 -I $(TOP)/tools/ar.py $@ $(OBJS) $(STUBOBJS)
 
 # What the system's own Makefile for this model's library is written
-# from (tools/srcmk.py): its objects, in their order in the library.
+# from (tools/srcmk.py): its objects, in their order in the library,
+# and the stubs that follow them.
 table:
 	@echo OBJS $(COBJS) $(SOBJS)
+	@echo STUBS $(STUBS)
 
 clean:
 	rm -rf $(O)

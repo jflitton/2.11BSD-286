@@ -192,7 +192,6 @@ driver talks to.
 | `tools/mkfs.py` | makes a file system image from a list of files, with their modes, owners and groups |
 | `tools/mkdisk.py` | makes a hard disk image: a partition table or none, a label, partitions, and the sectors that boot it |
 | `tools/fsck.py` | checks a file system in an image without changing it, or prints a file from it |
-| `tools/mkstubs.py` | writes system call stubs from a table of the calls' arguments, checked against the kernel's |
 | `tools/kpatch.py` | changes a variable in an executable file, by name |
 | `tools/kprof.py` | says where the system spent its time: the functions, in the kernel and in programs, that the samples `runtest.py --profile` took of the emulated processor fell in |
 | `tools/strip.py` | copies an executable file without its symbol table, as `strip` leaves one: the programs in the root file system are such copies, unless it is made with `STRIP=no` |

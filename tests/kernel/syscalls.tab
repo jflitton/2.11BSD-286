@@ -1,5 +1,6 @@
-# The system calls the kernel's test programs make: tools/mkstubs.py
-# turns this into their stubs.  Names beginning with an underscore are
+# The system calls the kernel's test programs make: the C library's
+# mkstubs (usr/src/lib/libc/i286/sys/mkstubs.c) turns this into their
+# stubs.  Names beginning with an underscore are
 # the calls as the kernel has them, where a C library would put a
 # function of its own in front.
 _exit=exit	i

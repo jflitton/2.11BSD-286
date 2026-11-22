@@ -1,7 +1,8 @@
-# The C library's system call stubs, small model: tools/mkstubs.py turns
-# each line into one.  NAME[=CALL] ARGUMENTS [RESULT]; the number is
-# SYS_CALL in <syscall.h>.  i int, l long, p data pointer, f function
-# pointer, P a data pointer that is far in every model.  The Makefile has mkstubs check every line against the
+# The C library's system call stubs: mkstubs (mkstubs.c, here) turns
+# each line into one, for each model.  NAME[=CALL] ARGUMENTS [RESULT];
+# the number is SYS_CALL in <syscall.h>.  i int, l long, p data
+# pointer, f function pointer, P a data pointer that is far in every
+# model.  The Makefile has mkstubs check every line against the
 # kernel's own table (sys/sys/init_sysent.c).
 #
 # A name beginning with an underscore is the call as the kernel has it,

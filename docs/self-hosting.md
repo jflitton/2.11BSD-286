@@ -73,7 +73,11 @@ that one has in `obj`: `yacc` and `lex` their parsers and scanners;
 `ex`'s and `tcsh`'s C with the messages taken out by `mkstr`
 (`usr/src/i286/mkstr.c`, which both builds compile and run);
 `battlestar`'s likewise by its own; `hack`'s files through the
-preprocessor and its `crypt`.
+preprocessor and its `crypt`. The C library's stubs for the system
+calls are written there too, a file of assembly for each call and each
+model, from `lib/libc/i286/sys/syscalls.tab`: by `mkstubs`
+(`sys/mkstubs.c` beside it), which both builds compile and run, and
+which has each agree with the kernel's table of calls.
 
 ## What is not a program
 
@@ -129,7 +133,8 @@ an hour each or more.
 `tests/self/run.sh` boots the system with that file system, has it make
 everything above, and compares each object, each program, the kernel
 and `/boot`, and each file that is not a program, with what the same
-sources make where the system is built: 2600 files. A library is
+sources make where the system is built: 2948 files, the stubs'
+assembly among them. A library is
 compared by its members, and by which they are and in what order, since
 the archive has the day it was made in it; a page of the manual has at
 its foot the day it was formatted, and two that differ are compared
@@ -198,9 +203,6 @@ and the machine started again: it must come up on that kernel, with
 - The files of the root file system that are copies of a source, or
   empty: `/etc`'s, the headers, the logs. Nothing makes them; a new
   disk would have them from `/usr/src`.
-- The system calls' stubs of the C library, which `tools/mkstubs.py`
-  writes from `syscalls.tab`: `srcmk.py` runs it, and the system
-  assembles what it wrote.
 - The Makefiles themselves, as above: they are written from the
   repository's, and a change made to one on the system is lost when
   they are written again.

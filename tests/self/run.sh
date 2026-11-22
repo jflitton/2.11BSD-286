@@ -139,7 +139,7 @@ for m in s m l; do
         want lib/libc/i286/$m $(make -s -C "$src/lib/libc/i286" MODEL=$m \
             table | sed -n 's/^OBJS //p' | tr ' ' '\n' |
             sed "s|^|$nlib/$m/obj/|; s|\$|.o|") "$nlib/$m/crt0.o"
-        want lib/libc/i286/$m/sys "$nlib/$m"/obj/sys/*.o
+        want lib/libc/i286/$m/sys "$nlib/$m"/obj/sys/*.[so]
     fi
     if has libs; then
         for l in $libs; do
