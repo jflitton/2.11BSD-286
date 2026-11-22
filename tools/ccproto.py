@@ -26,7 +26,7 @@ libln.a, is libl.a as well, a link, as upstream installs it: -ll.
 import os
 import sys
 
-LINKED = ["sys", "i286", "net", "netimp", "netinet", "netns"]
+LINKED = ["sys", "i286", "i286at", "net", "netimp", "netinet", "netns"]
 OWN = ["arpa", "protocols"]
 
 

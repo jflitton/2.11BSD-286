@@ -12,6 +12,7 @@ from the disk itself ([booting](boot.md)).
 | 0 | 7 | disks in memory: 0 the image the boot program loaded, 1 a swap area | `sys/i286/rd.c` |
 | 1 | 8 | hard disks on the AT disk controller | `sys/i286at/wd.c` |
 | 2 | 9 | SCSI disks on an Adaptec AHA-1540 or 1542 | `sys/i286at/sd.c`, `aha.c` |
+| 3 | 11 | diskettes on the AT diskette controller | `sys/i286at/fl.c` |
 
 A hard disk's minor number is the drive in bits 3 and up and the
 partition, `a` to `h`, in the low three: `wd0a` is 0, `wd1c` is 10.
@@ -156,8 +157,8 @@ adapter and `sd.c` the disks on it.
   agreed, where the emulator's has `async`.
 - The adapter holds the AT bus 11 microseconds at a time and lets it go
   for 4, which is how it is made. Other drivers for it give it 7 and 5,
-  so that a diskette drive's DMA is not kept waiting, and this kernel
-  has no diskette driver. On a real machine, with a disk that had
+  so that a diskette drive's DMA is not kept waiting; the diskette
+  driver has not been run beside it. On a real machine, with a disk that had
   agreed 5 MB/s and the AT bus at 5 MB/s, a read of the disk itself 32K
   at a time:
 
@@ -219,6 +220,46 @@ adapter and `sd.c` the disks on it.
   carries on and says so once. If it has been out 30 seconds
   (`ahatimeout`), the adapter and the SCSI bus are reset and the command
   is sent again.
+
+## The diskette controller (`sys/i286at/fl.c`)
+
+The controller of the PC/AT is an NEC 765 at 0x3F0, with interrupt
+request 6 and DMA channel 2, and two drives. The driver is upstream's
+for the RX02 in what it gives ([rx(4)](../usr/src/man/man4/rx.4),
+[fl(4)](../usr/src/man/man4/fl.4)): a diskette has no label and no
+partitions, and the letter of the device is the density.
+
+| | in a drive that is | sectors on a track | sectors | `disktab` |
+|---|---|---|---|---|
+| `fl0a` | 3.5 inch | 9 | 1440 (720K) | `fl720` |
+| `fl0b` | 3.5 inch, high density | 18 | 2880 (1.44 MB) | `fl1440` |
+| `fl0b` | 5.25 inch, high density | 15 | 2400 (1.2 MB) | `fl1200` |
+
+- What a drive is comes from the clock chip's memory, where the
+  machine's setup program wrote it, when a diskette device is first
+  opened. A 5.25 inch drive has no `fl0a`: diskettes of 360K are not
+  supported.
+- `flformat /dev/rfl0b` formats one, as `rxformat` does an RX02, with
+  the same request of the driver (`FLIOC_FORMAT`, `i286at/flreg.h`). It
+  does not read back what it wrote.
+- With no label, `newfs` is told what the diskette is: `newfs -T fl1440
+  /dev/rfl0b`. `tar` and `dump` write to the raw device.
+- DMA does not count past a multiple of 64K in memory. A transfer is
+  cut there, and a sector with one inside it goes by way of 512 bytes
+  of the kernel's own that have none.
+- A transfer is tried five times, and the head sent back to cylinder 0
+  before every second one. An interrupt that has not come in three
+  seconds will not, as when there is no diskette: the controller is
+  reset and the transfer fails (`fl0: not ready`). The motor is stopped
+  three seconds after the last transfer.
+- A diskette changed while its file system is mounted is not noticed.
+
+A diskette with a file system, `/boot` and a kernel in it, and the
+boot block `/mdec/fluboot` in its first sector, starts the system
+([booting](boot.md#from-a-diskette-with-a-file-system),
+[the system makes itself](self-hosting.md#a-diskette)). The root is
+then a hard disk's: a diskette has no room for a root and a swap area,
+as upstream's document says of its own.
 
 ## Tools
 

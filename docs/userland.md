@@ -793,7 +793,7 @@ are compiled as upstream has them. All are small-model programs.
 | `/usr/bin` | `basename`, `cal`, `cb`, `checkeq`, `col`, `comm`, `crypt`, `deroff`, `fgrep`, `file`, `id`, `install`, `join`, `look`, `m4`, `mesg`, `patch`, `printf`, `ptx`, `renice`, `rev`, `shar`, `sort`, `spline`, `split`, `sum`, `tabs`, `touch`, `tr`, `traverse`, `tsort`, `tty`, `uname`, `uniq`, `units`, `whereis`, `xargs` |
 | `/usr/ucb` | `apply`, `checknr`, `clear`, `colcrt`, `colrm`, `compress`, `ctags`, `expand`, `fold`, `head`, `last`, `leave`, `lock`, `mkstr`, `more`, `printenv`, `script`, `soelim`, `strings`, `tail`, `tset`, `ul`, `unexpand`, `unifdef`, `users`, `wc`, `what`, `xstr`, `yes` |
 | `/usr/libexec` | `diff3`, `diffh`, `makekey` |
-| `/usr/sbin`, `/sbin` | `ac`, `chroot`; `shutdown` |
+| `/usr/sbin`, `/sbin` | `ac`, `chroot`, `flformat`; `shutdown` |
 
 With them go what upstream installs beside them: the scripts `true`,
 `false`, `whoami`, `groups`, `nohup`, `which` and `diff3`, which runs
@@ -2545,7 +2545,7 @@ Not done, or not tested:
   which is asked for no password; `lock` only with a key typed for it,
   not with the user's password; `shutdown` only at once and to halt.
   `more` is not asked to search or to start `vi`, and `tar` reads and
-  writes files, not a tape or a diskette.
+  writes files and a diskette (`tests/floppy`), not a tape.
 - `lex -r`, for Ratfor, `awk`'s
   saving and restoring of itself (`-S` and `-R`), and `make` with
   archives, with its built-in rules or with anything but the simplest

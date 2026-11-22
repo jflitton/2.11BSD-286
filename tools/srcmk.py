@@ -229,8 +229,11 @@ def stand():
 #	make		boot, which is /boot; hdboot.bin, the boot block
 #			of a hard disk, which is /mdec/wduboot;
 #			mbr.bin, the first sector of a disk that has a
-#			partition table; fdboot.bin, a diskette's
-#	make install	/boot and /mdec/wduboot are those
+#			partition table; flboot.bin, the boot block
+#			of a diskette, which is /mdec/fluboot;
+#			fdboot.bin, the first sector of a diskette
+#			with no file system
+#	make install	/boot, /mdec/wduboot and /mdec/fluboot are those
 #	make clean	nothing made is left
 #
 # as -b writes the bytes alone, and ld -b /boot's code and data as one
@@ -239,7 +242,7 @@ def stand():
 S=	/usr/src
 CRT=	$S/lib/libc/i286/crt
 """ + macros + """
-all:	fdboot.bin mbr.bin hdboot.bin boot
+all:	fdboot.bin mbr.bin hdboot.bin flboot.bin boot
 
 fdboot.bin: fdboot.s
 	as -b -o fdboot.bin fdboot.s
@@ -249,6 +252,9 @@ mbr.bin: mbr.s
 
 hdboot.bin: hdboot.s
 	as -b -o hdboot.bin hdboot.s
+
+flboot.bin: flboot.s
+	as -b -o flboot.bin flboot.s
 
 srt0.o:	srt0.s
 	as -ms -I$(CRT)/ -o srt0.o srt0.s
@@ -270,9 +276,10 @@ boot:	srt0.o boot.o i4m.o i4d.o
 	ld -b -M -o boot srt0.o boot.o i4m.o i4d.o > boot.map
 	@awk '/^image: / && $$2 > %d { print "boot: " $$2 " bytes in memory; the limit is %d"; exit 1 }' boot.map || { rm -f boot; exit 1; }
 
-install: boot hdboot.bin
+install: boot hdboot.bin flboot.bin
 	cp boot /boot
 	cp hdboot.bin /mdec/wduboot
+	cp flboot.bin /mdec/fluboot
 
 clean:
 	rm -f *.o *.bin boot boot.map hdrs

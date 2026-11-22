@@ -20,7 +20,6 @@ Some programs wait on more than themselves:
 | Quotas (`sys/sys/quota_*.c` are in the tree, and not built) | `quota`, `quotacheck`, `quotaon`, `edquota`, `repquota` |
 | SLIP (`sys/net/if_sl.c`; `NSL` is 0) | `slattach` |
 | A driver for the parallel port | the line printer's programs, but for a printer on a serial port |
-| A diskette driver | `mtools`, and `tar` to a diskette |
 | A tape driver | `mt`, `tcopy`, `ansitape`, and `dump` and `restor` to a tape |
 | Crash dumps written to the swap area | `savecore` |
 
@@ -199,7 +198,7 @@ out.
 | `zmodem` | `local/zmodem` | for non-commercial use |
 | `ddd` | `local/ddd` | for non-commercial use |
 | `rcs` | `new/rcs` | may not be distributed without its author's permission |
-| `mtools` | `local/mtools` | waits on a diskette driver |
+| `mtools` | `local/mtools` | not tried |
 
 [COPYRIGHT](../COPYRIGHT) has the restrictive notices in full.
 
@@ -218,7 +217,7 @@ These are the PDP-11's, or are for what the PDP-11 needed:
 | program | why |
 |---|---|
 | `gt307` | a clock board for the PDP-11 |
-| `rxformat` | formats an RX02 diskette |
+| `rxformat` | formats an RX02 diskette; `flformat` is it for a PC's |
 | `bad144` | DEC's table of bad sectors; neither driver forwards them |
 | `sysgen` | gives Qbus and UNIBUS devices their addresses |
 | `tp` | DECtape's format |

@@ -71,7 +71,7 @@ cat1	man/man1/lorder.1 man/man1/calendar.1 man/man1/learn.1 man/man1/mkdep.1
 
 cat2	man/man2/Makefile
 cat3	man/man3/Makefile libexec/tcpd/hosts_access.3
-cat4	man/man4/arp.4 man/man4/icmp.4 man/man4/inet.4 man/man4/ip.4
+cat4	man/man4/arp.4 man/man4/fl.4 man/man4/icmp.4 man/man4/inet.4 man/man4/ip.4
 cat4	man/man4/lo.4 man/man4/networking.4 man/man4/null.4 man/man4/pty.4
 cat4	man/man4/tcp.4 man/man4/tty.4 man/man4/udp.4
 cat5	man/man5/Makefile usr.sbin/cron/crontab.5 libexec/tcpd/hosts_access.5
@@ -106,7 +106,8 @@ cat8	sbin/reboot/reboot.8 sbin/route/route.8 sbin/shutdown/shutdown.8
 cat8	sbin/umount/umount.8 usr.bin/fstat/fstat.8 usr.bin/renice/renice.8
 cat8	usr.sbin/ac/ac.8 usr.sbin/accton/accton.8 usr.sbin/arp/arp.8
 cat8	usr.sbin/chown/chown.8 usr.sbin/chroot/chroot.8 usr.sbin/cron/cron.8
-cat8	usr.sbin/dev_mkdb/dev_mkdb.8 usr.sbin/inetd/inetd.8
+cat8	usr.sbin/dev_mkdb/dev_mkdb.8 usr.sbin/flformat/flformat.8
+cat8	usr.sbin/inetd/inetd.8
 cat8	usr.sbin/makewhatis/makewhatis.8 usr.sbin/ntp/man/ntp.8
 cat8	usr.sbin/ntp/man/ntpd.8 usr.sbin/ntp/man/ntpdc.8 usr.sbin/pstat/pstat.8
 cat8	usr.sbin/quot/quot.8 usr.sbin/rwhod/rwhod.8 usr.sbin/sa/sa.8

@@ -1,8 +1,8 @@
 /*
- * /boot: load the kernel from a hard disk's file system and start it.
+ * /boot: load the kernel from a file system and start it.
  *
- * The boot block (hdboot.s) loads this from the root directory of the
- * disk the machine was booted from.  It asks what to load, like this:
+ * The boot block (hdboot.s, or flboot.s on a diskette) loads this from
+ * the root directory of the disk the machine was booted from.  It asks what to load, like this:
  *
  *	Boot from sd(0,0)
  *	:
@@ -16,7 +16,9 @@
  * is being loaded and the size in memory of each of its segments.
  *
  * Disks are read through the BIOS, and only the one booted from: the
- * drive number typed is what the kernel is told, and no more.  What
+ * drive number typed is what the kernel is told, and no more.  From a
+ * diskette the kernel is so told that its root is the first hard disk,
+ * unless another is typed.  What
  * device the kernel will make of the BIOS's drive is a guess, shown in
  * the first line; docs/boot.md says how it is made and when it is wrong.
  *
@@ -248,6 +250,28 @@ rdsect(sn, count, buf)
 		biosreset(drive);
 	}
 	printf("sector %ld: the BIOS reports error %x\n", sn, error);
+	return (-1);
+}
+
+/*
+ * A diskette's shape.  The BIOS knows what the drive can hold and not
+ * what this diskette does: the sectors on a track are the most that
+ * the first track has one of.
+ */
+flgeom()
+{
+	static int sizes[] = { 18, 15, 9, 0 };
+	register int *sp, tries;
+
+	nhead = 2;
+	for (sp = sizes; *sp; sp++)
+		for (tries = 3; tries; tries--) {
+			if (biosread(drive, 0, 0, *sp, 1, blk) == 0) {
+				nsect = *sp;
+				return (0);
+			}
+			biosreset(drive);
+		}
 	return (-1);
 }
 
@@ -584,7 +608,8 @@ main(bootdrive)
 	drive = bootdrive;
 	cninit();
 	printf("\n");
-	if (biosgeom(drive, &nhead, &nsect) < 0 || finddisk() < 0) {
+	if ((drive & 0x80 ? biosgeom(drive, &nhead, &nsect) : flgeom()) < 0 ||
+	    finddisk() < 0) {
 		printf("boot: cannot read drive %x\n", drive);
 		for (;;)
 			;

@@ -27,6 +27,9 @@ daddr_t	wdsize();
 int	sdopen(), sdclose(), sdstrategy(), sdioctl();
 daddr_t	sdsize();
 
+int	flopen(), flstrategy(), flioctl();
+daddr_t	flsize();
+
 /*
  * Where the root file system is when the boot program brought no RAM
  * disk for it: the first hard disk's first partition.  (patchable)
@@ -43,6 +46,9 @@ struct bdevsw	bdevsw[] = {
 /* sd = 2 */
 	sdopen,		sdclose,	sdstrategy,	nulldev,	sdsize,
 	D_RUNS,
+/* fl = 3 */
+	flopen,		nulldev,	flstrategy,	nulldev,	flsize,
+	0,
 };
 int	nblkdev = sizeof(bdevsw) / sizeof(bdevsw[0]);
 
@@ -128,6 +134,10 @@ struct cdevsw	cdevsw[] = {
 	comopen,	comclose,	comread,	comwrite,
 	comioctl,	nulldev,	com_tty,	ttselect,
 	nulldev,
+/* rfl = 11 */
+	flopen,		nulldev,	rawrw,		rawrw,
+	flioctl,	nulldev,	0,		seltrue,
+	flstrategy,
 };
 int	nchrdev = sizeof(cdevsw) / sizeof(cdevsw[0]);
 
@@ -157,16 +167,18 @@ isdisk(dev, type)
 	case 0:			/* rd */
 	case 1:			/* wd */
 	case 2:			/* sd */
+	case 3:			/* fl */
 		return (type == IFBLK);
 	case 7:			/* rrd */
 	case 8:			/* rwd */
 	case 9:			/* rsd */
+	case 11:		/* rfl */
 		return (type == IFCHR);
 	}
 	return (0);
 }
 
-#define MAXDEV	11
+#define MAXDEV	12
 static char chrtoblktbl[MAXDEV] =  {
       /* CHR */      /* BLK */
 	/* 0 */		NODEV,
@@ -180,6 +192,7 @@ static char chrtoblktbl[MAXDEV] =  {
 	/* 8 */		1,		/* wd */
 	/* 9 */		2,		/* sd */
 	/* 10 */	NODEV,
+	/* 11 */	3,		/* fl */
 };
 
 /*

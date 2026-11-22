@@ -85,6 +85,20 @@ the file through its four direct blocks and its first indirect block.
 It reads a sector at a time through the BIOS, three tries each.
 `tools/mkdisk.py -b` and `-m` put the two sectors on a disk image.
 
+### From a diskette with a file system
+
+`flboot.s` is `hdboot.s` for a diskette, which is `/mdec/fluboot` on the
+system: the first sector of a diskette that is all one file system, with
+`/boot` and a kernel in its root directory. It has no partition table to
+look in. The BIOS says what the drive can hold and not what the diskette
+in it does, so the boot block takes the sectors on a track to be the
+most that the first track has one of, 18, 15 or 9, and `/boot` does the
+same. `/boot` then asks as it does from a hard disk, and what it shows
+is `wd(0,0)`: the kernel it loads from the diskette takes the first hard
+disk's first partition as its root unless another device is typed.
+`tests/floppy` starts the system so from diskettes of 1.44 MB and
+1.2 MB that the system made.
+
 Memory while they run:
 
 | from | |

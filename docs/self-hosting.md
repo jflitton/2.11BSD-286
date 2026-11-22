@@ -52,7 +52,7 @@ make data; make install-data                     # what is not a program
 
 | in | `make` makes | `make install` |
 |---|---|---|
-| `sys/i286stand` | `boot`, `hdboot.bin`, `mbr.bin`, `fdboot.bin` | `/boot`, `/mdec/wduboot` |
+| `sys/i286stand` | `boot`, `hdboot.bin`, `flboot.bin`, `mbr.bin`, `fdboot.bin` | `/boot`, `/mdec/wduboot`, `/mdec/fluboot` |
 | `sys/PC` | `unix`, and `unix.map` | `/unix`; the one that was is `/unix.old` |
 | `lib/libc/i286/s`, `m`, `l` | `libc.a`, `crt0.o` | `/lib`, `/lib/m`, `/lib/l` |
 | `i286` | `lib/MODEL/libNAME.a`; `bin/NAME` | `/usr/lib`, `/usr/lib/m`, `/usr/lib/l`; each program where the root file system has it, without its symbols, with its mode and owner |
@@ -173,6 +173,28 @@ custom, and room for the sources, in sectors:
   sector, which the system cannot write: it boots if what is there
   loads the boot block of the system's part, as `mbr.bin` does.
 
+## A diskette
+
+A diskette that starts the system is made as upstream has an RX02
+made ([rx(4)](../usr/src/man/man4/rx.4)), with the kernel on it; the
+root stays on the hard disk
+([disks](disks.md#the-diskette-controller-sysi286atflc)). In a 3.5
+inch drive, with a diskette of 1.44 MB:
+
+```
+flformat /dev/rfl0b
+newfs -T fl1440 /dev/rfl0b
+mount /dev/fl0b /mnt
+cp /boot /unix /mnt
+umount /mnt
+dd if=/mdec/fluboot of=/dev/rfl0b count=1
+```
+
+In a 5.25 inch drive it is `fl1200`, a diskette of 1.2 MB. A diskette
+of 720K is `fl0a` and `fl720`, and is for files: `newfs` and `mount`,
+or `tar cf /dev/rfl0a`. `dump 0Bf 1440 /dev/rfl0b` writes a dump to as
+many diskettes as it takes, 1440 blocks to each.
+
 ## What it takes
 
 On the machine the tests run, a 10 MHz 286 with 4 MB as 86Box has it
@@ -228,6 +250,17 @@ what `/usr/src` has. Then the machine is started from that disk alone,
 and must come up and make `/boot` and the boot block from its sources,
 the same as the ones it started from.
 
+`tests/floppy/run.sh` has it format a diskette of 1.44 MB that was
+never formatted, in the second drive, and make of it one that starts
+the system, as above. `tools/fsck.py` must find nothing wrong with it,
+and it must hold `/boot` and `/unix` as the root has them, begin with
+the boot block, and have no sector left as it was. The machine is then
+started from it, with a hard disk the BIOS finds nothing to start on,
+and there makes the same of a diskette of 1.2 MB in a 5.25 inch drive;
+started from that one, it formats a diskette of 720K, writes the kernel
+and the boot programs to it with `tar` and reads them back the same,
+and makes a file system on it.
+
 ## What it needed
 
 - `make` is a program of the large model. It was compiled with the
@@ -280,4 +313,6 @@ the same as the ones it started from.
   they are written again.
 - A disk's first sector when it is shared with another system
   (`mbr.bin`, which is made): there is no device for it.
-- A diskette: the kernel has no driver for one.
+- A diskette to install from, on a machine with nothing on its disk:
+  the ones it makes start the kernel, and the root must be on a disk
+  already.

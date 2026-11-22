@@ -1,0 +1,137 @@
+.\" Public Domain.  After rx.4, for the diskettes of a PC.
+.\"
+.\"	@(#)fl.4	1.0 (2.11BSD) 2026/11/22
+.\"
+.TH FL 4 "November 22, 2026"
+.UC 2
+.SH NAME
+fl \- PC diskettes
+.SH SYNOPSIS
+.ft B
+.nf
+major device number(s):
+	raw: 11
+	block: 3
+minor device encoding:
+	bits 0070 specify drive: <fl_drive>
+	bit 01 specifies density: double: 0, high: 1
+.fi
+.ft R
+.SH DESCRIPTION
+The
+.I fl
+device provides access to the two diskette drives of a PC/AT's
+diskette controller (an NEC 765 at port 0x3F0, with interrupt request 6
+and DMA channel 2).
+A drive is 3.5-inch or 5.25-inch, as the machine's setup program
+recorded it in the clock chip's memory.
+Diskettes are double-sided with 80 cylinders and sectors of 512 bytes.
+.PP
+The standard device names begin with ``fl'' followed by
+the drive number and then a letter a-b for double and high density
+access to the drive respectively.
+The character ? stands here for a drive number in the range 0-1.
+.PP
+The block files access the diskette via the system's normal
+buffering mechanism and may be read and written without regard to
+physical disk records.  There is also a `raw' interface
+which provides for direct transmission between the diskette
+and the user's read or write buffer.
+The names of the raw files
+conventionally begin with an extra `r.'
+In raw I/O counts and
+.I seek
+offsets must be a multiple of 512 bytes.
+.PP
+In addition to normal (`block' and `raw') i/o, the driver supports
+formatting of diskettes for either density.
+.SH "DISK SUPPORT"
+The
+.I fl
+driver does not support pseudo-disks (partitions) and a diskette has
+no label.  Each file
+.I fl?[ab]
+refers to the entire diskette as a single sequentially addressed
+file.
+.PP
+The size and density of the diskettes are specified as follows:
+.PP
+.nf
+.ta .5i +\w'fl0b  'u +\w'3.5-inch high density  'u +\w'sectors/track  'u +\w'sectors  'u
+	disk	in a drive that is	sectors/track	sectors	disktab
+	fl?a	3.5-inch, either density	9	1440	fl720
+	fl?b	3.5-inch high density	18	2880	fl1440
+	fl?b	5.25-inch high density	15	2400	fl1200
+.DT
+.fi
+.PP
+A 5.25-inch drive has no
+.I fl?a
+and a 3.5-inch double density drive no
+.IR fl?b .
+Diskettes of 360 kilobytes are not supported.
+.PP
+The commands
+.nf
+.RS
+% flformat /dev/rfl0b
+% newfs \-T fl1440 /dev/rfl0b
+.RE
+.fi
+format and make a file system on the high density diskette in a
+3.5-inch drive 0.
+.IR Tar (1)
+and
+.IR dump (8)
+may write to the raw file directly.
+.PP
+A diskette with a file system that has
+.I /boot
+and a kernel in its root directory, and the boot block in its first
+sector, starts the system:
+.nf
+.RS
+% dd if=/mdec/fluboot of=/dev/rfl0b count=1
+.RE
+.fi
+The kernel so loaded takes its root file system from a hard disk, a
+diskette having no room for a root file system and a swap area.
+.PP
+An
+.IR ioctl (2)
+call is available to format a diskette:
+.RS
+.nf
+.ft B
+#include <i286at/flreg.h>
+ioctl(fildes, FLIOC_FORMAT)
+.ft R
+.fi
+.RE
+The density is determined by the device opened.
+.SH FILES
+.ta \w'/dev/rfl[01][ab]  'u
+/dev/fl[01][ab]	block files
+.br
+/dev/rfl[01][ab]	raw files
+.br
+/mdec/fluboot	boot block
+.DT
+.SH "SEE ALSO"
+rx(4),
+disktab(5),
+flformat(8),
+newfs(8)
+.SH DIAGNOSTICS
+\fBfl%d%c: hard error sn%d (sector %d) st0=%b st1=%b\fR.  An unrecoverable
+error occurred during transfer of the specified sector of the specified
+diskette.  The contents of the controller's first two status registers
+are also printed symbolically with bits decoded.
+The transfer was tried five times.
+.PP
+\fBfl%d: not ready\fR.  The controller did not answer within three
+seconds, usually because no diskette is in the drive.
+.SH BUGS
+Formatting does not read back what it wrote.
+.PP
+A diskette changed while its file system is mounted is not noticed.

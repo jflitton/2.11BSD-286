@@ -11,7 +11,9 @@
 #	mbr.bin		the first sector of a hard disk shared between
 #			systems
 #	hdboot.bin	the first sector of the system's part of a hard
-#			disk, which loads
+#			disk, and
+#	flboot.bin	the first sector of a diskette with a file
+#			system, which load
 #	boot		the file /boot, which loads the kernel
 #
 #	make -C usr/src/sys/i286stand TOOLS=cross
@@ -52,7 +54,8 @@ BOOTMAX=0xE000
 
 VPATH=	$(CRT)
 
-all:	$(O) $(O)/fdboot.bin $(O)/mbr.bin $(O)/hdboot.bin $(O)/boot
+all:	$(O) $(O)/fdboot.bin $(O)/mbr.bin $(O)/hdboot.bin $(O)/flboot.bin \
+	$(O)/boot
 
 $(O):
 	mkdir -p $(O)

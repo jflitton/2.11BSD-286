@@ -28,9 +28,9 @@ Where the 286 code goes, beside its PDP-11 counterpart in each case:
 | new | beside | holds |
 |-----|--------|-------|
 | `usr/src/sys/i286/` | `pdp/` | startup, traps, system calls, copy routines, segments, switching between processes, signals, the 287, the clock, the console on the display, a RAM disk; the calls between the kernel and the network, and the network's side of them ([the network](network.md)) |
-| `usr/src/sys/i286at/` | `pdpuba/` | AT-bus drivers: the Adaptec SCSI adapter and its disks, the AT disk controller (IDE), and the PC partition table; the serial ports, the keyboard, and the console's VT102 terminal emulator ([the console](console.md)) |
+| `usr/src/sys/i286at/` | `pdpuba/` | AT-bus drivers: the Adaptec SCSI adapter and its disks, the AT disk controller (IDE), the PC partition table, and the diskette controller; the serial ports, the keyboard, and the console's VT102 terminal emulator ([the console](console.md)) |
 | `usr/src/sys/i286if/` | `pdpif/` | network interfaces: the NE1000 and NE2000 and the cards that copy them ([the network](network.md)) |
-| `usr/src/sys/i286stand/` | `pdpstand/`, `mdec/` | what loads the kernel: the diskette's boot sector, and for a hard disk its first sector, the boot block and `/boot`; `make -C usr/src/sys/i286stand` builds them in `obj/stand` |
+| `usr/src/sys/i286stand/` | `pdpstand/`, `mdec/` | what loads the kernel: for a hard disk its first sector, the boot block and `/boot`; a diskette's boot block, and the boot sector of a diskette with no file system; `make -C usr/src/sys/i286stand` builds them in `obj/stand` |
 | `usr/src/sys/PC/` | `GENERIC/` | the kernel's configuration and Makefile: `make -C usr/src/sys/PC` builds `obj/PC/unix` |
 | `usr/src/lib/libc/i286/` | `lib/libc/pdp/` | libc's machine-dependent part, and the Makefile that builds the library from it and the tree's portable C: `make -C usr/src/lib/libc/i286` makes `obj/lib/s/libc.lib` |
 | `usr/src/i286/` | the tree's own Makefiles | the list of programs built and the Makefile that builds them in `obj/bin`; the root file system's contents and `/etc` files, which `make -C usr/src/i286 root` makes into `obj/root/root.fs` ([the C library and programs](userland.md)) |
@@ -248,6 +248,10 @@ tests/self/run.sh       # the system making itself: the kernel, /boot,
                         # on the 286, each to be what is made of it
                         # here; installed, and started again
                         # (docs/self-hosting.md)
+tests/floppy/run.sh     # the system formatting diskettes and making
+                        # ones that start it, of 1.44 MB and 1.2 MB,
+                        # and the machine started from each; one of
+                        # 720K for tar and for a file system
 tests/disk/run.sh       # the system making a disk, as upstream has one
                         # made: a label, a dump of its root restored,
                         # the boot block and its sources on a second

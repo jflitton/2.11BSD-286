@@ -1,0 +1,47 @@
+.\" Copyright (c) 1983 Regents of the University of California.
+.\" All rights reserved.  The Berkeley software License Agreement
+.\" specifies the terms and conditions for redistribution.
+.\"
+.\"	@(#)flformat.8	1.0 (2.11BSD) 2026/11/22
+.\"
+.TH FLFORMAT 8 "November 22, 2026"
+.UC 2
+.SH NAME
+flformat \- format diskettes (2.11BSD)
+.SH SYNOPSIS
+.B flformat
+special
+.SH DESCRIPTION
+The
+.I flformat
+program formats a diskette in the specified drive
+associated with the special device
+.IR special .
+.I Special
+is normally /dev/rfl0?, for drive 0, or /dev/rfl1?,
+for drive 1,
+where ``?'' is either "a" or "b" to indicate double or high density
+access.  The ``raw'' device must be used.
+A double density diskette has 9 sectors on a track (720 kilobytes),
+and a high density one 18 in a 3.5-inch drive (1.44 megabytes) or
+15 in a 5.25-inch drive (1.2 megabytes).
+.PP
+Before formatting a diskette
+.I flformat
+prompts for verification if standard input is a tty
+(this allows a user to cleanly
+abort the operation; note that
+formatting a diskette will destroy any existing data).
+Formatting is done by the driver, a track at a time.
+.SH DIAGNOSTICS
+`No such device' means that the drive is not ready,
+usually because no diskette is in the drive, or that the
+drive has not the density asked for.
+`Read-only file system' means that the diskette is protected.
+Other error messages are selfexplanatory.
+.SH FILES
+/dev/rfl??
+.SH SEE ALSO
+fl(4), rxformat(8)
+.SH BUGS
+What was written is not read back.

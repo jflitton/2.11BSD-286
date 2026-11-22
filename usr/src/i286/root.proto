@@ -64,6 +64,7 @@ f /usr/skel/.cshrc 644 skel/dot.cshrc
 f /usr/skel/.login 644 skel/dot.login
 f /etc/master.passwd 600 ../etc/master.passwd
 f /etc/group 644 ../etc/group
+f /etc/disktab 444 ../etc/disktab
 f /etc/shells 644 ../etc/shells
 f /etc/hosts 644 etc/hosts
 f /etc/inetd.conf 644 etc/inetd.conf
@@ -366,6 +367,7 @@ f /bin/true 755 ../bin/true.sh
 f /bin/false 755 ../bin/false.sh
 h /bin/e /bin/ed
 f /usr/sbin/chroot 4751 ../../../obj/root/bin/chroot
+f /usr/sbin/flformat 755 ../../../obj/root/bin/flformat
 f /usr/sbin/ac 755 ../../../obj/root/bin/ac
 f /sbin/shutdown 4750:0.5 ../../../obj/root/bin/shutdown
 f /bin/rcp 4755 ../../../obj/root/bin/rcp
@@ -764,6 +766,14 @@ b /dev/sd0g 640:5 2 6
 c /dev/rsd0g 640:5 9 6
 b /dev/sd0h 640:5 2 7
 c /dev/rsd0h 640:5 9 7
+b /dev/fl0a 640:5 3 0
+c /dev/rfl0a 640:5 11 0
+b /dev/fl0b 640:5 3 1
+c /dev/rfl0b 640:5 11 1
+b /dev/fl1a 640:5 3 8
+c /dev/rfl1a 640:5 11 8
+b /dev/fl1b 640:5 3 9
+c /dev/rfl1b 640:5 11 9
 b /dev/sd1a 640:5 2 8
 c /dev/rsd1a 640:5 9 8
 b /dev/sd1b 640:2 2 9

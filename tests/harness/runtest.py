@@ -3,7 +3,8 @@
 
 usage: runtest.py NAME SOURCE...
        runtest.py [--hd IMAGE,CYLINDERS,HEADS,SECTORS[,BUS]]
-                  [--hd2 IMAGE,CYLINDERS,HEADS,SECTORS] [--until TEXT]
+                  [--hd2 IMAGE,CYLINDERS,HEADS,SECTORS]
+                  [--fda IMAGE[,SIZE]] [--fdb IMAGE[,SIZE]] [--until TEXT]
                   [--resets N] [--net CARD[:PORT:IRQ]] [--term TYPE:COLSxROWS]
                   [--mark TEXT] [--profile KERNEL[:MS]]
                   [--type AFTER TEXT | --key AFTER TEXT | --telnet AFTER TEXT]...
@@ -30,6 +31,13 @@ DC000) or, with 0, off.  86Box only.  With --hd and no EXECUTABLE there
 is no diskette, and the machine boots from the hard disk as it would by
 itself.  --hd2 gives the AT disk controller a second drive, the slave,
 whose contents are IMAGE likewise; the first must be on that controller.
+
+--fda and --fdb put the diskette IMAGE in drive A or B, to be changed by
+whatever is written to it; the drive is 3.5 inch for an image of 1474560
+bytes and 5.25 inch for one of 1228800, or what SIZE says of those two,
+and the machine's CMOS memory is made to say so.  With --fda there is no
+EXECUTABLE: the machine boots from that diskette, if it can be.  86Box
+only.
 
 With --until the run does not end at the "@exit" line but when the program
 has written TEXT after it: a system has its disks to bring up to date
@@ -540,6 +548,26 @@ def has_automation(box):
 
 HD = None               # --hd: (image, cylinders, heads, sectors, bus)
 HD2 = None              # --hd2: (image, cylinders, heads, sectors)
+FD = [None, None]       # --fda, --fdb: (image, 86Box's name for the drive,
+                        #   the BIOS's number for it)
+FDTYPES = {1474560: ("35_2hd", 4), 1228800: ("525_2hd", 2)}
+
+
+def cmos_drives(nvr):
+    """Have the machine's CMOS memory say what diskette drives FD gives
+    it, as its setup program would: the drives' types, how many there
+    are, and the check on bytes 0x10 to 0x31 that the BIOS wants right."""
+    d = bytearray(open(nvr, "rb").read())
+    d[0x10] = (FD[0][2] if FD[0] else d[0x10] >> 4) << 4 | \
+        (FD[1][2] if FD[1] else 0)
+    d[0x14] = d[0x14] & 0x3F | (0x40 if FD[1] else 0)
+    crc = 0xFFFF
+    for b in d[0x10:0x32]:
+        crc ^= b << 8
+        for _ in range(8):
+            crc = (crc << 1 ^ 0x1021 if crc & 0x8000 else crc << 1) & 0xFFFF
+    d[0x32], d[0x33] = crc >> 8, crc & 0xFF
+    open(nvr, "wb").write(d)
 
 
 def start_86box(box, img, out, com1, args=(), env=None):
@@ -558,6 +586,16 @@ def start_86box(box, img, out, com1, args=(), env=None):
         cfg = cfg.replace(ide, ide + "scsicard_1 = aha154xcf\n")
     elif HD and HD[4] == "xtide":
         cfg = cfg.replace(ide, "hdc_1 = xtide_at_ps2_1ch\n")
+    if FD[0]:
+        a = "fdd_01_type = 35_2hd\n"
+        assert a in cfg
+        cfg = cfg.replace(a, "fdd_01_type = %s\n" % FD[0][1])
+    if FD[1]:
+        b = "fdd_02_type = none\n"
+        assert b in cfg
+        cfg = cfg.replace(b, "fdd_02_type = %s\nfdd_02_turbo = 1\n"
+                          "fdd_02_fn = %s\n"
+                          % (FD[1][1], os.path.abspath(FD[1][0])))
     with open(os.path.join(vm, "86box.cfg"), "w") as f:
         f.write(cfg + ("fdd_01_fn = %s\n" % img if img else "")
                 + "\n[Ports (COM & LPT)]\n" + com1)
@@ -586,6 +624,8 @@ def start_86box(box, img, out, com1, args=(), env=None):
                     "0_external = %d\n0_internal = 23\n"
                     % (card, NETCARDS[card], port, irq, hostport))
     shutil.copy(os.path.join(HARNESS, "ibmps2_m30_286.nvr"), os.path.join(vm, "nvr"))
+    if FD[0] or FD[1]:
+        cmos_drives(os.path.join(vm, "nvr", "ibmps2_m30_286.nvr"))
     with open(os.path.join(vm, "86box.out"), "w") as o:
         p = subprocess.Popen([box, "-N", "-P", vm, "-L", os.path.join(vm, "86box.log")]
                              + list(args), env=env, stdout=o,
@@ -915,6 +955,15 @@ def main():
             sys.exit("--hd2: needs --hd on the AT disk controller, and an "
                      "image of the size its geometry gives")
         del sys.argv[1:3]
+    for i, opt in enumerate(("--fda", "--fdb")):
+        if len(sys.argv) > 2 and sys.argv[1] == opt:
+            image, _, drive = sys.argv[2].partition(",")
+            size = int(drive or os.path.getsize(image))
+            if emu != "86box" or size not in FDTYPES:
+                sys.exit("%s: needs 86Box, and an image or a drive of "
+                         "1474560 or 1228800 bytes" % opt)
+            FD[i] = (image,) + FDTYPES[size]
+            del sys.argv[1:3]
     if len(sys.argv) > 2 and sys.argv[1] == "--until":
         UNTIL = sys.argv[2]
         del sys.argv[1:3]
@@ -968,12 +1017,14 @@ def main():
     if len(sys.argv) < 3:
         sys.exit(__doc__)
     if sys.argv[1] == "--boot":
-        if len(sys.argv) not in (4, 5) and not (len(sys.argv) == 3 and HD):
+        if len(sys.argv) not in (4, 5) and not (
+                len(sys.argv) == 3 and (HD or FD[0])) or \
+                len(sys.argv) > 3 and FD[0]:
             sys.exit(__doc__)
         name = sys.argv[2]
         out = os.path.join(TOP, "obj", "tests", name)
         os.makedirs(out, exist_ok=True)
-        img = None
+        img = os.path.abspath(FD[0][0]) if FD[0] else None
         if len(sys.argv) > 3:
             img = os.path.join(out, name + ".img")
             mkfd(sys.argv[3], img, out,

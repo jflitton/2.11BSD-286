@@ -344,11 +344,12 @@ diffh_SRCS=	bin/diff/diffh.c
 strip_SRCS=	bin/strip.c
 makekey_SRCS=	libexec/makekey/makekey.c
 chroot_SRCS=	usr.sbin/chroot/chroot.c
+flformat_SRCS=	usr.sbin/flformat/flformat.c
 ac_SRCS=	usr.sbin/ac/ac.c
 shutdown_SRCS=	sbin/shutdown/shutdown.c
 TEXTPROGS=	$(USRBINSTD) $(UCBSTD) $(USRBINDIR) diff3 m4 patch shar \
 		traverse xinstall compress lock mkstr more tset su tar sed \
-		diff diffh strip makekey chroot ac shutdown
+		diff diffh strip makekey chroot ac shutdown flformat
 
 # The network's other programs.  The remote login, shell and copy, and
 # their daemons, with rexecd; ftp, tftp, finger and talk, and theirs;
@@ -1527,14 +1528,16 @@ $(R)/root.fs: root.proto $(wildcard etc/* root/* skel/*) adventure/Makefile \
 		$(ZO)/zone.proto $(R)/cc.proto $(SRC)/usr.bin/lorder.sh \
 		$(R)/learn.proto $(SRC)/usr.bin/calendar/calendar.sh \
 		$(SRC)/usr.bin/lint.sh $(SRC)/usr.bin/mkdep.sh \
-		$(R)/kernel.proto $(KERNEL) $(STAND)/boot $(STAND)/hdboot.bin
+		$(R)/kernel.proto $(KERNEL) $(STAND)/boot $(STAND)/hdboot.bin \
+		$(STAND)/flboot.bin
 	python3 -I $(TOP)/tools/mkfs.py -s $(ROOTSIZE) root.proto $@
 
 $(R)/kernel.proto: FORCE
 	@mkdir -p $(R)
 	@{ echo "f /unix 644 $(KERNEL)"; echo "f /boot 644 $(STAND)/boot"; \
 	    echo "d /mdec 755"; \
-	    echo "f /mdec/wduboot 444 $(STAND)/hdboot.bin"; } > $@.new
+	    echo "f /mdec/wduboot 444 $(STAND)/hdboot.bin"; \
+	    echo "f /mdec/fluboot 444 $(STAND)/flboot.bin"; } > $@.new
 	@if cmp -s $@.new $@; then rm $@.new; else mv $@.new $@; fi
 
 # What the system makes of all that itself, in /usr/src/i286, with its
