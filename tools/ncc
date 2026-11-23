@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Compile C with the system's own compiler, run here.
 
-usage: ncc [-E|-S] [-O] [-k] [-ms|-mm|-ml] [-nd=NAME] [-o OUT] [-Dname[=val]]
+usage: ncc [-E|-S] [-O] [-k] [-local] [-ms|-mm|-ml] [-nd=NAME] [-o OUT]
+           [-Dname[=val]]
            [-Uname] [-Idir] FILE.c
 
 The tree's C compiler (usr/src/lib/ccom) is two passes: c0 reads C and
@@ -43,6 +44,9 @@ compiler's linker does not.
     -k          what the kernel's Makefile gives, and the same as
                 without it: the kernel's -I directories are looked in
                 in their order, as every file's are
+    -local      the file is named to the compiler by its name alone, as
+                it is when it is compiled in its own directory: the
+                name is in what assert() says
     -D -U -I    for the preprocessor
 
 The assembly is NASM's (-S), and NASM assembles it as well: one that
@@ -78,6 +82,7 @@ def main():
     cpp = []
     src = None
     nd = None
+    local = False
     kernel = False
     i = 0
     while i < len(args):
@@ -95,6 +100,8 @@ def main():
             nd = a[4:]
         elif a == "-k":
             kernel = True
+        elif a == "-local":
+            local = True
         elif a == "-o":
             if i >= len(args):
                 fail("-o needs an argument")
@@ -127,8 +134,16 @@ def main():
     try:
         # The preprocessor, as cc runs it: what it is told of the
         # model first (usr/src/bin/cc.c), then the flags.
+        # -local: the file is named as `cc -c file.c` in its own
+        # directory names it.
+        here = None
+        name = src
+        if local and os.path.dirname(src):
+            here, name = os.path.split(os.path.abspath(src))
+            cpp = ["-I" + os.path.abspath(a[2:]) if a[:2] == "-I" else a
+                   for a in cpp]
         r = subprocess.run([os.path.join(HOST, "cpp")] + MODEL[model] +
-                           cpp + [src], capture_output=True)
+                           cpp + [name], capture_output=True, cwd=here)
         sys.stderr.write(r.stderr.decode("latin-1"))
         if r.returncode != 0:
             sys.exit(1)

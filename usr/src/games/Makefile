@@ -12,7 +12,7 @@ LDFLAGS= -i
 #
 SUBDIR=	adventure backgammon battlestar boggle btlgammon cribbage fortune \
 	hack \
-	hangman hunt mille monop pdp phantasia quiz robots rogue sail snake \
+	hangman hunt mille monop phantasia quiz robots rogue sail snake \
 	trek warp words
 
 # Shell scripts that need only be installed and are never removed.

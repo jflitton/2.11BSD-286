@@ -10,9 +10,9 @@ LDFLAGS= -i
 
 # Programs that live in subdirectories, and have makefiles of their own.
 #
-SUBDIR=	Mail compress error ex finger ftp indent lock man mkstr \
-	more msgs netstat pascal rdist rlogin sendbug talk tftp \
-	tn3270 top tset vgrind window
+SUBDIR=	Mail compress ex finger ftp indent lock man mkstr \
+	more msgs netstat rlogin talk tftp \
+	top tset window
 
 # Shell scripts that need only be installed and are never removed.
 #
@@ -23,17 +23,17 @@ CSHSCRIPT= which
 #
 STD=	apply biff checknr colcrt colrm ctags expand fold \
 	from head last lastcomm leave logger \
-	printenv ruptime rwho script soelim strings strcompact \
-	symdump symorder tail tcopy telnet unexpand unifdef users \
+	printenv ruptime rwho script soelim strings \
+	tail telnet unexpand unifdef users \
 	whois what wc xstr yes
 
 # C programs that live in the current directory and need explicit make lines.
 #
-NSTD=	clear ul vacation symcompact
+NSTD=	clear ul vacation
 
 # Programs that must run setuid to root
 #
-SETUID=	quota rsh
+SETUID=	rsh
 
 # Programs that must run set-group-id kmem.
 #

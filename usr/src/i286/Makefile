@@ -57,27 +57,28 @@ login_SRCS=	bin/login/login.c $(addprefix libexec/getty/,gettytab.c \
 		subr.c init.c)
 login_FLAGS=	-I$(SRC)/libexec/getty
 login_LIBS=	-lutil
-sh_SRCS=	$(addprefix bin/sh/,setbrk.c builtin.c blok.c stak.c cmd.c \
-		fault.c main.c word.c string.c name.c args.c xec.c service.c \
-		error.c io.c print.c macro.c expand.c ctype.c msg.c)
+sh_SRCS=	$(addprefix bin/sh/,args.c blok.c builtin.c cmd.c ctype.c \
+		error.c expand.c fault.c io.c macro.c main.c msg.c name.c \
+		print.c service.c setbrk.c stak.c string.c word.c xec.c)
 ls_SRCS=	bin/ls/ls.c bin/ls/stat_flags.c
 mkdir_SRCS=	bin/mkdir/mkdir.c
 stty_SRCS=	bin/stty/stty.c
 test_SRCS=	bin/test/test.c bin/test/operators.c
 hostname_SRCS=	bin/hostname/hostname.c
 mknod_SRCS=	sbin/mknod/mknod.c
-mount_SRCS=	sbin/mount/mount.c sbin/mount/mount_ufs.c \
-		sbin/mount/getmntopts.c
+mount_SRCS=	sbin/mount/mount.c sbin/mount/getmntopts.c \
+		sbin/mount/mount_ufs.c
 umount_SRCS=	sbin/umount/umount.c
 reboot_SRCS=	sbin/reboot/reboot.c
 sleep_SRCS=	usr.bin/sleep.c
-csh_SRCS=	$(addprefix bin/csh/,alloc11.c printf.c sh.c sh.char.c \
-		sh.dir.c sh.dol.c sh.err.c sh.exec.c sh.exec2.c sh.exp.c \
-		sh.file.c sh.func.c sh.glob.c sh.hist.c sh.init.c sh.lex.c \
-		sh.misc.c sh.parse.c sh.print.c sh.proc.c sh.sem.c sh.set.c \
-		sh.time.c)
+csh_SRCS=	$(addprefix bin/csh/,alloc11.c printf.c sh.char.c sh.dir.c \
+		sh.dol.c sh.err.c sh.exp.c sh.file.c sh.func.c sh.glob.c \
+		sh.hist.c sh.init.c sh.lex.c sh.parse.c sh.print.c sh.proc.c \
+		sh.sem.c sh.set.c sh.c sh.exec.c sh.time.c sh.misc.c \
+		sh.exec2.c)
 csh_FLAGS=	-DTELL -DVFORK -DFILEC
 csh_MODEL=	m
+csh_XSTR=	yes
 
 # ex, which is also vi.  Its error messages are taken out of its C into
 # a file, /usr/share/misc/exstrings, that it reads them from
@@ -135,6 +136,7 @@ NETPROGS=	ifconfig ping route arp telnet telnetd inetd
 
 # Those that look after the file systems, the password file and users.
 update_SRCS=	usr.sbin/update/update.c
+fsck_XSTR=	yes
 fsck_SRCS=	$(addprefix sbin/fsck/,dir.c inode.c main.c pass1.c pass1b.c \
 		pass2.c pass3.c pass4.c pass5.c setup.c utilities.c)
 mkfs_SRCS=	sbin/mkfs/mkfs.c
@@ -284,9 +286,10 @@ lex_FLAGS=	-Dunix -I$(LSRC)
 # there makes it; and proctab.c, the function that runs each token,
 # which a program of awk's own, proc, writes.
 AWKG=		$(G)/awk
-awk_SRCS=	$(addprefix $(AWKG)/,awk.g.c awk.lx.c token.c proctab.c) \
-		$(addprefix bin/awk/,b.c main.c tran.c lib.c run.c parse.c \
-		freeze.c)
+awk_SRCS=	$(addprefix $(AWKG)/,awk.g.c awk.lx.c) \
+		$(addprefix bin/awk/,b.c main.c) $(AWKG)/token.c \
+		$(addprefix bin/awk/,tran.c lib.c run.c parse.c) \
+		$(AWKG)/proctab.c bin/awk/freeze.c
 awk_FLAGS=	-I$(AWKG) -I$(SRC)/bin/awk
 awk_LIBS=	-lm
 egrep_SRCS=	$(G)/egrep.c
@@ -300,6 +303,7 @@ make_SRCS=	$(addprefix bin/make/,ident.c main.c doname.c misc.c files.c \
 # that (tools/srcmk.py).  Its stack has the lines it reads and the
 # commands it runs, four buffers of 7000 bytes (bin/make/defs).
 make_MODEL=	l
+make_XSTR=	yes
 make_FLAGS=	-I$(SRC)/bin/make -I$(SRC)/bin/ar -stack 30000
 YACCPROGS=	expr yacc lex awk egrep bc dc make
 
@@ -375,8 +379,8 @@ ftp_SRCS=	$(addprefix ucb/ftp/,cmds.c cmdtab.c ftp.c glob.c main.c \
 # that says it is too.  Without it every file came as text, a character
 # at a time, 29 K/s where 130 K/s is had, and less its CRs before LFs.
 ftp_FLAGS=	-I$(SRC)/ucb/ftp -Dunix -stack 16384
-ftpd_SRCS=	$(addprefix libexec/ftpd/,ftpd.c glob.c logwtmp.c popen.c \
-		vers.c) $(G)/ftpcmd.c
+ftpd_SRCS=	libexec/ftpd/ftpd.c $(G)/ftpcmd.c $(addprefix libexec/ftpd/,\
+		glob.c logwtmp.c popen.c vers.c)
 ftpd_FLAGS=	-DSETPROCTITLE -Dunix -stack 16384
 tftp_SRCS=	$(addprefix ucb/tftp/,main.c tftp.c tftpsubs.c)
 tftpd_SRCS=	libexec/tftpd/tftpd.c libexec/tftpd/tftpsubs.c
@@ -914,17 +918,34 @@ lib=	$(if $(call ccom,$(1)),$(NLIB),$(XLIB))/$(call model,$(1))
 lx=	$(if $(call ccom,$(1)),a,lib)
 srcs=	$(foreach s,$($(1)_SRCS),$(if $(filter /%,$(s)),$(s),$(SRC)/$(s)))
 
+# A program with NAME_XSTR has xstr take the strings out of its C, as
+# its own Makefile has it (tools/xstrcc): xstr is the tree's, compiled
+# for this machine.
+XO=	$(TOP)/obj/xstr
+$(H)/xstr: $(SRC)/ucb/xstr.c | $(H)
+	@echo hostcc xstr
+	@$(HOSTCC) $(HOSTCFLAGS) -Wno-error=implicit-function-declaration \
+	    -Wno-error=implicit-int -o $@ $<
 define prog
 $(O)/$(1): $$(call srcs,$(1)) $(HDRS) \
 		$(call lib,$(1))/crt0.o $(call lib,$(1))/libc.$(call lx,$(1)) \
 		$$(patsubst -l%,$(call lib,$(1))/lib%.$(call lx,$(1)),$$($(1)_LIBS)) | $(O)/log
 	@echo cc $(1)
-	@$(TOP)/tools/cc $(if $(call ccom,$(1)),-ccom) \
+	@$(TOP)/tools/cc $(if $(call ccom,$(1)),-ccom -local) \
 	    -m$(call model,$(1)) $$($(1)_FLAGS) -o $$@ \
 	    $$(call srcs,$(1)) $$($(1)_LIBS) \
 	    > $(O)/log/$(1) 2>&1 || { cat $(O)/log/$(1); rm -f $$@; exit 1; }
 endef
-$(foreach p,$(PROGS),$(eval $(call prog,$(p))))
+define xprog
+$(O)/$(1): $$(call srcs,$(1)) $(HDRS) $(H)/xstr $(TOP)/tools/xstrcc \
+		$(call lib,$(1))/crt0.o $(call lib,$(1))/libc.$(call lx,$(1)) \
+		$$(patsubst -l%,$(call lib,$(1))/lib%.$(call lx,$(1)),$$($(1)_LIBS)) | $(O)/log
+	@echo cc $(1)
+	@$(TOP)/tools/xstrcc $(H)/xstr $(XO)/$(1) $$@ -m$(call model,$(1)) \
+	    -O $$($(1)_FLAGS) -- $$(call srcs,$(1)) -- $$($(1)_LIBS) \
+	    > $(O)/log/$(1) 2>&1 || { cat $(O)/log/$(1); rm -f $$@; exit 1; }
+endef
+$(foreach p,$(PROGS),$(eval $(call $(if $(and $(CCOM),$($(p)_XSTR)),xprog,prog),$(p))))
 
 # What the build itself runs, made in obj/host by the C compiler of the
 # machine it is run on, HOSTCC: the tree's yacc and lex, so that the

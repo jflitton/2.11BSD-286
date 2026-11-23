@@ -31,6 +31,9 @@ MANROFF	= /usr/man/manroff
 .5.0:
 	${MANROFF} $*.5 > $@
 
+# The 80286: a program's stack is the size it is linked with, 8K unless
+# it is told, and these put more than that on it.
+STACK	= -stack 16384
 CFLAGS	= -O -i -DFACILITY=$(FACILITY) $(ACCESS) $(PARANOID) $(AUTH) $(UMASK) \
 	-DREAL_DAEMON_DIR=\"$(REAL_DAEMON_DIR)\" $(KILL_OPT) \
 	-DSEVERITY=$(SEVERITY) -DRFC931_TIMEOUT=$(RFC931_TIMEOUT) \
@@ -88,7 +91,7 @@ $(LIB):	$(LIB_OBJ)
 	-$(RANLIB) $(LIB)
 
 tcpd:	tcpd.o $(LIB)
-	$(CC) $(CFLAGS) -o $@ tcpd.o $(LIB) $(LIBS)
+	$(CC) $(CFLAGS) $(STACK) -o $@ tcpd.o $(LIB) $(LIBS)
 
 miscd:	miscd.o $(LIB)
 	$(CC) $(CFLAGS) -o $@ miscd.o $(LIB) $(LIBS)
@@ -99,15 +102,15 @@ safe_finger: safe_finger.o $(LIB)
 TCPDMATCH_OBJ = tcpdmatch.o fakelog.o inetcf.o scaffold.o
 
 tcpdmatch: $(TCPDMATCH_OBJ) $(LIB)
-	$(CC) $(CFLAGS) -o $@ $(TCPDMATCH_OBJ) $(LIB) $(LIBS)
+	$(CC) $(CFLAGS) $(STACK) -o $@ $(TCPDMATCH_OBJ) $(LIB) $(LIBS)
 
 try-from: try-from.o fakelog.o $(LIB)
-	$(CC) $(CFLAGS) -o $@ try-from.o fakelog.o $(LIB) $(LIBS)
+	$(CC) $(CFLAGS) $(STACK) -o $@ try-from.o fakelog.o $(LIB) $(LIBS)
 
 TCPDCHK_OBJ = tcpdchk.o fakelog.o inetcf.o scaffold.o
 
 tcpdchk: $(TCPDCHK_OBJ) $(LIB)
-	$(CC) $(CFLAGS) -o $@ $(TCPDCHK_OBJ) $(LIB) $(LIBS)
+	$(CC) $(CFLAGS) $(STACK) -o $@ $(TCPDCHK_OBJ) $(LIB) $(LIBS)
 
 # Enable all bells and whistles for linting.
 

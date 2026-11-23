@@ -10,14 +10,17 @@
 #
 # To profile, put -DPROF in DEFS and -pg in CFLAGS, and recompile.
 
+# The 80286: csh is of the medium model, its code being more than a
+# segment of 64K, where the PDP-11 had it in overlays.
 DEFS=	-DTELL -DVFORK -DFILEC
-CFLAGS=	$(DEFS) -O
-LDFLAGS=-i
+MODEL=	-mm
+CFLAGS=	$(DEFS) -O ${MODEL}
+LDFLAGS=-i ${MODEL}
 XSTR=	/usr/ucb/xstr
 CTAGS=	/usr/ucb/ctags
 LIBES=  -lc
 
-BASE=	alloc11.o doprnt11.o printf.o sh.char.o sh.dir.o sh.dol.o \
+BASE=	alloc11.o printf.o sh.char.o sh.dir.o sh.dol.o \
 	sh.err.o sh.exp.o sh.file.o sh.func.o sh.glob.o sh.hist.o \
 	sh.init.o sh.lex.o sh.parse.o sh.print.o sh.proc.o sh.sem.o \
 	sh.set.o
@@ -25,8 +28,6 @@ OV1= 	sh.o sh.exec.o sh.time.o
 OV2=	sh.misc.o sh.exec2.o
 
 OBJS=	${BASE} ${OV1} ${OV2}
-
-LIBOBJS= ndbm.o getpwent.o
 
 # Special massaging of C files for sharing of strings
 .c.o:
@@ -37,20 +38,12 @@ LIBOBJS= ndbm.o getpwent.o
 
 # strings.o must be last since it can change when previous files compile
 csh: ${OBJS} strings.o
-	ar x /lib/libc.a ${LIBOBJS}
 	rm -f csh
-	/bin/ld ${LDFLAGS} /lib/crt0.o ${BASE} \
-		-Z ${OV1} \
-		-Z ${OV2} ${LIBOBJS} \
-		-Y strings.o -o csh ${LIBES};
-
-# need an old doprnt, whose output we can trap
-doprnt11.o: doprnt11.s
-	/lib/cpp -t doprnt11.s | sed '/^#/d' | as -o doprnt11.o
+	${CC} ${LDFLAGS} ${BASE} ${OV1} ${OV2} strings.o -o csh
 
 strings.o: strings
 	${XSTR}
-	${CC} -c xs.c
+	${CC} ${MODEL} -c xs.c
 	mv -f xs.o strings.o
 	rm -f xs.c
 

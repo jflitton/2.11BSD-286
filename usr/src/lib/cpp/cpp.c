@@ -369,12 +369,15 @@ main(int argc, char **argv)
 #ifdef i286
 	/*
 	 * The 286: what the tree's code asks which machine it is by,
-	 * and no more, which is what the system's own programs were
-	 * compiled with (tools/cc286).  Built for the machine the
+	 * and which system, as the PDP-11's is told above, since the
+	 * system's Makefiles count on it.  Built for the machine the
 	 * system is built on, the system's headers are the tree's,
 	 * STDINC.
 	 */
+	bsheap(fb, "#define __BSD2_11__ 1\n");
+	bsheap(fb, "#define BSD2_11 1\n");
 	bsheap(fb, "#define i286 1\n");
+	bsheap(fb, "#define unix 1\n");
 #ifndef STDINC
 #define	STDINC	"/usr/include"
 #endif

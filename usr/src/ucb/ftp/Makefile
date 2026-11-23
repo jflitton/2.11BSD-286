@@ -17,7 +17,9 @@
 #	@(#)Makefile	5.9.3 (2.11BSD) 2025/11/26
 #
 CFLAGS=	-O -I.
-LDFLAGS= -i
+# The 80286: a program's stack is the size it is linked with, 8K unless
+# it is told, and this one puts more than that on it.
+LDFLAGS= -i -stack 16384
 SRCS=	cmds.c cmdtab.c ftp.c glob.c main.c ruserpass.c domacro.c
 OBJS=	cmds.o cmdtab.o ftp.o glob.o main.o ruserpass.o domacro.o
 MAN=	ftp.0

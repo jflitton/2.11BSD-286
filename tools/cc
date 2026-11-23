@@ -46,6 +46,9 @@ variable defined twice with a value is an error.
     -packcode N in the medium and large models, put the code of several
                 files in one segment up to N bytes (the linker's
                 default is nearly 64K)
+    -local      with -ccom, name each .c to the compiler by its name
+                alone, compiled in its own directory, as the system's
+                Makefile for a program has cc name it (tools/ncc)
     -ccom       make the program with the system's own tools, as they
                 are built for this machine (make -C usr/src/lib/ccom/i286
                 host), and none of the cross compiler's: each .c
@@ -205,7 +208,8 @@ def compile_ccom(src, obj, model, cflags, improve):
     """The same with the tree's compiler, which tools/ncc runs."""
     r = subprocess.run([os.path.join(TOOLS, "ncc"), "-m" + model, "-o", obj] +
                        (["-O"] if improve else []) +
-                       [f for f in cflags if f[:2] in ("-D", "-U", "-I")] +
+                       [f for f in cflags if f[:2] in ("-D", "-U", "-I") or
+                        f == "-local"] +
                        [src])
     if r.returncode != 0:
         sys.exit(1)
@@ -269,6 +273,8 @@ def main():
             model = a[2]
         elif a == "-ccom":
             ccom = True
+        elif a == "-local":
+            cflags.append(a)
         elif a[:2] in ("-D", "-U", "-I"):
             v = value()
             cflags.append(a[:2] + v)

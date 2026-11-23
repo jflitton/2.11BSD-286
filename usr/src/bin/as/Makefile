@@ -1,12 +1,18 @@
 #       @(#)Makefile    2.0 (2.11BSD) 2025/11/26
 
-AS=	/bin/as
-LDFLAGS= -i -X
+# The assembler that is made is the 80286's, which is in C, in i286.
+# as0.s and as2.s are the PDP-11's, in its own assembly.
+VPATH=	i286
+CFLAGS=	-O
+LDFLAGS= -i
+OBJS=	as0.o as1.o as2.o as3.o
 
 all: as
 
-as: as0.o as2.o
-	ld ${LDFLAGS} -o $@ /lib/crt0.o as0.o as2.o -lc
+as: ${OBJS}
+	${CC} ${LDFLAGS} -o $@ ${OBJS}
+
+${OBJS}: i286/as.h
 
 install: all
 	install -c -s -m 755 -o root as /bin

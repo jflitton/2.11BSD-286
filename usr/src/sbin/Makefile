@@ -5,10 +5,10 @@
 #
 CFLAGS=	-O
 
-SUBDIR= badsect clri dcheck dmesg dump fsck gt307 icheck \
+SUBDIR= badsect clri dcheck dmesg dump fsck icheck \
 	ifconfig init mkfs mknod mkpasswd mount ncheck newfs \
-	quotacheck reboot restor route routed savecore \
-	shutdown slattach testnet umount
+	reboot restor route routed \
+	shutdown umount
 
 all:	${SUBDIR}
 

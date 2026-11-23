@@ -7,8 +7,8 @@ CFLAGS=	-O
 #
 # Default programs that are installed
 #
-STDINST=ansi jove l11 la m11 rcs vmsbackup
-SUBDIR= ansi jove l11 la m11 rcs vmsbackup
+STDINST= la
+SUBDIR= la
 
 #
 # Special purpose software that requires custom installation or may not

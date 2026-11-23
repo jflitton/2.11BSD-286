@@ -105,7 +105,7 @@ f /usr/adm/daemonlog 644 ../../../obj/root/empty
 f /usr/adm/debuglog 644 ../../../obj/root/empty
 f /usr/spool/mqueue/syslog 644 ../../../obj/root/empty
 f /usr/spool/at/lasttimedone 644:1.1 ../../../obj/root/zero
-f /usr/libexec/getty 755 ../../../obj/root/bin/getty
+f /usr/libexec/getty 555 ../../../obj/root/bin/getty
 f /bin/sh 755 ../../../obj/root/bin/sh
 f /bin/csh 755 ../../../obj/root/bin/csh
 f /bin/tcsh 755 ../../../obj/root/bin/tcsh
@@ -124,7 +124,7 @@ f /bin/cmp 755 ../../../obj/root/bin/cmp
 f /bin/cp 755 ../../../obj/root/bin/cp
 f /bin/date 755 ../../../obj/root/bin/date
 f /bin/dd 755 ../../../obj/root/bin/dd
-f /bin/df 755 ../../../obj/root/bin/df
+f /bin/df 2755:0.5 ../../../obj/root/bin/df
 f /bin/du 755 ../../../obj/root/bin/du
 f /bin/echo 755 ../../../obj/root/bin/echo
 f /bin/ed 755 ../../../obj/root/bin/ed
@@ -144,8 +144,8 @@ f /bin/sync 755 ../../../obj/root/bin/sync
 f /bin/tee 755 ../../../obj/root/bin/tee
 f /bin/time 755 ../../../obj/root/bin/time
 f /bin/who 755 ../../../obj/root/bin/who
-f /bin/wall 755 ../../../obj/root/bin/wall
-f /bin/write 755 ../../../obj/root/bin/write
+f /bin/wall 2755:0.4 ../../../obj/root/bin/wall
+f /bin/write 2755:0.4 ../../../obj/root/bin/write
 f /bin/passwd 4755 ../../../obj/root/bin/passwd
 f /bin/chpass 4755 ../../../obj/root/bin/chpass
 h /bin/chfn /bin/chpass
@@ -233,7 +233,7 @@ f /usr/sbin/pstat 2755:2 ../../../obj/root/bin/pstat
 f /usr/bin/fstat 2755:2 ../../../obj/root/bin/fstat
 f /usr/sbin/tracebuf 2755:2 ../../../obj/root/bin/tracebuf
 f /sbin/ifconfig 755 ../../../obj/root/bin/ifconfig
-f /sbin/ping 4755 ../../../obj/root/bin/ping
+f /bin/ping 4751 ../../../obj/root/bin/ping
 f /sbin/route 755 ../../../obj/root/bin/route
 f /usr/sbin/inetd 755 ../../../obj/root/bin/inetd
 f /usr/libexec/telnetd 755 ../../../obj/root/bin/telnetd
@@ -247,6 +247,7 @@ f /usr/bin/iostat 2755:2 ../../../obj/root/bin/iostat
 f /usr/bin/bench 755 ../../../obj/root/bin/bench
 f /usr/bin/ve 755 ../../../obj/root/bin/ve
 h /sbin/halt /sbin/reboot
+h /sbin/fastboot /sbin/reboot
 f /usr/bin/basename 755 ../../../obj/root/bin/basename
 f /usr/bin/cal 755 ../../../obj/root/bin/cal
 f /usr/bin/cb 755 ../../../obj/root/bin/cb
@@ -413,7 +414,7 @@ f /usr/ucb/biff 755 ../../../obj/root/bin/biff
 f /usr/ucb/from 755 ../../../obj/root/bin/from
 f /usr/ucb/msgs 755 ../../../obj/root/bin/msgs
 f /usr/ucb/vacation 755 ../../../obj/root/bin/vacation
-f /usr/libexec/popper 700 ../../../obj/root/bin/popper
+f /usr/libexec/popper 700 ../../../obj/nbin/popper
 f /usr/bin/nroff 755 ../../../obj/root/bin/nroff
 d /usr/share/tmac 755
 f /usr/share/tmac/tmac.a 444 ../share/tmac/tmac.a

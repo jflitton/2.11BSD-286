@@ -4,7 +4,9 @@
 #	@(#)Makefile	1.1 (2.11BSD) 2025/11/25
 #
 CFLAGS=	 -O -DSETPROCTITLE
-LDFLAGS= -i
+# The 80286: a program's stack is the size it is linked with, 8K unless
+# it is told, and this one puts more than that on it.
+LDFLAGS= -i -stack 16384
 SRCS=	ftpd.c ftpcmd.c glob.c logwtmp.c popen.c vers.c
 OBJS=	ftpd.o ftpcmd.o glob.o logwtmp.o popen.o vers.o
 MAN=	ftpd.0

@@ -1,0 +1,6 @@
+# What tests/make/run.sh does not have made where the system is built:
+# each is made with a program its Makefile makes and then runs, which is
+# the 286's.  The name the root has it by, and after # the program.
+/bin/awk			# proc, which writes proctab.c
+/bin/tcsh			# mkprstr, which takes its messages out
+/etc/tcsh6.00strgs

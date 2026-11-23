@@ -10,8 +10,8 @@ LDFLAGS= -i
 
 # Programs that live in subdirectories, and have makefiles of their own.
 #
-SUBDIR=	adb ar as awk chflags chpass csh diff disklabel hostname ld login \
-	ls make mkdir nm passwd ps ping sed sh stty sysctl tcsh test tp
+SUBDIR=	ar as awk chflags chpass csh diff disklabel hostname ld login \
+	ls make mkdir nm passwd ps ping sed sh stty sysctl tcsh test
 
 # Shell scripts that need only be installed and are never removed.
 #
@@ -21,8 +21,8 @@ SCRIPT=	false true
 # explicit make lines.
 #
 STD=	cat cc chgrp chmod cmp cp date dd du echo ed hostid \
-	grep kill ln mt mv nice od pagesize pr \
-	pwd rm rmail rmdir size sync tar tee time who
+	grep kill ln mv nice od pagesize pr \
+	pwd rm rmdir size sync tar tee time who
 
 # C programs that live in the current directory and need explicit make lines.
 #

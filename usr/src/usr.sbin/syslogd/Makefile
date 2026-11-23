@@ -4,7 +4,9 @@
 #	@(#)Makefile	1.1 (2.11BSD) 2025/11/28
 #
 CFLAGS=	 -O
-LDFLAGS= -i
+# The 80286: a program's stack is the size it is linked with, 8K unless
+# it is told, and this one puts more than that on it.
+LDFLAGS= -i -stack 12288
 SRCS=	syslogd.c
 OBJS=	syslogd.o
 MAN=	syslogd.0

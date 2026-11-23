@@ -4,8 +4,12 @@ OBJECTS=ident.o main.o doname.o misc.o files.o dosys.o gram.o
 LIBES= 
 LINT=	lint -ps
 XSTR=   /usr/ucb/xstr
-CFLAGS=	-O -I. -I../ar
-LDFLAGS= -i
+# The 80286: make is of the large model, so that what it knows of a
+# Makefile is in memory of its own, as much as there is; its stack has
+# the lines it reads and the commands it runs (defs).
+MODEL=	-ml
+CFLAGS=	-O ${MODEL} -I. -I../ar
+LDFLAGS= -i ${MODEL} -stack 30000
 
 # Special massaging of C files for sharing of strings
 .c.o:
@@ -38,6 +42,6 @@ gram.c: gram.y
 
 strings.o: strings
 	${XSTR}
-	${CC} -c xs.c
+	${CC} ${MODEL} -c xs.c
 	mv -f xs.o strings.o
 	rm -f xs.c

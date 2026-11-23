@@ -57,7 +57,7 @@ register int i, j;
 int descset, nfargs;
 TIMETYPE tjunk;
 char c, *s;
-static char onechar[2] = "X";
+static char onechar[2] = { 'X' };
 void intrupt();
 char *op = options + 1;
 

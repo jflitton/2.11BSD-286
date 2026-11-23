@@ -12,7 +12,7 @@ VPATH=	../getty
 all: telnetd telnetd.0
 
 telnetd: ${OBJS}
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ ${OBJS}
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ ${OBJS} -ltermcap
 
 ${OBJS}: ../getty/gettytab.h
 

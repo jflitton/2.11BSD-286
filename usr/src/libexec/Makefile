@@ -4,7 +4,7 @@
 CFLAGS=	-O
 TAGSFILE=tags
 
-SUBDIR=	acctd comsat ctimed fingerd ftpd getty identd makekey \
+SUBDIR=	acctd comsat fingerd ftpd getty makekey \
 	popper rexecd rlogind rshd talkd tcpd telnetd tftpd
 
 all:	${SUBDIR}

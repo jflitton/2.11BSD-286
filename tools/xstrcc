@@ -1,0 +1,48 @@
+#!/bin/sh
+# Compile and link a program whose strings xstr(1) takes out of its C,
+# as its Makefile has the system do it:
+#
+#	cc -E FLAGS file.c | xstr -c -		in the file's directory
+#	cc -c FLAGS x.c; mv x.o file.o
+#	...
+#	xstr; cc -c MODEL xs.c; mv xs.o strings.o	the strings, once
+#	cc LDFLAGS -o OUT file.o ... strings.o LIBS
+#
+# usage: xstrcc XSTR WORK OUT FLAGS... -- FILE.c... [-- LINK...]
+#
+# XSTR is xstr compiled for this machine, WORK a directory for what is
+# made on the way, and FLAGS cc's: the model, -O, -D, -I and -stack N.
+# The objects are linked in the order of the files, strings.o after
+# them, and LINK, objects and -l libraries, after that.  The compiler is
+# the system's own (tools/ncc, tools/cc -ccom).
+top=$(cd "$(dirname "$0")/.." && pwd)
+xstr=$1 work=$2 out=$3
+shift 3
+flags= model= stack=
+while [ "$1" != -- ]; do
+    case $1 in
+    -ms|-mm|-ml) model=$1 ;;
+    -stack) stack="-stack $2"; shift ;;
+    *) flags="$flags $1" ;;
+    esac
+    shift
+done
+shift
+rm -rf "$work"
+mkdir -p "$work" || exit 1
+work=$(cd "$work" && pwd)
+objs=
+while [ $# -gt 0 ] && [ "$1" != -- ]; do
+    base=$(basename "$1" .c)
+    (cd "$(dirname "$1")" &&
+        "$top/tools/ncc" -E $model $flags -o /dev/stdout "$base.c") |
+        (cd "$work" && "$xstr" -c -) || exit 1
+    (cd "$work" && "$top/tools/ncc" $model $flags x.c &&
+        mv x.o "$base.o" && rm -f x.c) || exit 1
+    objs="$objs $base.o"
+    shift
+done
+[ $# -eq 0 ] || shift
+cd "$work" && "$xstr" && "$top/tools/ncc" $model xs.c && mv xs.o strings.o &&
+    rm -f xs.c &&
+    exec "$top/tools/cc" -ccom $model $stack -o "$out" $objs strings.o "$@"

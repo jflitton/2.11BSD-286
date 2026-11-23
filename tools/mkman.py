@@ -6,7 +6,7 @@ usage: mkman.py NROFF SRC LIST OUT
 Upstream keeps the manual formatted: man(1) shows /usr/man/catN/NAME.0
 and nothing else, and each page is made of its source by manroff,
 `nroff -man -h`, as the Makefiles of usr/src/man and of the programs
-install it.  This makes the same pages here, with NROFF, the tree's
+install it, or by `nroff -man` where a program's Makefile has it so.  This makes the same pages here, with NROFF, the tree's
 nroff built for the machine the system is built on, which is run in its
 own directory: it is built to look for its macros in tmac/ there, and
 the copies of them there say tmac/ where the system's say
@@ -185,6 +185,18 @@ def others(wanted):
     return out
 
 
+def tabs(path):
+    """What manroff gives nroff besides -man: -h, tabs where it can
+    space with them; and nothing where the Makefile beside PATH formats
+    it with `nroff -man` and not manroff, as bin/ar's does."""
+    makefile = os.path.join(os.path.dirname(path), "Makefile")
+    if os.path.exists(makefile) and re.search(
+            r"nroff -man\s+" + re.escape(os.path.basename(path)) + r"\s",
+            open(makefile, encoding="latin-1").read()):
+        return []
+    return ["-h"]
+
+
 def main():
     if len(sys.argv) != 5:
         sys.exit(__doc__)
@@ -199,7 +211,8 @@ def main():
     made = {}
     for d, name, path in wanted:
         made[d, name] = path
-        r = subprocess.run([nroff, "-man", "-h"], input=source(path, top),
+        r = subprocess.run([nroff, "-man"] + tabs(path),
+                           input=source(path, top),
                            capture_output=True, cwd=os.path.dirname(nroff))
         if r.returncode or r.stderr:
             fail("%s: %s" % (path, r.stderr.decode("latin-1").strip() or
