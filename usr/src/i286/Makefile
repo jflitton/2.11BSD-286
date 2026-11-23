@@ -276,9 +276,10 @@ G=		$(TOP)/obj/gen
 YSRC=		$(SRC)/usr.bin/yacc
 LSRC=		$(SRC)/usr.bin/lex
 expr_SRCS=	$(G)/expr.c
+yacc_XSTR=	yes
 yacc_SRCS=	$(addprefix usr.bin/yacc/,y1.c y2.c y3.c y4.c)
-lex_SRCS=	$(addprefix usr.bin/lex/,lmain.c sub1.c sub2.c header.c) \
-		$(G)/lex.c
+lex_SRCS=	usr.bin/lex/lmain.c $(G)/lex.c \
+		$(addprefix usr.bin/lex/,sub1.c sub2.c header.c)
 lex_FLAGS=	-Dunix -I$(LSRC)
 # awk's are its grammar and its scanner, in obj/gen/awk with what its
 # Makefile makes besides: awk.h, the tokens' numbers as yacc gives them;
@@ -554,7 +555,7 @@ deliv_SRCS=	$(addprefix $(RF)/,deliv1.c deliv2.c)
 mkey_SRCS=	$(addprefix $(RF)/,mkey1.c mkey2.c mkey3.c deliv2.c)
 inv_SRCS=	$(addprefix $(RF)/,inv1.c inv2.c inv3.c inv5.c inv6.c deliv2.c)
 refer.hunt_SRCS= $(addprefix $(RF)/,hunt1.c hunt2.c hunt3.c hunt5.c hunt6.c \
-		hunt7.c hunt8.c hunt9.c glue4.c glue5.c refer3.c shell.c \
+		hunt7.c hunt8.c hunt9.c refer3.c glue5.c glue4.c shell.c \
 		deliv2.c tick.c)
 refer_SRCS=	$(addprefix $(RF)/,glue1.c glue2.c glue3.c glue4.c glue5.c \
 		refer0.c refer1.c refer2.c refer4.c refer5.c refer6.c refer7.c \
@@ -574,6 +575,9 @@ style3_SRCS=	$(G)/diction/prtlex.c usr.bin/diction/pscan.c \
 		usr.bin/diction/outp.c
 $(foreach p,style1 style2 style3,$(eval $(p)_FLAGS = -I$(DI)) \
 		$(eval $(p)_LIBS = -lln))
+# The Makefile compiles those two without -O.
+style1_FLAGS+=	-O0
+style2_FLAGS+=	-O0
 dprog_SRCS=	usr.bin/diction/diction.c
 dprog_FLAGS=	'-DDICT="/usr/share/misc/dict.d"' -stack 4096
 indent_SRCS=	$(addprefix ucb/indent/,indent.c io.c lexi.c parse.c \
@@ -768,8 +772,8 @@ ld_SRCS=	bin/ld/i286/ld.c
 ar_SRCS=	$(addprefix bin/ar/,append.c ar.c archive.c contents.c \
 		delete.c extract.c misc.c move.c print.c replace.c strmode.c)
 ar_FLAGS=	-I$(SRC)/bin/ar
-ranlib_SRCS=	$(addprefix usr.bin/ranlib/,build.c misc.c ranlib.c touch.c) \
-		bin/ar/archive.c
+ranlib_SRCS=	bin/ar/archive.c \
+		$(addprefix usr.bin/ranlib/,build.c misc.c ranlib.c touch.c)
 ranlib_FLAGS=	-I$(SRC)/bin/ar
 nm_SRCS=	bin/nm/nm.c
 nm_FLAGS=	-I$(SRC)/bin/ar

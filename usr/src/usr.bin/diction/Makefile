@@ -7,6 +7,10 @@
 #		dictionary file used by DICTION
 #
 LDFLAGS= -i
+# The 80286: a program's stack is the size it is linked with, 8K unless
+# it is told, and is taken from the 64K its data has: dprog needs the
+# room for its data.
+STACK=	-stack 4096
 SRCS = \
 	abbrev.c conp.h dict.c dict.d \
 	diction.c diction.sh edict.c ehash.c \
@@ -68,7 +72,7 @@ endlex.c: end.l
 
 diction: dprog
 dprog: diction.c
-	cc ${LDFLAGS} -O $(DICT) diction.c -o dprog
+	cc ${LDFLAGS} ${STACK} -O $(DICT) diction.c -o dprog
 
 srcs:	sources
 

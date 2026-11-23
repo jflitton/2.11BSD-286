@@ -11,7 +11,7 @@
 #
 #	@(#)Makefile	5.2 (2.11BSD) 2025/11/25
 #
-SUBDIR=	nroff troff nroff_term troff_font
+SUBDIR=	nroff nroff_term
 
 all: FRC
 	for i in ${SUBDIR}; do (cd $$i; make ${MFLAGS}); done

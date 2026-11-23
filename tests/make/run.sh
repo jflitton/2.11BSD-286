@@ -34,7 +34,9 @@ rm -rf "$out/root/usr/src" "$out/dest" "$out/log"
 mkdir -p "$out/dest" "$out/log"
 : > "$out/dest.meta"
 python3 -I "$top/tools/fsck.py" -l "$top/obj/root/root.fs" > "$out/root.list"
+# The root's directories are there before anything is installed.
 awk '$2 == "d" { print $1 }' "$out/root.list" > "$out/dirs"
+while read d; do mkdir -p "$out/dest$d"; done < "$out/dirs"
 python3 -I "$here/stage.py" "$top" "$out"
 sh "$here/commands.sh" "$top" "$out"
 start=$(date +%s)

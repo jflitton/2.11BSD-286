@@ -81,6 +81,7 @@ for t in ln rm mv cp mkdir chmod; do
 #!/bin/sh
 n=\$#
 for a; do
+    case \$a in //*) a=\${a#/} ;; esac
     case \$a in
     /bin|/bin/*|/sbin|/sbin/*|/etc|/etc/*|/lib|/lib/*|/usr|/usr/*|/var|/var/*)
         a=$out/dest\$a ;;

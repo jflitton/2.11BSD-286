@@ -41,9 +41,7 @@ while i < len(a):
 if len(files) < 2:
     sys.exit("install: usage: install [-cs] [-m mode] [-o owner] "
              "[-g group] file ... to")
-to = files.pop().rstrip("/") or "/"
-if not to.startswith("/"):
-    sys.exit("install: %s: not a name in the root" % to)
+to = "/" + files.pop().strip("/")
 dirs = open(out + "/dirs").read().split()
 isdir = to in dirs or os.path.isdir(out + "/dest" + to)
 if len(files) > 1 and not isdir:

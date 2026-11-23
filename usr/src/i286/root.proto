@@ -225,7 +225,7 @@ f /usr/bin/dc 755 ../../../obj/root/bin/dc
 f /usr/share/misc/lib.b 444 ../share/misc/lib.b
 f /bin/make 755 ../../../obj/root/bin/make
 f /usr/bin/yacc 755 ../../../obj/root/bin/yacc
-f /usr/share/misc/yaccpar 444 ../usr.bin/yacc/yaccpar
+f /usr/share/misc/yaccpar 755 ../usr.bin/yacc/yaccpar
 f /usr/bin/lex 755 ../../../obj/root/bin/lex
 f /usr/libdata/lex/ncform 444 ../usr.bin/lex/ncform
 f /usr/libdata/lex/nrform 444 ../usr.bin/lex/nrform
@@ -342,7 +342,7 @@ f /bin/ar 755 ../../../obj/root/bin/ar
 f /bin/nm 755 ../../../obj/root/bin/nm
 f /bin/size 755 ../../../obj/root/bin/size
 f /usr/bin/ranlib 755 ../../../obj/root/bin/ranlib
-f /usr/bin/lorder 755 ../usr.bin/lorder.sh
+f /usr/bin/lorder 555 ../usr.bin/lorder.sh
 i ../../../obj/root/cc.proto
 f /lib/cpp 755 ../../../obj/root/bin/cpp
 f /lib/c0 755 ../../../obj/root/bin/c0
@@ -354,8 +354,8 @@ f /lib/c2l 755 ../../../obj/root/bin/c2l
 # and their logs are in learn.proto, which the Makefile makes.
 f /usr/libexec/calendar 755 ../../../obj/root/bin/calendar
 f /usr/bin/calendar 755 ../usr.bin/calendar/calendar.sh
-f /usr/bin/lint 755 ../usr.bin/lint.sh
-f /usr/bin/mkdep 755 ../usr.bin/mkdep.sh
+f /usr/bin/lint 555 ../usr.bin/lint.sh
+f /usr/bin/mkdep 555 ../usr.bin/mkdep.sh
 f /usr/bin/learn 755 ../../../obj/root/bin/learn
 i ../../../obj/root/learn.proto
 d /usr/share/learn/bin 755

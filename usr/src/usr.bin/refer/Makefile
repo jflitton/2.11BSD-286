@@ -2,6 +2,9 @@
 #
 CFLAGS = -O
 LDFLAGS= -i
+# The 80286: a program's stack is the size it is linked with, 8K unless
+# it is told, and refer and sortbib put more than that on it.
+STACK=	-stack 16384
 
 all:	deliv mkey inv hunt refer addbib lookbib sortbib
 
@@ -28,7 +31,7 @@ refer5.o: refer..c
 refer: glue1.o refer1.o refer2.o refer4.o refer5.o refer6.o mkey3.o \
 	  refer7.o refer8.o hunt2.o hunt3.o deliv2.o hunt5.o hunt6.o hunt8.o \
 	  glue3.o hunt7.o hunt9.o glue2.o glue4.o glue5.o refer0.o shell.o
-	cc ${LDFLAGS} glue?.o refer[01245678].o hunt[2356789].o mkey3.o \
+	cc ${LDFLAGS} ${STACK} glue?.o refer[01245678].o hunt[2356789].o mkey3.o \
 		shell.o deliv2.o -o refer
 
 addbib: addbib.o
@@ -36,7 +39,7 @@ addbib: addbib.o
 lookbib: lookbib.o
 	cc ${LDFLAGS} lookbib.o -o lookbib
 sortbib: sortbib.o
-	cc ${LDFLAGS} sortbib.o -o sortbib
+	cc ${LDFLAGS} ${STACK} sortbib.o -o sortbib
 
 install: all /usr/dict/papers
 	-mkdir -p /usr/libexec/refer

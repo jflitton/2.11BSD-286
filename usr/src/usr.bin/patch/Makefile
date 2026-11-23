@@ -17,8 +17,8 @@ patch: ${OBJS} patch.0
 	cc ${LDFLAGS} ${OBJS} -o patch
 
 install: patch patch.0
-	install patch /usr/bin
-	install -c -s -m 444 -o root -g staff patch.0 /usr/man/cat1
+	install -c -s patch /usr/bin
+	install -c -m 444 -o root -g staff patch.0 /usr/man/cat1
 
 clean:
 	rm -f *.o *.orig core tags patch *.0
