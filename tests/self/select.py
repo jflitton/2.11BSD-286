@@ -20,7 +20,8 @@ every program reads, calls for the sample: the compiler made by itself,
 the kernel, and a program of each model.  The Makefiles and what writes
 them call for the programs the host cannot check (tests/self/host.sh),
 since they are made with programs the Makefiles make and run.  Any
-other source calls for what is made of it.  Nothing here calls for the
+other source calls for what is made of it: the kernel's configuration
+(sys/conf, sys/PC), the kernel.  Nothing here calls for the
 manual and the other files that are not programs: PARTS=data is for
 whoever changed them to ask for.
 """
@@ -33,8 +34,7 @@ TOOLS = ("usr/src/lib/ccom/", "usr/src/lib/cpp/", "usr/src/lib/c2/",
          "usr/src/usr.bin/yacc/", "usr/src/usr.bin/lex/",
          "usr/src/usr.bin/ranlib", "usr/include/")
 BUILD = ("tools/srcmk.py", "tools/cc", "tools/ncc", "tests/self/",
-         "usr/src/i286/Makefile", "usr/src/sys/PC/Makefile",
-         "usr/src/sys/i286stand/Makefile")
+         "usr/src/i286/Makefile")
 SAMPLE = ["cat", "csh", "make"]
 UNSEEN = ["ex", "tcsh", "awk", "battlestar", "hack"]
 

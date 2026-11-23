@@ -187,7 +187,7 @@ segment when the network calls it.
 
 ## The loopback interface and pseudo-terminals
 
-`NLOOP` is 1 and `NPTY` 8 (`sys/PC`). `/etc/rc` configures `lo0` as
+`NLOOP` is 1 and `NPTY` 8 (`sys/conf/PC`). `/etc/rc` configures `lo0` as
 127.0.0.1 and starts `inetd`, which answers `telnet` and the echo
 service (`usr/src/i286/etc/inetd.conf`); `/etc/hosts` names only
 `localhost`. The pseudo-terminals are `/dev/ptyp0` to `ptyp7` and

@@ -4,6 +4,8 @@
  * file system with no disk driver needed.  Unit 1 is rdswap clicks of
  * memory taken when the system starts, for a swap area.
  */
+#include "rd.h"
+#if NRD > 0
 #include "param.h"
 #include "../machine/boot.h"
 #include "buf.h"
@@ -11,8 +13,6 @@
 #include "conf.h"
 #include "map.h"
 #include "systm.h"
-
-#define	NRD	2
 
 u_int	rdswap = 512;		/* (patchable) clicks for unit 1 */
 
@@ -79,3 +79,4 @@ rdstrategy(bp)
 	bp->b_resid = 0;
 	iodone(bp);
 }
+#endif /* NRD */

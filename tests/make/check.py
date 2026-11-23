@@ -26,7 +26,9 @@ A page of the manual says at its foot the day it was formatted: one
 that differs from the root's is compared again without that.
 Of the root's programs whose sources are in a DIR (programs.py), each
 must have been installed, and of its libraries those the DIR's Makefiles
-install; those of `left`, beside this, are made with a program their
+install, and of its kernel, /boot and boot blocks those of sys/PC's and
+sys/i286stand's (STAND); those of `left`, beside this, are made with a
+program their
 Makefile makes and runs, and are the 286's to make.
 Those of `differs` are made, and are not yet what the other build makes
 of them.
@@ -41,6 +43,11 @@ import sys
 here = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, here)
 import programs  # noqa: E402
+
+# What the kernel's Makefile and /boot's install.
+STAND = {"sys/PC": ["/unix"],
+         "sys/i286stand": ["/boot", "/mdec/wduboot", "/mdec/sduboot",
+                           "/mdec/fluboot"]}
 
 top, out, took = sys.argv[1:4]
 dirs = sys.argv[4:]
@@ -201,6 +208,8 @@ for p, name in sorted(where.items()):
     else:
         bad.append("NOT INSTALLED %s" % p)
 bad += ["NOT INSTALLED %s" % p for p in programs.libraries(sorted(want), dirs)
+        if not os.path.isfile(dest + p)]
+bad += ["NOT INSTALLED %s" % p for d in dirs for p in STAND.get(d, [])
         if not os.path.isfile(dest + p)]
 for line in sorted(bad):
     print(line, file=sys.stderr)

@@ -77,9 +77,13 @@ fi
 : > "$out/same"
 : > "$out/differs"
 : > "$out/unmade"
+# A GNUmakefile, which config writes for where the system is built, is
+# not in the tree here, for this machine's make would read it
+# (hostroot.py).
 sed -n 's/^f //p' want.proto | while read path mode from; do
     case $path in
     /rootbin/*|/check.sh|/self.sh|/install.sh|/installed.sh) continue ;;
+    */GNUmakefile) continue ;;
     esac
     case $from in /*) ;; *) from=$out/$from ;; esac
     if [ ! -f "$root/usr/src$path" ]; then

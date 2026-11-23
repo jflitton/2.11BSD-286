@@ -27,6 +27,7 @@
 #include "systm.h"
 #include "kernel.h"
 #include "../i286at/vt.h"
+#include "com.h"
 
 #define	NCONS		4
 #define	PAGE		2048	/* cells from one screen to the next: the
@@ -115,7 +116,9 @@ cninit()
 	u_int pos;
 	int mono, s;
 
+#if NCOM > 0
 	comcninit();
+#endif
 	mono = (inb(MISC_READ) & MISC_COLOR) == 0;
 	crtc = mono ? 0x3B4 : 0x3D4;
 	mem = (u_short __far *)UADDR(gdtalloc(mono ? 0xB0000L : 0xB8000L,
@@ -266,7 +269,9 @@ cnputc(c)
 		vtkputc(&vt[0], c & 0377);
 		cncursor(0);
 	}
+#if NCOM > 0
 	comcnputc(c);
+#endif
 }
 
 /*

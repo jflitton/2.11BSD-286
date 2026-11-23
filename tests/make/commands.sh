@@ -105,7 +105,8 @@ n=\$#
 for a; do
     case \$a in //*) a=\${a#/} ;; esac
     case \$a in
-    /bin|/bin/*|/sbin|/sbin/*|/etc|/etc/*|/lib|/lib/*|/usr|/usr/*|/var|/var/*)
+    /bin|/bin/*|/sbin|/sbin/*|/etc|/etc/*|/lib|/lib/*|/usr|/usr/*|/var|/var/*|\\
+    /mdec|/mdec/*|/unix|/unix.old|/boot)
         a=$out/dest\$a ;;
     esac
     set -- "\$@" "\$a"

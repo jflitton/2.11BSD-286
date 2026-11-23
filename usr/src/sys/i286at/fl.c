@@ -12,6 +12,8 @@
  * in the low three.  What a drive is, the machine's setup program wrote
  * in the clock chip's memory.
  */
+#include "fl.h"
+#if NFL > 0
 #include "param.h"
 #include "systm.h"
 #include "user.h"
@@ -23,7 +25,6 @@
 #include "kernel.h"
 #include "flreg.h"
 
-#define	NFL		2
 #define	FL_IRQ		6
 #define	FL_CYLS		80
 #define	FL_HEADS	2
@@ -659,3 +660,4 @@ flwatch()
 	timeout(flwatch, (caddr_t)0, hz);
 	splx(s);
 }
+#endif /* NFL */

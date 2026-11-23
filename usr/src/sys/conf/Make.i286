@@ -1,0 +1,31 @@
+#
+# The 286's machine dependent part of the kernel, as Make.pdp is the
+# PDP-11's: its C and its assembly, and the long multiplication and
+# division of the C library's crt, which the compiler calls.
+#
+M=	../machine
+CRT=	../../lib/libc/i286/crt
+VPATH=	../machine:${CRT}
+
+CFILES=	${M}/clock.c ${M}/conf.c ${M}/cons.c ${M}/machdep.c ${M}/mem.c \
+	${M}/rd.c ${M}/trap.c
+COBJS=	clock.o conf.o cons.o machdep.o mem.o rd.o trap.o
+
+SFILES=	${M}/mch_start.s ${M}/mch_trap.s ${M}/mch_copy.s ${M}/mch_swtch.s \
+	${M}/mch_xxx.s ${M}/mch_net.s ${CRT}/i4m.s ${CRT}/i4d.s
+SOBJS=	mch_start.o mch_trap.o mch_copy.o mch_swtch.o mch_xxx.o mch_net.o \
+	i4m.o i4d.o
+
+.c.o:
+	${CC} ${CFLAGS} -c $<
+
+.s.o:
+	${AS} -o $@ $<
+
+all: ${COBJS} ${SOBJS}
+
+depend:
+	mkdep -f Make.i286 ${CFLAGS} ${CFILES}
+
+# DO NOT DELETE THIS LINE -- mkdep uses it.
+# DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.

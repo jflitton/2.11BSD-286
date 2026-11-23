@@ -9,6 +9,9 @@
  * table, or with nothing in it for this system, is this system's from
  * its first sector to its last.
  */
+#include "wd.h"
+#include "sd.h"
+#if NWD > 0 || NSD > 0
 #include "param.h"
 #include "systm.h"
 #include "user.h"
@@ -242,3 +245,4 @@ pcdkioctl(dk, dev, cmd, data, flag, strat, gp)
 		return (ENOSPC);
 	return (ioctldisklabel(dev, cmd, data, flag, dk, strat));
 }
+#endif /* NWD || NSD */

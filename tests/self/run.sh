@@ -1,13 +1,15 @@
 #!/bin/sh
 # Test that the system makes itself: boot it from a hard disk with its
 # sources on a file system of their own, /usr/src, and have its make,
-# compiler, assembler and linker make there, from the Makefiles that
-# tools/srcmk.py writes for them: /boot and the boot blocks; the kernel;
-# and what it has that is not a program and is made: the databases and
-# tables of /etc and /usr/share, spell's lists, the time zones, the
-# games' files and the manual as it is read, which are installed.  Each
-# object, the kernel and /boot, and each of those files, is to be
-# to the byte what the same sources make where the system is built,
+# compiler, assembler and linker make there: /boot and the boot blocks,
+# from sys/i286stand's Makefile; the kernel, from the Makefile that its
+# own config writes in sys/PC from sys/conf/PC, with the rest of what it
+# writes there; and from the Makefile tools/srcmk.py writes, what it
+# has that is not a program and is made: the databases and tables of
+# /etc and /usr/share, spell's lists, the time zones, the games' files
+# and the manual as it is read, which are installed.  Each object, the
+# kernel and /boot, what config writes, and each of those files, is to
+# be to the byte what the same sources make where the system is built,
 # with the system's own tools as they are compiled for that machine
 # (obj/nstand, obj/nPC, obj/nbin), which the disk has on another file
 # system to compare with.  A page of the manual has the day it was
@@ -16,7 +18,7 @@
 # system made.
 #
 # The kernel is then made once more, to say of itself that it was made
-# there, and installed with /boot (make install); the machine is
+# there, and installed with /boot (make; make install); the machine is
 # started again from the same disk, and must come up on that kernel,
 # with the one it was built on beside it as /unix.old, and on the
 # programs it made: init, getty, login, the shell.
@@ -39,7 +41,8 @@
 # system's compiler, assembler and linker as they are compiled for it
 # (tests/self/host.sh), and what they make compared the same way.  That
 # says the Makefiles name the right files, flags and order; that the
-# tools do on the 286 what they do here is the machine's to say.
+# tools do on the 286 what they do here is the machine's to say, and so
+# is config's work: it is not run here.
 # PARTS is then of "stand kernel", both by default; for the libraries
 # and the programs it is tests/make/run.sh.
 #
@@ -135,9 +138,12 @@ want() {
 if has stand; then
     want sys/i286stand "$nstand"/*.bin "$nstand"/*.o "$nstand/boot"
 fi
+# What config writes in sys/PC and sys/h, as the kernel's Makefile has
+# had it written again here (obj/nPC/config).
 if has kernel; then
     want sys/PC $(make -s -C "$src/sys/PC" table | sed -n 's/^OBJS //p' |
-        tr ' ' '\n' | sed "s|^|$npc/|") "$npc/unix"
+        tr ' ' '\n' | sed "s|^|$npc/|") "$npc/unix" "$npc"/config/PC/*
+    want sys/h "$npc/config/h/localopts.h"
 fi
 if has progs; then
     for p in $ONLY; do
@@ -251,8 +257,8 @@ EOF
         echo "sh /mnt/check.sh sys/i286stand"
     fi
     if has kernel; then
-        echo "cd /usr/src/sys/PC && make -k"
-        echo "sh /mnt/check.sh sys/PC"
+        echo "cd /usr/src/sys/conf && ./config PC && cd ../PC && make -k"
+        echo "sh /mnt/check.sh sys/PC; sh /mnt/check.sh sys/h"
     fi
     if has progs; then
         targets=progs
@@ -305,7 +311,7 @@ export PATH
 DATE="made here"
 export DATE
 cd /usr/src/sys/i286stand && make install &&
-cd /usr/src/sys/PC && make install &&
+cd /usr/src/sys/PC && make && make install &&
 cmp /unix unix && cmp /boot ../i286stand/boot && echo "self: installed"
 EOF
 for f in check.sh self.sh install.sh; do

@@ -1,0 +1,86 @@
+#
+# Machine configuration file for the 286's kernel: a PC/AT-class machine
+# with an 80286, or a later processor, running in protected mode.
+#
+# Format, as GENERIC's:
+#	name	value		comments
+# An item's value may be either numerical or boolean; if it's boolean,
+# use "YES" or "NO" to set it or unset it, respectively.
+#
+# To make a kernel of your own, copy this file to one named after the
+# machine, change it, and then:
+#
+#	./config NAME
+#	cd ../NAME
+#	make
+#	make install
+#
+# A device whose count is 0 has no driver in the kernel.
+
+#########################################
+# MACHINE DEPENDENT PARAMETERS		#
+#########################################
+
+# How many times a second the clock interrupts: the PC's timer, which
+# counts at 1193182 Hz, is set to that (clock.c), not to the power line.
+LINEHZ		60			# clock frequency
+
+#########################################
+# GENERAL SYSTEM PARAMETERS		#
+#########################################
+
+MAXUSERS	6			# maxusers on machine
+
+# Timezone
+TIMEZONE	0			# kernel uses GMT by default
+
+#########################################
+# KERNEL CONFIGURATION			#
+#########################################
+
+# UCB_METER is fairly expensive, but various programs (iostat, vmstat, etc)
+# use it.
+UCB_METER	YES			# vmstat performance metering
+
+# NBUF is the most buffers the cache may have, 1K of data each; the
+# kernel takes a sixteenth of the memory it finds, up to this (param.c).
+# The headers are in the kernel's data, 28 bytes each.
+NBUF		256			# buffer cache, at most
+
+# A slot is where in the kernel's data a process's user structure and
+# kernel stack are while it runs.  The processes that share one take
+# turns in it, copied in and out, so more is faster; each costs UBYTES.
+NSLOT		6			# slots, the swapper's among them
+
+#########################################
+# PERIPHERALS: DISK DRIVES		#
+#########################################
+
+NWD		2		# IDE disks on the AT's controller, 0x1F0
+				# and interrupt 14: at most 2
+NSD		4		# SCSI disks, on an Adaptec 1540 or 1542
+NFL		2		# diskette drives, on the AT's controller:
+				# at most 2
+NRD		2		# disks in memory: the root /boot loads,
+				# and a swap area: 2, or 0 for none
+
+#########################################
+# PERIPHERALS: TERMINALS		#
+#########################################
+
+# The console, the display and the keyboard, is always there.  The
+# kernel's messages go to the first serial port as well.
+NCOM		2		# serial ports, COM1 and COM2: at most 2
+
+#########################################
+# PSEUDO DEVICES, PROTOCOLS, NETWORKING	#
+#########################################
+
+# The 286's kernel is made with the network: INET is YES.
+INET		YES		# TCP/IP
+NETHER		1		# ether pseudo-device
+NNE		1		# NE1000/NE2000 Ethernet
+
+# PTYs are for logins over the network (telnet, rlogin), script and
+# the like.
+NPTY		8		# pseudo-terminals

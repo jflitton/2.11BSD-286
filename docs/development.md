@@ -30,8 +30,9 @@ Where the 286 code goes, beside its PDP-11 counterpart in each case:
 | `usr/src/sys/i286/` | `pdp/` | startup, traps, system calls, copy routines, segments, switching between processes, signals, the 287, the clock, the console on the display, a RAM disk; the calls between the kernel and the network, and the network's side of them ([the network](network.md)) |
 | `usr/src/sys/i286at/` | `pdpuba/` | AT-bus drivers: the Adaptec SCSI adapter and its disks, the AT disk controller (IDE), the PC partition table, and the diskette controller; the serial ports, the keyboard, and the console's VT102 terminal emulator ([the console](console.md)) |
 | `usr/src/sys/i286if/` | `pdpif/` | network interfaces: the NE1000 and NE2000 and the cards that copy them ([the network](network.md)) |
-| `usr/src/sys/i286stand/` | `pdpstand/`, `mdec/` | what loads the kernel: for a hard disk its first sector, the boot block and `/boot`; a diskette's boot block, and the boot sector of a diskette with no file system; `make -C usr/src/sys/i286stand` builds them in `obj/stand` |
-| `usr/src/sys/PC/` | `GENERIC/` | the kernel's configuration and Makefile: `make -C usr/src/sys/PC` builds `obj/PC/unix` |
+| `usr/src/sys/i286stand/` | `pdpstand/`, `mdec/` | what loads the kernel: for a hard disk its first sector, the boot block and `/boot`; a diskette's boot block, and the boot sector of a diskette with no file system; the Makefile the system makes them with, after `pdpstand`'s, and `GNUmakefile`, which makes them where the system is built: `make -C usr/src/sys/i286stand` builds them in `obj/nstand` |
+| `usr/src/sys/conf/PC` | `conf/GENERIC` | the configuration of the kernel the system is built with, from which `config` writes `sys/PC` ([configuring the kernel](#configuring-the-kernel)) |
+| `usr/src/sys/PC/` | `GENERIC/` | what `config` wrote: the devices' counts, `param.c`, the Makefile the system makes the kernel with, and `GNUmakefile`, which makes it where the system is built: `make -C usr/src/sys/PC` builds `obj/nPC/unix` |
 | `usr/src/lib/libc/i286/` | `lib/libc/pdp/` | libc's machine-dependent part, with the Makefiles the system makes it with, and `GNUmakefile`, which builds the library from it and the tree's portable C where the system is built: `make -C usr/src/lib/libc/i286` makes `obj/nlib/s/libc.a` |
 | `usr/src/i286/` | the tree's own Makefiles | the list of programs built and the Makefile that builds them in `obj/bin`; the root file system's contents and `/etc` files, which `make -C usr/src/i286 root` makes into `obj/root/root.fs` ([the C library and programs](userland.md)) |
 
@@ -128,6 +129,47 @@ SCSI disk, whose image `mkdisk.py -t scsi` makes; `KERNEL=` and
 block, than those of the build. [Booting](boot.md) and
 [disks](disks.md) say more, and [the root file
 system](userland.md#the-root-file-system) what is in it.
+
+### Configuring the kernel
+
+The kernel is configured as 2.11BSD's is
+(`usr/doc/2.10/setup.2.10/4.t`): a file in `usr/src/sys/conf` describes
+the machine, a name and a value to a line, and the script `config`
+there writes from it a directory of `usr/src/sys` with the file's name,
+where the kernel is made. `PC` is the file of the kernel the system is
+built with, and the repository has `sys/PC` as `config` writes it, as
+upstream has `GENERIC`. A kernel of one's own:
+
+```sh
+cd usr/src/sys/conf
+cp PC MINE                          # and change MINE
+sh config MINE                      # ./config MINE on the system
+make -C ../MINE                     # obj/nMINE/unix, here
+```
+
+The file gives the clock's rate, `MAXUSERS`, which sizes the tables of
+processes, files and inodes, the most buffers, the slots
+([processes](processes.md#slots-the-user-structure-and-kernel-stack)),
+`UCB_METER`, and a count of each device: `NWD` IDE disks, `NSD` SCSI
+disks, `NFL` diskette drives, `NRD` disks in memory, `NCOM` serial
+ports, `NNE` NE1000s and NE2000s, `NPTY` pseudo-terminals. A driver whose
+count is 0 is nothing in the kernel, and its places in the device
+switches are `nodev` (`sys/i286/conf.c`), as 2.11BSD has it. A kernel
+of the IDE disks, the console and the serial ports alone is 196,475
+bytes, where `PC`'s is 222,562, and starts the system from its disk.
+
+`config` writes there a header of each count, `param.c` from
+`conf/param.c`, and the Makefile: the options, and after them
+`conf/Make.nsunix`, beside which it puts `Make.sys`, `Make.net`,
+`Make.i286`, `Make.i286at` and `Make.i286net`, which compile the
+objects of their directories there. It puts `conf/Make.host` there as
+`GNUmakefile`, which GNU make reads before the Makefile, and which
+makes the same kernel here, in `obj` under the directory's name (`n`
+before it for the system's own tools). That runs `config` again first,
+in `obj`, and stops if what it writes is not what the directory has:
+when the file has changed, `config` is to be run. The PDP-11's files
+of `conf`, its `GENERIC` and its templates, are as upstream has them,
+and `config` refuses a PDP-11's file.
 
 ## Branches
 

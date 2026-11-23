@@ -242,7 +242,7 @@ yet.
   pseudo-terminal's output queue may hold 2000 characters before the
   writer is made to wait (`tthiwat`, at the speed a pseudo-terminal
   has), and the kernel has 68 blocks of 30 characters for every
-  terminal's queues together (`NCLIST`, `sys/PC/param.c`): 2040. So the
+  terminal's queues together (`NCLIST`, `sys/conf/param.c`): 2040. So the
   writer runs out of blocks before it reaches the mark, and what
   `ttwrite` does then is sleep until the next second begins
   (`tty.c`, on `lbolt`). The reader empties the queue at once and
@@ -422,7 +422,7 @@ still hold every block, so this made it rare and did not end it.
 
 More blocks did. The kernel's data segment had 1.8K to spare, so they
 are in a segment of their own now, 1024 of them where there were 68
-(`NCLIST`, `sys/PC/param.c`): enough for every pseudo-terminal, screen
+(`NCLIST`, `sys/conf/param.c`): enough for every pseudo-terminal, screen
 and serial line to have its output at its mark and all it may hold of
 what was typed, at once, so no terminal can take what another needs
 and the eighth binds nothing. The PDP-11 kernel could do the same

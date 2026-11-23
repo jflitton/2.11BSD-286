@@ -1,0 +1,28 @@
+#
+# The 286's own part of the network, as Make.pdpnet is the PDP-11's:
+# the Internet checksum, in assembly, and what joins the network to the
+# kernel (docs/network.md).  in_cksum.c is the C the checksum was written
+# from, to put in NETOBJ for mch_cksum.o when one is in doubt.
+#
+M=	../machine
+VPATH=	../machine
+
+CFILES=	${M}/net_data.c ${M}/net_sys.c
+COBJS=	net_data.o net_sys.o
+
+SFILES=	${M}/mch_cksum.s
+SOBJS=	mch_cksum.o
+
+.c.o:
+	${CC} ${CFLAGS} -c $<
+
+.s.o:
+	${AS} -o $@ $<
+
+all: ${COBJS} ${SOBJS}
+
+depend:
+	mkdep -f Make.i286net ${CFLAGS} ${CFILES}
+
+# DO NOT DELETE THIS LINE -- mkdep uses it.
+# DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.

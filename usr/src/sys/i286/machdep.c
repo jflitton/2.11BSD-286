@@ -31,6 +31,8 @@
 #include "tty.h"
 #include "sysctl.h"
 #include "../machine/cpu.h"
+#include "rd.h"
+#include "sd.h"
 
 struct user *uptr;		/* the running process's user structure */
 /*
@@ -73,9 +75,12 @@ startup()
 	 * it says it loaded the kernel from; or, when it does not say,
 	 * diskroot.
 	 */
+#if NRD > 0
 	if (bootinfo.bi_rdsize)
 		bootdev = makedev(0, 0);
-	else if (bootinfo.bi_root)
+	else
+#endif
+	if (bootinfo.bi_root)
 		bootdev = bootinfo.bi_root;
 	else
 		bootdev = diskroot;
@@ -102,7 +107,11 @@ startup()
 	mfree(coremap, bootinfo.bi_seg[0].bs_para / 32 - 8, 8);
 	mfree(coremap, last - first, first);
 	if (extmem) {
+#if NRD > 0
 		first = rdinit((memaddr)2048);
+#else
+		first = 2048;
+#endif
 		mfree(coremap, 2048 + (memaddr)extmem * 2 - first, first);
 	}
 	/* what there is, and not where it ends: nothing is at 640K to 1M */
@@ -1090,6 +1099,7 @@ cpu_sysctl(name, namelen, oldp, oldlenp, newp, newlen)
 			return (ENOTDIR);
 		return (sysctl_rdstruct(oldp, oldlenp, newp,
 		    &cons[0].t_dev, sizeof (cons[0].t_dev)));
+#if NSD > 0
 	case CPU_AHABUSON:
 	case CPU_AHABUSOFF:
 	case CPU_AHASPEED:
@@ -1097,6 +1107,7 @@ cpu_sysctl(name, namelen, oldp, oldlenp, newp, newlen)
 			return (ENOTDIR);
 		return (ahasysctl(name[0] - CPU_AHABUSON, oldp, oldlenp,
 		    newp, newlen));
+#endif
 	default:
 		return (EOPNOTSUPP);
 	}

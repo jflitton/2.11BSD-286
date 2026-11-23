@@ -1,1 +1,1 @@
-#define	NLOOP	1
+#define NLOOP	1

@@ -13,6 +13,8 @@
  * with ahafill, or with ahaseg and ahafillsegs when its data is in
  * pieces, and the command's bytes, and gives it to ahago or ahapoll.
  */
+#include "sd.h"
+#if NSD > 0
 #include "param.h"
 #include "systm.h"
 #include "kernel.h"
@@ -637,3 +639,4 @@ ahawatch()
 	if (aha.a_state == A_PRESENT)
 		timeout(ahawatch, (caddr_t)0, hz);
 }
+#endif /* NSD */

@@ -28,10 +28,12 @@
 /*
  * System parameter formulae.
  *
- * This file is the sizes of this kernel's tables, to be changed to suit
- * the machine and its load.  What is declared near here is in the
- * kernel's one data segment, 64K for everything; what is declared far has
- * a segment of its own.
+ * This file is copied into each directory where we compile the kernel,
+ * with the values of the machine's configuration file put in it
+ * (config): those are the sizes of this kernel's tables, to suit the
+ * machine and its load.  What is declared near here is in the kernel's
+ * one data segment, 64K for everything; what is declared far has a
+ * segment of its own.
  */
 #define	MAXUSERS 6
 

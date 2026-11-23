@@ -34,15 +34,22 @@ where the 286 is not the PDP-11 ([below](#upstreams-makefiles)). They
 are in the repository and on the system the same, and a change made to
 one there is a change to the system's sources.
 
-The kernel, the programs that load it and what is not a program are not
-made from such yet. The repository's Makefiles for
-those are GNU make's, and the system's own `make` reads none of them:
-no pattern rules, no functions, no conditionals. So `srcmk.py` writes
-Makefiles that it does read, with a rule for every file, from the same
-tables: each of the repository's Makefiles prints, for `make table`,
-what it is made of, and that is all `srcmk.py` knows. What is to be
-changed is changed in the repository's Makefile, and the system's is
-written again.
+So are the kernel and the programs that load it. The kernel's is the
+one `config` writes in `sys/PC` from the machine's file, `sys/conf/PC`,
+as 2.11BSD has a kernel's written in a directory of `/sys`
+([configuring the kernel](development.md#configuring-the-kernel)), and
+`/boot`'s and the boot blocks' is `sys/i286stand`'s, after `pdpstand`'s.
+Beside each is a `GNUmakefile`, which GNU make reads first, for the
+other build.
+
+What is not a program is not made from such yet. The repository's
+Makefile for it is GNU make's, `usr/src/i286/Makefile`, and the
+system's own `make` reads none of it: no pattern rules, no functions,
+no conditionals. So `srcmk.py` writes one that it does read, with a
+rule for every file, from the same tables: the repository's Makefile
+prints, for `make table`, what each is made of, and that is all
+`srcmk.py` knows. What is to be changed is changed in the repository's
+Makefile, and the system's is written again.
 
 ## Making it
 
@@ -52,6 +59,7 @@ On the system, as root:
 mount /dev/wd0d /usr/src
 
 cd /usr/src/sys/i286stand; make; make install    # /boot, the boot blocks
+cd /usr/src/sys/conf; ./config PC                # the kernel's directory
 cd /usr/src/sys/PC; make; make install           # the kernel
 cd /usr/src/lib/libc; make; make install         # the C library, three models
 cd /usr/src/usr.lib; make; make install          # the other libraries
@@ -64,8 +72,9 @@ cd /usr/src/sbin; make; make install             # in libexec, ucb, usr.bin,
 
 | in | `make` makes | `make install` |
 |---|---|---|
-| `sys/i286stand` | `boot`, `hdboot.bin`, `flboot.bin`, `mbr.bin`, `fdboot.bin` | `/boot`, `/mdec/wduboot`, `/mdec/fluboot` |
-| `sys/PC` | `unix`, and `unix.map` | `/unix`; the one that was is `/unix.old` |
+| `sys/i286stand` | `boot`, `hdboot.bin`, `flboot.bin`, `mbr.bin`, `fdboot.bin` | `/boot`; `/mdec/wduboot`, and `sduboot` another name of it; `/mdec/fluboot` |
+| `sys/conf`, `./config PC` | `sys/PC`: its Makefiles, the devices' counts, `param.c`; and `sys/h/localopts.h` | |
+| `sys/PC` | `unix`, and `unix.map` | `/unix`, root's and `kmem`'s, 744; the one that was is `/unix.old` |
 | `lib/libc` | `libc.a`, `libc_m.a`, `libc_l.a`, and `crt0.o` of each model in `i286/csu` | `/lib`, `/lib/m`, `/lib/l` |
 | `usr.lib` | each library, of each model, beside its sources | `/usr/lib`, `/usr/lib/m`, `/usr/lib/l` |
 | `bin`, `sbin`, `libexec`, `ucb`, `usr.bin`, `usr.sbin`, `games`, `new` | each program, beside its sources, and its page of the manual | each where upstream's Makefile installs it, with the mode, owner and group it gives |
@@ -76,8 +85,10 @@ A kernel that does not start is left behind by naming the other to
 own directory, `/usr/src/bin/sed`, makes that one. `make clean` in any
 of them removes what was made.
 
-The kernel has a rule for each object, and is made again when a header
-changes. The C library's stubs for the system calls are written as it
+`config` is for when `sys/conf/PC` has changed: `sys/PC` is what it
+writes from that file already. The kernel's objects are made again
+when a header changes once `make depend` has said which headers each
+has, as upstream's are. The C library's stubs for the system calls are written as it
 is made, a file of assembly for each call and each model, from
 `lib/libc/i286/sys/syscalls.tab`: by `mkstubs` (`sys/mkstubs.c` beside
 it), which both builds compile and run, and which has each agree with
@@ -341,9 +352,10 @@ an hour each or more.
 ## What is checked
 
 `tests/self/run.sh` boots the system with that file system, has it make
-`/boot`, the kernel and what is not a program, and compares each
-object, the kernel and `/boot`, and each file that is not a program,
-with what the same sources make where the system is built. A page of
+`/boot`, run `config` and make the kernel, and make what is not a
+program, and compares each object, the kernel and `/boot`, what
+`config` writes, and each file that is not a program, with what the
+same sources make where the system is built. A page of
 the manual has at its foot the day it was formatted, and two that
 differ are compared again without those lines. What is not a program
 is made by the programs the system came with, and is installed too: each of 1106 files and other names of one must be what
@@ -386,12 +398,13 @@ not for a change. A change is checked two ways, and
   upstream's, `make`, `make install` and `make clean` in each
   directory, with that machine's `make` given the rules the system's
   has and none of its own, and compares what was installed with the
-  root file system: 500 files in four minutes, each with the contents,
+  root file system: 541 files in four minutes, each with the contents,
   mode, owner and group the root has, and the root's 105 directories
   still there with theirs. The directories are there before anything
   is installed, and that machine's `make` takes them to be, as the
-  system's does. `HOST=1 sh tests/self/run.sh` runs the
-  ones `srcmk.py` writes, for `/boot` and the kernel
+  system's does; `/boot`'s and the kernel's are among them, and their
+  installs too. `HOST=1 sh tests/self/run.sh` runs those two the same
+  way and compares what they make, each object
   (`tests/self/host.sh`). That says the Makefiles name
   the right files, flags and order, and install each where the system
   has it. It does not say the system's `make` reads them so, nor that

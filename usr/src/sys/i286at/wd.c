@@ -8,6 +8,8 @@
  * A minor device number is the drive in bits 3 and up and the partition
  * in the low three.
  */
+#include "wd.h"
+#if NWD > 0
 #include "param.h"
 #include "systm.h"
 #include "user.h"
@@ -18,7 +20,6 @@
 #include "pcdisk.h"
 #include "dk.h"
 
-#define	NWD		2
 #define	WD_IRQ		14
 
 /* The controller's ports. */
@@ -493,3 +494,4 @@ wdintr(arg, tf)
 again:
 	wdstart();
 }
+#endif /* NWD */

@@ -4,18 +4,16 @@
 usage: srcmk.py OUT
 
 The system is built here by GNU make, from Makefiles that say what each
-part is made of (usr/src/sys/PC, usr/src/sys/i286stand).  The system
-has a make of its own, which reads none of that: no pattern rules, no
-functions, no conditionals.  This writes for it, from the same tables,
-Makefiles that it does read, with a rule for every file, and a proto
-for mkfs.py of the file system that is to be /usr/src there: the
-sources, in the directories they have here, and each Makefile where the
-one it was written from is.
+part is made of (usr/src/i286).  The system has a make of its own,
+which reads none of that: no pattern rules, no functions, no
+conditionals.  This writes for it, from the same tables, a Makefile
+that it does read, with a rule for every file, and a proto for mkfs.py
+of the file system that is to be /usr/src there: the sources, in the
+directories they have here, and the Makefile where the one it was
+written from is.
 
-    OUT/sys/PC/Makefile         the kernel: make, in /usr/src/sys/PC
-    OUT/sys/i286stand/Makefile  /boot and the boot blocks
-    OUT/i286/Makefile           the programs, and what the system has
-                                that is not a program and is made
+    OUT/i286/Makefile           what the system has that is not a
+                                program and is made, and the programs
     OUT/proto                   the file system, to be mounted on
                                 /usr/src
     OUT/programs                the names of the programs the last makes
@@ -28,19 +26,17 @@ one it was written from is.
                                 install does
 
 What make makes there is left where it is run, as upstream's Makefiles
-leave it: unix in /usr/src/sys/PC, as in a directory of /sys made by
-config.  Each is to be, to the byte, what is made of the same sources
-here (tests/self).
+leave it.  Each is to be, to the byte, what is made of the same sources
+here (tests/self).  The Makefile has "install", which puts what was
+made where the root file system has it (usr/src/i286/root.proto), with
+its modes and owners.
 
-Each Makefile has "install", which puts what was made where the system
-has it: the kernel as /unix, the one that was there as /unix.old, which
-/boot loads if it is named to it; the programs where the root file
-system has them (usr/src/i286/root.proto), with its modes and owners.
-
-The libraries, the C library and those of usr.lib, are made from the
-Makefiles of their own directories, upstream's, and so are the
-programs of the directories of PROGDIRS: those are given as they are,
-and the directories each model's objects are put in, m and l, where
+The rest is made from the Makefiles of its own directories, which are
+given as they are: the kernel from the Makefile config wrote in
+sys/PC (sys/conf/config), /boot and the boot blocks from
+sys/i286stand's, and, from upstream's, the libraries, the C library
+and those of usr.lib, and the programs of the directories of PROGDIRS,
+with the directories each model's objects are put in, m and l, where
 upstream's have profiled.
 """
 import os
@@ -71,16 +67,6 @@ def lines(directory, *args):
     if r.returncode != 0:
         sys.exit("srcmk: make table in %s:\n%s" % (directory, r.stderr))
     return r.stdout.splitlines()
-
-
-def table(directory, *args):
-    """The same, where each line is a name and its words."""
-    t = {}
-    for line in lines(directory, *args):
-        words = line.split()
-        if words:
-            t[words[0]] = words[1:]
-    return t
 
 
 def fold(name, words, width=72):
@@ -135,146 +121,6 @@ def placed(path, where, own_mode):
         cmd += " && chgrp %s '%s'" % (gid, new)
     return "\t%s && chmod %s '%s' && \\\n\t    mv -f '%s' '%s'\n" % (
         cmd, mode, new, new, where)
-
-
-def kernel():
-    t = table("sys/PC")
-    dirs = t["VPATH"]
-    net = set(t["NET"])
-    rules = []
-    for o in t["OBJS"]:
-        base = o[:-2]
-        if base == "vers":
-            continue
-        found = [(d, e) for d in dirs for e in (".c", ".s")
-                 if os.path.exists(os.path.join(SRC, d, base + e))]
-        if len(found) != 1:
-            sys.exit("srcmk: %s: %d sources" % (o, len(found)))
-        d, e = found[0]
-        s = "$S/%s/%s%s" % (d, base, e)
-        if e == ".c":
-            rules.append("%s: %s hdrs\n\tcc -c $(CFLAGS) %s%s\n" %
-                         (o, s, "$(NFLAGS) " if o in net else "", s))
-        else:
-            rules.append("%s: %s $S/sys/i286/mch_defs.inc\n"
-                         "\t$(ASM) -o %s %s\n" % (o, s, o, s))
-    macros, hdrs = stamp(["$S/" + h for h in t["HDRS"]])
-    return (HEAD % "The kernel for a PC/AT-class 286 machine: make, and unix "
-            "is made here." + """\
-#
-#	make		the kernel, unix, and what the linker says of
-#			it, unix.map
-#	make install	and it is /unix, and the one that was is
-#			/unix.old, to be named to /boot if this one
-#			does not start
-#	make clean	nothing made is left
-#
-# The network's files have a data segment of their own (cc -nd=NET,
-# docs/network.md).  Every object is made again when any header
-# changes: crude, and never wrong.  The kernel says when it was made,
-# or what DATE is in the environment.  -I$S/sys is for the headers that
-# are named from there and are not in /usr/include: pdpif/if_uba.h.
-
-S=	/usr/src
-""" + fold("OPTS", t["OPTS"]) + """\
-CFLAGS=	-O -mm -DKERNEL $(OPTS) -I$S/sys/PC -I$S/sys/h -I/usr/include -I$S/sys
-NFLAGS=	-DSUPERVISOR -nd=NET
-ASM=	as -mm -DFAR -I$S/sys/i286/ -I$S/lib/libc/i286/crt/
-""" + macros +
-            "# mch_start.o must come first: the kernel starts at its "
-            "beginning.\n" + fold("OBJS", t["OBJS"]) + """
-all:	unix
-
-# The kernel's selectors are the GDT's from slot 16 (docs/boot.md), and
-# its stacks are in its data (uslot, param.c).
-unix:	$(OBJS)
-	ld -mm -gdt 16 -stack 0 -M -o unix $(OBJS) > unix.map
-
-install: unix
-	cp /unix /unix.old
-	cp unix /unix
-
-clean:
-	rm -f $(OBJS) unix unix.map vers.c hdrs
-
-""" + hdrs + """
-vers.c:	FRC
-	@(set `date`; echo 'char version[] = "2.11 BSD UNIX for the 286 ('"$${DATE-$$2 $$3 $$6}"')";') > vers.c
-
-vers.o:	vers.c
-	cc -c -O -mm vers.c
-
-FRC:
-
-""" + "\n".join(rules))
-
-
-def stand():
-    text = open(os.path.join(SRC, "sys/i286stand/Makefile")).read()
-    bootmax = int(re.search(r"^BOOTMAX=(\S+)", text, re.M).group(1), 0)
-    t = table("sys/i286stand")
-    macros, hdrs = stamp(["$S/" + h for h in t["HDRS"]])
-    return (HEAD % "/boot and the boot blocks: make, and they are made "
-            "here." + """\
-#
-#	make		boot, which is /boot; hdboot.bin, the boot block
-#			of a hard disk, which is /mdec/wduboot;
-#			mbr.bin, the first sector of a disk that has a
-#			partition table; flboot.bin, the boot block
-#			of a diskette, which is /mdec/fluboot;
-#			fdboot.bin, the first sector of a diskette
-#			with no file system
-#	make install	/boot, /mdec/wduboot and /mdec/fluboot are those
-#	make clean	nothing made is left
-#
-# as -b writes the bytes alone, and ld -b /boot's code and data as one
-# segment and nothing else.
-
-S=	/usr/src
-CRT=	$S/lib/libc/i286/crt
-""" + macros + """
-all:	fdboot.bin mbr.bin hdboot.bin flboot.bin boot
-
-fdboot.bin: fdboot.s
-	as -b -o fdboot.bin fdboot.s
-
-mbr.bin: mbr.s
-	as -b -o mbr.bin mbr.s
-
-hdboot.bin: hdboot.s
-	as -b -o hdboot.bin hdboot.s
-
-flboot.bin: flboot.s
-	as -b -o flboot.bin flboot.s
-
-srt0.o:	srt0.s
-	as -ms -I$(CRT)/ -o srt0.o srt0.s
-
-i4m.o:	$(CRT)/i4m.s
-	as -ms -I$(CRT)/ -o i4m.o $(CRT)/i4m.s
-
-i4d.o:	$(CRT)/i4d.s
-	as -ms -I$(CRT)/ -o i4d.o $(CRT)/i4d.s
-
-boot.o:	boot.c hdrs
-	cc -c -O -ms boot.c
-
-""" + hdrs + """
-# srt0.o first: the program starts at its first byte.  What /boot may
-# be with the memory its file does not hold is %d bytes: it is loaded
-# at 4K and its stack is at the top of the first 64K (srt0.s).
-boot:	srt0.o boot.o i4m.o i4d.o
-	ld -b -M -o boot srt0.o boot.o i4m.o i4d.o > boot.map
-	@awk '/^image: / && $$2 > %d { print "boot: " $$2 " bytes in memory; the limit is %d"; exit 1 }' boot.map || { rm -f boot; exit 1; }
-
-install: boot hdboot.bin flboot.bin
-	cp boot /boot
-	cp hdboot.bin /mdec/wduboot
-	cp flboot.bin /mdec/fluboot
-
-clean:
-	rm -f *.o *.bin boot boot.map hdrs
-""") % (bootmax, bootmax, bootmax)
 
 
 # Where a model's library and its start-up code are on the system.
@@ -675,7 +521,7 @@ clean:
 # libraries are made from: each directory with the files in it, and not
 # what is in directories below.
 DIRS = ["sys/h", "sys/i286", "sys/i286at", "sys/sys", "sys/net",
-        "sys/netinet", "sys/i286if", "sys/PC", "sys/i286stand"]
+        "sys/netinet", "sys/i286if", "sys/conf", "sys/PC", "sys/i286stand"]
 # Directories that it is given the headers of and nothing else: the
 # kernel's sources name some of the PDP-11's.
 HEADERS = ["sys/pdp", "sys/pdpif", "sys/pdpuba"]
@@ -734,7 +580,7 @@ def main():
     if len(sys.argv) != 2:
         sys.exit(__doc__)
     out = sys.argv[1]
-    made = {"sys/PC/Makefile": kernel(), "sys/i286stand/Makefile": stand()}
+    made = {}
     dirs = set(DIRS)
     empty = ["i286/bin", "i286/o"]
     text, used, gendirs, progs, left, installed, files, datadirs, \

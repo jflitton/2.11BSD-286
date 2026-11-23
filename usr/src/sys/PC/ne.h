@@ -1,1 +1,1 @@
-#define	NNE	1
+#define NNE	1

@@ -4,11 +4,11 @@ built, for tests/make/run.sh.
 
 usage: stage.py TOP OUT
 
-OUT/root/usr/src is a copy of the tree's usr/src but for the kernel
-(sys): a copy and not links, since a Makefile writes files the tree has
-(a version's number, a header that a program of its own makes).  sys
-is the tree's, which the C library's Makefile reads the kernel's table
-of system calls from.  The directories that a library's Makefile puts
+OUT/root/usr/src is a copy of the tree's usr/src: a copy and not
+links, since a Makefile writes files the tree has (a version's number,
+a header that a program of its own makes), and the kernel's and /boot's
+make what they make where they are.  The directories that a library's
+Makefile puts
 each model's objects in, m and l, are made, as tools/srcmk.py gives
 them to the system.  A GNUmakefile, which is how a directory is made
 where the system is built and which this machine's make would read
@@ -30,7 +30,6 @@ is: the commands that are given such a name put it in OUT/dest
 """
 import os
 import re
-import shutil
 import subprocess
 import sys
 
@@ -64,8 +63,6 @@ def makefile(text, library):
 
 os.makedirs(os.path.dirname(usrsrc), exist_ok=True)
 subprocess.check_call(["cp", "-cR", src + "/", usrsrc])
-shutil.rmtree(os.path.join(usrsrc, "sys"))
-os.symlink(os.path.join(src, "sys"), os.path.join(usrsrc, "sys"))
 for dp, dn, fn in os.walk(usrsrc):
     rel = os.path.relpath(dp, usrsrc)
     for d in srcmk.models(rel):

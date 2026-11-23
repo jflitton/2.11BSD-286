@@ -6,16 +6,12 @@
 #
 #	@(#)newvers.sh	1.7 (2.11BSD) 2025/12/26
 #
-if [ ! -r version ]; then echo 0 > version; fi
-touch version
-echo `cat version` ${USER-root} `pwd` `hostname` `date` | \
-awk ' {
-	version = $1 + 1; user = $2; host = $4; dir = $3; \
-	date = $5 " " $6 " " $7 " " $8 " " $9 " " $10 " " $11;
-}\
-END {
-	printf "char version[] = \"2.11 BSD UNIX #%d: %s\\n", \
-		version, date; \
-	printf "    %s@%s:%s\\n\";\n", user, host, dir;
-	printf "%d\n", version > "version";
-}' > vers.c
+# The 286's: the kernel says what it is and the day it was made, or what
+# DATE is in the environment; the same sources made on the same day, or
+# with the same DATE, are the same kernel wherever they are made.
+#
+if [ ! "$DATE" ]; then
+	DATE=`date | awk '{ m = index("JanFebMarAprMayJunJulAugSepOctNovDec", $2)
+	    printf "%s-%02d-%02d", $6, (m + 2) / 3, $3 }'`
+fi
+echo "char version[] = \"2.11 BSD UNIX for the 286 ($DATE)\";" > vers.c

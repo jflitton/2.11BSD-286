@@ -18,17 +18,51 @@ int	nulldev();
 int	nodev();
 int	rawrw();
 
+#include "rd.h"
+#if NRD > 0
 int	rdopen(), rdstrategy(), rdroot();
 daddr_t	rdsize();
+#else
+#define	rdopen		nodev
+#define	rdroot		nulldev
+#define	rdstrategy	nodev
+#define	rdsize		NULL
+#endif
 
+#include "wd.h"
+#if NWD > 0
 int	wdopen(), wdclose(), wdstrategy(), wdioctl();
 daddr_t	wdsize();
+#else
+#define	wdopen		nodev
+#define	wdclose		nodev
+#define	wdstrategy	nodev
+#define	wdioctl		nodev
+#define	wdsize		NULL
+#endif
 
+#include "sd.h"
+#if NSD > 0
 int	sdopen(), sdclose(), sdstrategy(), sdioctl();
 daddr_t	sdsize();
+#else
+#define	sdopen		nodev
+#define	sdclose		nodev
+#define	sdstrategy	nodev
+#define	sdioctl		nodev
+#define	sdsize		NULL
+#endif
 
+#include "fl.h"
+#if NFL > 0
 int	flopen(), flstrategy(), flioctl();
 daddr_t	flsize();
+#else
+#define	flopen		nodev
+#define	flstrategy	nodev
+#define	flioctl		nodev
+#define	flsize		NULL
+#endif
 
 /*
  * Where the root file system is when the boot program brought no RAM
@@ -55,8 +89,18 @@ int	nblkdev = sizeof(bdevsw) / sizeof(bdevsw[0]);
 int	cnopen(), cnclose(), cnread(), cnwrite(), cnioctl();
 extern struct tty cons[];
 
+#include "com.h"
+#if NCOM > 0
 int	comopen(), comclose(), comread(), comwrite(), comioctl();
 extern struct tty com_tty[];
+#else
+#define	comopen		nodev
+#define	comclose	nodev
+#define	comread		nodev
+#define	comwrite	nodev
+#define	comioctl	nodev
+#define	com_tty		0
+#endif
 
 int	mmrw();
 #define	mmselect	seltrue

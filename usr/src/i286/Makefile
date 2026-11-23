@@ -1389,7 +1389,9 @@ STRIP=	yes
 # usr/src/sys/i286stand, in obj/nPC and obj/nstand) or with TOOLS=cross the
 # cross compiler's (obj/PC, obj/stand), unless KERNEL names another
 # kernel or STAND another directory.  root.proto has them from
-# kernel.proto, which is written again only when it changes.
+# kernel.proto, which is written again only when it changes, with the
+# modes their Makefiles' install gives: the kernel's 744, root's and
+# kmem's, /boot 744, and a boot block what cp leaves it, 644.
 KERNEL=	$(TOP)/obj/$(if $(CCOM),nPC,PC)/unix
 STAND=	$(TOP)/obj/$(if $(CCOM),nstand,stand)
 
@@ -1588,10 +1590,10 @@ $(R)/root.fs: root.proto $(wildcard etc/* root/* skel/*) adventure/Makefile \
 
 $(R)/kernel.proto: FORCE
 	@mkdir -p $(R)
-	@{ echo "f /unix 644 $(KERNEL)"; echo "f /boot 644 $(STAND)/boot"; \
+	@{ echo "f /unix 744:0.2 $(KERNEL)"; echo "f /boot 744 $(STAND)/boot"; \
 	    echo "d /mdec 755"; \
-	    echo "f /mdec/wduboot 444 $(STAND)/hdboot.bin"; \
-	    echo "f /mdec/fluboot 444 $(STAND)/flboot.bin"; } > $@.new
+	    echo "f /mdec/wduboot 644 $(STAND)/hdboot.bin"; \
+	    echo "f /mdec/fluboot 644 $(STAND)/flboot.bin"; } > $@.new
 	@if cmp -s $@.new $@; then rm $@.new; else mv $@.new $@; fi
 
 # What the system makes of all that itself, in /usr/src/i286, with its

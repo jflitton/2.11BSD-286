@@ -8,6 +8,8 @@
  * A minor device number is the drive in bits 3 and up and the partition
  * in the low three.
  */
+#include "sd.h"
+#if NSD > 0
 #include "param.h"
 #include "systm.h"
 #include "user.h"
@@ -19,7 +21,6 @@
 #include "ahareg.h"
 #include "dk.h"
 
-#define	NSD		4
 #define	SDTRIES		4	/* times a transfer is tried */
 
 struct sd {
@@ -457,3 +458,4 @@ bad:
 done:
 	iodone(bp);
 }
+#endif /* NSD */

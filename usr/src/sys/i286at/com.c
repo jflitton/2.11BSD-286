@@ -9,6 +9,8 @@
  * interrupts, so that they get out whatever state it is in; cons.c
  * prints them on the screen as well.
  */
+#include "com.h"
+#if NCOM > 0
 #include "param.h"
 #include "conf.h"
 #include "user.h"
@@ -16,8 +18,6 @@
 #include "ioctl.h"
 #include "tty.h"
 #include "systm.h"
-
-#define	NCOM	2
 
 #define	DATA	0		/* divisor, low byte, when DLAB is set */
 #define	IER	1		/* divisor, high byte, when DLAB is set */
@@ -38,8 +38,8 @@
 
 #define	CLOCK		115200L	/* the ports' clock, over 16 */
 
-static	int comport[NCOM] = { 0x3F8, 0x2F8 };
-static	char comirq[NCOM] = { 4, 3 };
+static	int comport[] = { 0x3F8, 0x2F8 };
+static	char comirq[] = { 4, 3 };
 static	char compresent[NCOM];
 static	char comattached[NCOM];
 static	char comcurspeed[NCOM];	/* what the port is set to, B0 if not */
@@ -268,3 +268,4 @@ comcnputc(c)
 			break;
 	outb(comport[0] + DATA, c);
 }
+#endif /* NCOM */

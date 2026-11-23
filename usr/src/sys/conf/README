@@ -1,5 +1,18 @@
 		README 1.1 (2.11BSD) 2025/12/18
 
+	The 286's: PC is the configuration of the kernel the system is
+built with, and ../PC what "./config PC" writes from it.  config,
+param.c and newvers.sh are the 286's, and so are the Makefiles it
+writes from: Make.nsunix, Make.sys and Make.net, changed for it, and
+Make.i286, Make.i286at and Make.i286net, which are its Make.pdp,
+Make.pdpuba and Make.pdpnet.  Make.host is put in the machine's
+directory as GNUmakefile, which makes the same kernel with GNU make
+where the system is built.  A device whose count is 0 has no driver
+in the kernel.  The rest, GENERIC and EXAMPLE, the PDP-11's templates,
+the spl scripts, boot, ioconf.c, checksys.c, netbind.c and
+:comm-to-bss, is the PDP-11's as upstream has it, and config refuses
+a PDP-11's file; what follows is of the PDP-11.
+
 	This directory contains prototypes of the files necessary to remaking
 the kernel.  The kernel is not compiled or loaded in this directory, but in
 individual directories per machine.  To set up a directory for a new machine,

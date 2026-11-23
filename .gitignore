@@ -13,3 +13,6 @@ __pycache__/
 
 # The compiler writes its messages to NAME.err in the directory it runs in.
 *.err
+
+# What config keeps of a kernel's Makefile when it writes it again.
+/usr/src/sys/*/Makefile.old

@@ -237,7 +237,7 @@ A process's user structure and kernel stack are one piece of memory,
 growing down toward it from the top. While the process runs, that piece
 is in the kernel's data segment, in a *slot*, and `u` is `*uptr`, with
 `uptr` pointing at it. The kernel has a few slots (6 as configured,
-`sys/PC/param.c`). The first is the swapper's alone.
+`NSLOT` in `sys/conf/PC`). The first is the swapper's alone.
 
 A kernel stack is full of pointers into itself and into the user
 structure, so a process can only ever run in the slot it was given when

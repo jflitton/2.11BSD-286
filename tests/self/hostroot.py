@@ -5,7 +5,9 @@ there: for tests/self with HOST set (tests/self/host.sh).
 usage: hostroot.py TOP SRC ROOT
 
 SRC is what tools/srcmk.py wrote.  ROOT/usr/src gets the tree SRC/proto
-describes, each file a link to the one it names; ROOT/usr/include is
+describes, each file a link to the one it names, but GNUmakefile, which
+is for where the system is built and which this machine's make would
+read before the system's Makefile beside it; ROOT/usr/include is
 the tree's; ROOT/lib and ROOT/usr/lib have the libraries of obj/nlib,
 the small model's in them and the others' in m and l, as the system
 has them.  The Makefiles srcmk.py wrote are copied, with ROOT before
@@ -29,6 +31,8 @@ for line in open(os.path.join(src, "proto")):
         os.makedirs(path, exist_ok=True)
     elif w[0] == "l":
         os.symlink(w[2], path)
+    elif os.path.basename(path) == "GNUmakefile":
+        continue
     elif w[3].startswith(src + os.sep) and os.path.basename(path) == "Makefile":
         text = open(w[3]).read()
         open(path, "w").write(ABS.sub(lambda m: root + m.group(0), text))
