@@ -1235,15 +1235,16 @@ pages, and was seen to of `printf(3)` and `tcsh`'s too. Each page's
 footer says `Printed` and the date it was formatted, as upstream's do:
 here, the day it was built.
 
-`usr/src/i286/man.list` says which pages go on the system. Of sections
-1 and 8, those of the programs on it, wherever their sources keep them,
-and the introductions; of 2, 3, 5 and 7, the kernel's calls, the
-libraries, the files and the rest, what upstream's Makefile of each
-formats, with the pages of those kinds that `cron` and `tcpd` keep
-with them; of 4, those not of the PDP-11's devices: `tty`, `pty`,
-`null`, and the network's; of 6, those of the games on it
-([games](#games)). 3f, Fortran's library, has nothing on the system to
-go with it. That is 621 pages, with the 317 other names upstream's
+The pages are those `usr/src/man`'s Makefiles format, and those the
+programs' Makefiles format with them, as on 2.11BSD; `usr/src/i286/man.list`
+names both for the other build. `man`'s lists are upstream's less what
+the system has not: of sections 1 and 8, the pages of the programs on
+it, and the introductions; of 2, 3, 5 and 7, the kernel's calls, the
+libraries, the files and the rest, all of upstream's, with the pages of
+those kinds that `cron` and `tcpd` keep with them; of 4, those not of
+the PDP-11's devices: `tty`, `pty`, `null`, `fl`, and the network's; of
+6, those of the games on it ([games](#games)); and no 3f, Fortran's
+library. That is 621 pages, with the 317 other names upstream's
 Makefiles give them by `ln`, `egrep` for `grep` and `fprintf` for
 `printf`, and 2.4 MB. A page its Makefile installs under another name,
 as `phantasia`'s `phant.nr` is `phantasia.0`, has that name after its
@@ -2170,9 +2171,9 @@ The manual has `cc`, `cpp`, `ar`, `ranlib`, `nm`, `size`, `lorder`,
 `mkdep`, `calendar` and `learn` as upstream wrote them, `cc` with a
 paragraph for `-ms` and `-mm`. `as(1)`, `ld(1)` and `a.out(5)` are
 written for the 286 (`bin/as/i286`, `bin/ld/i286`), upstream's being
-of the PDP-11's assembler, its overlays and its format;
-`usr/src/i286/man.list` names the page that takes the place of
-upstream's `a.out(5)`.
+of the PDP-11's assembler, its overlays and its format: `bin/as`'s and
+`bin/ld`'s Makefiles install them, `a.out(5)` with `ld` as `ar(5)` is
+with `ar`, and `man`'s have not upstream's.
 
 ## The root file system
 

@@ -16,8 +16,9 @@
 #
 #	@(#)Makefile	5.4 (2.11BSD) 2025/11/25
 #
-DIRS=	man1 man2 man3 man3f man4 man5 man6 man7 man8
-CDIRS=	cat1 cat2 cat3 cat3f cat4 cat5 cat6 cat7 cat8
+# The 286's: no man3f, Fortran's library, which it has no Fortran for.
+DIRS=	man1 man2 man3 man4 man5 man6 man7 man8
+CDIRS=	cat1 cat2 cat3 cat4 cat5 cat6 cat7 cat8
 LCDIRS=	cat1 cat2 cat3 cat4 cat5 cat6 cat7 cat8
 
 all: scriptinstall FRC

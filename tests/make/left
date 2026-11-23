@@ -4,15 +4,18 @@
 /bin/awk			# proc, which writes proctab.c
 /bin/tcsh			# mkprstr, which takes its messages out
 /etc/tcsh6.00strgs
+/usr/man/cat1/tcsh.0
 /usr/libexec/spell		# installed with the lists spellin makes
 /usr/bin/spellin
 /usr/bin/spellout
 /usr/games/lib/adventure/a.out	# its first run, which reads the game in
 /usr/games/battlestar		# its own mkstr
 /usr/games/lib/battle_strings
+/usr/man/cat6/battlestar.0
 /usr/games/fortune		# installed with fortunes.dat, strfile's
 /usr/games/lib/fortunes.dat
 /usr/games/hack			# makedefs, and crypt
+/usr/man/cat6/hack.0		# installed with the game
 /usr/games/lib/cards.pck	# initdeck
 /usr/games/lib/bogdict		# boggle's comp
 /usr/games/lib/crib.instr	# nroff, which stops on it here
@@ -26,3 +29,6 @@
 /usr/games/lib/warp/smap.6	# warp's sm
 /usr/games/lib/warp/smap.7	# warp's sm
 /usr/share/term/tab*		# each table's C, compiled with mktab and run
+/usr/man/whatis			# of the pages there, those installed with the
+				# programs above among them; and cpp's, of lib,
+				# not made here, and ve's, made by none

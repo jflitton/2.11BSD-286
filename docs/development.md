@@ -228,7 +228,7 @@ driver talks to.
 | `tools/initdeck.py` | packs `monop`'s cards, as `initdeck` does |
 | `tools/setfiles.py` | makes `phantasia`'s files of characters and of the grail, as its `setfiles` does when it is installed |
 | `tools/mkpasswd.py` | makes `/etc/passwd` and the password database from `master.passwd`, as `mkpasswd -p` does |
-| `tools/mkman.py` | formats the manual's pages for `/usr/man` with the host's build of `nroff`, with upstream's links among them and the `whatis` database |
+| `tools/mkman.py` | formats the manual's pages for `/usr/man` with the host's build of `nroff` (and `eqn`, where a Makefile has it), with upstream's links among them and the `whatis` database |
 | `tools/ne2aout.py` | turns the linker's output into the system's executable format; `--dump` prints one |
 | `tools/mkfd.py` | makes a bootable diskette image from an executable, with a file system image for the kernel's RAM disk if wanted |
 | `tools/mkfs.py` | makes a file system image from a list of files, with their modes, owners and groups |
@@ -284,15 +284,15 @@ tests/ccom/self.sh      # the system making its compiler: cc, cpp, the
                         # from their sources on the 286, twice, the
                         # second time with the ones it had just made,
                         # each to be what is made of it here
-tests/self/run.sh       # the system making itself: the kernel, /boot,
-                        # and its databases, tables and manual, from
-                        # /usr/src on the 286, each to be what is made
-                        # of it here; installed, and started again
-                        # (docs/self-hosting.md)
-tests/self/progs.sh     # the system making its libraries and programs
-                        # from the Makefiles of their own directories,
-                        # upstream's, and installing them: the root
-                        # to be after it as it was before
+tests/self/run.sh       # the system making itself: the kernel and
+                        # /boot, from /usr/src on the 286, each to be
+                        # what is made of it here; installed, and
+                        # started again (docs/self-hosting.md)
+tests/self/progs.sh     # the system making its libraries, programs,
+                        # share's files and manual from the Makefiles
+                        # of their own directories, upstream's, and
+                        # installing them: the root to be after it as
+                        # it was before
 tests/make/run.sh       # those Makefiles run here, with no machine:
                         # what `make install` puts in the root is to be
                         # what the root file system has, and whose

@@ -1,7 +1,8 @@
 #!/bin/sh
-# Test that the system makes its libraries and its programs from the
-# Makefiles of /usr/src, upstream's in each directory, and installs
-# them: boot it with its sources, and in each directory have it
+# Test that the system makes its libraries, its programs, what they read
+# and its manual from the Makefiles of /usr/src, upstream's in each
+# directory, and installs them: boot it with its sources, and in each
+# directory have it
 #
 #	make
 #	make install
@@ -13,7 +14,8 @@
 # its members, and all else as it was, nothing gone and nothing new
 # (tests/self/progs.py); and each of the root's programs whose sources
 # are in one of the directories is to have been installed, and each of
-# its libraries, if the directory is theirs.  tests/make runs the
+# its libraries, if the directory is theirs, and of its pages of the
+# manual those whose sources are in one.  tests/make runs the
 # same Makefiles where the system is built, and booting nothing: this
 # says the system's make and shell read them as that machine's do, and
 # that the tools do on the 286 what they do there.
@@ -21,19 +23,20 @@
 #	sh tests/self/progs.sh [DIR ...]
 #
 # DIR is a directory of usr/src with a Makefile: lib/libc, bin,
-# usr.bin/yacc.  Without one it is the C library, the other libraries
-# (usr.lib) and every directory of programs, in that order, as the
-# programs are linked with the libraries; which is more than seven hours
-# of the 286's time.  The machine has the faster processor unless CPU=286
+# usr.bin/yacc, share, man.  Without one it is the C library, the other
+# libraries (usr.lib), share, every directory of programs and man, in
+# that order, as the programs are linked with the libraries and upstream's
+# Makefile in /usr/src has the others; which is more than ten hours of
+# the 286's time.  The machine has the faster processor unless CPU=286
 # is in the environment, as tests/self/changed.sh has it.  With ROOTFS
 # set, that root file system is the one booted, and none is made; with
 # SHARE, the directory in obj/tests has that after its name
 # (tests/self/split.sh).
 #
-# Of a page of the manual the contents are not compared, since it has
-# the day it was formatted in it, nor of the files of tests/make/differs,
-# which the two builds do not make the same way; nor is what the system
-# changes by running (tests/self/running).
+# A page of the manual is compared without the day it was formatted,
+# which it says; the contents of the files of tests/make/differs, which
+# the two builds do not make the same way, are not compared, nor is what
+# the system changes by running (tests/self/running).
 #
 # Run from the top of the repository after `. tools/env.sh`.
 set -e
@@ -44,7 +47,8 @@ fi
 top=$(cd "$(dirname "$0")/../.." && pwd)
 . "$top/tests/harness/system.sh"
 export CPU=${CPU:-486}
-dirs=${*:-"lib/libc usr.lib bin sbin libexec ucb usr.bin usr.sbin games new"}
+dirs=${*:-"lib/libc usr.lib share bin sbin libexec ucb usr.bin usr.sbin games
+    new man"}
 name=self$case-progs${SHARE:+-$SHARE}
 out=$top/obj/tests/$name
 mkdir -p "$out"

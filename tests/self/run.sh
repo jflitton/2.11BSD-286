@@ -2,20 +2,13 @@
 # Test that the system makes itself: boot it from a hard disk with its
 # sources on a file system of their own, /usr/src, and have its make,
 # compiler, assembler and linker make there: /boot and the boot blocks,
-# from sys/i286stand's Makefile; the kernel, from the Makefile that its
-# own config writes in sys/PC from sys/conf/PC, with the rest of what it
-# writes there; and from the Makefile tools/srcmk.py writes, what it
-# has that is not a program and is made: the databases and tables of
-# /etc and /usr/share, spell's lists, the time zones, the games' files
-# and the manual as it is read, which are installed.  Each object, the
-# kernel and /boot, what config writes, and each of those files, is to
-# be to the byte what the same sources make where the system is built,
-# with the system's own tools as they are compiled for that machine
-# (obj/nstand, obj/nPC, obj/nbin), which the disk has on another file
-# system to compare with.  A page of the manual has the day it was
-# formatted at its foot, and is compared without it if that is all that
-# differs.  And each of the files, as installed, is to be what the
-# system made.
+# from sys/i286stand's Makefile; and the kernel, from the Makefile that
+# its own config writes in sys/PC from sys/conf/PC, with the rest of
+# what it writes there.  Each object, the kernel and /boot, and what
+# config writes, is to be to the byte what the same sources make where
+# the system is built, with the system's own tools as they are compiled
+# for that machine (obj/nstand, obj/nPC), which the disk has on another
+# file system to compare with.
 #
 # The kernel is then made once more, to say of itself that it was made
 # there, and installed with /boot (make; make install); the machine is
@@ -23,12 +16,11 @@
 # with the one it was built on beside it as /unix.old, and on the
 # programs it made: init, getty, login, the shell.
 #
-# PARTS is what is made, any of "stand kernel data", and by default all
-# of it.  With DATA, the files that are not programs are those of the
-# kinds it names, of "etc roff learn spell zones games man", and none is
-# installed.  The libraries and the programs are not made here any
-# more: the system makes those from the Makefiles of their own
-# directories, upstream's, and tests/self/progs.sh has it do that.
+# PARTS is what is made, either or both of "stand kernel", and by
+# default both.  The libraries, the programs, what is not a program and
+# the manual are not made here: the system makes those from the
+# Makefiles of their own directories, upstream's, share's and man's
+# among them, and tests/self/progs.sh has it do that.
 #
 # TOOLS, TOOLS_KERNEL, TOOLS_PROGRAMS and TOOLS_BOOT are as in
 # tests/system (tests/harness/system.sh) and say whose work the system
@@ -42,9 +34,8 @@
 # (tests/self/host.sh), and what they make compared the same way.  That
 # says the Makefiles name the right files, flags and order; that the
 # tools do on the 286 what they do here is the machine's to say, and so
-# is config's work: it is not run here.
-# PARTS is then of "stand kernel", both by default; for the libraries
-# and the programs it is tests/make/run.sh.
+# is config's work: it is not run here.  For the libraries, the
+# programs, share and the manual it is tests/make/run.sh.
 #
 # With SHARE set, the directory in obj/tests has that after its name:
 # tests/self/split.sh boots two or three at once, each with a share.
@@ -71,31 +62,20 @@ fi
 # What is to be made, as it is made here.
 mk -C "$src/sys/PC" TOOLS=native
 mk -C "$src/sys/i286stand" TOOLS=native
-mk -C "$src/i286" syslibs
-mk -C "$src/i286" TOOLS=native all
 npc=$top/obj/nPC
 nstand=$top/obj/nstand
 
-# What of it is made, of: stand, /boot and the boot blocks; kernel;
-# data, what is not a program.
-if [ -n "$HOST" ]; then
-    PARTS=${PARTS:-"stand kernel"}
-    case " $PARTS " in
-    *" data "*)
-        echo "HOST: data runs programs it makes, which are the 286's" >&2
-        exit 2 ;;
-    esac
-fi
-PARTS=${PARTS:-"stand kernel data"}
+# What of it is made, of: stand, /boot and the boot blocks; kernel.
+PARTS=${PARTS:-"stand kernel"}
 for p in $PARTS; do
     case $p in
-    stand|kernel|data) ;;
-    libc|libs|progs)
-        echo "PARTS: the libraries and the programs are" \
-            "tests/self/progs.sh's, and tests/make/run.sh's where the" \
-            "system is built" >&2
+    stand|kernel) ;;
+    libc|libs|progs|data)
+        echo "PARTS: the libraries, the programs, share and the manual" \
+            "are tests/self/progs.sh's, and tests/make/run.sh's where" \
+            "the system is built" >&2
         exit 2 ;;
-    *)  echo "PARTS is of stand, kernel and data, not $p" >&2
+    *)  echo "PARTS is of stand and kernel, not $p" >&2
         exit 2 ;;
     esac
 done
@@ -145,98 +125,14 @@ if has kernel; then
         tr ' ' '\n' | sed "s|^|$npc/|") "$npc/unix" "$npc"/config/PC/*
     want sys/h "$npc/config/h/localopts.h"
 fi
-if has progs; then
-    for p in $ONLY; do
-        grep -qx "$p" fs/src/programs || {
-            echo "ONLY: $p is not a program the system makes" >&2
-            exit 2
-        }
-    done
-    want i286/bin $(echo ${ONLY:-$(cat fs/src/programs)} | tr ' ' '\n' |
-        sed "s|^|$top/obj/nbin/|")
-    # The files of ex's messages and tcsh's, which mkstr writes, and
-    # of battlestar's, which its own does.
-    case " ${ONLY:-ex} " in *" ex "*)
-        want i286/ex "$top/obj/ex/exstrings" ;;
-    esac
-    case " ${ONLY:-tcsh} " in *" tcsh "*)
-        want i286/tcsh "$top/obj/tcsh/tcsh6.00strgs" ;;
-    esac
-    case " ${ONLY:-battlestar} " in *" battlestar "*)
-        want i286/games/battlestar \
-            "$top/obj/games/battlestar/battle_strings" ;;
-    esac
-    if [ -z "$ONLY" ]; then
-        # The programs as the system has them, and what compares them.
-        echo "d /rootbin 755" >> want.proto
-        echo "n=0" > fs/installed.sh
-        while read p where; do
-            grep -q "^f /rootbin/$p " want.proto ||
-                echo "f /rootbin/$p 644 $top/obj/root/bin/$p" >> want.proto
-            echo "if cmp -s /mnt/rootbin/$p '$where'; then n=\`expr \$n + 1\`;" \
-                "else echo 'DIFFERS $where'; fi" >> fs/installed.sh
-        done < fs/src/installed
-        # And the files the programs read that are made with them.
-        awk '$1 == "progs" { print "if cmp -s /usr/src/i286/" $2 " " $3 \
-            "; then n=`expr $n + 1`; else echo \"DIFFERS " $3 "\"; fi" }' \
-            fs/src/datainstalled >> fs/installed.sh
-        echo 'echo "same installed $n"' >> fs/installed.sh
-        echo "f /installed.sh 644 fs/installed.sh" >> want.proto
-        ninst=$(($(wc -l < fs/src/installed) +
-            $(grep -c '^progs ' fs/src/datainstalled)))
-    fi
-fi
-# What is not a program: each file as it is made here, in the directory
-# of obj it is in here, which is the one of /usr/src/i286 it is made in
-# there; and, when all of it is made, what compares each as installed
-# with what the system made.
-datadirs=
-if has data; then
-    kinds=$(awk '{ print $1 }' fs/src/data | uniq)
-    for k in $DATA; do
-        echo "$kinds" | grep -qx "$k" || {
-            echo "DATA is of" $kinds, "not $k" >&2
-            exit 2
-        }
-    done
-    awk -v kinds=" ${DATA:-$(echo $kinds)} " 'index(kinds, " " $1 " ") {
-        print $2 }' fs/src/data > data.files
-    datadirs=$(sed 's|/[^/]*$||' data.files | sort -u)
-    for d in $datadirs; do
-        want i286/$d
-    done
-    sed "s|.*|f /i286/& 644 $top/obj/&|" data.files >> want.proto
-    if [ -z "$DATA" ]; then
-        {
-            echo "n=0"
-            awk '$1 != "progs" { print "if cmp -s /usr/src/i286/" $2 " \047" \
-                $3 "\047; then n=`expr $n + 1`; else echo \"DIFFERS " $3 \
-                "\"; fi" }' fs/src/datainstalled
-            echo 'echo "same data-installed $n"'
-        } > fs/datainstalled.sh
-        echo "f /datainstalled.sh 644 fs/datainstalled.sh" >> want.proto
-        ninst=$((${ninst:-0} + $(grep -vc '^progs ' fs/src/datainstalled)))
-    fi
-fi
-n=$(awk '$1 == "f" && $2 !~ /^\/rootbin\// && $2 !~ /installed.sh$/ { n++ }
-    END { print n + 0 }' want.proto)
-n=$((n + ${ninst:-0}))
-# A page of the manual says at its foot the day it was formatted: two
-# that differ are compared again without those lines.
+n=$(awk '$1 == "f" { n++ } END { print n + 0 }' want.proto)
 cat > fs/check.sh <<'EOF'
 n=0
-t=/tmp/chk$$
-d='s,Printed [0-9]*/[0-9]*/[0-9]*,Printed,'
 for f in `ls /mnt/$1`
 do
 	if test -f /mnt/$1/$f
 	then
 		if cmp -s /mnt/$1/$f /usr/src/$1/$f
-		then
-			n=`expr $n + 1`
-		elif grep 'Printed [0-9]' /mnt/$1/$f >/dev/null &&
-		    sed "$d" /mnt/$1/$f >$t &&
-		    sed "$d" /usr/src/$1/$f | cmp -s - $t
 		then
 			n=`expr $n + 1`
 		else
@@ -259,48 +155,6 @@ EOF
     if has kernel; then
         echo "cd /usr/src/sys/conf && ./config PC && cd ../PC && make -k"
         echo "sh /mnt/check.sh sys/PC; sh /mnt/check.sh sys/h"
-    fi
-    if has progs; then
-        targets=progs
-        if [ -n "$ONLY" ]; then
-            targets=$(echo $ONLY | tr ' ' '\n' | sed 's|^|bin/|' | tr '\n' ' ')
-        fi
-        echo "cd /usr/src/i286 && make -k $targets"
-        echo "sh /mnt/check.sh i286/ex; sh /mnt/check.sh i286/tcsh"
-        case " ${ONLY:-battlestar} " in *" battlestar "*)
-            echo "sh /mnt/check.sh i286/games/battlestar" ;;
-        esac
-        echo "sh /mnt/check.sh i286/bin > /tmp/checked"
-        echo "cat /tmp/checked"
-        if [ -z "$ONLY" ]; then
-            echo "if grep DIFFERS /tmp/checked >/dev/null"
-            echo "then"
-            echo "	echo 'self: programs not installed'"
-            echo "else"
-            echo "	make install-progs && sh /mnt/installed.sh"
-            echo "fi"
-        fi
-    fi
-    if has data; then
-        echo "date"
-        targets=data
-        if [ -n "$DATA" ]; then
-            targets=$(echo $DATA | tr ' ' '\n' | sed 's|^|data-|' | tr '\n' ' ')
-        fi
-        echo "cd /usr/src/i286 && make -k $targets"
-        echo "for d in" $datadirs
-        echo "do"
-        echo "	sh /mnt/check.sh i286/\$d"
-        echo "done > /tmp/checked"
-        echo "cat /tmp/checked"
-        if [ -z "$DATA" ]; then
-            echo "if grep DIFFERS /tmp/checked >/dev/null"
-            echo "then"
-            echo "	echo 'self: data not installed'"
-            echo "else"
-            echo "	make install-data && sh /mnt/datainstalled.sh"
-            echo "fi"
-        fi
     fi
     echo "date"
     echo 'echo "self: made"'

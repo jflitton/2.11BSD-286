@@ -11,7 +11,9 @@ nroff built for the machine the system is built on, which is run in its
 own directory: it is built to look for its macros in tmac/ there, and
 the copies of them there say tmac/ where the system's say
 /usr/share/tmac/ (usr/src/i286/Makefile).  tests/programs checks that
-the system's nroff makes the same pages.
+the system's nroff makes the same pages.  A page that the Makefile
+beside it has eqn read first, `eqn eqn.1 | /usr/man/manroff`, is read
+by the eqn beside NROFF first, the system's built for the same machine.
 
 LIST says which pages go on the system: a line names a directory of
 /usr/man (or one beside it, ../new/man/cat1, whose pages are in a
@@ -210,13 +212,30 @@ def others(wanted):
 def tabs(path):
     """What manroff gives nroff besides -man: -h, tabs where it can
     space with them; and nothing where the Makefile beside PATH formats
-    it with `nroff -man` and not manroff, as bin/ar's does."""
-    makefile = os.path.join(os.path.dirname(path), "Makefile")
-    if os.path.exists(makefile) and re.search(
-            r"nroff -man\s+" + re.escape(os.path.basename(path)) + r"\s",
-            open(makefile, encoding="latin-1").read()):
+    it with `nroff -man` and not manroff, as bin/ar's does, or has a
+    script do that, as cron's has putman.sh."""
+    d = os.path.dirname(path)
+    makefile = os.path.join(d, "Makefile")
+    if not os.path.exists(makefile):
+        return ["-h"]
+    text = open(makefile, encoding="latin-1").read()
+    name = re.escape(os.path.basename(path))
+    if re.search(r"nroff -man\s+" + name + r"\s", text):
         return []
+    for script in re.findall(r"\bsh\s+(\S+)\s+" + name + r"\s", text):
+        script = os.path.join(d, script)
+        if os.path.exists(script) and re.search(
+                r"\bnroff -man \$", open(script, encoding="latin-1").read()):
+            return []
     return ["-h"]
+
+
+def eqn(path):
+    """Whether the Makefile beside PATH has eqn read it before nroff."""
+    makefile = os.path.join(os.path.dirname(path), "Makefile")
+    return os.path.exists(makefile) and re.search(
+        r"^\teqn\s+" + re.escape(os.path.basename(path)) + r"\s*\|",
+        open(makefile, encoding="latin-1").read(), re.M) is not None
 
 
 def main():
@@ -233,8 +252,15 @@ def main():
     made = {}
     for d, name, path in wanted:
         made[d, name] = path
-        r = subprocess.run([nroff, "-man"] + tabs(path),
-                           input=source(path, top),
+        text = source(path, top)
+        if eqn(path):
+            r = subprocess.run([os.path.join(os.path.dirname(nroff), "eqn")],
+                               input=text, capture_output=True)
+            if r.returncode or r.stderr:
+                fail("eqn %s: %s" % (path, r.stderr.decode("latin-1").strip()
+                                     or "exits %d" % r.returncode))
+            text = r.stdout
+        r = subprocess.run([nroff, "-man"] + tabs(path), input=text,
                            capture_output=True, cwd=os.path.dirname(nroff))
         if r.returncode or r.stderr:
             fail("%s: %s" % (path, r.stderr.decode("latin-1").strip() or

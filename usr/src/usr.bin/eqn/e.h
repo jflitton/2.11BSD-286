@@ -38,9 +38,17 @@ extern int	eht[];
 extern int	ebase[];
 extern int	lfont[];
 extern int	rfont[];
-extern int	yyval;
-extern int	*yypv;
-extern int	yylval;
+/*
+ * yacc's values, which are pointers to strings as well as numbers: an int
+ * as on the 286, or a long where a pointer is that (the eqn that formats
+ * eqn(1) where the system is built).
+ */
+#ifndef YYSTYPE
+#define YYSTYPE int
+#endif
+extern YYSTYPE	yyval;
+extern YYSTYPE	*yypv;
+extern YYSTYPE	yylval;
 extern int	eqnreg, eqnht;
 extern int	lefteq, righteq;
 extern int	lastchar;	/* last character read by lex */

@@ -4,8 +4,8 @@ tests/make/run.sh.
 
 usage: install.py OUT [-c] [-s] [-m mode] [-o owner] [-g group] file... to
 
-The root is OUT/dest: to, which is a name in the system's root, is the
-file or the directory there, a directory if the root file system has
+The root is OUT/dest: to, which is a name in the system's root, or
+that name in OUT/dest (sh.py), is the file or the directory there, a directory if the root file system has
 one of the name (OUT/dirs).  What install would have made the mode,
 owner and group is a line of OUT/dest.meta, since only the system can
 give a file to another user: to mode owner group, with - where it is
@@ -45,7 +45,10 @@ while i < len(a):
 if len(files) < 2:
     sys.exit("install: usage: install [-cs] [-m mode] [-o owner] "
              "[-g group] file ... to")
-to = "/" + files.pop().strip("/")
+to = files.pop()
+if to.startswith(out + "/dest/"):
+    to = to[len(out + "/dest"):]
+to = "/" + to.strip("/")
 dirs = open(out + "/dirs").read().split()
 isdir = to in dirs or os.path.isdir(out + "/dest" + to)
 if len(files) > 1 and not isdir:

@@ -7,9 +7,6 @@
 #		the compiler alone, a file at a time (tools/ncc)
 #	as, ld	the system's, as compiled for this machine
 #	yacc, lex   the system's, as compiled for this machine
-#
-# A program the Makefiles make and then run is the 286's and does not
-# run here: what depends on one is not made, and is listed.
 root=$out/root
 rm -rf "$root"
 python3 -I "$top/tests/self/hostroot.py" "$top" "$out/fs/src" "$root"
@@ -65,13 +62,6 @@ fi
 if has kernel; then
     hmake sys/PC
 fi
-if has progs; then
-    if [ -n "$ONLY" ]; then
-        hmake i286 $(echo $ONLY | tr ' ' '\n' | sed 's|^|bin/|')
-    else
-        hmake i286 progs
-    fi
-fi
 
 # Each file run.sh has the machine compare, compared here.
 : > "$out/same"
@@ -82,7 +72,7 @@ fi
 # (hostroot.py).
 sed -n 's/^f //p' want.proto | while read path mode from; do
     case $path in
-    /rootbin/*|/check.sh|/self.sh|/install.sh|/installed.sh) continue ;;
+    /check.sh|/self.sh|/install.sh) continue ;;
     */GNUmakefile) continue ;;
     esac
     case $from in /*) ;; *) from=$out/$from ;; esac
@@ -96,21 +86,8 @@ sed -n 's/^f //p' want.proto | while read path mode from; do
 done
 n=$(wc -l < "$out/same" | tr -d ' ')
 took=$(($(date +%s) - start))
-# What is made with a program the Makefiles make and run, and so is not
-# made here: the machine is to make these (tests/self/select.py has
-# the programs' names for tests/self/changed.sh).
-cat > "$out/left" <<END
-/i286/bin/ex
-/i286/bin/tcsh
-/i286/bin/awk
-/i286/bin/battlestar
-/i286/bin/hack
-/i286/ex/exstrings
-/i286/tcsh/tcsh6.00strgs
-/i286/games/battlestar/battle_strings
-END
-if grep -v -x -F -f "$out/left" "$out/unmade" > "$out/failed"; then
-    sed 's/^/NOT MADE /' "$out/failed" >&2
+if [ -s "$out/unmade" ]; then
+    sed 's/^/NOT MADE /' "$out/unmade" >&2
     echo "$name: those were not made here ($out/make.log)" >&2
     exit 1
 fi
@@ -122,5 +99,4 @@ if [ -s "$out/differs" ]; then
 fi
 echo "$name: this machine's make made $n files of the system ($PARTS)" \
     "from the system's Makefiles in $took s, each what the Makefiles" \
-    "of usr/src make; $(wc -l < "$out/unmade" | tr -d ' ') are left to" \
-    "the 286"
+    "of usr/src make"

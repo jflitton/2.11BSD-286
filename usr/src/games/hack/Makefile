@@ -128,7 +128,7 @@ crypt:	crypt.c
 	cc -o crypt crypt.c
 
 clean:
-	rm -f *.o x.c xs.c strings crypt makedefs
+	rm -f *.o x.c xs.c strings crypt makedefs hack.0
 
 makedefs:	makedefs.c
 	cc ${CFLAGS} -o makedefs makedefs.c
@@ -139,8 +139,11 @@ hack.onames.h:	makedefs def.objects.h
 # The game's directory is made anew, and in it what READ_ME says the
 # game reads and writes there, which hack cannot start without: its
 # data, help and rumors, an empty record and perm, and save, all the
-# game's own.
-install: $(GAME)
+# game's own.  And its page, as sail's Makefile has sail's.
+hack.0: hack.6
+	/usr/man/manroff hack.6 > hack.0
+
+install: $(GAME) hack.0
 	install -o $(GAMEUID) -m 4711 $(GAME) $(BINDIR)/$(GAME)
 	-rm -rf $(LIBDIR)
 	-mkdir -p ${LIBDIR}
@@ -152,6 +155,7 @@ install: $(GAME)
 	mkdir ${LIBDIR}/save
 	chown daemon ${LIBDIR}/save
 	chmod 700 ${LIBDIR}/save
+	install -c -o root -g staff -m 444 hack.0 /usr/man/cat6/hack.0
 
 #   The make node `depend' has been commented out as the current dependency
 # list is [now] not as simple as it used to be ...  The reason for this is

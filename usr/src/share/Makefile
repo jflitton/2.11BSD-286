@@ -5,7 +5,10 @@
 #
 CFLAGS=	-O
 
-SUBDIR=	adb font fontinfo learn me misc ms tmac termcap zoneinfo
+# The 286's: not adb, whose scripts are of the PDP-11 kernel's structures,
+# nor font and fontinfo, the typesetter's and the Versatec's, which it has
+# no troff nor vtroff for.
+SUBDIR=	learn me misc ms tmac termcap zoneinfo
 
 all:	${SUBDIR}
 

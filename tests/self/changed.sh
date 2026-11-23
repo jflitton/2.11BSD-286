@@ -56,16 +56,20 @@ echo "changed: because of $WHY"
 if [ -n "$CCOM" ]; then
     sh tests/ccom/self.sh
 fi
-# The libraries and the programs are made from the Makefiles of their
-# own directories (tests/self/progs.sh), and the rest from those
-# tools/srcmk.py writes.
+# The libraries, share, the programs and the manual are made from the
+# Makefiles of their own directories (tests/self/progs.sh), in the
+# order of upstream's Makefile in /usr/src, and /boot and the kernel by
+# tests/self/run.sh.
 dirs=
 case " $PARTS " in *" libc "*) dirs="lib/libc" ;; esac
 case " $PARTS " in *" libs "*) dirs="$dirs usr.lib" ;; esac
+case " $PARTS " in *" share "*) dirs="$dirs share" ;; esac
 case " $PARTS " in
 *" progs "*) dirs="$dirs $(python3 -I tests/make/programs.py $ONLY)" ;;
 esac
-PARTS=$(echo " $PARTS " | sed 's/ libc / /; s/ libs / /; s/ progs / /')
+case " $PARTS " in *" man "*) dirs="$dirs man" ;; esac
+PARTS=$(echo " $PARTS " |
+    sed 's/ libc / /; s/ libs / /; s/ share / /; s/ progs / /; s/ man / /')
 if [ -n "$(echo $dirs)" ]; then
     sh tests/self/progs.sh $dirs
 fi

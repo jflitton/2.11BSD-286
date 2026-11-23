@@ -1,52 +1,21 @@
 # The manual's pages on the system's /usr/man, which tools/mkman.py
 # formats: a directory and the sources of its pages, relative to usr/src
-# (docs/userland.md).  Sections 1 and 8 have the page of each program on
-# the system, wherever its source is, and the introduction to each; 2, 3,
-# 5 and 7, the kernel's calls, the libraries, the files and the rest,
-# are all of upstream's, what the Makefile of each formats, with those of
-# the programs here; 4 has those not about the PDP-11's devices; 6 those
-# of the games here.  3f, Fortran's library, has nothing here to go with
-# it.
+# (docs/userland.md).  A Makefile of usr/src/man stands for the pages it
+# formats, which are the 286's: in 1 and 8, those of the programs it
+# has, and the introduction to each; 2, 3, 5 and 7, the kernel's calls,
+# the libraries, the files and the rest, all of upstream's but a.out(5);
+# 4 those not about the PDP-11's devices; 6 those of the games here;
+# and no 3f, Fortran's library.  The others are of the programs, with
+# their sources, and their Makefiles install them.
 
-cat1	man/man1/intro.1 man/man1/cd.1 man/man1/wait.1
-
-# Of usr/src/man.
-cat1	man/man1/apply.1 man/man1/apropos.1 man/man1/at.1 man/man1/atq.1
-cat1	man/man1/atrm.1 man/man1/awk.1 man/man1/basename.1 man/man1/bc.1
-cat1	man/man1/biff.1 man/man1/binmail.1 man/man1/cal.1 man/man1/cat.1
-cat1	man/man1/cb.1 man/man1/checknr.1 man/man1/chgrp.1 man/man1/chmod.1
-cat1	man/man1/clear.1 man/man1/cmp.1 man/man1/col.1 man/man1/colcrt.1
-cat1	man/man1/colrm.1 man/man1/comm.1 man/man1/compress.1 man/man1/cp.1
-cat1	man/man1/csh.1 man/man1/ctags.1 man/man1/date.1 man/man1/dc.1
-cat1	man/man1/dd.1 man/man1/deroff.1 man/man1/df.1 man/man1/diff.1
-cat1	man/man1/diff3.1 man/man1/du.1 man/man1/echo.1 man/man1/ed.1
-cat1	man/man1/ex.1 man/man1/expand.1 man/man1/expr.1 man/man1/false.1
-cat1	man/man1/file.1 man/man1/find.1 man/man1/fmt.1 man/man1/fold.1
-cat1	man/man1/from.1 man/man1/grep.1 man/man1/head.1 man/man1/hostid.1
-cat1	man/man1/iostat.1 man/man1/join.1 man/man1/kill.1 man/man1/last.1
-cat1	man/man1/lastcomm.1 man/man1/leave.1 man/man1/lex.1 man/man1/ln.1
-cat1	man/man1/logger.1 man/man1/login.1 man/man1/look.1 man/man1/ls.1
-cat1	man/man1/m4.1 man/man1/mail.1 man/man1/make.1 man/man1/man.1
-cat1	man/man1/mesg.1 man/man1/more.1 man/man1/msgs.1 man/man1/mv.1
-cat1	man/man1/netstat.1 man/man1/newaliases.1 man/man1/nice.1
-cat1	man/man1/nroff.1 man/man1/od.1 man/man1/pagesize.1 man/man1/pr.1
-cat1	man/man1/printenv.1 man/man1/ps.1 man/man1/ptx.1 man/man1/pwd.1
-cat1	man/man1/rcp.1 man/man1/rev.1 man/man1/rm.1 man/man1/rmdir.1
-cat1	man/man1/rsh.1 man/man1/ruptime.1 man/man1/rwho.1 man/man1/script.1
-cat1	man/man1/sed.1 man/man1/sh.1 man/man1/sleep.1 man/man1/soelim.1
-cat1	man/man1/sort.1 man/man1/spline.1 man/man1/split.1 man/man1/strings.1
-cat1	man/man1/strip.1 man/man1/su.1 man/man1/sum.1 man/man1/tabs.1
-cat1	man/man1/tail.1 man/man1/talk.1 man/man1/tar.1 man/man1/tee.1
-cat1	man/man1/telnet.1 man/man1/time.1 man/man1/tr.1 man/man1/true.1
-cat1	man/man1/tsort.1 man/man1/tty.1 man/man1/ul.1 man/man1/unifdef.1
-cat1	man/man1/uniq.1 man/man1/units.1 man/man1/uptime.1 man/man1/users.1
-cat1	man/man1/vacation.1 man/man1/vi.1 man/man1/vmstat.1 man/man1/w.1
-cat1	man/man1/wall.1 man/man1/wc.1 man/man1/what.1 man/man1/whatis.1
-cat1	man/man1/which.1 man/man1/who.1 man/man1/whois.1 man/man1/write.1
-cat1	man/man1/xstr.1 man/man1/yacc.1 man/man1/yes.1
-cat1	man/man1/addbib.1 man/man1/diction.1 man/man1/eqn.1 man/man1/indent.1
-cat1	man/man1/lookbib.1 man/man1/refer.1 man/man1/roffbib.1
-cat1	man/man1/sortbib.1 man/man1/spell.1 man/man1/style.1 man/man1/tbl.1
+cat1	man/man1/Makefile
+cat2	man/man2/Makefile
+cat3	man/man3/Makefile
+cat4	man/man4/Makefile
+cat5	man/man5/Makefile
+cat6	man/man6/Makefile
+cat7	man/man7/Makefile
+cat8	man/man8/Makefile
 
 # With the programs' sources.
 cat1	bin/chpass/chpass.1 bin/hostname/hostname.1 bin/mkdir/mkdir.1
@@ -57,8 +26,8 @@ cat1	usr.bin/id/id.1 usr.bin/id/whoami.1 usr.bin/patch/patch.man
 cat1	usr.bin/printf/printf.1 usr.bin/shar/shar.1 usr.bin/shar/traverse.1
 cat1	usr.bin/touch/touch.1 usr.bin/uname/uname.1 usr.bin/whereis/whereis.1
 cat1	usr.bin/xargs/xargs.1 usr.bin/xinstall/install.1 usr.sbin/cron/crontab.1
-cat1	usr.sbin/nc/nc.1 usr.sbin/tracebuf/tracebuf.1 bin/chflags/chflags.1
-cat1	man/man1/gcore.1 man/man1/window.1 ucb/mkstr/mkstr.1
+cat1	usr.sbin/tracebuf/tracebuf.1 bin/chflags/chflags.1
+cat1	ucb/mkstr/mkstr.1 usr.bin/mkerrlst/mkerrlst.1
 # As the Makefile of usr/src/new installs its programs' pages.
 ../new/man/cat1	new/la/la.1
 
@@ -66,35 +35,18 @@ cat1	man/man1/gcore.1 man/man1/window.1 ucb/mkstr/mkstr.1
 cat1	i286/ve/ve.1
 
 # The compiler and what goes with it: as and ld are the 286's own, and
-# so are their pages.
-cat1	man/man1/cc.1 lib/cpp/cpp.1 bin/as/i286/as.1 bin/ld/i286/ld.1
-cat1	bin/ar/ar.1 usr.bin/ranlib/ranlib.1 man/man1/nm.1 man/man1/size.1
-cat1	man/man1/lorder.1 man/man1/calendar.1 man/man1/learn.1 man/man1/mkdep.1
+# so are their pages, and ld's a.out(5).
+cat1	lib/cpp/cpp.1 bin/as/i286/as.1 bin/ld/i286/ld.1
+cat1	bin/ar/ar.1 usr.bin/ranlib/ranlib.1
 
-cat2	man/man2/Makefile
-cat3	man/man3/Makefile libexec/tcpd/hosts_access.3
-cat4	man/man4/arp.4 man/man4/fl.4 man/man4/icmp.4 man/man4/inet.4 man/man4/ip.4
-cat4	man/man4/lo.4 man/man4/networking.4 man/man4/null.4 man/man4/pty.4
-cat4	man/man4/tcp.4 man/man4/tty.4 man/man4/udp.4
-cat5	man/man5/Makefile usr.sbin/cron/crontab.5 libexec/tcpd/hosts_access.5
+cat3	libexec/tcpd/hosts_access.3
+cat5	usr.sbin/cron/crontab.5 libexec/tcpd/hosts_access.5
 cat5	libexec/tcpd/hosts_options.5 bin/disklabel/disklabel.5.5
 cat5	bin/ar/ar.5.5 usr.bin/ranlib/ranlib.5.5 bin/ld/i286/a.out.5
-cat6	man/man6/adventure.6 man/man6/arithmetic.6 man/man6/backgammon.6
-cat6	man/man6/banner.6
-cat6	man/man6/bcd.6 man/man6/boggle.6 man/man6/canfield.6
-cat6	man/man6/cribbage.6 man/man6/fish.6 man/man6/fortune.6
-cat6	man/man6/hangman.6 man/man6/hunt.6 man/man6/mille.6 man/man6/monop.6
-cat6	man/man6/number.6 man/man6/quiz.6 man/man6/rain.6 man/man6/robots.6
-cat6	man/man6/rogue.6 man/man6/snake.6 man/man6/trek.6 man/man6/warp.6
-cat6	man/man6/words.6 man/man6/worm.6 man/man6/worms.6 man/man6/wump.6
 cat6	games/atc/atc.6 games/battlestar/battlestar.6 games/hack/hack.6
 cat6	games/phantasia/phant.nr:phantasia games/sail/sail.6
-cat7	man/man7/Makefile
 
-cat8	man/man8/intro.8 man/man8/fsck.8 man/man8/getty.8 man/man8/makekey.8
 cat8	usr.sbin/nc/nc.1
-cat8	man/man8/rc.8 man/man8/routed.8 man/man8/sendmail.8 man/man8/sync.8
-cat8	man/man8/timed.8 man/man8/timedc.8
 cat8	bin/disklabel/disklabel.8 bin/ping/ping.8 bin/sysctl/sysctl.8
 cat8	libexec/acctd/acctd.8 libexec/comsat/comsat.8 libexec/fingerd/fingerd.8
 cat8	libexec/ftpd/ftpd.8 libexec/popper/popper.8 libexec/rexecd/rexecd.8
@@ -116,11 +68,13 @@ cat8	usr.sbin/ntp/man/ntpd.8 usr.sbin/ntp/man/ntpdc.8 usr.sbin/pstat/pstat.8
 cat8	usr.sbin/quot/quot.8 usr.sbin/rwhod/rwhod.8 usr.sbin/sa/sa.8
 cat8	usr.sbin/syslogd/syslogd.8 usr.sbin/traceroute/traceroute.8
 cat8	usr.sbin/update/update.8 usr.sbin/vipw/vipw.8
-cat8	share/zoneinfo/zic.8 share/zoneinfo/zdump.8 man/man8/dump.8
-cat8	man/man8/dumpdir.8 man/man8/rdump.8 sbin/restor/restor.8
+cat8	share/zoneinfo/zic.8 share/zoneinfo/zdump.8
+cat8	sbin/restor/restor.8
 cat8	usr.sbin/rmt/rmt.8
 
 # A page is root's and of the group staff, as upstream's Makefiles
-# install them, but these, which theirs give to bin: own, the numbers
+# install them, but these, which cron's gives to bin: own, the numbers
 # of the owner and the group, and the pages as /usr/man has them.
-own 3.20	cat1/crontab.0 cat5/crontab.0 cat8/cron.0 cat6/warp.0
+# warp's Makefile gives warp's to bin too, and man6's then installs it
+# root's.
+own 3.20	cat1/crontab.0 cat5/crontab.0 cat8/cron.0

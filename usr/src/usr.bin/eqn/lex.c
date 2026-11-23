@@ -93,7 +93,7 @@ yylex() {
 				error(FATAL, "quoted string %.20s... too long", token);
 		}
 		token[sp]='\0';
-		yylval = (int) &token[0];
+		yylval = (YYSTYPE) &token[0];
 		if (c == '\n')
 			error(!FATAL, "missing \" in %.20s", token);
 		return(QTEXT);
@@ -155,7 +155,7 @@ getstr(s, n) char *s; register int n; {
 	if (c=='{' || c=='}' || c=='"' || c=='~' || c=='^' || c=='\t' || c==righteq)
 		putbak(c);
 	*p = '\0';
-	yylval = (int) s;
+	yylval = (YYSTYPE) s;
 }
 
 cstr(s, quote, maxs) char *s; int quote; {

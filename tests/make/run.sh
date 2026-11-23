@@ -10,8 +10,9 @@
 #
 # DIR is a directory of usr/src with a Makefile: lib/libc, bin,
 # usr.bin/spell, sys/PC.  Without one it is the libraries' directories,
-# every directory of programs, /boot's and the kernel's, which is the
-# Makefile config wrote (usr/src/sys/conf).  The Makefiles are run
+# share, every directory of programs, man, in the order of upstream's
+# Makefile there, and /boot's and the kernel's, which is the Makefile
+# config wrote (usr/src/sys/conf).  The Makefiles are run
 # by this machine's make in a copy of usr/src (obj/tests/make/root), with
 # the rules the system's make has and none of its own (rules.mk), and
 # with the system's commands as this machine has them (commands.sh): the
@@ -36,8 +37,8 @@ top=$(cd "$(dirname "$0")/../.." && pwd)
 buildsys
 here=$top/tests/make
 out=$top/obj/tests/make
-dirs=${*:-"lib/libc usr.lib bin sbin libexec ucb usr.bin usr.sbin games new
-    sys/i286stand sys/PC"}
+dirs=${*:-"lib/libc usr.lib share bin sbin libexec ucb usr.bin usr.sbin games
+    new man sys/i286stand sys/PC"}
 # The kernel says the day it was made, and is told the one the root's
 # says (usr/src/sys/conf/newvers.sh).
 DATE=$(sed -n 's/.*(\(.*\)).*/\1/p' "$top/obj/nPC/vers.c")

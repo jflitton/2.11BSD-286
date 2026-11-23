@@ -25,8 +25,8 @@ root's directories is to be there still.
 A page of the manual says at its foot the day it was formatted: one
 that differs from the root's is compared again without that.
 Of the root's programs whose sources are in a DIR (programs.py), each
-must have been installed, and of its libraries those the DIR's Makefiles
-install, and of its kernel, /boot and boot blocks those of sys/PC's and
+must have been installed, and so each of its pages of the manual whose
+source is, and of its libraries those the DIR's Makefiles install, and of its kernel, /boot and boot blocks those of sys/PC's and
 sys/i286stand's (STAND); those of `left`, beside this, are made with a
 program their
 Makefile makes and runs, and are the 286's to make.
@@ -209,6 +209,9 @@ for p, name in sorted(where.items()):
         bad.append("NOT INSTALLED %s" % p)
 bad += ["NOT INSTALLED %s" % p for p in programs.libraries(sorted(want), dirs)
         if not os.path.isfile(dest + p)]
+bad += ["NOT INSTALLED %s" % p for p, d in sorted(programs.pages().items())
+        if programs.within(d, dirs) and not os.path.isfile(dest + p) and
+        p not in left]
 bad += ["NOT INSTALLED %s" % p for d in dirs for p in STAND.get(d, [])
         if not os.path.isfile(dest + p)]
 for line in sorted(bad):

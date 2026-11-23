@@ -15,7 +15,7 @@ sources on it, as 2.11BSD has a disk made.
 `tools/srcmk.py` writes what the system needs for that:
 
 ```sh
-python3 tools/srcmk.py obj/src          # the Makefiles, and obj/src/proto
+python3 tools/srcmk.py obj/src          # obj/src/proto
 python3 tools/mkfs.py -s 64000 obj/src/proto obj/src.fs
 ```
 
@@ -26,13 +26,15 @@ the repository, 20 MB of them, and room for what is made of them, which
 is left beside them. The root file system has the directory, and `/sys`
 is a name for `/usr/src/sys`.
 
-The libraries and the programs are made from the Makefiles of their own
-directories, which are upstream's: `usr/src/lib/libc/Makefile`,
-`usr/src/usr.lib/Makefile`, `usr/src/bin/Makefile`,
-`usr/src/bin/sh/Makefile` and the rest, as 2.11BSD has them, changed
-where the 286 is not the PDP-11 ([below](#upstreams-makefiles)). They
-are in the repository and on the system the same, and a change made to
-one there is a change to the system's sources.
+The libraries, the programs, what is not a program and the manual are
+made from the Makefiles of their own directories, which are upstream's:
+`usr/src/lib/libc/Makefile`, `usr/src/usr.lib/Makefile`,
+`usr/src/bin/Makefile`, `usr/src/bin/sh/Makefile`,
+`usr/src/share/Makefile`, `usr/src/man/Makefile` and the rest, as
+2.11BSD has them, changed where the 286 is not the PDP-11
+([below](#upstreams-makefiles)). They are in the repository and on the
+system the same, and a change made to one there is a change to the
+system's sources.
 
 So are the kernel and the programs that load it. The kernel's is the
 one `config` writes in `sys/PC` from the machine's file, `sys/conf/PC`,
@@ -41,15 +43,6 @@ as 2.11BSD has a kernel's written in a directory of `/sys`
 `/boot`'s and the boot blocks' is `sys/i286stand`'s, after `pdpstand`'s.
 Beside each is a `GNUmakefile`, which GNU make reads first, for the
 other build.
-
-What is not a program is not made from such yet. The repository's
-Makefile for it is GNU make's, `usr/src/i286/Makefile`, and the
-system's own `make` reads none of it: no pattern rules, no functions,
-no conditionals. So `srcmk.py` writes one that it does read, with a
-rule for every file, from the same tables: the repository's Makefile
-prints, for `make table`, what each is made of, and that is all
-`srcmk.py` knows. What is to be changed is changed in the repository's
-Makefile, and the system's is written again.
 
 ## Making it
 
@@ -63,11 +56,13 @@ cd /usr/src/sys/conf; ./config PC                # the kernel's directory
 cd /usr/src/sys/PC; make; make install           # the kernel
 cd /usr/src/lib/libc; make; make install         # the C library, three models
 cd /usr/src/usr.lib; make; make install          # the other libraries
-cd /usr/src/i286; make data; make install-data   # what is not a program
+cd /usr/src/share; make; make install            # what is not a program
 
 cd /usr/src/bin; make; make install              # the programs, and so
 cd /usr/src/sbin; make; make install             # in libexec, ucb, usr.bin,
                                                  # usr.sbin, games and new
+
+cd /usr/src/man; make; make install              # the manual, and whatis
 ```
 
 | in | `make` makes | `make install` |
@@ -77,8 +72,9 @@ cd /usr/src/sbin; make; make install             # in libexec, ucb, usr.bin,
 | `sys/PC` | `unix`, and `unix.map` | `/unix`, root's and `kmem`'s, 744; the one that was is `/unix.old` |
 | `lib/libc` | `libc.a`, `libc_m.a`, `libc_l.a`, and `crt0.o` of each model in `i286/csu` | `/lib`, `/lib/m`, `/lib/l` |
 | `usr.lib` | each library, of each model, beside its sources | `/usr/lib`, `/usr/lib/m`, `/usr/lib/l` |
+| `share` | `termcap`; `zic` and `zdump` ([what is not a program](#what-is-not-a-program)) | `/usr/share`: `misc`, `tmac`, `me`, `ms`, `tabset`, `learn`, `zoneinfo`; `/etc/termcap`, a symbolic link; `zic` and `zdump` in `/usr/sbin` |
 | `bin`, `sbin`, `libexec`, `ucb`, `usr.bin`, `usr.sbin`, `games`, `new` | each program, beside its sources, and its page of the manual | each where upstream's Makefile installs it, with the mode, owner and group it gives |
-| `i286`, `make data` | [what is not a program](#what-is-not-a-program) | each where the root file system has it |
+| `man` | the pages of `man1` to `man8` | `/usr/man/cat1` to `cat8`, with their other names; `/usr/man/whatis` |
 
 A kernel that does not start is left behind by naming the other to
 `/boot`: `wd(0,0)unix.old` ([booting](boot.md)). `make` in a program's
@@ -123,7 +119,15 @@ says another. What was changed in them for the 286:
 - A directory's list of programs has not the ones the port does not
   have: the PDP-11's debugger and tape formats, Fortran and Pascal,
   `uucp`, `lpr`, the quotas. `usr/src/local`, whose programs all
-  compile, is not made.
+  compile, is not made. Nor has `share`'s list `adb`, whose scripts are
+  of the PDP-11 kernel's structures, nor `font` and `fontinfo`, the
+  typesetter's and the Versatec's, which the port has no `troff` nor
+  `vtroff` for; and `man`'s lists have the pages of what the port has,
+  and no `man3f`, Fortran's library.
+- `as(1)`, `ld(1)` and `a.out(5)` are the 286's, in `bin/as/i286` and
+  `bin/ld/i286`, and `bin/as`'s and `bin/ld`'s Makefiles install them,
+  `a.out(5)` with `ld` as `ar(5)` is with `ar`; `man1`'s and `man5`'s
+  have not upstream's.
 - `-i`, `-n` and `-z`, the PDP-11's separate instruction and data
   spaces, are left where they are: the system's `ld` takes them and
   does nothing.
@@ -137,8 +141,9 @@ is installed where `cc` links a program of that model with it (`/lib`,
 
 - The PDP-11's `ld -x -r` of each object, which took out its local
   symbols, is not done: the 286's `ld` makes nothing but a program.
-  `libdbm`, which upstream makes with `ld -r`, is a library of `ar`'s
-  with `ranlib`'s table, which the 286's `ld` looks in.
+  `libdbm` and `liberrlst`, which upstream makes with `ld -r`, are each a
+  library of `ar`'s with `ranlib`'s table, which the 286's `ld` looks
+  in.
 - The C library's machine dependent directory is `i286`, whose
   Makefiles are after `pdp`'s: `crt`, `csu`, `gen`, `net` and `sys`,
   this last with the stubs. `gen` has the C that the PDP-11 has in
@@ -153,7 +158,7 @@ is installed where `cc` links a program of that model with it (`/lib`,
   the program did not flush at exit. No `fpfcom.o`, `printf` without
   floating point, which is taken unless the compiler marks a program
   that has it, and the 286's does not.
-- `usr.lib` makes the seven libraries the programs are linked with.
+- `usr.lib` makes the eight libraries the programs are linked with.
   `libwrap` is `tcpd`'s, which its Makefile makes and does not install.
 
 The other build makes the C library in the order the Makefile has the
@@ -171,36 +176,33 @@ PDP-11: the Makefiles do not, and the sources ask.
 
 ## What is not a program
 
-`make data` makes the files the system has that are neither programs
-nor copies of a source, with the system's own programs, where the
-other build has a program of the machine it runs on, or of Python,
-that does what they do. `make data-NAME` makes one kind:
+`share`'s Makefiles install what the system has that is neither a
+program nor a page of the manual, and make some of it: `termcap`, of
+`termcap.src` by `ex` and `reorder`, with `/etc/termcap` a name for it;
+`mdoc`'s macros and `-me`'s without their comments, by `sed`; `learn`'s
+lessons, copied by `tar`, and the two objects its lessons in C link
+with, by `cc`; the time zones, by the `zic` it makes, with `zdump`.
+`man`'s format each page of `man1` to `man8` with `manroff`, `nroff -man
+-h`, and `eqn(1)` through `eqn` first, install them with their other
+names, and make `/usr/man/whatis` of every page in `/usr/man` with
+`makewhatis.sed` and `sort -u`. It goes last, as upstream's Makefile
+in `/usr/src` has it, after the programs, whose Makefiles install their
+own pages.
 
-| | made | by |
-|---|---|---|
-| `etc` | `/etc/passwd` and its database; the database of `/etc/aliases`; `/etc/fstab` | `mkpasswd -p`; `sendmail -bi`; `sed` |
-| | `/etc/syserrlst`; `/usr/share/misc/termcap` | `mkerrlst`, compiled there; `ex`, as `share/termcap`'s Makefile runs it |
-| `roff` | `mdoc`'s macros and `-me`'s without their comments; the 25 tables of `/usr/share/term` | `sed`; each table's C compiled with `mktab` and run |
-| `learn` | the two objects `learn`'s lessons in C link with | `cc` |
-| `spell` | `/usr/dict/hlista`, `hlistb`, `hstop` | `spellin` |
-| `zones` | `/usr/share/zoneinfo` | `zic` |
-| `games` | `fortunes.dat`; `monop`'s cards; `boggle`'s dictionary; `phantasia`'s files and help; `cribbage`'s instructions; `warp`'s maps | the games' own `strfile`, `initdeck`, `comp`, `setfiles` and `sm`, compiled there; `nroff` |
-| `man` | the 621 pages of `/usr/man/cat1` to `cat8`, and `whatis` | `nroff -man -h`; `sed` and `sort` |
+The programs' Makefiles make the rest: `/etc/syserrlst`, which
+`mkerrlst`'s install writes; spell's lists; the tables of
+`/usr/share/term`; the games' files; the files of `ex`'s and `tcsh`'s
+messages; `refer`'s index of `/usr/dict/papers`, which its install has
+its `runinv` make with `mkey` and `inv`. The other build makes some of
+those with programs of the machine it runs on or of Python that do the
+same, to the byte: `tools/runinv.py`, `tools/mkerrlst.py`,
+`tools/mktermcap.py`, the system's `zic` and `eqn` compiled for it.
+`eqn` keeps a pointer in yacc's values, which there are a long
+(`usr.bin/eqn/e.h`).
 
-Each is made in the directory of `/usr/src/i286` that the other build
-has it in in `obj`: `root/termcap`, `spell/hlista`, `zoneinfo/GMT`,
-`games/fortunes.dat`, `man/cat1/ls.0`. `make install-data` puts each
-where the system has it, and gives a file's other names to the new one:
-a zone's, a page's (317 of them), a table's. The password file and its
-database, the aliases' and `fstab` are made and not installed: they are
-a new system's, and a system that is in use has its own users and
-disks.
-
-`/usr/games/lib/battle_strings`, and the files of `ex`'s messages and
-`tcsh`'s, are made with those programs and installed with them; and
-`refer`'s index of `/usr/dict/papers`, which `refer`'s install has its
-`runinv` make with `mkey` and `inv`. The other build makes that with
-`tools/runinv.py`, the same to the byte.
+The password file's database, the aliases' and `fstab` are a new
+system's, and a system that is in use has its own users and disks:
+`etc`'s Makefile makes the first for a new root (`make distribution`).
 
 ## A disk
 
@@ -341,7 +343,7 @@ On the machine the tests run, a 10 MHz 286 with 4 MB as 86Box has it
 | the other libraries, in the three models | 24 minutes |
 | the 318 programs | 7 hours 10 minutes |
 | installing the programs | 7 minutes |
-| what is not a program, and installing it | 2 hours 40 minutes |
+| `share` and the manual, and installing them | 2 hours 40 minutes |
 | all of it | 12 hours |
 | a disk of it, with the sources | 20 minutes, on the emulator's disks, which answer at once |
 
@@ -352,27 +354,21 @@ an hour each or more.
 ## What is checked
 
 `tests/self/run.sh` boots the system with that file system, has it make
-`/boot`, run `config` and make the kernel, and make what is not a
-program, and compares each object, the kernel and `/boot`, what
-`config` writes, and each file that is not a program, with what the
-same sources make where the system is built. A page of
-the manual has at its foot the day it was formatted, and two that
-differ are compared again without those lines. What is not a program
-is made by the programs the system came with, and is installed too: each of 1106 files and other names of one must be what
-was made. Last the
-kernel is made to say that it was made there, installed with `/boot`,
-and the machine started again: it must come up on that kernel, with
-`init`, `getty`, `login` and the shell that it made.
+`/boot`, run `config` and make the kernel, and compares each object,
+the kernel and `/boot`, and what `config` writes, with what the same
+sources make where the system is built. Last the kernel is made to say
+that it was made there, installed with `/boot`, and the machine started
+again: it must come up on that kernel, with `init`, `getty`, `login` and
+the shell that it made. `PARTS=stand` or `PARTS=kernel` makes one of
+the two.
 
-`PARTS="stand kernel"` makes less (`stand`, `kernel`, `data`), and
-`DATA="man zones"` only those kinds of what is not a program.
-
-`tests/self/progs.sh` has the system make the libraries and the
-programs, from the Makefiles of their own directories: `make` and
-`make install` in each of `lib/libc`, `usr.lib`, `bin`, `sbin`,
-`libexec`, `ucb`, `usr.bin`, `usr.sbin`, `games` and `new`, in that
-order, or in the directories it is given (`sh tests/self/progs.sh
-lib/libc bin/sed usr.bin/yacc`). The root is then to be as it was
+`tests/self/progs.sh` has the system make the libraries, the programs,
+what is not a program and the manual, from the Makefiles of their own
+directories: `make` and `make install` in each of `lib/libc`,
+`usr.lib`, `share`, `bin`, `sbin`, `libexec`, `ucb`, `usr.bin`,
+`usr.sbin`, `games`, `new` and `man`, in that order, or in the
+directories it is given (`sh tests/self/progs.sh lib/libc bin/sed
+usr.bin/yacc man`). The root is then to be as it was
 before, which is what the other build makes, name for name: each file
 with its contents, mode, owner, group and other names, each directory
 with its mode, owner and group, each device and symbolic link. A
@@ -382,11 +378,11 @@ their order, the table of contents among them. Nothing is to be
 gone and nothing new, but what a system that is running writes
 (`tests/self/running`) and the `NAME.old` that `tcsh`'s and `init`'s
 Makefiles keep of what they install over. Each of the root's programs
-whose sources are in those directories is to have been installed, and
-each library of `/lib` and `/usr/lib`: 419 files of the programs' in all
-of them, and 110 pages of the manual, whose contents are
-not compared, since a page has the day it was formatted in it; nor are
-those of the files of `tests/make/differs`, below.
+whose sources are in those directories is to have been installed, each
+library of `/lib` and `/usr/lib`, and each page of the manual whose
+source is in one of them. A page has at its foot the day it was
+formatted, and is compared without it; the files of
+`tests/make/differs`, below, are not compared.
 
 All of it is half a day of the 286's time, which is for a release and
 not for a change. A change is checked two ways, and
@@ -398,8 +394,8 @@ not for a change. A change is checked two ways, and
   upstream's, `make`, `make install` and `make clean` in each
   directory, with that machine's `make` given the rules the system's
   has and none of its own, and compares what was installed with the
-  root file system: 541 files in four minutes, each with the contents,
-  mode, owner and group the root has, and the root's 105 directories
+  root file system: 2108 files in seven minutes, each with the contents,
+  mode, owner and group the root has, and the root's 106 directories
   still there with theirs. The directories are there before anything
   is installed, and that machine's `make` takes them to be, as the
   system's does; `/boot`'s and the kernel's are among them, and their
@@ -413,7 +409,9 @@ not for a change. A change is checked two ways, and
   does no more than run one, as `phantasia`'s `setfiles` and `ntp`'s
   `ntest`, is passed over, and `tests/make/left` lists what is made
   with one, `awk`, `tcsh`, `hack`, `battlestar` and five more programs,
-  and the tables and games' files such programs write. `tests/make/differs` lists what the two builds
+  and the tables and games' files such programs write, and `whatis`,
+  which has their pages. `ex` for `termcap`, `zic` for the time zones
+  and `eqn` for `eqn(1)` are what the other build has for them. `tests/make/differs` lists what the two builds
   do not make the same way, which neither test compares: `sendmail`,
   whose Makefile takes its messages out with a script of its own;
   `hack`, whose Makefile has `xstr` after its `crypt`; `phantasia`, one

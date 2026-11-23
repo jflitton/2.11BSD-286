@@ -8,9 +8,10 @@ the one tools/srcmk.py wrote for /usr/src/i286, which says what each
 program is made of.  What is written is for the shell:
 
     PARTS="..."     the parts of tests/self to make there: of stand,
-                    kernel, libc, libs and progs, the last three being
-                    the C library, usr.lib's libraries and the
-                    programs, which tests/self/progs.sh makes
+                    kernel, libc, libs, share, progs and man, the last
+                    five being the C library, usr.lib's libraries,
+                    what is not a program, the programs and the manual,
+                    which tests/self/progs.sh makes
     ONLY="..."      of the programs, these
     CCOM=1          and the system is to make its compiler (tests/ccom)
     WHY="..."       what led to that
@@ -21,9 +22,8 @@ the kernel, and a program of each model.  The Makefiles and what writes
 them call for the programs the host cannot check (tests/self/host.sh),
 since they are made with programs the Makefiles make and run.  Any
 other source calls for what is made of it: the kernel's configuration
-(sys/conf, sys/PC), the kernel.  Nothing here calls for the
-manual and the other files that are not programs: PARTS=data is for
-whoever changed them to ask for.
+(sys/conf, sys/PC), the kernel; share's files, share; and the manual's,
+man.
 """
 import re
 import sys
@@ -86,6 +86,12 @@ for name in sys.stdin.read().split("\n"):
     elif name.startswith("usr/src/usr.lib/"):
         parts.add("libs")
         why.append(name + ": the libraries")
+    elif name.startswith("usr/src/share/"):
+        parts.add("share")
+        why.append(name + ": share")
+    elif name.startswith("usr/src/man/"):
+        parts.add("man")
+        why.append(name + ": the manual")
     elif name in made_of:
         for t in made_of[name]:
             parts.add("progs")
@@ -94,7 +100,7 @@ for name in sys.stdin.read().split("\n"):
     elif name.startswith("usr/src/sys/"):
         parts.add("kernel")
         why.append(name + ": the kernel")
-order = ["stand", "kernel", "libc", "libs", "progs"]
+order = ["stand", "kernel", "libc", "libs", "share", "progs", "man"]
 print('PARTS="%s"' % " ".join(p for p in order if p in parts))
 print('ONLY="%s"' % " ".join(sorted(only)))
 print("CCOM=%s" % ("1" if ccom else ""))

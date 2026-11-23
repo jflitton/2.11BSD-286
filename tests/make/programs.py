@@ -56,6 +56,24 @@ def installed(source):
     return out
 
 
+def pages():
+    """Where the root has each page of the manual, and the directory of
+    usr/src its source is in, whose Makefile installs it: those of
+    usr/src/man's directories, man's (tools/mkman.py)."""
+    sys.path.insert(0, TOP + "/tools")
+    import mkman
+    src = TOP + "/usr/src"
+    wanted = mkman.pages(src, src + "/i286/man.list")
+    out = {}
+    for d, name, path in wanted:
+        rel = os.path.dirname(os.path.relpath(path, src))
+        out[os.path.normpath("/usr/man/%s/%s" % (d, name))] = \
+            "man" if rel.startswith("man/") else rel
+    for (d, name), (pd, page) in mkman.others(wanted).items():
+        out["/usr/man/%s/%s" % (d, name)] = out["/usr/man/%s/%s" % (pd, page)]
+    return out
+
+
 # The libraries a directory's Makefile installs: the C library and its
 # start-up code, of each model, and the others.
 LIBRARIES = {"lib/libc": re.compile(r"/lib/(?:[ml]/)?(?:libc\.a|crt0\.o)$"),

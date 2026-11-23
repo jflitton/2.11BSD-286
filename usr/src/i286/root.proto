@@ -92,6 +92,7 @@ f /etc/passwd 644 ../../../obj/root/passwd
 f /etc/passwd.dir 644 ../../../obj/root/passwd.dir
 f /etc/passwd.pag 644 ../../../obj/root/passwd.pag
 f /etc/syserrlst 644 ../../../obj/root/syserrlst
+f /usr/bin/mkerrlst 755:0.10 ../../../obj/root/bin/mkerrlst
 f /etc/sendmail.cf 644 ../etc/sendmail.cf
 f /etc/sendmail.fc 644 ../../../obj/root/empty
 f /etc/aliases 644 ../etc/aliases
@@ -105,6 +106,25 @@ f /var/log/sendmail.st 666 ../../../obj/root/empty
 f /etc/tcsh6.00strgs 444:0.10 ../../../obj/xstr/tcsh/tcsh6.00strgs
 f /usr/share/misc/termcap 444 ../../../obj/root/termcap
 l /etc/termcap ../usr/share/misc/termcap
+f /usr/share/misc/map3270 444 ../share/termcap/map3270
+d /usr/share/tabset 755
+f /usr/share/tabset/3101 444 ../share/termcap/tabset/3101
+f /usr/share/tabset/aa 444 ../share/termcap/tabset/aa
+f /usr/share/tabset/aed512 444 ../share/termcap/tabset/aed512
+f /usr/share/tabset/beehive 444 ../share/termcap/tabset/beehive
+f /usr/share/tabset/diablo 444 ../share/termcap/tabset/diablo
+f /usr/share/tabset/dtc382 444 ../share/termcap/tabset/dtc382
+f /usr/share/tabset/ibm3101 444 ../share/termcap/tabset/ibm3101
+f /usr/share/tabset/std 444 ../share/termcap/tabset/std
+f /usr/share/tabset/stdcrt 444 ../share/termcap/tabset/stdcrt
+f /usr/share/tabset/tandem653 444 ../share/termcap/tabset/tandem653
+f /usr/share/tabset/teleray 444 ../share/termcap/tabset/teleray
+f /usr/share/tabset/vt100 444 ../share/termcap/tabset/vt100
+f /usr/share/tabset/wyse-adds 444 ../share/termcap/tabset/wyse-adds
+f /usr/share/tabset/xerox1720 444 ../share/termcap/tabset/xerox1720
+f /usr/share/tabset/xerox1730 444 ../share/termcap/tabset/xerox1730
+f /usr/share/tabset/xerox1730-lm 444 ../share/termcap/tabset/xerox1730-lm
+f /usr/share/tabset/zenith29 444 ../share/termcap/tabset/zenith29
 f /var/run/utmp 644 ../../../obj/root/empty
 f /usr/adm/wtmp 644 ../../../obj/root/empty
 f /usr/adm/lastlog 644 ../../../obj/root/empty
@@ -216,8 +236,8 @@ f /var/db/find.codes 644:32767.0 ../../../obj/root/empty
 f /usr/adm/daily 755 etc/daily
 f /usr/adm/weekly 755 etc/weekly
 f /usr/adm/monthly 755 etc/monthly
-f /usr/sbin/zic 755 ../../../obj/root/bin/zic
-f /usr/sbin/zdump 755 ../../../obj/root/bin/zdump
+f /usr/sbin/zic 755:0.10 ../../../obj/root/bin/zic
+f /usr/sbin/zdump 755:0.10 ../../../obj/root/bin/zdump
 i ../../../obj/zoneinfo/zone.proto
 f /sbin/dump 755 ../../../obj/root/bin/dump
 f /sbin/rdump 755 ../../../obj/root/bin/rdump
@@ -307,6 +327,7 @@ f /usr/bin/nohup 555:0.10 ../usr.bin/nohup.sh
 f /usr/libexec/makekey 755:0.10 ../../../obj/root/bin/makekey
 f /usr/share/misc/units 444 ../share/misc/units
 f /usr/share/misc/eign 444 ../share/misc/eign
+f /usr/share/misc/vlpmacs 444 ../share/misc/vlpmacs
 f /usr/ucb/apply 755 ../../../obj/root/bin/apply
 f /usr/ucb/checknr 755 ../../../obj/root/bin/checknr
 f /usr/ucb/clear 755 ../../../obj/root/bin/clear
@@ -372,10 +393,10 @@ f /usr/bin/lint 555:0.10 ../usr.bin/lint.sh
 f /usr/bin/mkdep 555:0.10 ../usr.bin/mkdep.sh
 f /usr/bin/learn 755 ../../../obj/root/bin/learn
 i ../../../obj/root/learn.proto
-d /usr/share/learn/bin 755
-f /usr/share/learn/bin/learn 755 ../../../obj/root/bin/learn
-f /usr/share/learn/bin/lrntee 755 ../../../obj/root/bin/lrntee
-f /usr/share/learn/bin/lcount 755 ../../../obj/root/bin/lcount
+d /usr/share/learn/bin 755:0.10
+f /usr/share/learn/bin/learn 755:0.10 ../../../obj/root/bin/learn
+f /usr/share/learn/bin/lrntee 755:0.10 ../../../obj/root/bin/lrntee
+f /usr/share/learn/bin/lcount 755:0.10 ../../../obj/root/bin/lcount
 f /bin/diff 755:0.10 ../../../obj/root/bin/diff
 f /usr/libexec/diffh 755:0.10 ../../../obj/root/bin/diffh
 f /bin/true 755 ../bin/true.sh
@@ -522,9 +543,9 @@ f /usr/ucb/man 755:0.10 ../../../obj/root/bin/man
 f /usr/ucb/apropos 755:0.10 ../../../obj/root/bin/apropos
 h /usr/ucb/whatis /usr/ucb/apropos
 d /usr/man 755
-f /usr/man/man.template 444 ../man/man.template
-f /usr/man/makewhatis.sed 444 ../man/makewhatis.sed
-f /usr/man/manroff 755 ../man/manroff
+f /usr/man/man.template 444:0.10 ../man/man.template
+f /usr/man/makewhatis.sed 444:0.10 ../man/makewhatis.sed
+f /usr/man/manroff 755:0.10 ../man/manroff
 f /usr/sbin/makewhatis 755:0.10 ../usr.sbin/makewhatis/makewhatis.sh
 f /usr/bin/tbl 755 ../../../obj/root/bin/tbl
 f /usr/bin/eqn 755 ../../../obj/root/bin/eqn

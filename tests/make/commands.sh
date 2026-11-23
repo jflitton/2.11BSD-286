@@ -3,7 +3,8 @@
 #
 #	sh		sh.py, for make to run its commands with, which
 #			runs mkstubs, which libc's Makefile makes and runs,
-#			as it is compiled for this machine
+#			and zic, which share/zoneinfo's does, as they are
+#			compiled for this machine
 #	cc		cc.py
 #	as, ld, cpp	the system's, as compiled for this machine
 #	yacc, lex	the same
@@ -14,6 +15,14 @@
 #	lorder		tools/lorder.py, which prints what the system's
 #			does
 #	nroff, manroff	the system's nroff, as compiled for this machine
+#			(nroff.py, which puts each .so in its place)
+#	eqn		the same (usr/src/i286's Makefile makes both)
+#	ex		for share/termcap's Makefile, which has it run
+#			reorder on termcap.src: tools/mktermcap.py, which
+#			does what reorder does
+#	tar		this machine's, which says in OUT/dest.meta that
+#			what tar xp writes is root's and wheel's, as the
+#			files of the system's /usr/src are, which it keeps
 #	strip		tools/strip.py
 #	install		install.py
 #	expr		this machine's, and the system's substr
@@ -45,13 +54,14 @@ s=$top/usr/src
     $hostcc -o "$h/tsort" "$s/usr.bin/tsort.c"
 m=$s/lib/libc/i286/sys/mkstubs.c
 [ "$h/mkstubs" -nt "$m" ] || $hostcc -o "$h/mkstubs" "$m"
+ln -sf "$top/obj/host/zic" "$h/zic"
 
 run() {		# run NAME COMMAND...: NAME runs COMMAND with its arguments
     n=$1
     shift
     { echo '#!/bin/sh'; echo "exec $* \"\$@\""; } > "$b/$n"
 }
-run sh python3 -I "$top/tests/make/sh.py" "$h"
+run sh python3 -I "$top/tests/make/sh.py" "$h" "$out"
 run cc python3 -I "$top/tests/make/cc.py" "$top" "$out"
 run install python3 -I "$top/tests/make/install.py" "$out"
 # expr substr, which the system's expr has and this machine's may not
@@ -64,7 +74,16 @@ else
 fi
 END
 for t in as ld cpp; do run $t "$top/obj/host/ccom/$t"; done
-for t in yacc lex; do run $t "$top/obj/host/$t"; done
+for t in yacc lex eqn; do run $t "$top/obj/host/$t"; done
+cat > "$b/ex" <<END
+#!/bin/sh
+if [ "\$*" != "- termcap.src" ]; then
+    echo "ex: only termcap's reorder, ex - termcap.src, is done here" >&2
+    exit 1
+fi
+exec python3 -I "$top/tools/mktermcap.py" . termcap
+END
+run tar python3 -I "$top/tests/make/tar.py" "$out"
 for t in xstr mkstr tsort; do run $t "$h/$t"; done
 run manroff nroff -man -h
 for t in size ranlib; do
@@ -78,17 +97,7 @@ exec $hostmake \$(sed 's/^/-o /' "$out/dirs") "\$@"
 END
 run ar python3 -I "$top/tests/make/ar.py" "$top"
 run lorder python3 -I "$top/tools/lorder.py"
-# nroff finds its macros and tables beside it
-cat > "$b/nroff" <<END
-#!/bin/sh
-n=\$#
-for a; do
-    case \$a in -*|/*) ;; *) [ -f "\$a" ] && a=\$PWD/\$a ;; esac
-    set -- "\$@" "\$a"
-done
-shift \$n
-cd "$top/obj/host" && exec ./nroff "\$@"
-END
+run nroff python3 -I "$top/tests/make/nroff.py" "$top"
 # strip writes the file over, as the system's does, which keeps it the
 # file it was, with its mode
 cat > "$b/strip" <<END

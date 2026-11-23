@@ -8,10 +8,10 @@
 # Three if it is not said.  The shares are fixed, so that a machine
 # always has the same work:
 #
-#	of three	1  /boot, the kernel, what is not a program
-#			   (run.sh)
+#	of three	1  /boot and the kernel (run.sh), and then
+#			   share and the manual (progs.sh)
 #			2  the libraries, and the programs of bin, sbin,
-#			   libexec and ucb (progs.sh)
+#			   libexec and ucb
 #			3  those of usr.bin, usr.sbin, games and new
 #	of two		1  as of three
 #			2  the libraries and the programs
@@ -25,7 +25,7 @@
 # tests/harness/runtest.py) unless CPU says the 286.
 #
 # Each machine's output is in obj/tests/self$case-split/N.log, and the
-# machine in obj/tests/self$case-N.
+# machine in obj/tests/self$case-N, or self$case-progs-N.
 #
 # Run from the top of the repository after `. tools/env.sh`.
 set -e
@@ -57,7 +57,8 @@ if [ -z "$dry" ]; then
     mk -C "$src/i286" syslibs
     cp "$top/obj/root/root.fs" "$out/root.fs"
 fi
-all="stand kernel data"
+all="stand kernel"
+dirs1="share man"
 if [ $n = 3 ]; then
     dirs2="lib/libc usr.lib bin sbin libexec ucb"
     dirs3="usr.bin usr.sbin games new"
@@ -69,16 +70,17 @@ i=0
 while [ $i -lt $n ]; do
     i=$((i + 1))
     eval "dirs=\$dirs$i"
-    echo "split: machine $i: ${dirs:-$all}"
+    if [ $i = 1 ]; then
+        echo "split: machine 1: $all, then $dirs"
+    else
+        echo "split: machine $i: $dirs"
+    fi
     [ -z "$dry" ] || continue
     (
         export SHARE=$i ROOTFS="$out/root.fs"
         start=$(date +%s)
-        if if [ -n "$dirs" ]; then
-                sh "$top/tests/self/progs.sh" $dirs
-            else
-                PARTS=$all sh "$top/tests/self/run.sh"
-            fi > "$out/$i.log" 2>&1; then
+        if { { [ $i != 1 ] || PARTS=$all sh "$top/tests/self/run.sh"; } &&
+            sh "$top/tests/self/progs.sh" $dirs; } > "$out/$i.log" 2>&1; then
             echo "PASS machine $i $(($(date +%s) - start)) s"
         else
             echo "FAIL machine $i $(($(date +%s) - start)) s: $out/$i.log"
