@@ -283,6 +283,45 @@ and the machine started again: it must come up on that kernel, with
 `progs`, `data`), `ONLY="awk make"` only those programs, and
 `DATA="man zones"` only those kinds of what is not a program.
 
+All of it is half a day of the 286's time, which is for a release and
+not for a change. A change is checked two ways, and
+`sh tests/self/changed.sh` does both:
+
+- `HOST=1 sh tests/self/run.sh` boots nothing. The same Makefiles are
+  run where the system is built, by that machine's `make`, with the
+  system's compiler, assembler and linker as they are compiled for it
+  (`tests/self/host.sh`), and each file compared as above: `/boot`, the
+  kernel, the libraries but the C library, and the programs, 726 files
+  in under two minutes. That says the Makefiles name the right files,
+  flags and order. It does not say the tools do on the 286 what they do
+  there. Eight files are made with a program the Makefiles make and
+  run, which is the 286's and does not run there: `ex`, `tcsh`, `awk`,
+  `battlestar`, `hack` and three files of their strings. The C library
+  and what is not a program are not made there, for the same reason.
+- One machine is then booted to make what the changed files are part
+  of and nothing else (`tests/self/select.py`): the programs a source
+  is in, the libraries, the kernel, the C library or the boot programs.
+  A change to the tools that do the making, or to a header of
+  `/usr/include`, has the system make its compiler (`tests/ccom/self.sh`),
+  the kernel and a program of each model, `cat`, `csh` and `make`. A
+  change to the Makefiles or to what writes them has it make the five
+  programs above. `changed.sh -n` says which, and why, and runs
+  nothing.
+
+Both boot the machine with a faster processor unless `CPU=286` is in
+the environment: IBM's 486SLC3 at 100 MHz, an upgrade for this same
+machine, in place of its 286 (`tests/harness/86box-486.cfg`). What the
+system makes there is the same to the byte, in less than half the time:
+five of the largest programs in 304 seconds where the 286 takes 710.
+It says nothing of whether a 286 runs the system, which is for
+`run.sh` and the other suites, on the 286.
+
+`sh tests/self/split.sh` is all of it but in two machines or three at
+once, each with a fixed share: three is the most, since each keeps a
+processor of the host busy for as long as it runs. It leaves to
+`run.sh` in one machine that the programs are installed where the
+system has them and that the system starts on the ones it made.
+
 `tests/disk/run.sh` has the system make a disk that way, of a second
 drive of 133 MB with nothing on it, not a label. `tools/fsck.py` must
 find nothing wrong with the new disk's two file systems, and lists

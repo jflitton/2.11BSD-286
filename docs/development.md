@@ -248,6 +248,12 @@ tests/self/run.sh       # the system making itself: the kernel, /boot,
                         # on the 286, each to be what is made of it
                         # here; installed, and started again
                         # (docs/self-hosting.md)
+tests/self/changed.sh   # as much of that as a change calls for: the
+                        # Makefiles run here with no machine (HOST=1),
+                        # then one machine for what the changed files
+                        # are part of
+tests/self/split.sh     # all of it, shared between two machines or
+                        # three at once
 tests/floppy/run.sh     # the system formatting diskettes and making
                         # ones that start it, of 1.44 MB and 1.2 MB,
                         # and the machine started from each; one of
@@ -492,6 +498,12 @@ lacks. `EMU=qemu` uses `qemu-system-i386` instead, which proves less: it
 runs 386 instructions, and it does not enforce segment limits or the
 write protection of code segments. `tests/pm` checks all three and so
 refuses to run there.
+
+With `CPU=486` in the environment the same machine has IBM's 486SLC3 at
+100 MHz in place of the 286 (`tests/harness/86box-486.cfg`), which does
+the same work in less than half the time. It is for the tests of what
+the system makes of itself (`tests/self/changed.sh`, `split.sh`), which
+compare bytes, and for nothing that is to say a 286 runs the system.
 
 `runtest.py` works with a released 86Box, which opens a window and runs in
 real time. It does better with one built with the automation socket, an

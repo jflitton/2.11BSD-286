@@ -528,6 +528,14 @@ def free_port():
     return port
 
 
+# CPU in the environment: the machine's processor, and the file that
+# describes the machine with it.  286 is the machine the system is for.
+# 486 is the same machine with IBM's 486SLC3 in place of its 286, which
+# does the same work in less than half the time: for a test of what the
+# system makes, not of whether a 286 runs it.
+CPUS = {"286": "86box.cfg", "486": "86box-486.cfg"}
+
+
 def find_86box():
     for box in (os.environ.get("BOX86"),
                 os.path.join(TOP, "toolchain", MAC_86BOX),
@@ -578,7 +586,10 @@ def start_86box(box, img, out, com1, args=(), env=None):
     vm = os.path.join(out, "86box")
     shutil.rmtree(vm, ignore_errors=True)
     os.makedirs(os.path.join(vm, "nvr"))
-    cfg = open(os.path.join(HARNESS, "86box.cfg")).read()
+    cpu = os.environ.get("CPU", "286")
+    if cpu not in CPUS:
+        sys.exit("CPU must be one of " + ", ".join(sorted(CPUS)))
+    cfg = open(os.path.join(HARNESS, CPUS[cpu])).read()
     scsi = HD[4].split(":")[1:] if HD and HD[4].startswith("scsi") else None
     ide = "hdc_1 = ide_isa\n"
     assert ide in cfg

@@ -41,6 +41,17 @@
 # the system's own tools whichever.  With ROOTFS set, that root file
 # system is booted in place of the one made here.
 #
+# With HOST set, no machine is booted: the same Makefiles are run where
+# the system is built, in seconds, by this machine's make with the
+# system's compiler, assembler and linker as they are compiled for it
+# (tests/self/host.sh), and what they make compared the same way.  That
+# says the Makefiles name the right files, flags and order; that the
+# tools do on the 286 what they do here is the machine's to say.
+# PARTS is then of "stand kernel libs progs", all four by default.
+#
+# With SHARE set, the directory in obj/tests has that after its name:
+# tests/self/split.sh boots two or three at once, each with a share.
+#
 # Run from the top of the repository after `. tools/env.sh`.
 set -e
 if [ "$EMU" = qemu ]; then
@@ -50,7 +61,7 @@ fi
 top=$(cd "$(dirname "$0")/../.." && pwd)
 src=$top/usr/src
 . "$top/tests/harness/system.sh"
-name=self$case
+name=self$case${HOST:+-host}${SHARE:+-$SHARE}
 out=$top/obj/tests/$name
 mkdir -p "$out"
 
@@ -71,6 +82,15 @@ nstand=$top/obj/nstand
 # What of it is made, of: stand, /boot and the boot blocks; kernel; libc,
 # the C library of each model; libs, the other libraries; progs, the
 # programs.
+if [ -n "$HOST" ]; then
+    PARTS=${PARTS:-"stand kernel libs progs"}
+    case " $PARTS " in
+    *" libc "*|*" data "*)
+        echo "HOST: libc and data run programs they make, which are" \
+            "the 286's" >&2
+        exit 2 ;;
+    esac
+fi
 PARTS=${PARTS:-"stand kernel libc libs progs data"}
 for p in $PARTS; do
     case $p in
@@ -345,6 +365,10 @@ EOF
 for f in check.sh self.sh install.sh; do
     echo "f /$f 644 fs/$f" >> want.proto
 done
+if [ -n "$HOST" ]; then
+    . "$top/tests/self/host.sh"
+    exit 0
+fi
 # The sources are older than anything the system makes of them,
 # whatever its clock says.
 python3 -I "$top/tools/mkfs.py" -s 64000 -t $(($(date +%s) - 172800)) \
