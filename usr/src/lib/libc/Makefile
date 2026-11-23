@@ -42,37 +42,49 @@
 HOSTLOOKUP=	named
 #HOSTLOOKUP=	hosttable
 #							
+# The 80286: its machine dependent routines are in i286, and the
+# library is made for each of its three models, as for the PDP-11 it
+# was made for profiling: libc.a for the small model, libc_m.a for the
+# medium, libc_l.a for the large, each of what the directories made for
+# that model (their Makefiles), and installed where cc links a program
+# of that model with it, /lib, /lib/m and /lib/l.  It has no profiling,
+# and so no monitor.  exit() and printf each have two of a function to
+# choose from by the order of the library, and the 286 has one of each
+# (gen, stdio): not fakcu.o and fpfcom.o, nor their moves after exit.o
+# and vfprintf.o.
+#
 INSTALL=install -m 644
-DFLMON=	mon.o
-MACHINE=pdp
+MACHINE=i286
 DEFS=
 COMPAT=	compat-4.1 compat-sys5 compat-43
 ALL=	gen inet net ns stdio stdlib string ${MACHINE} ${COMPAT}
 TAGSFILE=tags
 
-libc.a libc_p.a: ${MACHINE}/csu ${ALL} net/${HOSTLOOKUP}
+libc.a libc_m.a libc_l.a: ${MACHINE}/csu ${ALL} net/${HOSTLOOKUP}
 	rm -rf tmp
 	mkdir tmp
 	cd tmp; \
 		for i in ${ALL}; do ar x ../$$i/$${i}lib; done; \
 		ar x ../net/${HOSTLOOKUP}/hostlib; \
-		ar cr ../libc.a `lorder *.o | tsort` \
-			../${MACHINE}/csu/${DFLMON}
+		ar cr ../libc.a `lorder *.o | tsort`
 	ar ma findfp.o libc.a exit.o
-	ar ma exit.o libc.a fakcu.o
 	ar ma pfcom.o libc.a vfprintf.o
-	ar ma vfprintf.o libc.a fpfcom.o
 	rm -rf tmp
 	mkdir tmp
 	cd tmp; \
-		for i in ${ALL}; do ar x ../$$i/$${i}lib_p; done; \
-		ar x ../net/${HOSTLOOKUP}/hostlib_p; \
-		ar cr ../libc_p.a `lorder *.o | tsort` \
-			../${MACHINE}/csu/${DFLMON}
-	ar ma findfp.o libc_p.a exit.o
-	ar ma exit.o libc_p.a fakcu.o
-	ar ma pfcom.o libc_p.a vfprintf.o
-	ar ma vfprintf.o libc_p.a fpfcom.o
+		for i in ${ALL}; do ar x ../$$i/$${i}lib_m; done; \
+		ar x ../net/${HOSTLOOKUP}/hostlib_m; \
+		ar cr ../libc_m.a `lorder *.o | tsort`
+	ar ma findfp.o libc_m.a exit.o
+	ar ma pfcom.o libc_m.a vfprintf.o
+	rm -rf tmp
+	mkdir tmp
+	cd tmp; \
+		for i in ${ALL}; do ar x ../$$i/$${i}lib_l; done; \
+		ar x ../net/${HOSTLOOKUP}/hostlib_l; \
+		ar cr ../libc_l.a `lorder *.o | tsort`
+	ar ma findfp.o libc_l.a exit.o
+	ar ma pfcom.o libc_l.a vfprintf.o
 	rm -rf tmp
 
 ${MACHINE}/csu ${ALL} net/${HOSTLOOKUP}: FRC
@@ -81,11 +93,13 @@ ${MACHINE}/csu ${ALL} net/${HOSTLOOKUP}: FRC
 FRC:
 	@sleep 1
 
-install: libc.a libc_p.a
+install: libc.a libc_m.a libc_l.a
 	${INSTALL} libc.a /lib/libc.a
 	ranlib /lib/libc.a
-	${INSTALL} libc_p.a /usr/lib/libc_p.a
-	ranlib /usr/lib/libc_p.a
+	${INSTALL} libc_m.a /lib/m/libc.a
+	ranlib /lib/m/libc.a
+	${INSTALL} libc_l.a /lib/l/libc.a
+	ranlib /lib/l/libc.a
 	cd ${MACHINE}/csu; make install
 
 tags:
@@ -98,7 +112,7 @@ tags:
 clean:
 	for i in ${MACHINE}/csu ${ALL} net/hosttable net/named; \
 		do (cd $$i; make ${MFLAGS} clean); done
-	rm -rf tmp libc.a libc_p.a
+	rm -rf tmp libc.a libc_m.a libc_l.a
 
 depend:
 	for i in ${MACHINE}/csu ${ALL} net/hosttable net/named; \

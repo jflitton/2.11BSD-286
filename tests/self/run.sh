@@ -3,25 +3,17 @@
 # sources on a file system of their own, /usr/src, and have its make,
 # compiler, assembler and linker make there, from the Makefiles that
 # tools/srcmk.py writes for them: /boot and the boot blocks; the kernel;
-# the C library of each model, which is then installed; the other
-# libraries, which are installed too; and the programs, linked with
-# those, which are then installed as well, each in place of the one the
-# system came with; and what it has that is not a program and is made:
-# the databases and tables of /etc and /usr/share, spell's lists, the
-# time zones, the games' files and the manual as it is read, which are
-# installed too.  Each object, each program, the kernel and /boot, and
-# each of those files, is to be
+# and what it has that is not a program and is made: the databases and
+# tables of /etc and /usr/share, spell's lists, the time zones, the
+# games' files and the manual as it is read, which are installed.  Each
+# object, the kernel and /boot, and each of those files, is to be
 # to the byte what the same sources make where the system is built,
 # with the system's own tools as they are compiled for that machine
-# (obj/nstand, obj/nPC, obj/nlib, obj/nbin), which the disk has on
-# another file system to compare with.  A library is compared by its
-# members, and by which they are and their order: the archive has the
-# day it was made in it.  A page of the manual has the day it was
+# (obj/nstand, obj/nPC, obj/nbin), which the disk has on another file
+# system to compare with.  A page of the manual has the day it was
 # formatted at its foot, and is compared without it if that is all that
-# differs.  And each program
-# as it is installed, without its symbols, is to be what the root file
-# system has of it where the system is built (obj/root/bin), and each
-# of the other files, as installed, what the system made.
+# differs.  And each of the files, as installed, is to be what the
+# system made.
 #
 # The kernel is then made once more, to say of itself that it was made
 # there, and installed with /boot (make install); the machine is
@@ -29,10 +21,10 @@
 # with the one it was built on beside it as /unix.old, and on the
 # programs it made: init, getty, login, the shell.
 #
-# PARTS is what is made, any of "stand kernel libc libs data", and by
-# default all of it.  With DATA, the files that are not programs are
-# those of the kinds it names, of "etc roff learn spell zones games
-# man", and none is installed.  The programs are not made here any
+# PARTS is what is made, any of "stand kernel data", and by default all
+# of it.  With DATA, the files that are not programs are those of the
+# kinds it names, of "etc roff learn spell zones games man", and none is
+# installed.  The libraries and the programs are not made here any
 # more: the system makes those from the Makefiles of their own
 # directories, upstream's, and tests/self/progs.sh has it do that.
 #
@@ -48,8 +40,8 @@
 # (tests/self/host.sh), and what they make compared the same way.  That
 # says the Makefiles name the right files, flags and order; that the
 # tools do on the 286 what they do here is the machine's to say.
-# PARTS is then of "stand kernel libs", all three by default; for the
-# programs it is tests/make/run.sh.
+# PARTS is then of "stand kernel", both by default; for the libraries
+# and the programs it is tests/make/run.sh.
 #
 # With SHARE set, the directory in obj/tests has that after its name:
 # tests/self/split.sh boots two or three at once, each with a share.
@@ -81,27 +73,26 @@ mk -C "$src/i286" TOOLS=native all
 npc=$top/obj/nPC
 nstand=$top/obj/nstand
 
-# What of it is made, of: stand, /boot and the boot blocks; kernel; libc,
-# the C library of each model; libs, the other libraries; progs, the
-# programs.
+# What of it is made, of: stand, /boot and the boot blocks; kernel;
+# data, what is not a program.
 if [ -n "$HOST" ]; then
-    PARTS=${PARTS:-"stand kernel libs"}
+    PARTS=${PARTS:-"stand kernel"}
     case " $PARTS " in
-    *" libc "*|*" data "*)
-        echo "HOST: libc and data run programs they make, which are" \
-            "the 286's" >&2
+    *" data "*)
+        echo "HOST: data runs programs it makes, which are the 286's" >&2
         exit 2 ;;
     esac
 fi
-PARTS=${PARTS:-"stand kernel libc libs data"}
+PARTS=${PARTS:-"stand kernel data"}
 for p in $PARTS; do
     case $p in
-    stand|kernel|libc|libs|data) ;;
-    progs)
-        echo "PARTS: the programs are tests/self/progs.sh's, and" \
-            "tests/make/run.sh's where the system is built" >&2
+    stand|kernel|data) ;;
+    libc|libs|progs)
+        echo "PARTS: the libraries and the programs are" \
+            "tests/self/progs.sh's, and tests/make/run.sh's where the" \
+            "system is built" >&2
         exit 2 ;;
-    *)  echo "PARTS is of stand, kernel, libc, libs and data, not $p" >&2
+    *)  echo "PARTS is of stand, kernel and data, not $p" >&2
         exit 2 ;;
     esac
 done
@@ -122,8 +113,6 @@ rm -rf fs
 mkdir -p fs/src
 python3 -I "$top/tools/srcmk.py" fs/src
 date=$(sed -n 's/.*(\(.*\)).*/\1/p' "$npc/vers.c")
-nlib=$top/obj/nlib
-libs=$(cat fs/src/libraries)
 : > want.proto
 dirs=" "
 # want DIRECTORY FILE...: the files are to be made in that directory
@@ -150,29 +139,6 @@ if has kernel; then
     want sys/PC $(make -s -C "$src/sys/PC" table | sed -n 's/^OBJS //p' |
         tr ' ' '\n' | sed "s|^|$npc/|") "$npc/unix"
 fi
-# A library's members, a line each, as ar t lists them: what the system
-# says of the one it made is to be the same.
-members() {
-    mkdir -p "fs/t/$1"
-    python3 -I "$top/tools/ar.py" -t "$2" | sed 's/:.*//' \
-        > "fs/t/$1/$(basename "$2" .a).t"
-    echo "fs/t/$1/$(basename "$2" .a).t"
-}
-for m in s m l; do
-    if has libc; then
-        want lib/libc/i286/$m "$out/$(members $m "$nlib/$m/libc.a")"
-        want lib/libc/i286/$m $(make -s -C "$src/lib/libc/i286" MODEL=$m \
-            table | sed -n 's/^OBJS //p' | tr ' ' '\n' |
-            sed "s|^|$nlib/$m/obj/|; s|\$|.o|") "$nlib/$m/crt0.o"
-        want lib/libc/i286/$m/sys "$nlib/$m"/obj/sys/*.[so]
-    fi
-    if has libs; then
-        for l in $libs; do
-            want i286/lib/$m/$l "$nlib/$m/$l"/*.o
-            want i286/lib/$m "$out/$(members $m "$nlib/$m/lib$l.a")"
-        done
-    fi
-done
 if has progs; then
     for p in $ONLY; do
         grep -qx "$p" fs/src/programs || {
@@ -287,31 +253,6 @@ EOF
     if has kernel; then
         echo "cd /usr/src/sys/PC && make -k"
         echo "sh /mnt/check.sh sys/PC"
-    fi
-    if has libc; then
-        echo "for m in s m l"
-        echo "do"
-        echo "	cd /usr/src/lib/libc/i286/\$m && make -k"
-        echo "	ar t libc.a | grep -v SYMDEF > libc.t"
-        echo "	sh /mnt/check.sh lib/libc/i286/\$m"
-        echo "	sh /mnt/check.sh lib/libc/i286/\$m/sys"
-        echo "	make install"
-        echo "	date"
-        echo "done"
-    fi
-    if has libs; then
-        echo "cd /usr/src/i286 && make -k libs"
-        echo "for m in s m l"
-        echo "do"
-        echo "	for l in" $libs
-        echo "	do"
-        echo "		sh /mnt/check.sh i286/lib/\$m/\$l"
-        echo "		ar t lib/\$m/lib\$l.a | grep -v SYMDEF > lib/\$m/lib\$l.t"
-        echo "	done"
-        echo "	sh /mnt/check.sh i286/lib/\$m"
-        echo "done"
-        echo "make install-libs"
-        echo "date"
     fi
     if has progs; then
         targets=progs

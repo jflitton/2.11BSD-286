@@ -8,8 +8,9 @@
 #
 #	sh tests/make/run.sh [DIR ...]
 #
-# DIR is a directory of usr/src with a Makefile: bin, usr.bin/spell.
-# Without one it is every directory of programs.  The Makefiles are run
+# DIR is a directory of usr/src with a Makefile: lib/libc, bin,
+# usr.bin/spell.  Without one it is the libraries' directories and every
+# directory of programs.  The Makefiles are run
 # by this machine's make in a copy of usr/src (obj/tests/make/root), with
 # the rules the system's make has and none of its own (rules.mk), and
 # with the system's commands as this machine has them (commands.sh): the
@@ -34,7 +35,7 @@ top=$(cd "$(dirname "$0")/../.." && pwd)
 buildsys
 here=$top/tests/make
 out=$top/obj/tests/make
-dirs=${*:-"bin sbin libexec ucb usr.bin usr.sbin games new"}
+dirs=${*:-"lib/libc usr.lib bin sbin libexec ucb usr.bin usr.sbin games new"}
 mkdir -p "$out"
 rm -rf "$out/root/usr/src" "$out/dest" "$out/log"
 mkdir -p "$out/dest" "$out/log"
@@ -49,7 +50,7 @@ for d in $dirs; do
     log=$out/log/$(echo "$d" | tr / _)
     (cd "$out/root/usr/src/$d" && PATH="$out/bin:$PATH" &&
         MAKEFILES=$here/rules.mk && export PATH MAKEFILES &&
-        for t in all install clean; do
+        for t in "" install clean; do
             make -r -k SHELL="$out/bin/sh" $t
         done) > "$log" 2>&1 || true
 done

@@ -832,8 +832,11 @@ PROGS=	init getty login sh csh ls mkdir stty test hostname mknod mount \
 	$(CCPROGS) $(CCUSEPROGS)
 
 # The libraries the programs use besides the C library: NAME_LIB lists a
-# library's sources, and NAME_LIBFLAGS what it is compiled with.  Each is
-# made, in obj/lib/M/libNAME.lib, for each of the three models.
+# library's sources, and NAME_LIBFLAGS what it is compiled with, as the
+# Makefile of its directory has them (usr/src/usr.lib), which makes it
+# on the system.  Each is made, in obj/nlib/M/libNAME.a (and
+# obj/lib/M/libNAME.lib for the cross compiler), for each of the three
+# models, of its objects in the order that Makefile gives them.
 util_LIB=	$(addprefix usr.lib/libutil/,login.c logout.c logwtmp.c \
 		dkcksum.c)
 termcap_LIB=	$(addprefix usr.lib/libtermlib/,termcap.c tgoto.c tputs.c)
@@ -864,6 +867,10 @@ ln_LIB=		$(addprefix usr.lib/libln/,allprint.c main.c reject.c yyless.c \
 		yywrap.c)
 y_LIB=		usr.lib/liby/libmai.c usr.lib/liby/libzer.c
 LIBRARIES=	util termcap m curses wrap dbm ln y
+# Those the system has, where usr.lib's Makefiles install them
+# (tools/ccproto.py): not libwrap, which tcpd's Makefile makes for its
+# programs and does not install.
+USRLIBS=	$(filter-out wrap,$(LIBRARIES))
 
 all:	$(addprefix $(O)/,$(PROGS))
 
@@ -878,10 +885,9 @@ ccprogs:
 	@$(foreach p,$(CCPROGS),echo $(p) $(if $($(p)_MODEL),-m$($(p)_MODEL)) \
 	    $(subst $(SRC)/,,$($(p)_FLAGS) $($(p)_SRCS));)
 
-# What the system's own Makefile for its programs and libraries is
-# written from (tools/srcmk.py): for each program its name and model,
-# and after a bar each, its flags, its sources and its libraries; for
-# each library its name, its flags and its sources; what yacc and lex
+# What the system's own Makefile for its programs is written from
+# (tools/srcmk.py): for each program its name and model, and after a
+# bar each, its flags, its sources and its libraries; what yacc and lex
 # make (YACCED, LEXED), and mkstr, and hack's crypt of its files as the
 # preprocessor leaves them; and the rules that are written here for the
 # system's make as they are (SYSGEN, SYSRULES).  What is in usr/src is
@@ -889,8 +895,6 @@ ccprogs:
 table:
 	@:$(foreach p,$(PROGS),$(info PROG $(p) $(call model,$(p)) | $(subst \
 	    $(SRC)/,,$($(p)_FLAGS)) | $(subst $(SRC)/,,$($(p)_SRCS)) | $($(p)_LIBS)))
-	@:$(foreach l,$(LIBRARIES),$(info LIB $(l) | $(subst \
-	    $(SRC)/,,$($(l)_LIBFLAGS)) | $($(l)_LIB)))
 	@:$(foreach y,$(YACCED),$(info YACC $(subst $(colon), ,$(y))))
 	@:$(foreach l,$(LEXED),$(info LEX $(subst $(colon), ,$(l))))
 	@:$(info FILTERED games/nhack | hcrypt games/hack/crypt.c -Di286 | -mm \
@@ -1430,7 +1434,7 @@ $(NLIB)/s/crt0.o: | $(NLIB)/s/libc.a ;
 
 $(R)/cc.proto: $(SYSLIBS) $(TOP)/tools/ccproto.py \
 		$(wildcard $(TOP)/usr/include/*.h $(TOP)/usr/include/*/*.h) | $(R)
-	python3 -I $(TOP)/tools/ccproto.py $(TOP) $(LIBRARIES) > $@
+	python3 -I $(TOP)/tools/ccproto.py $(TOP) $(USRLIBS) > $@
 
 $(R) $(R)/bin:
 	mkdir -p $@

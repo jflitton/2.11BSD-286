@@ -23,27 +23,38 @@ CTAGS=	ctags
 CFLAGS=	-O $(DEFS) -DNOSCCS
 TAGSFILE=tags
 
-.c.o:
-	${CC} -c -p ${CFLAGS} $*.c
-	ld -x -r $*.o
-	mv a.out profiled/$*.o
-	${CC} -c ${CFLAGS} $*.c
-	ld -x -r $*.o
-	mv a.out $*.o
+# The 80286: each file is compiled for the three models, the medium's
+# object put in m and the large's in l, where the PDP-11's profiled one
+# went in profiled, and the small's left here; each model has a library
+# of its own, which is installed where cc links a program of that model
+# with it.  The PDP-11's ld -x -r, which took out the local symbols, is
+# not done: the 286's ld makes nothing but a program.
 
-libcurses libcurses_p: ${OBJS}
-	@echo building profiled libcurses
-	@cd profiled; ar ru ../libcurses_p ${OBJS}
-	ranlib libcurses_p
-	@echo building normal libcurses
+.c.o:
+	${CC} -c -mm ${CFLAGS} $*.c
+	mv $*.o m/$*.o
+	${CC} -c -ml ${CFLAGS} $*.c
+	mv $*.o l/$*.o
+	${CC} -c ${CFLAGS} $*.c
+
+libcurses libcurses_m libcurses_l: ${OBJS}
+	@echo building medium model libcurses
+	@cd m; ar ru ../libcurses_m ${OBJS}
+	ranlib libcurses_m
+	@echo building large model libcurses
+	@cd l; ar ru ../libcurses_l ${OBJS}
+	ranlib libcurses_l
+	@echo building small model libcurses
 	@ar ru libcurses ${OBJS}
 	ranlib libcurses
 
-install: libcurses libcurses_p
+install: libcurses libcurses_m libcurses_l
 	install -c -m 644 libcurses /usr/lib/libcurses.a
 	ranlib /usr/lib/libcurses.a
-	install -c -m 644 libcurses_p /usr/lib/libcurses_p.a
-	ranlib /usr/lib/libcurses_p.a
+	install -c -m 644 libcurses_m /usr/lib/m/libcurses.a
+	ranlib /usr/lib/m/libcurses.a
+	install -c -m 644 libcurses_l /usr/lib/l/libcurses.a
+	ranlib /usr/lib/l/libcurses.a
 
 tags:
 	cwd=`pwd`; \
@@ -52,8 +63,8 @@ tags:
 	done
 
 clean:
-	rm -f ${OBJS} profiled/*.o a.out core test errs \
-	    libcurses libcurses_p tags
+	rm -f ${OBJS} m/*.o l/*.o a.out core test errs \
+	    libcurses libcurses_m libcurses_l tags
 
 ctags:
 	${CTAGS} ${CFILES} curses.h

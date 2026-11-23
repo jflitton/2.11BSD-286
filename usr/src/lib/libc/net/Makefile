@@ -24,22 +24,29 @@ OBJS=	getnbyaddr.o getnbyname.o getnent.o getpent.o getpname.o	\
 
 CFLAGS=	-O ${DEFS}
 
-.c.o:
-	${CC} -p -c ${CFLAGS} $*.c
-	-ld -X -r $*.o
-	mv a.out profiled/$*.o
-	${CC} ${CFLAGS} -c $*.c
-	-ld -x -r $*.o
-	mv a.out $*.o
+# The 80286: each file is compiled for the three models, the medium's
+# object put in m and the large's in l, where the PDP-11's profiled one
+# went in profiled, and the small's left here; each model has a library
+# of its own.  The PDP-11's ld -x -r, which took out the local symbols,
+# is not done: the 286's ld makes nothing but a program.
 
-netlib netlib_p: ${OBJS}
-	@echo "building profiled netlib"
-	@cd profiled; ar cru ../netlib_p ${OBJS}
-	@echo "building normal netlib"
+.c.o:
+	${CC} -mm ${CFLAGS} -c $*.c
+	mv $*.o m/$*.o
+	${CC} -ml ${CFLAGS} -c $*.c
+	mv $*.o l/$*.o
+	${CC} ${CFLAGS} -c $*.c
+
+netlib netlib_m netlib_l: ${OBJS}
+	@echo "building medium model netlib"
+	@cd m; ar cru ../netlib_m ${OBJS}
+	@echo "building large model netlib"
+	@cd l; ar cru ../netlib_l ${OBJS}
+	@echo "building small model netlib"
 	@ar cru netlib ${OBJS}
 
 clean:
-	rm -f *.o profiled/*.o errs a.out core netlib netlib_p tags
+	rm -f *.o m/*.o l/*.o errs a.out core netlib netlib_m netlib_l tags
 
 depend:
 	mkdep ${CFLAGS} ${SRCS}

@@ -15,11 +15,16 @@ and nothing is to be there that the root did not have.  But for: the
 contents of the files of tests/make/differs, which the two builds do
 not make the same way, and of a page of the manual, which has the day
 in it; what the system changes by running (running, beside this); and
-NAME.old, where a Makefile keeps the NAME it installs over.  And each
-of the root's programs whose sources are in a DIR (tests/make/programs.py)
-is to be among the files installed.
+NAME.old, where a Makefile keeps the NAME it installs over.  A library
+has the day it was made in it too, and whose its members were, and is
+compared by its members, each by its name and its contents, and their
+order, the table of contents among them.  And each of the root's
+programs whose sources are in a DIR (tests/make/programs.py) is to be
+among the files installed, and so is each of its libraries, where the
+DIR is lib/libc, of /lib, or usr.lib, of /usr/lib.
 """
 import os
+import subprocess
 import sys
 
 top, out, name = sys.argv[1:4]
@@ -50,8 +55,41 @@ running = programs.Names(os.path.join(os.path.dirname(
 source = programs.sources()
 where = programs.installed(source)
 
+
+def contents(path, image, part):
+    """What the file PATH has in it, in the file system of IMAGE."""
+    return subprocess.run(
+        ["python3", "-I", os.path.join(top, "tools", "fsck.py")] +
+        (["-p", part] if part else []) + ["-x", path, image],
+        capture_output=True, check=True).stdout
+
+
+def members(data):
+    """A library's members, each its name and its contents, or None if
+    it is not one."""
+    if data[:8] != b"!<arch>\n":
+        return None
+    pos, out = 8, []
+    while pos + 60 <= len(data):
+        h = data[pos:pos + 60]
+        size = int(h[48:58])
+        name, d, n = h[:16].rstrip(), pos + 60, 0
+        if name.startswith(b"#1/"):
+            n = int(name[3:])
+            name = data[d:d + n]
+        out.append((name, data[d + n:pos + 60 + size]))
+        pos += 60 + size + (size & 1)
+    return out
+
+
+def library(p):
+    """Whether the library P is as it was, member for member."""
+    a = members(contents(p, out + "/self.img", "a"))
+    return a is not None and a == members(contents(p, out + "/root.fs", None))
+
+
 bad = []
-same = pages = kept = 0
+same = pages = kept = libs = 0
 for p in sorted(set(before) | set(after)):
     if p in running:
         continue
@@ -73,8 +111,12 @@ for p in sorted(set(before) | set(after)):
         bad.append("MODE %s: %s, and the root's was %s" % (p, a[1], b[1]))
     elif a[2] != b[2]:
         bad.append("OWNER %s: %s, and the root's was %s" % (p, a[2], b[2]))
-    elif a[3:] != b[3:] and not (a[0] == "f" and (page or p in differs)):
+    elif a[3:] != b[3:] and not (a[0] == "f" and (page or p in differs)) \
+            and not (a[0] == "f" and a[5:] == b[5:] and p.endswith(".a") and
+                     library(p)):
         bad.append("DIFFERS %s" % p)
+    elif p in newer and p.endswith(".a") and a[3:] != b[3:]:
+        libs += 1
     elif p in newer and page:
         pages += 1
     elif p in newer:
@@ -85,12 +127,16 @@ for p, prog in sorted(where.items()):
     if programs.within(source[prog], dirs) and p not in newer and \
             p not in differs:
         bad.append("NOT INSTALLED %s" % p)
+bad += ["NOT INSTALLED %s" % p
+        for p in programs.libraries(sorted(before), dirs)
+        if before[p][0] == "f" and p not in newer]
 for line in sorted(bad):
     print(line, file=sys.stderr)
 if bad:
     sys.exit("%s: %d of the root are not what it had (%s/self.img, "
              "/usr/src/log.*)" % (name, len(bad), out))
 print("%s: the system made and installed %d files from the Makefiles of "
-      "%s, each what its root had and whose, and %d pages of the manual "
-      "with the mode and owner the root's had; the rest of the root, %d "
-      "names, as it was" % (name, same, " ".join(dirs), pages, kept))
+      "%s, each what its root had and whose, %d libraries with the "
+      "members the root's had, and %d pages of the manual with the mode "
+      "and owner the root's had; the rest of the root, %d names, as it "
+      "was" % (name, same, " ".join(dirs), libs, pages, kept))

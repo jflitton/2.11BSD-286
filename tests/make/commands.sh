@@ -1,14 +1,18 @@
 # commands.sh TOP OUT: write OUT/bin, the system's commands as this
 # machine has them, for the Makefiles tests/make/run.sh runs:
 #
-#	sh		sh.py, for make to run its commands with
+#	sh		sh.py, for make to run its commands with, which
+#			runs mkstubs, which libc's Makefile makes and runs,
+#			as it is compiled for this machine
 #	cc		cc.py
 #	as, ld, cpp	the system's, as compiled for this machine
 #	yacc, lex	the same
 #	xstr, mkstr, tsort  the tree's (ucb/xstr.c, ucb/mkstr, usr.bin/tsort.c),
 #			compiled here for this machine
-#	ar, ranlib	tools/ar.py, which makes a library whole of the
-#			files ar is given
+#	ar, ranlib	ar.py, which makes a library whole each time with
+#			tools/ar.py, with ranlib's table
+#	lorder		tools/lorder.py, which prints what the system's
+#			does
 #	nroff, manroff	the system's nroff, as compiled for this machine
 #	strip		tools/strip.py
 #	install		install.py
@@ -39,13 +43,15 @@ s=$top/usr/src
     $hostcc -o "$h/mkstr" "$s/ucb/mkstr/mkstr.c"
 [ "$h/tsort" -nt "$s/usr.bin/tsort.c" ] ||
     $hostcc -o "$h/tsort" "$s/usr.bin/tsort.c"
+m=$s/lib/libc/i286/sys/mkstubs.c
+[ "$h/mkstubs" -nt "$m" ] || $hostcc -o "$h/mkstubs" "$m"
 
 run() {		# run NAME COMMAND...: NAME runs COMMAND with its arguments
     n=$1
     shift
     { echo '#!/bin/sh'; echo "exec $* \"\$@\""; } > "$b/$n"
 }
-run sh python3 -I "$top/tests/make/sh.py"
+run sh python3 -I "$top/tests/make/sh.py" "$h"
 run cc python3 -I "$top/tests/make/cc.py" "$top" "$out"
 run install python3 -I "$top/tests/make/install.py" "$out"
 # expr substr, which the system's expr has and this machine's may not
@@ -70,18 +76,8 @@ cat > "$b/make" <<END
 #!/bin/sh
 exec $hostmake \$(sed 's/^/-o /' "$out/dirs") "\$@"
 END
-cat > "$b/ar" <<END
-#!/bin/sh
-key=\$1 lib=\$2
-shift 2
-case \$key in
-*c*) : > "\$lib.members" ;;
-*r*) [ -f "\$lib" ] || : > "\$lib.members" ;;
-*)  echo "ar: only c and r here, not \$key" >&2; exit 1 ;;
-esac
-for f; do echo "\$PWD/\$f" >> "\$lib.members"; done
-exec python3 -I "$top/tools/ar.py" "\$lib" \$(cat "\$lib.members")
-END
+run ar python3 -I "$top/tests/make/ar.py" "$top"
+run lorder python3 -I "$top/tools/lorder.py"
 # nroff finds its macros and tables beside it
 cat > "$b/nroff" <<END
 #!/bin/sh

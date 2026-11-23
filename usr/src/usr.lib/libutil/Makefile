@@ -15,30 +15,41 @@
 # FITNESS FOR A PARTICULAR PURPOSE.
 #
 # @(#)Makefile	5.4.2 (2.11BSD) 2025/11/27
+#
+# The 80286: each file is compiled for the three models, the medium's
+# object put in m and the large's in l, where the PDP-11's profiled one
+# went in profiled, and the small's left here; each model has a library
+# of its own, which is installed where cc links a program of that model
+# with it, /usr/lib, /usr/lib/m and /usr/lib/l.  The PDP-11's ld -x -r,
+# which took out the local symbols, is not done: the 286's ld makes
+# nothing but a program.
 
 CFLAGS=	-O
 SRCS=	login.c logout.c logwtmp.c dkcksum.c
 OBJS=	login.o logout.o logwtmp.o dkcksum.o
 
 .c.o:
-	@${CC} -p ${CFLAGS} -c $*.c
-	@-ld -X -o profiled/$*.o -r $*.o
+	@${CC} -mm ${CFLAGS} -c $*.c
+	@mv $*.o m/$*.o
+	@${CC} -ml ${CFLAGS} -c $*.c
+	@mv $*.o l/$*.o
 	${CC} ${CFLAGS} -c $*.c
-	@-ld -x -r $*.o
-	@mv a.out $*.o
 
-all: libutil.a libutil_p.a
+all: libutil.a libutil_m.a libutil_l.a
 
-libutil.a libutil_p.a: ${OBJS}
-	@echo building normal libutil
+libutil.a libutil_m.a libutil_l.a: ${OBJS}
+	@echo building small model libutil
 	@ar ru libutil.a ${OBJS}
 	ranlib libutil.a
-	@echo building profiled libutil
-	@cd profiled; ar ru ../libutil_p.a ${OBJS}
-	ranlib libutil_p.a
+	@echo building medium model libutil
+	@cd m; ar ru ../libutil_m.a ${OBJS}
+	ranlib libutil_m.a
+	@echo building large model libutil
+	@cd l; ar ru ../libutil_l.a ${OBJS}
+	ranlib libutil_l.a
 
 clean:
-	rm -f ${OBJS} profiled/*.o libutil.a libutil_p.a
+	rm -f ${OBJS} m/*.o l/*.o libutil.a libutil_m.a libutil_l.a
 
 cleandir: clean
 	rm -f .depend
@@ -49,8 +60,10 @@ depend:
 install: all
 	install -c -o root -g staff -m 644 libutil.a /usr/lib
 	ranlib -t /usr/lib/libutil.a
-	install -c -o root -g staff -m 644 libutil_p.a /usr/lib
-	ranlib -t /usr/lib/libutil_p.a
+	install -c -o root -g staff -m 644 libutil_m.a /usr/lib/m/libutil.a
+	ranlib -t /usr/lib/m/libutil.a
+	install -c -o root -g staff -m 644 libutil_l.a /usr/lib/l/libutil.a
+	ranlib -t /usr/lib/l/libutil.a
 
 tags:
 	ctags ${SRCS}

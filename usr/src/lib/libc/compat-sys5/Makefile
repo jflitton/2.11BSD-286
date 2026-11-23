@@ -3,22 +3,31 @@
 CFLAGS=	-O ${DEFS}
 # strchr and strrchr.c are not used.  The assembly versions in pdp/gen are
 # used instead.
-SRCS=	memccpy.c memchr.c memcmp.c memcpy.c memset.c
-OBJS=	memccpy.o memchr.o memcmp.o memcpy.o memset.o
+# The 80286 has them: its index and rindex are ../gen's C, which has
+# not the other names that the PDP-11's assembly gives them.
+SRCS=	memccpy.c memchr.c memcmp.c memcpy.c memset.c strchr.c strrchr.c
+OBJS=	memccpy.o memchr.o memcmp.o memcpy.o memset.o strchr.o strrchr.o
 TAGSFILE=tags
 
-.c.o:
-	${CC} -p ${CFLAGS} -c $*.c
-	-ld -X -r $*.o
-	mv a.out profiled/$*.o
-	${CC} ${CFLAGS} -c $*.c
-	-ld -x -r $*.o
-	mv a.out $*.o
+# The 80286: each file is compiled for the three models, the medium's
+# object put in m and the large's in l, where the PDP-11's profiled one
+# went in profiled, and the small's left here; each model has a library
+# of its own.  The PDP-11's ld -x -r, which took out the local symbols,
+# is not done: the 286's ld makes nothing but a program.
 
-compat-sys5lib compat-sys5lib_p: ${OBJS}
-	@echo "building profiled compat-sys5lib"
-	@cd profiled; ar cru ../compat-sys5lib_p ${OBJS}
-	@echo "buiding normal compat-sys5lib"
+.c.o:
+	${CC} -mm ${CFLAGS} -c $*.c
+	mv $*.o m/$*.o
+	${CC} -ml ${CFLAGS} -c $*.c
+	mv $*.o l/$*.o
+	${CC} ${CFLAGS} -c $*.c
+
+compat-sys5lib compat-sys5lib_m compat-sys5lib_l: ${OBJS}
+	@echo "building medium model compat-sys5lib"
+	@cd m; ar cru ../compat-sys5lib_m ${OBJS}
+	@echo "building large model compat-sys5lib"
+	@cd l; ar cru ../compat-sys5lib_l ${OBJS}
+	@echo "building small model compat-sys5lib"
 	@ar cru compat-sys5lib ${OBJS}
 
 tags:
@@ -28,7 +37,7 @@ tags:
 	done
 
 clean:
-	rm -f compat-sys5lib compat-sys5lib_p *.o profiled/*.o Makefile.bak
+	rm -f compat-sys5lib compat-sys5lib_m compat-sys5lib_l *.o m/*.o l/*.o Makefile.bak
 
 depend:
 	mkdep ${CFLAGS} ${SRCS}

@@ -15,24 +15,31 @@ SRCS=	getopt.c getsubopt.c strtol.c strtoul.c imaxabs.c imaxdiv.c lconv.c \
 OBJS=	getopt.o getsubopt.o strtol.o strtoul.o imaxabs.o imaxdiv.o lconv.o \
 	localeconv.o setlocale.o strtomax.o
 
+# The 80286: each file is compiled for the three models, the medium's
+# object put in m and the large's in l, where the PDP-11's profiled one
+# went in profiled, and the small's left here; each model has a library
+# of its own.  The PDP-11's ld -x -r, which took out the local symbols,
+# is not done: the 286's ld makes nothing but a program.
+
 .c.o:
-	${CC} -p ${CFLAGS} -c $*.c
-	ld -X -r $*.o
-	mv a.out profiled/$*.o
+	${CC} -mm ${CFLAGS} -c $*.c
+	mv $*.o m/$*.o
+	${CC} -ml ${CFLAGS} -c $*.c
+	mv $*.o l/$*.o
 	${CC} ${CFLAGS} -c $*.c
-	ld -X -r $*.o
-	mv a.out $*.o
 
-all: stdliblib stdliblib_p
+all: stdliblib stdliblib_m stdliblib_l
 
-stdliblib stdliblib_p: ${OBJS}
-	@echo "building profiled stdlib"
-	@cd profiled; ar cru ../stdliblib_p ${OBJS}
-	@echo "building normal stdlib"
+stdliblib stdliblib_m stdliblib_l: ${OBJS}
+	@echo "building medium model stdliblib"
+	@cd m; ar cru ../stdliblib_m ${OBJS}
+	@echo "building large model stdliblib"
+	@cd l; ar cru ../stdliblib_l ${OBJS}
+	@echo "building small model stdliblib"
 	@ar cru stdliblib ${OBJS}
 
 clean:
-	rm -f ${OBJS} profiled/*.o tags Makefile.bak stdliblib stdliblib_p
+	rm -f ${OBJS} m/*.o l/*.o tags Makefile.bak stdliblib stdliblib_m stdliblib_l
 
 depend: ${SRCS}
 	mkdep ${CFLAGS} ${SRCS}

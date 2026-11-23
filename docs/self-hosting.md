@@ -26,15 +26,16 @@ the repository, 20 MB of them, and room for what is made of them, which
 is left beside them. The root file system has the directory, and `/sys`
 is a name for `/usr/src/sys`.
 
-The programs are made from the Makefiles of their own directories,
-which are upstream's: `usr/src/bin/Makefile`, `usr/src/bin/sh/Makefile`
-and the rest, as 2.11BSD has them, changed where the 286 is not the
-PDP-11 ([below](#upstreams-makefiles)). They are in the repository and
-on the system the same, and a change made to one there is a change to
-the system's sources.
+The libraries and the programs are made from the Makefiles of their own
+directories, which are upstream's: `usr/src/lib/libc/Makefile`,
+`usr/src/usr.lib/Makefile`, `usr/src/bin/Makefile`,
+`usr/src/bin/sh/Makefile` and the rest, as 2.11BSD has them, changed
+where the 286 is not the PDP-11 ([below](#upstreams-makefiles)). They
+are in the repository and on the system the same, and a change made to
+one there is a change to the system's sources.
 
-The kernel, the programs that load it, the libraries and what is not a
-program are not made from such yet. The repository's Makefiles for
+The kernel, the programs that load it and what is not a program are not
+made from such yet. The repository's Makefiles for
 those are GNU make's, and the system's own `make` reads none of them:
 no pattern rules, no functions, no conditionals. So `srcmk.py` writes
 Makefiles that it does read, with a rule for every file, from the same
@@ -52,10 +53,9 @@ mount /dev/wd0d /usr/src
 
 cd /usr/src/sys/i286stand; make; make install    # /boot, the boot blocks
 cd /usr/src/sys/PC; make; make install           # the kernel
-cd /usr/src/lib/libc/i286; make; make install    # the C library, three models
-cd /usr/src/i286
-make libs; make install-libs                     # the other libraries
-make data; make install-data                     # what is not a program
+cd /usr/src/lib/libc; make; make install         # the C library, three models
+cd /usr/src/usr.lib; make; make install          # the other libraries
+cd /usr/src/i286; make data; make install-data   # what is not a program
 
 cd /usr/src/bin; make; make install              # the programs, and so
 cd /usr/src/sbin; make; make install             # in libexec, ucb, usr.bin,
@@ -66,8 +66,8 @@ cd /usr/src/sbin; make; make install             # in libexec, ucb, usr.bin,
 |---|---|---|
 | `sys/i286stand` | `boot`, `hdboot.bin`, `flboot.bin`, `mbr.bin`, `fdboot.bin` | `/boot`, `/mdec/wduboot`, `/mdec/fluboot` |
 | `sys/PC` | `unix`, and `unix.map` | `/unix`; the one that was is `/unix.old` |
-| `lib/libc/i286/s`, `m`, `l` | `libc.a`, `crt0.o` | `/lib`, `/lib/m`, `/lib/l` |
-| `i286` | `lib/MODEL/libNAME.a` | `/usr/lib`, `/usr/lib/m`, `/usr/lib/l` |
+| `lib/libc` | `libc.a`, `libc_m.a`, `libc_l.a`, and `crt0.o` of each model in `i286/csu` | `/lib`, `/lib/m`, `/lib/l` |
+| `usr.lib` | each library, of each model, beside its sources | `/usr/lib`, `/usr/lib/m`, `/usr/lib/l` |
 | `bin`, `sbin`, `libexec`, `ucb`, `usr.bin`, `usr.sbin`, `games`, `new` | each program, beside its sources, and its page of the manual | each where upstream's Makefile installs it, with the mode, owner and group it gives |
 | `i286`, `make data` | [what is not a program](#what-is-not-a-program) | each where the root file system has it |
 
@@ -76,12 +76,12 @@ A kernel that does not start is left behind by naming the other to
 own directory, `/usr/src/bin/sed`, makes that one. `make clean` in any
 of them removes what was made.
 
-The kernel and the C library have a rule for each object, and are made
-again when a header changes. The C library's stubs for the system
-calls are written there too, a file of assembly for each call and each
-model, from `lib/libc/i286/sys/syscalls.tab`: by `mkstubs`
-(`sys/mkstubs.c` beside it), which both builds compile and run, and
-which has each agree with the kernel's table of calls.
+The kernel has a rule for each object, and is made again when a header
+changes. The C library's stubs for the system calls are written as it
+is made, a file of assembly for each call and each model, from
+`lib/libc/i286/sys/syscalls.tab`: by `mkstubs` (`sys/mkstubs.c` beside
+it), which both builds compile and run, and which has each agree with
+the kernel's table of calls.
 
 ## Upstream's Makefiles
 
@@ -116,6 +116,39 @@ says another. What was changed in them for the 286:
 - `-i`, `-n` and `-z`, the PDP-11's separate instruction and data
   spaces, are left where they are: the system's `ld` takes them and
   does nothing.
+
+A library is made for each of the 286's three models, where upstream's
+was made a second time for profiling: a file is compiled three times,
+the medium model's object put in `m` and the large's in `l`, where the
+profiled one went in `profiled`, and each model has a library, which
+is installed where `cc` links a program of that model with it (`/lib`,
+`/lib/m`, `/lib/l`; `/usr/lib` and the same). Besides:
+
+- The PDP-11's `ld -x -r` of each object, which took out its local
+  symbols, is not done: the 286's `ld` makes nothing but a program.
+  `libdbm`, which upstream makes with `ld -r`, is a library of `ar`'s
+  with `ranlib`'s table, which the 286's `ld` looks in.
+- The C library's machine dependent directory is `i286`, whose
+  Makefiles are after `pdp`'s: `crt`, `csu`, `gen`, `net` and `sys`,
+  this last with the stubs. `gen` has the C that the PDP-11 has in
+  assembly, as its Makefile says to where the machine is not that one;
+  `compat-sys5` has `strchr` and `strrchr`, which on the PDP-11 are
+  other names in `index`'s assembly; the large model's `malloc` is
+  `i286/gen/lmalloc.c`, which gets segments from the system where
+  `malloc.c` moves the break.
+- No profiling, and so no `mon.o` and `mcrt0.o`. No `fakcu.o`, an empty
+  `_cleanup` for a program without `stdio`, which works by the order of
+  the library: the 286's `ld` once took it in place of `stdio`'s, and
+  the program did not flush at exit. No `fpfcom.o`, `printf` without
+  floating point, which is taken unless the compiler marks a program
+  that has it, and the 286's does not.
+- `usr.lib` makes the seven libraries the programs are linked with.
+  `libwrap` is `tcpd`'s, which its Makefile makes and does not install.
+
+The other build makes the C library in the order the Makefile has the
+system make it, `lorder *.o | tsort` and two `ar ma`, with
+`tools/lorder.py`, which prints what the system's `lorder` does, and
+the tree's `tsort` compiled for the machine it runs on.
 
 And one is mended: `hack`'s made the game's directory anew and left it
 empty, and the game does not start without what its `READ_ME` says it
@@ -308,38 +341,38 @@ an hour each or more.
 ## What is checked
 
 `tests/self/run.sh` boots the system with that file system, has it make
-everything above, and compares each object, each program, the kernel
-and `/boot`, and each file that is not a program, with what the same
-sources make where the system is built: 3738 files, the stubs'
-assembly among them. A library is
-compared by its members, and by which they are and in what order, since
-the archive has the day it was made in it; a page of the manual has at
-its foot the day it was formatted, and two that differ are compared
-again without those lines. The libraries are installed. What is not
-a program is made by the programs the system came with, and is
-installed too: each of 1106 files and other names of one must be what
+`/boot`, the kernel and what is not a program, and compares each
+object, the kernel and `/boot`, and each file that is not a program,
+with what the same sources make where the system is built. A page of
+the manual has at its foot the day it was formatted, and two that
+differ are compared again without those lines. What is not a program
+is made by the programs the system came with, and is installed too: each of 1106 files and other names of one must be what
 was made. Last the
 kernel is made to say that it was made there, installed with `/boot`,
 and the machine started again: it must come up on that kernel, with
 `init`, `getty`, `login` and the shell that it made.
 
-`PARTS="stand kernel"` makes less (`stand`, `kernel`, `libc`, `libs`,
-`data`), and `DATA="man zones"` only those kinds of what is not a
-program.
+`PARTS="stand kernel"` makes less (`stand`, `kernel`, `data`), and
+`DATA="man zones"` only those kinds of what is not a program.
 
-`tests/self/progs.sh` has the system make the programs, from the
-Makefiles of their own directories: `make` and `make install` in each
-of `bin`, `sbin`, `libexec`, `ucb`, `usr.bin`, `usr.sbin`, `games` and
-`new`, or in the directories it is given (`sh tests/self/progs.sh
-bin/sed usr.bin/yacc`). The root is then to be as it was before,
-which is what the other build makes, name for name: each file with its
-contents, mode, owner, group and other names, each directory with its
-mode, owner and group, each device and symbolic link. Nothing is to be
+`tests/self/progs.sh` has the system make the libraries and the
+programs, from the Makefiles of their own directories: `make` and
+`make install` in each of `lib/libc`, `usr.lib`, `bin`, `sbin`,
+`libexec`, `ucb`, `usr.bin`, `usr.sbin`, `games` and `new`, in that
+order, or in the directories it is given (`sh tests/self/progs.sh
+lib/libc bin/sed usr.bin/yacc`). The root is then to be as it was
+before, which is what the other build makes, name for name: each file
+with its contents, mode, owner, group and other names, each directory
+with its mode, owner and group, each device and symbolic link. A
+library has the day it was made in it, and whose its members were, and
+is compared member for member, each by its name and contents and in
+their order, the table of contents among them. Nothing is to be
 gone and nothing new, but what a system that is running writes
 (`tests/self/running`) and the `NAME.old` that `tcsh`'s and `init`'s
 Makefiles keep of what they install over. Each of the root's programs
-whose sources are in those directories is to have been installed: 419
-files in all of them, and 110 pages of the manual, whose contents are
+whose sources are in those directories is to have been installed, and
+each library of `/lib` and `/usr/lib`: 419 files of the programs' in all
+of them, and 110 pages of the manual, whose contents are
 not compared, since a page has the day it was formatted in it; nor are
 those of the files of `tests/make/differs`, below.
 
@@ -358,8 +391,8 @@ not for a change. A change is checked two ways, and
   still there with theirs. The directories are there before anything
   is installed, and that machine's `make` takes them to be, as the
   system's does. `HOST=1 sh tests/self/run.sh` runs the
-  ones `srcmk.py` writes, for `/boot`, the kernel and the libraries but
-  the C library (`tests/self/host.sh`). That says the Makefiles name
+  ones `srcmk.py` writes, for `/boot` and the kernel
+  (`tests/self/host.sh`). That says the Makefiles name
   the right files, flags and order, and install each where the system
   has it. It does not say the system's `make` reads them so, nor that
   the tools do on the 286 what they do there. A program a Makefile
@@ -438,8 +471,9 @@ dump on more than one diskette has not been run.
   Makefile, the kernel's alone would fill. Its table of names was 1021
   long, and the programs' Makefile names 4000 files: it is 8191 now,
   from the heap, with a hash that spreads them. It gives a command 254
-  arguments at most, so a library is put together a hundred objects at
-  a time.
+  arguments at most, and the kernel 5120 characters of them: the C
+  library's Makefile gives `ar` its 359 objects through the shell, in
+  some 3500.
 - `/lib/c2`, which has a whole function in memory, had no room for the
   kernel's two longest, `namei` and `tcp_input`; `cc` then gave the
   assembler the code as it was, and said nothing. `/lib/c2l` is `c2` of
@@ -485,8 +519,8 @@ dump on more than one diskette has not been run.
 
 ## What it does not make yet
 
-- The Makefiles of the kernel, of the programs that load it, of the
-  libraries and of what is not a program, as above: they are written
+- The Makefiles of the kernel, of the programs that load it and of what
+  is not a program, as above: they are written
   from the repository's, and a change made to one on the system is lost
   when they are written again. Upstream has one for each of those
   too.

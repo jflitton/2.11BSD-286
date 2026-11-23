@@ -15,10 +15,13 @@ TAGSFILE=tags
 TAGSDIR=libcurses libdbm libln libmp libtermlib libutil liberrlst
 
 # Programs that live in subdirectories and have makefiles of their own.
+#
+# The 80286 has the libraries that its programs are linked with, each
+# of its three models, the small's in /usr/lib, the medium's in
+# /usr/lib/m and the large's in /usr/lib/l, where cc -mm and -ml look.
 
-SUBDIR=	lib2648 libF77 libI77 libU77 libcurses libdbm libln \
-	libom libmp libplot libtermlib liby libutil libvmf \
-	liberrlst libident libstubs
+SUBDIR=	libcurses libdbm libln \
+	libom libtermlib liby libutil
 
 all:	${SUBDIR}
 
@@ -30,9 +33,10 @@ FRC:
 install: FRC
 	-for i in ${SUBDIR}; do \
 		(cd $$i; make ${MFLAGS} install); done
-	rm -f /usr/lib/libm.a /usr/lib/libm_p.a
+	rm -f /usr/lib/libm.a /usr/lib/m/libm.a /usr/lib/l/libm.a
 	ln /usr/lib/libom.a /usr/lib/libm.a
-	ln /usr/lib/libom_p.a /usr/lib/libm_p.a
+	ln /usr/lib/m/libom.a /usr/lib/m/libm.a
+	ln /usr/lib/l/libom.a /usr/lib/l/libm.a
 
 tags:
 	-for i in ${TAGSDIR}; do \

@@ -11,6 +11,7 @@ Makefile of usr/src/i286 that says what a program is made of (make
 table) and root.proto, there, where the root has it.
 """
 import os
+import re
 import subprocess
 import sys
 
@@ -53,6 +54,19 @@ def installed(source):
                 and ("/obj/root/bin/" in w[3] or "/obj/nbin/" in w[3]):
             out[w[1]] = os.path.basename(w[3])
     return out
+
+
+# The libraries a directory's Makefile installs: the C library and its
+# start-up code, of each model, and the others.
+LIBRARIES = {"lib/libc": re.compile(r"/lib/(?:[ml]/)?(?:libc\.a|crt0\.o)$"),
+             "usr.lib": re.compile(r"/usr/lib/(?:[ml]/)?lib\w+\.a$")}
+
+
+def libraries(names, dirs):
+    """Of the root's NAMES, the libraries the Makefiles of DIRS install."""
+    return [p for p in names
+            if any(within(d, dirs) and r.match(p)
+                   for d, r in LIBRARIES.items())]
 
 
 def within(directory, dirs):

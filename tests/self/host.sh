@@ -6,8 +6,6 @@
 #	cc	tools/cc -ccom, which links as the system's does; with -c
 #		the compiler alone, a file at a time (tools/ncc)
 #	as, ld	the system's, as compiled for this machine
-#	ar, ranlib  tools/ar.py, which makes the library whole: ar says
-#		which files, ranlib makes it
 #	yacc, lex   the system's, as compiled for this machine
 #
 # A program the Makefiles make and then run is the 286's and does not
@@ -51,21 +49,6 @@ done
 for t in yacc lex; do
     printf '#!/bin/sh\nexec "%s" "$@"\n' "$top/obj/host/$t" > "$root/bin/$t"
 done
-cat > "$root/bin/ar" <<'END'
-#!/bin/sh
-key=$1 lib=$2
-shift 2
-case $key in
-cr) : > "$lib.members" ;;
-r)  ;;
-*)  echo "ar: only cr and r here, not $key" >&2; exit 1 ;;
-esac
-for f; do echo "$PWD/$f" >> "$lib.members"; done
-END
-cat > "$root/bin/ranlib" <<END
-#!/bin/sh
-exec python3 -I "$top/tools/ar.py" "\$1" \$(cat "\$1.members")
-END
 chmod +x "$root/bin"/*
 
 hmake() {
@@ -81,16 +64,6 @@ if has stand; then
 fi
 if has kernel; then
     hmake sys/PC
-fi
-if has libs; then
-    hmake i286 libs
-    for m in s m l; do
-        for l in $libs; do
-            a=$root/usr/src/i286/lib/$m/lib$l.a
-            [ ! -f "$a" ] || python3 -I "$top/tools/ar.py" -t "$a" |
-                sed 's/:.*//' > "$root/usr/src/i286/lib/$m/lib$l.t"
-        done
-    done
 fi
 if has progs; then
     if [ -n "$ONLY" ]; then

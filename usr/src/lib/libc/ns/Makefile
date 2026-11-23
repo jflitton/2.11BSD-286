@@ -11,18 +11,25 @@ OBJS=	ns_addr.o ns_ntoa.o
 CFLAGS=	-O ${DEFS}
 TAGSFILE=tags
 
-.c.o:
-	${CC} -p -c ${CFLAGS} $*.c
-	-ld -X -r $*.o
-	mv a.out profiled/$*.o
-	${CC} ${CFLAGS} -c $*.c
-	-ld -x -r $*.o
-	mv a.out $*.o
+# The 80286: each file is compiled for the three models, the medium's
+# object put in m and the large's in l, where the PDP-11's profiled one
+# went in profiled, and the small's left here; each model has a library
+# of its own.  The PDP-11's ld -x -r, which took out the local symbols,
+# is not done: the 286's ld makes nothing but a program.
 
-nslib nslib_p: ${OBJS}
-	@echo "building profiled nslib"
-	@cd profiled; ar cru ../nslib_p ${OBJS}
-	@echo "building normal nslib"
+.c.o:
+	${CC} -mm ${CFLAGS} -c $*.c
+	mv $*.o m/$*.o
+	${CC} -ml ${CFLAGS} -c $*.c
+	mv $*.o l/$*.o
+	${CC} ${CFLAGS} -c $*.c
+
+nslib nslib_m nslib_l: ${OBJS}
+	@echo "building medium model nslib"
+	@cd m; ar cru ../nslib_m ${OBJS}
+	@echo "building large model nslib"
+	@cd l; ar cru ../nslib_l ${OBJS}
+	@echo "building small model nslib"
 	@ar cru nslib ${OBJS}
 
 tags:
@@ -32,7 +39,7 @@ tags:
 	done
 
 clean:
-	rm -f nslib nslib_p *.o profiled/*.o errs a.out core \
+	rm -f nslib nslib_m nslib_l *.o m/*.o l/*.o errs a.out core \
 		tags Makefile.bak
 
 depend:	${SRCS}

@@ -5,6 +5,11 @@
 #
 #	@(#)Makefile	5.4.3 (2.11BSD) 2026/7/29
 
+# The 80286 has no fpfcom.o, printf's floating point for a program that
+# has none, which is taken unless the compiler's mark of a program with
+# floating point, fltused, brings in pfcom.o: the 286's compiler makes
+# no such mark, and every program that formats has the real one.
+
 CFLAGS=	-O ${DEFS}
 
 SRCS=	clrerr.c exit.c fclose.c fdopen.c findfp.c fflush.c fopen.c \
@@ -20,24 +25,31 @@ OBJS=	clrerr.o exit.o fclose.o fdopen.o findfp.o fflush.o fopen.o \
 	fvwrite.o getc.o getchar.o getw.o makebuf.o rget.o fputc.o \
 	printf.o putc.o putchar.o putw.o rewind.o scanf.o setbuf.o setbuffer.o \
 	setvbuf.o snprintf.o sscanf.o stdio.o tmpfile.o tmpnam.o tempnam.o \
-	sprintf.o ungetc.o vfprintf.o vfscanf.o vprintf.o vscanf.o fpfcom.o \
+	sprintf.o ungetc.o vfprintf.o vfscanf.o vprintf.o vscanf.o \
 	vsnprintf.o vsprintf.o wbuf.o flags.o refill.o wsetup.o pfcom.o acvt.o \
 	puts.o fputs.o fgetc.o fgets.o gets.o fgetln.o
 
 TAGSFILE=tags
 
-.c.o:
-	${CC} -p ${CFLAGS} -c $*.c
-	-ld -X -r $*.o
-	mv a.out profiled/$*.o
-	${CC} ${CFLAGS} -c $*.c
-	-ld -x -r $*.o
-	mv a.out $*.o
+# The 80286: each file is compiled for the three models, the medium's
+# object put in m and the large's in l, where the PDP-11's profiled one
+# went in profiled, and the small's left here; each model has a library
+# of its own.  The PDP-11's ld -x -r, which took out the local symbols,
+# is not done: the 286's ld makes nothing but a program.
 
-stdiolib stdiolib_p: ${OBJS}
-	@echo "building profiled stdiolib"
-	@cd profiled; ar cru ../stdiolib_p ${OBJS}
-	@echo "building normal stdiolib"
+.c.o:
+	${CC} -mm ${CFLAGS} -c $*.c
+	mv $*.o m/$*.o
+	${CC} -ml ${CFLAGS} -c $*.c
+	mv $*.o l/$*.o
+	${CC} ${CFLAGS} -c $*.c
+
+stdiolib stdiolib_m stdiolib_l: ${OBJS}
+	@echo "building medium model stdiolib"
+	@cd m; ar cru ../stdiolib_m ${OBJS}
+	@echo "building large model stdiolib"
+	@cd l; ar cru ../stdiolib_l ${OBJS}
+	@echo "building small model stdiolib"
 	@ar cru stdiolib ${OBJS}
 
 tags:
@@ -47,7 +59,7 @@ tags:
 	done
 
 clean:
-	rm -f stdiolib stdiolib_p *.o profiled/*.o tags Makefile.bak
+	rm -f stdiolib stdiolib_m stdiolib_l *.o m/*.o l/*.o tags Makefile.bak
 
 depend:
 	mkdep ${CFLAGS} ${SRCS}

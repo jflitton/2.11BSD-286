@@ -119,7 +119,7 @@ def load_cc():
 
 CC = load_cc()
 
-# The directories the C library is made from (lib/libc/i286/Makefile);
+# The directories the C library is made from (lib/libc/i286/GNUmakefile);
 # where two define a name, the first here is the one that is built.
 LIBDIRS = ["lib/libc/i286/sys", "lib/libc/i286/gen", "lib/libc/gen",
            "lib/libc/stdio", "lib/libc/stdlib", "lib/libc/string",

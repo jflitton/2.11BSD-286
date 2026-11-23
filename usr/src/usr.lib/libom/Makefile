@@ -1,5 +1,13 @@
 #	@(#)Makefile	4.3	(2.11BSD) 2025/11/25
 #
+# The 80286: each file is compiled for the three models, the medium's
+# object put in m and the large's in l, where the PDP-11's profiled one
+# went in profiled, and the small's left here; each model has a library
+# of its own, which is installed where cc links a program of that model
+# with it, /usr/lib, /usr/lib/m and /usr/lib/l.  The PDP-11's ld -x -r,
+# which took out the local symbols, is not done: the 286's ld makes
+# nothing but a program.
+#
 
 CFLAGS=-O
 
@@ -12,22 +20,24 @@ FILES= asin.o atan.o hypot.o jn.o j0.o j1.o pow.o gamma.o \
 TAGSFILE=tags
 
 .c.o:
-	${CC} -p ${CFLAGS} -c $*.c
-	-ld -X -r $*.o
-	mv a.out profiled/$*.o
+	${CC} -mm ${CFLAGS} -c $*.c
+	mv $*.o m/$*.o
+	${CC} -ml ${CFLAGS} -c $*.c
+	mv $*.o l/$*.o
 	${CC} ${CFLAGS} -c $*.c
-	-ld -x -r $*.o
-	mv a.out $*.o
 
-libom.a libom_p.a : $(FILES)
-	cd profiled; ar cru ../libom_p.a $(FILES)
+libom.a libom_m.a libom_l.a : $(FILES)
+	cd m; ar cru ../libom_m.a $(FILES)
+	cd l; ar cru ../libom_l.a $(FILES)
 	ar cru libom.a $(FILES)
 
-install: libom.a libom_p.a
+install: libom.a libom_m.a libom_l.a
 	install -c -m 644 -o root libom.a /usr/lib
 	ranlib /usr/lib/libom.a
-	install -c -m 644 -o root libom_p.a /usr/lib
-	ranlib /usr/lib/libom_p.a
+	install -c -m 644 -o root libom_m.a /usr/lib/m/libom.a
+	ranlib /usr/lib/m/libom.a
+	install -c -m 644 -o root libom_l.a /usr/lib/l/libom.a
+	ranlib /usr/lib/l/libom.a
 
 tags:
 	cwd=`pwd`; \
@@ -36,4 +46,4 @@ tags:
  	done
 
 clean:
-	rm -f *.o profiled/*.o libom.a libom_p.a tags
+	rm -f *.o m/*.o l/*.o libom.a libom_m.a libom_l.a tags

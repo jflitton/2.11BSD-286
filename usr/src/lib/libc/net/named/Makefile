@@ -13,20 +13,27 @@ SRCS=	gethnamadr.c sethostent.c
 CFLAGS= -O ${DEFS}
 TAGSFILE= tags
 
-.c.o:
-	${CC} -p -c ${CFLAGS} $*.c
-	-ld -X -r $*.o
-	mv a.out profiled/$*.o
-	${CC} ${CFLAGS} -c $*.c
-	-ld -x -r $*.o
-	mv a.out $*.o
+# The 80286: each file is compiled for the three models, the medium's
+# object put in m and the large's in l, where the PDP-11's profiled one
+# went in profiled, and the small's left here; each model has a library
+# of its own.  The PDP-11's ld -x -r, which took out the local symbols,
+# is not done: the 286's ld makes nothing but a program.
 
-hostlib hostlib_p: ${OBJS} 
-	@echo "building profiled hostlib"
-	@cd profiled; ar cru ../hostlib_p ${OBJS}
-	@echo "building normal hostlib"
+.c.o:
+	${CC} -mm ${CFLAGS} -c $*.c
+	mv $*.o m/$*.o
+	${CC} -ml ${CFLAGS} -c $*.c
+	mv $*.o l/$*.o
+	${CC} ${CFLAGS} -c $*.c
+
+hostlib hostlib_m hostlib_l: ${OBJS}
+	@echo "building medium model hostlib"
+	@cd m; ar cru ../hostlib_m ${OBJS}
+	@echo "building large model hostlib"
+	@cd l; ar cru ../hostlib_l ${OBJS}
+	@echo "building small model hostlib"
 	@ar cru hostlib ${OBJS}
-	
+
 tags:
 	cwd=`pwd`; \
 	for i in ${SRCS}; do \
@@ -34,7 +41,7 @@ tags:
 	done
 
 clean:
-	rm -f *.o errs a.out core hostlib hostlib_p profiled/*.o tags
+	rm -f *.o errs a.out core hostlib hostlib_m hostlib_l m/*.o l/*.o tags
 
 depend:
 	mkdep ${CFLAGS} ${SRCS}

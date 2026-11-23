@@ -32,7 +32,7 @@ Where the 286 code goes, beside its PDP-11 counterpart in each case:
 | `usr/src/sys/i286if/` | `pdpif/` | network interfaces: the NE1000 and NE2000 and the cards that copy them ([the network](network.md)) |
 | `usr/src/sys/i286stand/` | `pdpstand/`, `mdec/` | what loads the kernel: for a hard disk its first sector, the boot block and `/boot`; a diskette's boot block, and the boot sector of a diskette with no file system; `make -C usr/src/sys/i286stand` builds them in `obj/stand` |
 | `usr/src/sys/PC/` | `GENERIC/` | the kernel's configuration and Makefile: `make -C usr/src/sys/PC` builds `obj/PC/unix` |
-| `usr/src/lib/libc/i286/` | `lib/libc/pdp/` | libc's machine-dependent part, and the Makefile that builds the library from it and the tree's portable C: `make -C usr/src/lib/libc/i286` makes `obj/lib/s/libc.lib` |
+| `usr/src/lib/libc/i286/` | `lib/libc/pdp/` | libc's machine-dependent part, with the Makefiles the system makes it with, and `GNUmakefile`, which builds the library from it and the tree's portable C where the system is built: `make -C usr/src/lib/libc/i286` makes `obj/nlib/s/libc.a` |
 | `usr/src/i286/` | the tree's own Makefiles | the list of programs built and the Makefile that builds them in `obj/bin`; the root file system's contents and `/etc` files, which `make -C usr/src/i286 root` makes into `obj/root/root.fs` ([the C library and programs](userland.md)) |
 
 The kernel picks its machine through the link `usr/src/sys/machine`, which
@@ -243,12 +243,12 @@ tests/ccom/self.sh      # the system making its compiler: cc, cpp, the
                         # second time with the ones it had just made,
                         # each to be what is made of it here
 tests/self/run.sh       # the system making itself: the kernel, /boot,
-                        # the libraries, and its databases, tables and
-                        # manual, from /usr/src on the 286, each to be
-                        # what is made of it here; installed, and
-                        # started again (docs/self-hosting.md)
-tests/self/progs.sh     # the system making its programs from the
-                        # Makefiles of their own directories,
+                        # and its databases, tables and manual, from
+                        # /usr/src on the 286, each to be what is made
+                        # of it here; installed, and started again
+                        # (docs/self-hosting.md)
+tests/self/progs.sh     # the system making its libraries and programs
+                        # from the Makefiles of their own directories,
                         # upstream's, and installing them: the root
                         # to be after it as it was before
 tests/make/run.sh       # those Makefiles run here, with no machine:

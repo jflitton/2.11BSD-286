@@ -12,18 +12,25 @@ OBJS=	ftime.o gtty.o nice.o pause.o rand.o stty.o \
 	times.o utime.o
 TAGSFILE=tags
 
-.c.o:
-	${CC} -p ${CFLAGS} -c $*.c
-	-ld -X -r $*.o
-	mv a.out profiled/$*.o
-	${CC} ${CFLAGS} -c $*.c
-	-ld -x -r $*.o
-	mv a.out $*.o
+# The 80286: each file is compiled for the three models, the medium's
+# object put in m and the large's in l, where the PDP-11's profiled one
+# went in profiled, and the small's left here; each model has a library
+# of its own.  The PDP-11's ld -x -r, which took out the local symbols,
+# is not done: the 286's ld makes nothing but a program.
 
-compat-4.1lib compat-4.1lib_p: ${OBJS}
-	@echo "building profiled compat-4.1lib"
-	@cd profiled; ar cru ../compat-4.1lib_p ${OBJS}
-	@echo "buiding normal compat-4.1lib"
+.c.o:
+	${CC} -mm ${CFLAGS} -c $*.c
+	mv $*.o m/$*.o
+	${CC} -ml ${CFLAGS} -c $*.c
+	mv $*.o l/$*.o
+	${CC} ${CFLAGS} -c $*.c
+
+compat-4.1lib compat-4.1lib_m compat-4.1lib_l: ${OBJS}
+	@echo "building medium model compat-4.1lib"
+	@cd m; ar cru ../compat-4.1lib_m ${OBJS}
+	@echo "building large model compat-4.1lib"
+	@cd l; ar cru ../compat-4.1lib_l ${OBJS}
+	@echo "building small model compat-4.1lib"
 	@ar cru compat-4.1lib ${OBJS}
 
 tags:
@@ -33,7 +40,7 @@ tags:
 	done
 
 clean:
-	rm -f compat-4.1lib compat-4.1lib_p *.o profiled/*.o tags Makefile.bak
+	rm -f compat-4.1lib compat-4.1lib_m compat-4.1lib_l *.o m/*.o l/*.o tags Makefile.bak
 
 depend:	${SRCS}
 	mkdep ${CFLAGS} ${SRCS}

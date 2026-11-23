@@ -8,17 +8,18 @@
 # Three if it is not said.  The shares are fixed, so that a machine
 # always has the same work:
 #
-#	of three	1  /boot, the kernel, the libraries, what is
-#			   not a program (run.sh)
-#			2  the programs of bin, sbin, libexec and ucb
-#			   (progs.sh)
+#	of three	1  /boot, the kernel, what is not a program
+#			   (run.sh)
+#			2  the libraries, and the programs of bin, sbin,
+#			   libexec and ucb (progs.sh)
 #			3  those of usr.bin, usr.sbin, games and new
 #	of two		1  as of three
-#			2  the programs
+#			2  the libraries and the programs
 #
-# The machines with programs link them with the libraries the system
-# came with, which are what machine 1 makes, to the byte, when it
-# passes.  With -n this says each machine's share and boots none.
+# Machine 2 links its programs with the libraries it made and
+# installed, and machine 3 with those the system came with, which are
+# those, member for member, when machine 2 passes.  With -n this says
+# each machine's share and boots none.
 #
 # The machines have the faster processor (CPU=486,
 # tests/harness/runtest.py) unless CPU says the 286.
@@ -56,12 +57,12 @@ if [ -z "$dry" ]; then
     mk -C "$src/i286" syslibs
     cp "$top/obj/root/root.fs" "$out/root.fs"
 fi
-all="stand kernel libc libs data"
+all="stand kernel data"
 if [ $n = 3 ]; then
-    dirs2="bin sbin libexec ucb"
+    dirs2="lib/libc usr.lib bin sbin libexec ucb"
     dirs3="usr.bin usr.sbin games new"
 else
-    dirs2="bin sbin libexec ucb usr.bin usr.sbin games new"
+    dirs2="lib/libc usr.lib bin sbin libexec ucb usr.bin usr.sbin games new"
 fi
 pids=
 i=0

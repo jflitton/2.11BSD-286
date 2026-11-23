@@ -14,13 +14,11 @@ one it was written from is.
 
     OUT/sys/PC/Makefile         the kernel: make, in /usr/src/sys/PC
     OUT/sys/i286stand/Makefile  /boot and the boot blocks
-    OUT/lib/libc/i286/Makefile  the C library, which is made for each
-                                model in s, m and l there, each with a
-                                Makefile of its own
-    OUT/i286/Makefile           the other libraries, and the programs
+    OUT/i286/Makefile           the programs, and what the system has
+                                that is not a program and is made
     OUT/proto                   the file system, to be mounted on
                                 /usr/src
-    OUT/programs, OUT/libraries the names of what the last makes
+    OUT/programs                the names of the programs the last makes
     OUT/installed               each program it installs, and where
     OUT/data                    each file that is not a program that it
                                 makes (make data), after the name of
@@ -36,9 +34,14 @@ here (tests/self).
 
 Each Makefile has "install", which puts what was made where the system
 has it: the kernel as /unix, the one that was there as /unix.old, which
-/boot loads if it is named to it; the libraries where cc looks for
-them; the programs where the root file system has them
-(usr/src/i286/root.proto), with its modes and owners.
+/boot loads if it is named to it; the programs where the root file
+system has them (usr/src/i286/root.proto), with its modes and owners.
+
+The libraries, the C library and those of usr.lib, are made from the
+Makefiles of their own directories, upstream's, and so are the
+programs of the directories of PROGDIRS: those are given as they are,
+and the directories each model's objects are put in, m and l, where
+upstream's have profiled.
 """
 import os
 import re
@@ -105,18 +108,6 @@ def stamp(hdrs):
         macros += fold(n, hdrs[i:i + 40])
         rule += "hdrs:\t$(%s)\n" % n
     return macros, rule + "\ttouch hdrs\n"
-
-
-def archive(lib, objs, per=100):
-    """The commands that make the library of the objects, in their
-    order: make gives a command 254 arguments at most, and the kernel
-    5120 characters of them."""
-    cmds = "\trm -f %s\n" % lib
-    for i in range(0, len(objs), per):
-        cmds += fold("\tar %s %s" % ("r" if i else "cr", lib),
-                     objs[i:i + per]).replace("=\t", " ", 1).replace(
-                         "\n\t", "\n\t    ")
-    return cmds + "\tranlib %s\n" % lib
 
 
 def groups(name, words, per=40):
@@ -286,125 +277,17 @@ clean:
 """) % (bootmax, bootmax, bootmax)
 
 
-LIBC = "lib/libc"
-MD = LIBC + "/i286"
-# Where an object of the C library is looked for, in the order of the
-# rules of usr/src/lib/libc/i286/Makefile, and what the compiler is
-# told for one found there.
-LIBCDIRS = [(LIBC + "/gen", ".c", ""), (MD + "/gen", ".c", ""),
-            (LIBC + "/pdp/gen", ".c", ""),
-            (LIBC + "/stdio", ".c", " -I$S/" + LIBC + "/stdio"),
-            (LIBC + "/stdlib", ".c", ""), (LIBC + "/string", ".c", ""),
-            (LIBC + "/compat-4.1", ".c", ""), (LIBC + "/compat-43", ".c", ""),
-            (LIBC + "/compat-sys5", ".c", ""), (LIBC + "/inet", ".c", ""),
-            (LIBC + "/net", ".c", ""), (LIBC + "/net/named", ".c", ""),
-            (LIBC + "/ns", ".c", ""), (MD + "/sys", ".c", ""),
-            (MD + "/sys", ".s", ""), (MD + "/gen", ".s", ""),
-            (MD + "/net", ".s", ""), (MD + "/crt", ".s", "")]
 # Where a model's library and its start-up code are on the system.
 LIBDIR = {"s": "/lib", "m": "/lib/m", "l": "/lib/l"}
 USRLIB = {"s": "/usr/lib", "m": "/usr/lib/m", "l": "/usr/lib/l"}
-FAR = {"s": "", "m": " -DFAR", "l": " -DFAR -DFARDATA"}
-
-
-def libc(model):
-    """The Makefile of one model's C library, and the directories its
-    sources are in."""
-    t = table(MD, "MODEL=" + model)
-    rules = []
-    used = set()
-    for base in t["OBJS"]:
-        found = None
-        if model == "l" and os.path.exists(
-                os.path.join(SRC, MD, "gen", "l" + base + ".c")):
-            found = (MD + "/gen", "l" + base, ".c", "")
-        for d, e, flags in LIBCDIRS:
-            if not found and os.path.exists(os.path.join(SRC, d, base + e)):
-                found = (d, base, e, flags)
-        if not found:
-            sys.exit("srcmk: libc: no source for %s" % base)
-        d, name, e, flags = found
-        used.add(d)
-        s = "$S/%s/%s%s" % (d, name, e)
-        if e == ".c":
-            # cc names the object for the source.
-            rules.append("%s.o: %s hdrs\n\tcc -c $(CFLAGS)%s %s\n%s" % (
-                base, s, flags, s, "" if name == base else
-                "\tmv %s.o %s.o\n" % (name, base)))
-        else:
-            rules.append("%s.o: %s $(CRT)/DEFS.inc\n\t$(ASM) -o %s.o %s\n"
-                         % (base, s, base, s))
-    stubs = t["STUBS"]
-    hdrs = sorted("/usr/include/" + f for f in os.listdir(
-        os.path.join(TOP, "usr/include")) if f.endswith(".h")) + \
-        sorted("$S/%s/%s" % (h, f) for h in ("sys/h", "sys/i286",
-                                             LIBC + "/stdio")
-               for f in os.listdir(os.path.join(SRC, h)) if f.endswith(".h"))
-    macros, hdrs = stamp(hdrs)
-    text = (HEAD % ("The C library of the %s model: make, and libc.a and "
-                    "crt0.o are made here." % {
-                        "s": "small", "m": "medium", "l": "large"}[model]) +
-            """\
-#
-#	make		the library, libc.a, and the start-up code,
-#			crt0.o
-#	make install	and they are %s/libc.a and %s/crt0.o, which
-#			cc -m%s links a program with
-#	make clean	nothing made is left
-#
-# The system calls' stubs are written in sys, a file each, from
-# i286/sys/syscalls.tab, by i286/sys/mkstubs.c, which is compiled
-# there, and each is checked against the kernel's table of calls.
-# Every object is made again when any header changes.
-
-S=	/usr/src
-CRT=	$S/lib/libc/i286/crt
-SYS=	$S/lib/libc/i286/sys
-CFLAGS=	-O -m%s -I/usr/include
-ASM=	as -m%s -I$(CRT)%s
-""" % (LIBDIR[model], LIBDIR[model], model, model, model, FAR[model]) +
-            macros +
-            fold("OBJS", [b + ".o" for b in t["OBJS"]]) + """
-all:	crt0.o libc.a
-
-libc.a:	$(OBJS) sys/made
-""" + archive("libc.a", [b + ".o" for b in t["OBJS"]] +
-              ["sys/" + f + ".o" for f in stubs]) + """\
-
-crt0.o:	$S/lib/libc/i286/csu/crt0.s $(CRT)/DEFS.inc
-	$(ASM) -o crt0.o $S/lib/libc/i286/csu/crt0.s
-
-sys/mkstubs: $(SYS)/mkstubs.c
-	cd sys && cc -O -o mkstubs $(SYS)/mkstubs.c && rm -f mkstubs.o
-
-sys/made: sys/mkstubs $(SYS)/syscalls.tab /usr/include/syscall.h \\
-		$S/sys/sys/init_sysent.c
-	rm -f sys/*.s sys/*.o
-	sys/mkstubs -m %s -k $S/sys/sys/init_sysent.c -d sys \\
-	    $(SYS)/syscalls.tab /usr/include/syscall.h
-	cd sys; for f in *.s; do as -m%s -o `basename $$f .s`.o $$f || exit 1; done
-	touch sys/made
-
-install: all
-	cp crt0.o %s/crt0.o
-	cp libc.a %s/libc.a
-	ranlib %s/libc.a
-
-clean:
-	rm -f *.o sys/*.o sys/*.s sys/mkstubs sys/made libc.a hdrs
-
-""" % (model, model, LIBDIR[model], LIBDIR[model], LIBDIR[model]) + hdrs +
-            "\n" + "\n".join(rules))
-    return text, used
 
 
 def programs():
-    """The Makefile of the programs and of the libraries that are not
-    the C library; the directories of usr/src they are made from, and
-    those of /usr/src/i286 that what yacc and lex make is put in; the
-    names of the libraries, of the programs it makes, and of those it
-    does not."""
-    progs, libs = [], []
+    """The Makefile of the programs; the directories of usr/src they are
+    made from, and those of /usr/src/i286 that what yacc and lex make is
+    put in; the names of the programs it makes, and of those it does
+    not."""
+    progs = []
     gen = {}            # what yacc and lex make: (which, of what, header)
     sysgen = []         # what the rules written for the system make
     mkstr = []          # (strings, options, sources, what is made first)
@@ -466,9 +349,6 @@ def programs():
             name, model = head.split()
             progs.append((name, model, flags.strip(), srcs.split(),
                           ls.split()))
-        elif kind == "LIB":
-            name, flags, srcs = rest.split("|")
-            libs.append((name.strip(), flags.strip(), srcs.split()))
         elif kind in ("YACC", "LEX"):
             w = rest.split()
             gen[w[0]] = (kind, w[1], w[2] if len(w) > 2 else None)
@@ -526,22 +406,6 @@ def programs():
                 out.append("$S/" + f)
         return out
 
-    libnames = []
-    for name, flags, srcs in libs:
-        for m in "sml":
-            a = "lib/%s/lib%s.a" % (m, name)
-            libnames.append(a)
-            objs = " ".join(os.path.basename(f)[:-2] + ".o" for f in srcs)
-            rules.append(
-                fold("%s:\thdrs" % a, sources(srcs)).replace("=\t", " ", 1) +
-                "\tcd lib/%s/%s && rm -f *.o && cc -c -O -m%s%s \\\n"
-                "\t    %s\n"
-                "\trm -f %s\n"
-                "\tcd lib/%s/%s && ar cr ../lib%s.a \\\n\t    %s\n"
-                "\tranlib %s\n" % (
-                    m, name, m, flagged(flags),
-                    " \\\n\t    ".join(sources(srcs)), a, m, name, name,
-                    objs, a))
     for g in sorted(gen):
         which, src, hdr = gen[g]
         dirs.add(os.path.dirname(src))
@@ -743,21 +607,12 @@ def programs():
             "/usr/man/%s/%s\n" % (d, name, pd, page, d, name)
         datainstalled.append(("man", "man/%s/%s" % (pd, page),
                               "/usr/man/%s/%s" % (d, name)))
-    install = "".join(
-        "\tcp %s %s/%s\n\tranlib %s/%s\n" % (
-            a, USRLIB[a.split("/")[1]], os.path.basename(a),
-            USRLIB[a.split("/")[1]], os.path.basename(a))
-        for a in libnames)
-    text = (HEAD % "The system's programs, and its libraries but the C "
-            "library: make, and they are made here." + """\
+    text = (HEAD % "The system's programs: make, and they are made "
+            "here." + """\
 #
-#	make		the libraries, lib/MODEL/libNAME.a for each of
-#			the three models, and the programs, bin/NAME
-#	make libs	the libraries alone
-#	make install-libs  and they are in /usr/lib, /usr/lib/m and
-#			/usr/lib/l, where cc -l finds them
-#	make progs	the programs alone, with the libraries that are
-#			in /lib and /usr/lib
+#	make		the programs, bin/NAME
+#	make progs	the same, with the libraries that are in /lib
+#			and /usr/lib
 #	make install-progs  and each is where the system has it, without
 #			its symbols, in place of the one that was, which
 #			is there until the new one is whole: all of
@@ -785,18 +640,14 @@ def programs():
            "#\t%s\n" % " ".join(left[i:i + 8])
            for i in range(0, len(left), 8)) if left else "") + """
 S=	/usr/src
-""" + macros + fold("LIBS", libnames) +
+""" + macros +
             fold("PROGS", ["bin/" + n for n in made]) +
             "".join(fold(n, w) for n, w in sysmacros) + datatext +
             """
-all:	libs progs
-
-libs:	$(LIBS)
+all:	progs
 
 progs:	$(PROGS)
 
-install-libs: libs
-""" + install + """
 install-progs:
 	@for f in $(PROGS); do test -f $$f || { echo "$$f is not made"; exit 1; }; done
 """ + cmds + """
@@ -805,7 +656,7 @@ data:	""" + " ".join("data-" + n for n, _ in data) + """
 """ + targets + """install-data: data
 """ + datacmds + """
 clean:
-	rm -f hdrs bin/* lib/*/*.a lib/*/*/*.o o/*.o mkstr bmkstr hcrypt
+	rm -f hdrs bin/* o/*.o mkstr bmkstr hcrypt
 	rm -f mkerrlst strfile initdeck bcomp setfiles sm mktab mktab.o
 	rm -rf """ + " ".join(d for d in datadirs if not any(
         d.startswith(e + "/") for e in datadirs)) + """
@@ -816,7 +667,7 @@ clean:
         g.startswith(d + "/") for g in gendirs) else "") for d in gendirs) + """\
 
 """ + stamprule + "\n" + "\n".join(rules))
-    return (text, dirs, gendirs, [l[0] for l in libs], made, left, installed,
+    return (text, dirs, gendirs, made, left, installed,
             files, datadirs, data, datainstalled)
 
 
@@ -824,8 +675,7 @@ clean:
 # libraries are made from: each directory with the files in it, and not
 # what is in directories below.
 DIRS = ["sys/h", "sys/i286", "sys/i286at", "sys/sys", "sys/net",
-        "sys/netinet", "sys/i286if", "sys/PC", "sys/i286stand",
-        MD + "/crt", MD + "/csu", MD + "/sys"]
+        "sys/netinet", "sys/i286if", "sys/PC", "sys/i286stand"]
 # Directories that it is given the headers of and nothing else: the
 # kernel's sources name some of the PDP-11's.
 HEADERS = ["sys/pdp", "sys/pdpif", "sys/pdpuba"]
@@ -834,9 +684,25 @@ LINKS = ["sys/machine"]
 
 
 # The directories of programs, which are made from the Makefiles there,
-# upstream's.
+# upstream's; and of libraries, the same.  The C library's is given
+# whole: its Makefiles name their directories by macros, and the 286's
+# name the PDP-11's C (lib/libc/i286/gen).
 PROGDIRS = ["bin", "sbin", "libexec", "ucb", "usr.bin", "usr.sbin", "games",
             "new"]
+LIBDIRS = ["usr.lib"]
+WHOLE = ["lib/libc"]
+# A Makefile that puts the medium model's objects in m and the large's
+# in l, as upstream's put the profiled ones in profiled, which its
+# directory has.
+MODELS = re.compile(r"^\t.*(?:\bcd [ml];|[\s(][ml]/)", re.M)
+
+
+def models(d):
+    """The directories D's Makefile puts each model's objects in."""
+    p = os.path.join(SRC, d, "Makefile")
+    if os.path.isfile(p) and MODELS.search(open(p, encoding="latin-1").read()):
+        return [d + "/m", d + "/l"]
+    return []
 
 
 def walked(d):
@@ -871,27 +737,18 @@ def main():
     made = {"sys/PC/Makefile": kernel(), "sys/i286stand/Makefile": stand()}
     dirs = set(DIRS)
     empty = ["i286/bin", "i286/o"]
-    for m in "sml":
-        text, used = libc(m)
-        made["%s/%s/Makefile" % (MD, m)] = text
-        dirs |= used
-        empty.append("%s/%s/sys" % (MD, m))
-    text, used, gendirs, libs, progs, left, installed, files, datadirs, \
+    text, used, gendirs, progs, left, installed, files, datadirs, \
         data, datainstalled = programs()
     made["i286/Makefile"] = text
     dirs |= used
-    for d in PROGDIRS:
+    for d in PROGDIRS + LIBDIRS:
         dirs.update(walked(d))
+    for d in WHOLE:
+        dirs.update(os.path.relpath(dp, SRC)
+                    for dp, _, _ in os.walk(os.path.join(SRC, d)))
+    for d in sorted(dirs):
+        empty += models(d)
     empty += ["i286/" + d for d in gendirs + datadirs]
-    empty += ["i286/lib/%s/%s" % (m, l) for m in "sml" for l in libs]
-    made[MD + "/Makefile"] = HEAD % (
-        "The C library, of each model: make, and each is made in its "
-        "directory.") + """
-all install clean:
-	cd s; make $@
-	cd m; make $@
-	cd l; make $@
-"""
     for name, text in made.items():
         if text is not None:
             p = os.path.join(out, name)
@@ -944,8 +801,6 @@ all install clean:
         f.write("\n".join(proto) + "\n")
     with open(os.path.join(out, "programs"), "w") as f:
         f.write("\n".join(progs) + "\n")
-    with open(os.path.join(out, "libraries"), "w") as f:
-        f.write("\n".join(libs) + "\n")
     with open(os.path.join(out, "installed"), "w") as f:
         f.write("".join("%s %s\n" % i for i in installed))
     with open(os.path.join(out, "data"), "w") as f:

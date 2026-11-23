@@ -13,24 +13,31 @@ CC=	cc
 SRCS=	strcspn.c strpbrk.c strerror.c strsep.c strspn.c strstr.c strtok.c
 OBJS=	strcspn.o strpbrk.o strerror.o strsep.o strspn.o strstr.o strtok.o
 
+# The 80286: each file is compiled for the three models, the medium's
+# object put in m and the large's in l, where the PDP-11's profiled one
+# went in profiled, and the small's left here; each model has a library
+# of its own.  The PDP-11's ld -x -r, which took out the local symbols,
+# is not done: the 286's ld makes nothing but a program.
+
 .c.o:
-	${CC} -p ${CFLAGS} -c $*.c
-	ld -X -r $*.o
-	mv a.out profiled/$*.o
+	${CC} -mm ${CFLAGS} -c $*.c
+	mv $*.o m/$*.o
+	${CC} -ml ${CFLAGS} -c $*.c
+	mv $*.o l/$*.o
 	${CC} ${CFLAGS} -c $*.c
-	ld -X -r $*.o
-	mv a.out $*.o
 
-all: stringlib stringlib_p
+all: stringlib stringlib_m stringlib_l
 
-stringlib stringlib_p: ${OBJS}
-	@echo "building profiled stringlib"
-	@cd profiled; ar cru ../stringlib_p ${OBJS}
-	@echo "building normal stringlib"
+stringlib stringlib_m stringlib_l: ${OBJS}
+	@echo "building medium model stringlib"
+	@cd m; ar cru ../stringlib_m ${OBJS}
+	@echo "building large model stringlib"
+	@cd l; ar cru ../stringlib_l ${OBJS}
+	@echo "building small model stringlib"
 	@ar cru stringlib ${OBJS}
 
 clean:
-	rm -f ${OBJS} profiled/*.o tags Makefile.bak stringlib stringlib_p
+	rm -f ${OBJS} m/*.o l/*.o tags Makefile.bak stringlib stringlib_m stringlib_l
 
 depend: ${SRCS}
 	mkdep ${CFLAGS} ${SRCS}

@@ -136,10 +136,15 @@ where it was `-Dpdp11`.
 ## The library
 
 The tree's portable C, as `lib/libc`'s Makefiles list it, with
-`lib/libc/i286` in place of `lib/libc/pdp`. It is built twice, once for
-each model: the C compiled with `-ms` or `-mm`, the assembly assembled
-with `-DFAR` for the medium model (`crt/DEFS.inc` gives the return, the
-call and where the arguments start), and the stubs made for it.
+`lib/libc/i286` in place of `lib/libc/pdp`. It is built three times,
+once for each model: the C compiled with `-ms`, `-mm` or `-ml`, the
+assembly assembled with `-DFAR` for the medium and large models and
+`-DFARDATA` for the large (`crt/DEFS.inc` gives the return, the call and
+where the arguments start), and the stubs made for it. On the system
+`lib/libc`'s Makefiles make it, upstream's
+([the system makes itself](self-hosting.md#upstreams-makefiles)); where
+it is built, `lib/libc/i286/GNUmakefile`, of the same files and in the
+same order.
 
 | | |
 |---|---|

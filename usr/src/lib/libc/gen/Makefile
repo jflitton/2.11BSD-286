@@ -9,8 +9,20 @@
 # the PDP. If you are not running on a VAX or PDP, you should use the
 # original C sources which are included in this directory.
 #
-SRCS=	${STDSRC}
-OBJS=	${STDOBJ}
+# The 80286 has them, MDSRC: what the PDP-11's ../pdp/gen has in
+# assembly.  And it has no fakcu.o, the empty _cleanup that exit()
+# calls in a program without stdio: that works by the PDP-11's order
+# of the library, and the 286's ld took it in place of stdio's, which
+# then did not flush at exit.
+#
+SRCS=	${STDSRC} ${MDSRC}
+OBJS=	${STDOBJ} ${MDOBJ}
+MDSRC=	abs.c bcmp.c bcopy.c bzero.c fabs.c ffs.c frexp.c index.c insque.c \
+	remque.c rindex.c strcat.c strcmp.c strcpy.c strlen.c strncat.c \
+	strncmp.c strncpy.c
+MDOBJ=	abs.o bcmp.o bcopy.o bzero.o fabs.o ffs.o frexp.o index.o insque.o \
+	remque.o rindex.o strcat.o strcmp.o strcpy.o strlen.o strncat.o \
+	strncmp.o strncpy.o
 
 CFLAGS=	-O ${DEFS}
 STDSRC=	abort.c alarm.c atoi.c atol.c calloc.c closedir.c crypt.c \
@@ -33,7 +45,7 @@ STDSRC=	abort.c alarm.c atoi.c atol.c calloc.c closedir.c crypt.c \
 	valloc.c strdup.c uname.c wait.c wait3.c waitpid.c
 STDOBJ=	abort.o alarm.o atoi.o atol.o calloc.o closedir.o crypt.o \
 	ctime.o ctype_.o daemon.o devname.o disklabel.o err.o \
-	execvp.o fakcu.o \
+	execvp.o \
 	fstab.o gcvt.o getenv.o getgrent.o getgrgid.o getgrnam.o getlogin.o \
 	getgrouplist.o gethostname.o getpagesize.o \
 	getpass.o getpwent.o getloadavg.o getmntinfo.o \
@@ -52,18 +64,25 @@ STDOBJ=	abort.o alarm.o atoi.o atol.o calloc.o closedir.o crypt.o \
 
 TAGSFILE=tags
 
-.c.o:
-	${CC} -p ${CFLAGS} -c $*.c
-	-ld -X -r $*.o
-	mv a.out profiled/$*.o
-	${CC} ${CFLAGS} -c $*.c
-	-ld -X -r $*.o
-	mv a.out $*.o
+# The 80286: each file is compiled for the three models, the medium's
+# object put in m and the large's in l, where the PDP-11's profiled one
+# went in profiled, and the small's left here; each model has a library
+# of its own.  The PDP-11's ld -x -r, which took out the local symbols,
+# is not done: the 286's ld makes nothing but a program.
 
-genlib genlib_p: ${OBJS}
-	@echo "building profiled genlib"
-	@cd profiled; ar cru ../genlib_p ${OBJS}
-	@echo "buiding normal genlib"
+.c.o:
+	${CC} -mm ${CFLAGS} -c $*.c
+	mv $*.o m/$*.o
+	${CC} -ml ${CFLAGS} -c $*.c
+	mv $*.o l/$*.o
+	${CC} ${CFLAGS} -c $*.c
+
+genlib genlib_m genlib_l: ${OBJS}
+	@echo "building medium model genlib"
+	@cd m; ar cru ../genlib_m ${OBJS}
+	@echo "building large model genlib"
+	@cd l; ar cru ../genlib_l ${OBJS}
+	@echo "building small model genlib"
 	@ar cru genlib ${OBJS}
 
 tags:
@@ -73,7 +92,7 @@ tags:
 	done
 
 clean:
-	rm -f genlib genlib_p *.o profiled/*.o tags Makefile.bak
+	rm -f genlib genlib_m genlib_l *.o m/*.o l/*.o tags Makefile.bak
 
 depend:	${SRCS}
 	mkdep ${CFLAGS} ${SRCS}

@@ -75,16 +75,20 @@ def symbols(path, data):
 
 
 def make(lib, files):
+    write(lib, [(os.path.basename(f), open(f, "rb").read()) for f in files])
+
+
+def write(lib, contents):
+    """LIB made anew of the members, each a name and its contents, in
+    their order, with the table first."""
     members = []            # (header, contents, names)
     seen = set()
-    for f in files:
-        name = os.path.basename(f)
+    for name, data in contents:
         if name in seen:
             fail("%s: two members of that name" % name)
         seen.add(name)
-        data = open(f, "rb").read()
         h, extra = header(name, len(data))
-        members.append((h, extra + data, symbols(f, data)))
+        members.append((h, extra + data, symbols(name, data)))
     nsym = sum(len(m[2]) for m in members)
     strlen = sum(len(n) + 1 for m in members for n in m[2])
     ransize = 4 + 8 * nsym + 4 + strlen
@@ -114,6 +118,30 @@ def make(lib, files):
             out += b"\n"
     with open(lib, "wb") as f:
         f.write(out)
+
+
+def read(lib):
+    """Each member of LIB but the table, its name and its contents."""
+    b = open(lib, "rb").read()
+    if b[:8] != ARMAG:
+        fail("%s: not a library" % lib)
+    pos = 8
+    out = []
+    while pos + 60 <= len(b):
+        h = b[pos:pos + 60]
+        if h[58:60] != ARFMAG:
+            fail("%s: bad header at %d" % (lib, pos))
+        size = int(h[48:58])
+        name = h[:16].rstrip().decode()
+        data = pos + 60
+        n = 0
+        if name.startswith("#1/"):
+            n = int(name[3:])
+            name = b[data:data + n].decode()
+        if name != SYMDEF:
+            out.append((name, b[data + n:pos + 60 + size]))
+        pos += 60 + size + (size & 1)
+    return out
 
 
 def table(lib):

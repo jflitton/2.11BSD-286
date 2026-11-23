@@ -5,9 +5,12 @@ usage: select.py MAKEFILE < NAMES
 
 NAMES is the files changed, a line each, as git names them.  MAKEFILE is
 the one tools/srcmk.py wrote for /usr/src/i286, which says what each
-program and library is made of.  What is written is for the shell:
+program is made of.  What is written is for the shell:
 
-    PARTS="..."     the parts of tests/self to make there
+    PARTS="..."     the parts of tests/self to make there: of stand,
+                    kernel, libc, libs and progs, the last three being
+                    the C library, usr.lib's libraries and the
+                    programs, which tests/self/progs.sh makes
     ONLY="..."      of the programs, these
     CCOM=1          and the system is to make its compiler (tests/ccom)
     WHY="..."       what led to that
@@ -31,7 +34,7 @@ TOOLS = ("usr/src/lib/ccom/", "usr/src/lib/cpp/", "usr/src/lib/c2/",
          "usr/src/usr.bin/ranlib", "usr/include/")
 BUILD = ("tools/srcmk.py", "tools/cc", "tools/ncc", "tests/self/",
          "usr/src/i286/Makefile", "usr/src/sys/PC/Makefile",
-         "usr/src/sys/i286stand/Makefile", "usr/src/lib/libc/i286/Makefile")
+         "usr/src/sys/i286stand/Makefile")
 SAMPLE = ["cat", "csh", "make"]
 UNSEEN = ["ex", "tcsh", "awk", "battlestar", "hack"]
 
@@ -55,7 +58,7 @@ def sources(target, seen):
 
 made_of = {}
 for t in rules:
-    if t.startswith("bin/") or re.match(r"lib/[sml]/lib.*\.a$", t):
+    if t.startswith("bin/"):
         for p in sources(t, set()):
             if p.startswith("$S/"):
                 made_of.setdefault("usr/src/" + p[3:], set()).add(t)
@@ -80,13 +83,13 @@ for name in sys.stdin.read().split("\n"):
     elif name.startswith("usr/src/lib/libc/"):
         parts.add("libc")
         why.append(name + ": the C library")
+    elif name.startswith("usr/src/usr.lib/"):
+        parts.add("libs")
+        why.append(name + ": the libraries")
     elif name in made_of:
         for t in made_of[name]:
-            if t.startswith("bin/"):
-                parts.add("progs")
-                only.add(t[4:])
-            else:
-                parts.add("libs")
+            parts.add("progs")
+            only.add(t[4:])
         why.append(name + ": what is made of it")
     elif name.startswith("usr/src/sys/"):
         parts.add("kernel")
