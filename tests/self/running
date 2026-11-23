@@ -6,7 +6,6 @@
 /dev/ttyv1		# getty, which opens the terminal to all
 /dev/ttyv2
 /dev/ttyv3
-/etc/acctd.cf		# accton, as /etc/rc starts it, which writes it
 /usr/adm/acct		# acctd, each process's account
 /usr/adm/cron		# cron
 /usr/adm/daemonlog	# syslogd

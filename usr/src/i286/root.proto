@@ -7,6 +7,14 @@
 # (this port's own), root's files from ../etc/root (upstream's) or root
 # (this port's own), a new user's from skel (this port's own), and what
 # the Makefile makes in obj/root.
+#
+# What upstream's etc/Makefile puts in a new root (its distribution) is
+# here with the mode, owner and group it gives, but: the files of tip,
+# lpr, autoconfig, savecore and uucp, which the port has not (phones,
+# remote, aculog, printcap, dtab, shutdownlog and etc/uucp's); rc.local,
+# whose work this rc does; /usr/adm, /var/run and /var/db, which it
+# makes 655, where the owner may not search them, and which are 755;
+# and sendmail.fc, which sendmail's own Makefile installs, 644.
 d /bin 755
 d /sbin 755
 d /etc 755
@@ -64,13 +72,16 @@ f /usr/skel/.cshrc 644 skel/dot.cshrc
 f /usr/skel/.login 644 skel/dot.login
 f /etc/master.passwd 600 ../etc/master.passwd
 f /etc/group 644 ../etc/group
-f /etc/disktab 444 ../etc/disktab
+f /etc/disktab 644 ../etc/disktab
 f /etc/shells 644 ../etc/shells
+f /etc/networks 644 ../etc/networks
+f /etc/acctd.cf 644 ../etc/acctd.cf
 f /etc/hosts 644 etc/hosts
 f /etc/inetd.conf 644 etc/inetd.conf
+f /etc/inetd.conf.nowrappers 644 ../etc/inetd.conf.nowrappers
 f /etc/hosts.allow 644 etc/hosts.allow
 f /etc/hosts.deny 644 ../etc/hosts.deny
-f /etc/hosts.equiv 644 etc/hosts.equiv
+f /etc/hosts.equiv 600 etc/hosts.equiv
 f /etc/ftpusers 644 ../etc/ftpusers
 f /etc/ntp.conf 644 ../etc/ntp.conf
 f /etc/syslog.conf 644 ../etc/syslog.conf
@@ -103,6 +114,8 @@ f /usr/adm/cron 644 ../../../obj/root/empty
 f /usr/adm/lpd-errs 644 ../../../obj/root/empty
 f /usr/adm/daemonlog 644 ../../../obj/root/empty
 f /usr/adm/debuglog 644 ../../../obj/root/empty
+f /usr/adm/usracct 644 ../../../obj/root/empty
+f /usr/adm/savacct 644 ../../../obj/root/empty
 f /usr/spool/mqueue/syslog 644 ../../../obj/root/empty
 f /usr/spool/at/lasttimedone 644:1.1 ../../../obj/root/zero
 f /usr/libexec/getty 555:0.10 ../../../obj/root/bin/getty
@@ -199,7 +212,7 @@ f /usr/libexec/find/bigram 755 ../../../obj/root/bin/bigram
 f /usr/libexec/find/code 755 ../../../obj/root/bin/code
 f /usr/libexec/find/updatedb 755 ../usr.bin/find/updatedb.csh
 d /var/db 755
-f /var/db/find.codes 644:32767.31 ../../../obj/root/empty
+f /var/db/find.codes 644:32767.0 ../../../obj/root/empty
 f /usr/adm/daily 755 etc/daily
 f /usr/adm/weekly 755 etc/weekly
 f /usr/adm/monthly 755 etc/monthly
@@ -693,7 +706,8 @@ f /usr/games/lib/warp/warp.news 644:3.10 ../games/warp/warp.news
 f /usr/games/words 755 ../games/words/words.sh
 f /usr/games/lib/words1 755:10 ../../../obj/root/bin/words1
 i ../../../obj/man/man.proto
-f /dev/MAKEDEV 755 etc/MAKEDEV
+f /dev/MAKEDEV 555 etc/MAKEDEV
+f /dev/MAKEDEV.local 555 ../etc/MAKEDEV.local
 c /dev/console 622 0 0
 c /dev/ttyv1 666 0 1
 c /dev/ttyv2 666 0 2
