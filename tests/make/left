@@ -10,3 +10,23 @@
 /usr/sbin/ntp			# its Makefile runs ntest, which it made
 /usr/sbin/ntpd
 /usr/sbin/ntpdc
+/usr/games/lib/adventure/a.out	# its first run, which reads the game in
+/usr/games/battlestar		# its own mkstr
+/usr/games/lib/battle_strings
+/usr/games/fortune		# installed with fortunes.dat, strfile's
+/usr/games/lib/fortunes.dat
+/usr/games/hack			# makedefs, and crypt
+/usr/games/monop		# installed with cards.pck, initdeck's
+/usr/games/lib/cards.pck
+/usr/games/lib/bogdict		# boggle's comp
+/usr/games/lib/crib.instr	# nroff, which stops on it here
+/usr/games/lib/phantasia/phant.help	# tbl
+/usr/games/lib/warp/smap.0	# warp's sm
+/usr/games/lib/warp/smap.1	# warp's sm
+/usr/games/lib/warp/smap.2	# warp's sm
+/usr/games/lib/warp/smap.3	# warp's sm
+/usr/games/lib/warp/smap.4	# warp's sm
+/usr/games/lib/warp/smap.5	# warp's sm
+/usr/games/lib/warp/smap.6	# warp's sm
+/usr/games/lib/warp/smap.7	# warp's sm
+/usr/share/term/tab*		# each table's C, compiled with mktab and run

@@ -13,12 +13,15 @@
 CC = cc
 bin = /usr/games
 mansrc = /usr/man/cat6
-CFLAGS = -O
-LDFLAGS = -i
+# The 80286: warp is of the medium model, its code being more than a
+# segment of 64K, where the PDP-11 had it in overlays.
+MODEL = -mm
+CFLAGS = -O $(MODEL)
+LDFLAGS = -i $(MODEL)
 CHOWNER = daemon
 privlib = /usr/games/lib/warp
 
-libs =  -ltermlib  /usr/lib/libtermlib.a -lm
+libs =  -ltermlib -lm
 
 util = smap.0 smap.1 smap.2 smap.3 smap.4 smap.5 smap.6 smap.7
 
@@ -41,12 +44,12 @@ SHELL = /bin/sh
 all: warp $(util) warp.0
 
 warp: $(OBJS)
-	ld -X -i /lib/crt0.o play.o score.o version.o warp.o \
+	$(CC) -X $(LDFLAGS) play.o score.o version.o warp.o \
 		weapon.o  init.o intrp.o \
-		-Z sig.o util.o object.o term.o \
-		-Z them.o us.o \
-		-Z bang.o move.o \
-		-Y $(libs) -lc -o warp
+		sig.o util.o object.o term.o \
+		them.o us.o \
+		bang.o move.o \
+		$(libs) -o warp
 
 warp.0: warp.man
 	/usr/man/manroff warp.man > warp.0

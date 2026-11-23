@@ -2,3 +2,5 @@
 # does not compare these.  The name the root has it by, and after # why.
 /usr/sbin/sendmail		# its Makefile's mkstrcc: mkstr, xstr, extract.c
 /usr/share/misc/sendmail.sr	# the messages mkstr takes out of it
+/usr/games/backgammon		# its Makefile puts the day in message.c
+/usr/games/phantasia		# its Makefile compiles fight.c without -O

@@ -7,7 +7,10 @@ GAME = hack
 BINDIR = /usr/games
 LIBDIR = /usr/games/lib/hackdir
 GAMEUID = daemon
-CFLAGS = -O
+# The 80286: hack is of the medium model, its code being more than a
+# segment of 64K, where the PDP-11 had it in overlays.
+MODEL = -mm
+CFLAGS = -O $(MODEL)
 
 HACKCSRC = \
 	hack.Decl.c\
@@ -90,9 +93,9 @@ OV5 =	hack.save.o hack.lev.o hack.mklev.o hack.mkshop.o hack.mkmaze.o\
 # Crypt *MUST be listed BEFORE $(HOBJ)
 $(GAME): crypt $(HOBJ)
 	@echo "Loading ..."
-	@ld -i -X -x -o $(GAME) /lib/crt0.o $(BASE)\
-	  -Z $(OV1)  -Z $(OV2)  -Z $(OV3)  -Z $(OV4) -Z $(OV5) -Y\
-	  $(TERMLIB) -lc
+	@$(CC) -i -X -x $(MODEL) -o $(GAME) $(BASE)\
+	  $(OV1)  $(OV2)  $(OV3)  $(OV4) $(OV5)\
+	  $(TERMLIB)
 	@echo "Load complete"
 
 # The hack sources are run through several filters before they actually reach

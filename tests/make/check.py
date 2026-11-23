@@ -57,17 +57,25 @@ for line in open(top + "/usr/src/i286/root.proto"):
     w = line.split()
     if len(w) == 4 and w[0] == "f" and "/obj/root/bin/" in w[3]:
         where[w[1]] = os.path.basename(w[3])
-left = set()
-for line in open(here + "/left"):
-    line = line.split("#")[0].split()
-    if line:
-        left.add(line[0])
+class Names(set):
+    """Names, of which one that ends with * is all that begin so."""
+    def __contains__(self, p):
+        return set.__contains__(self, p) or any(
+            n.endswith("*") and p.startswith(n[:-1]) for n in self)
 
-differs = set()
-for line in open(here + "/differs"):
-    line = line.split("#")[0].split()
-    if line:
-        differs.add(line[0])
+
+def names(path):
+    out = Names()
+    for line in open(path):
+        line = line.split("#")[0].split()
+        if line:
+            out.add(line[0])
+    return out
+
+
+left = names(here + "/left")
+
+differs = names(here + "/differs")
 
 bad = []
 same = 0

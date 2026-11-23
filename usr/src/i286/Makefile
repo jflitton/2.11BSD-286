@@ -613,20 +613,20 @@ GO=		$(TOP)/obj/games
 # (i286/adventure/Makefile).
 adventure_SRCS=	$(addprefix $(GS)/adventure/,done.c init.c io.c main.c \
 		save.c subr.c vocab.c wizard.c)
-atc_SRCS=	$(addprefix $(GS)/atc/,extern.c graphics.c input.c list.c \
-		log.c main.c tunable.c update.c) $(GO)/atc/grammar.c \
-		$(GO)/atc/lex.c
+atc_SRCS=	$(GS)/atc/extern.c $(GO)/atc/grammar.c $(GS)/atc/input.c \
+		$(GO)/atc/lex.c $(addprefix $(GS)/atc/,list.c log.c main.c \
+		tunable.c graphics.c update.c)
 atc_FLAGS=	-DBSD '-DDEST="/usr/games/lib/atc/"' -I$(GO)/atc \
 		-I$(SRC)/games/atc
 atc_LIBS=	-lln -lm $(CURSES)
-BG=		allow.c board.c check.c fancy.c init.c odds.c one.c save.c \
-		subs.c table.c
-backgammon_SRCS= $(addprefix $(GS)/backgammon/,$(BG) extra.c main.c move.c \
-		text.c message.c)
+backgammon_SRCS= $(addprefix $(GS)/backgammon/,allow.c board.c check.c \
+		extra.c fancy.c init.c main.c move.c odds.c one.c save.c \
+		subs.c table.c text.c message.c)
 backgammon_FLAGS= -DV7
 backgammon_LIBS= -ltermcap
-teachgammon_SRCS= $(addprefix $(GS)/backgammon/,$(BG) data.c teach.c \
-		ttext1.c ttext2.c tutor.c)
+teachgammon_SRCS= $(addprefix $(GS)/backgammon/,allow.c board.c check.c \
+		data.c fancy.c init.c odds.c one.c save.c subs.c table.c \
+		teach.c ttext1.c ttext2.c tutor.c)
 teachgammon_FLAGS= -DV7
 teachgammon_LIBS= -ltermcap
 battlestar_SRCS= $(addprefix $(GS)/battlestar/,battlestar.c com1.c com2.c \
@@ -674,10 +674,10 @@ robots_SRCS=	$(addprefix $(GS)/robots/,extern.c init_field.c main.c \
 		score.c flush_in.c)
 robots_FLAGS=	-DMAX_PER_UID=5
 robots_LIBS=	$(CURSES)
-rogue_SRCS=	$(addprefix $(GS)/rogue/,curses.c hit.c init.c inventory.c \
-		level.c machdep.c main.c message.c monster.c move.c object.c \
-		pack.c play.c random.c ring.c room.c save.c score.c spec_hit.c \
-		throw.c trap.c use.c zap.c)
+rogue_SRCS=	$(addprefix $(GS)/rogue/,curses.c hit.c inventory.c \
+		machdep.c main.c monster.c move.c object.c play.c random.c \
+		spec_hit.c throw.c use.c score.c zap.c init.c save.c \
+		message.c room.c level.c pack.c trap.c ring.c)
 rogue_FLAGS=	-DUNIX -DUNIX_BSD4_2
 rogue_LIBS=	$(CURSES)
 rogue_MODEL=	m
@@ -725,9 +725,9 @@ HACK=		hack.Decl.c hack.apply.c hack.bones.c hack.c hack.cmd.c \
 hack_SRCS=	$(addprefix $(HGO)/,$(HACK))
 hack_LIBS=	-ltermcap
 hack_MODEL=	m
-warp_SRCS=	$(addprefix $(GS)/warp/,bang.c init.c intrp.c move.c object.c \
-		play.c score.c sig.c term.c them.c us.c util.c version.c \
-		warp.c weapon.c)
+warp_SRCS=	$(addprefix $(GS)/warp/,play.c score.c version.c warp.c \
+		weapon.c init.c intrp.c sig.c util.c object.c term.c them.c \
+		us.c bang.c move.c)
 warp_LIBS=	-ltermcap -lm
 warp_MODEL=	m
 words1_SRCS=	$(GS)/words/words1.c

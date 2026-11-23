@@ -10,7 +10,7 @@ LDFLAGS= -i
 
 # Programs that live in subdirectories, and have makefiles of their own.
 #
-SUBDIR=	adventure backgammon battlestar boggle btlgammon cribbage fortune \
+SUBDIR=	adventure atc backgammon battlestar boggle btlgammon cribbage fortune \
 	hack \
 	hangman hunt mille monop phantasia quiz robots rogue sail snake \
 	trek warp words

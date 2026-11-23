@@ -8,7 +8,10 @@
 # 4)  'make install' and watch it fly.
 
 LIBS =		-lm -lcurses -ltermlib
-CFLAGS =	-I. -Dpdp11
+# The 80286: phantasia is of the medium model, its code being more than a
+# segment of 64K, where the PDP-11 had it in overlays.
+MODEL =		-mm
+CFLAGS =	-I. ${MODEL}
 LDFLAGS=	-i
 
 # DEST is where the support files reside
@@ -42,8 +45,8 @@ NOOPT=		fight.o
 all:		phantasia setfiles phant.help phantasia.0
 
 phantasia:	${OFILES} ${NOOPT}
-		${CC} main.o fight.o -Z func0.o -Z func1.o \
-			-Z func2.o -Y ${LIBS} -i -o phantasia
+		${CC} ${MODEL} main.o fight.o func0.o func1.o \
+			func2.o ${LIBS} -i -o phantasia
 
 ${OFILES}:	phant.h
 		${CC} -O -c ${CFLAGS} ${FLAGS} $*.c

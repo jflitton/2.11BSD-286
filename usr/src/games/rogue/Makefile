@@ -11,7 +11,10 @@
 #
 #	@(#)Makefile	5.3.3 (2.11BSD) 2026/5/12
 
-CFLAGS=	-O -DUNIX -DUNIX_BSD4_2
+# The 80286: rogue is of the medium model, its code being more than a
+# segment of 64K, where the PDP-11 had it in overlays.
+MODEL=	-mm
+CFLAGS=	-O -DUNIX -DUNIX_BSD4_2 ${MODEL}
 
 SRCS=	curses.c	\
 	hit.c		\
@@ -62,7 +65,7 @@ OBJS=	${BASE} ${OV1} ${OV2} ${OV3} ${OV4} ${OV5}
 all: rogue
 
 rogue: ${OBJS}
-	${CC} -i ${BASE} -Z ${OV1} -Z ${OV2} -Z ${OV3} -Z ${OV4} -Z ${OV5} -Y -o $@ -lcurses -ltermlib
+	${CC} -i ${MODEL} ${BASE} ${OV1} ${OV2} ${OV3} ${OV4} ${OV5} -o $@ -lcurses -ltermlib
 
 clean: FRC
 	rm -f ${OBJS} core rogue

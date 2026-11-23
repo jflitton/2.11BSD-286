@@ -31,8 +31,8 @@ install: FRC
 	chmod 700 /usr/games/lib/atc
 	chown games.staff /usr/games/lib/atc
 	(cd games; install -c -o games -g staff -m 600 * /usr/games/lib/atc)
-	install -c -s -o games -g staff -m 4700 atc /usr/games/hide/atc
-	(cd /usr/games; rm -f atc; ln -s dm atc; chown games.staff atc)
+# There is no dm here to run it from /usr/games/hide.
+	install -c -s -o games -g staff -m 4711 atc /usr/games/atc
 
 lint: lex.c grammar.c FRC
 	lint ${CFLAGS} ${SRCS}
