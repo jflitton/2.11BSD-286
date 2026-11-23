@@ -8,6 +8,9 @@ OBJS=	version.o aux.o cmd1.o cmd2.o cmd3.o cmdtab.o collect.o edit.o fio.o \
 	quit.o send.o strings.o temp.o tty.o vars.o str.o
 #
 CFLAGS=	-O
+# The 80286: a program's stack is the size it is linked with, 8K unless
+# it is told, and Mail puts more than that on it.
+STACK=	-stack 16384
 XSTR=	/usr/ucb/xstr
 CTAGS=	/usr/ucb/ctags -w
 LIBES=
@@ -31,7 +34,7 @@ all:	${ALL}
 Mail:	$S $(OBJS)
 	$(RM) -f Mail
 	@echo Loading ...
-	@$(CC) -i -o Mail $(OBJS) $(LIBES)
+	@$(CC) -i ${STACK} -o Mail $(OBJS) $(LIBES)
 	@size Mail
 
 install: all

@@ -5,8 +5,11 @@
 #
 #	@(#)Makefile	3.3 (2.11BSD) 2025/11/26
 
-LDFLAGS       = -i
-CFLAGS        = -O
+# The 80286: window is of the large model, its copies of the screen and
+# of each window's contents being more than the 64K of a data segment.
+MODEL         = -ml
+LDFLAGS       = -i ${MODEL}
+CFLAGS        = -O ${MODEL}
 
 EXTHDRS	      = /usr/include/fcntl.h \
 		/usr/include/setjmp.h \
@@ -38,7 +41,7 @@ HDRS	      = alias.h \
 		var.h \
 		ww.h
 
-LIBS	      = /usr/lib/libtermcap.a
+LIBS	      = /usr/lib/l/libtermcap.a
 
 LINKER	      = cc
 

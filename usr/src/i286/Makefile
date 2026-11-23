@@ -210,8 +210,8 @@ syslogd_FLAGS=	-stack 12288
 logger_SRCS=	ucb/logger.c
 dmesg_SRCS=	sbin/dmesg/dmesg.c
 CRON=		misc.c entry.c env.c compat.c
-cron_SRCS=	$(addprefix usr.sbin/cron/,cron.c database.c user.c job.c \
-		do_command.c popen.c $(CRON))
+cron_SRCS=	$(addprefix usr.sbin/cron/,cron.c database.c user.c entry.c \
+		job.c do_command.c misc.c env.c popen.c compat.c)
 cron_FLAGS=	-I$(SRC)/usr.sbin/cron
 crontab_SRCS=	$(addprefix usr.sbin/cron/,crontab.c $(CRON))
 crontab_FLAGS=	-I$(SRC)/usr.sbin/cron
@@ -492,6 +492,8 @@ Mail_SRCS=	$(addprefix ucb/Mail/,version.c aux.c cmd1.c cmd2.c cmd3.c \
 		lex.c list.c main.c names.c popen.c quit.c send.c strings.c \
 		temp.c tty.c vars.c)
 Mail_FLAGS=	-stack 16384
+Mail_XSTR=	yes
+Mail_XSTRFLAGS=	-strings str
 fmt_SRCS=	ucb/Mail/fmt.c ucb/Mail/head.c
 # What waited for mail: comsat, which tells a user logged in that mail
 # has come, if biff has said to; from, which lists who it is from; msgs,

@@ -50,8 +50,12 @@ ALL=	sendmail
 O=	-O
 COPTS=
 CCONFIG=-I../`include' m4CONFIG
-CFLAGS=	$O $(COPTS) $(CCONFIG)
-LDFLAGS=-i
+# The 80286: sendmail is of the medium model, its code being more than
+# a segment of 64K, where the PDP-11 had it in overlays, and it puts
+# more on its stack than the 8K a program is linked with otherwise.
+MODEL=	-mm
+CFLAGS=	$O $(COPTS) $(CCONFIG) ${MODEL}
+LDFLAGS=-i ${MODEL} -stack 16384
 LINT=	lint
 XREF=	ctags -x
 INSTALL=install -c -s -o root
@@ -65,8 +69,8 @@ OBJMODE=755
 all: $(ALL)
 
 sendmail: $(OBJS)
-	ld $(LDFLAGS) $(COPTS) /lib/crt0.o -o sendmail \
-		-Z $(SOV1) -Z $(SOV2) -Z $(SOV3) -Y $(SBASE) $(LIBS) -lstubs -lc
+	cc $(LDFLAGS) $(COPTS) -o sendmail \
+		$(SOV1) $(SOV2) $(SOV3) $(SBASE) $(LIBS)
 	chmod $(OBJMODE) sendmail
 	size sendmail; ls -l sendmail
 
@@ -108,6 +112,6 @@ lint:
 
 str.o:	strings
 	${XSTR}
-	cc -c xs.c
+	cc ${MODEL} -c xs.c
 	mv xs.o str.o
 	rm -f xs.c

@@ -183,7 +183,7 @@ f /usr/sbin/arp 2755:2 ../../../obj/root/bin/arp
 f /usr/sbin/syslogd 755 ../../../obj/root/bin/syslogd
 f /usr/ucb/logger 755 ../../../obj/root/bin/logger
 f /sbin/dmesg 2755:2 ../../../obj/root/bin/dmesg
-f /usr/sbin/cron 755 ../../../obj/root/bin/cron
+f /usr/sbin/cron 111 ../../../obj/root/bin/cron
 f /usr/bin/crontab 4111 ../../../obj/root/bin/crontab
 f /usr/bin/at 4755:1.0 ../../../obj/root/bin/at
 f /usr/bin/atq 4755:1.0 ../../../obj/root/bin/atq

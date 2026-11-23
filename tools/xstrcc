@@ -9,14 +9,15 @@
 #	cc LDFLAGS -o OUT file.o ... strings.o LIBS
 #
 # usage: xstrcc XSTR WORK OUT [-mkstr MKSTR NAME] [-link "OBJECT ..."]
-#		FLAGS... -- FILE.c... [-- LINK...]
+#		[-strings NAME] FLAGS... -- FILE.c... [-- LINK...]
 #
 # XSTR is xstr compiled for this machine, WORK a directory for what is
 # made on the way, and FLAGS cc's: the model, -O, -D, -I and -stack N.
 # The objects are linked in the order of the files, strings.o after
 # them, or in the order -link gives them, and LINK, objects and -l
-# libraries, after that.  The compiler is the system's own (tools/ncc,
-# tools/cc -ccom).
+# libraries, after that.  -strings str has the strings' object be
+# str.o, for a program with a strings.c of its own.  The compiler is
+# the system's own (tools/ncc, tools/cc -ccom).
 #
 # With -mkstr the program's error messages are taken out of each file
 # first, into the file NAME in WORK, as ex's Makefile has it:
@@ -30,13 +31,14 @@
 top=$(cd "$(dirname "$0")/.." && pwd)
 xstr=$1 work=$2 out=$3
 shift 3
-flags= model= stack= mkstr= name= link=
+flags= model= stack= mkstr= name= link= str=strings
 while [ "$1" != -- ]; do
     case $1 in
     -ms|-mm|-ml) model=$1 ;;
     -stack) stack="-stack $2"; shift ;;
     -mkstr) mkstr=$2 name=$3; shift 2 ;;
     -link) link=$2; shift ;;
+    -strings) str=$2; shift ;;
     *) flags="$flags $1" ;;
     esac
     shift
@@ -66,7 +68,7 @@ while [ $# -gt 0 ] && [ "$1" != -- ]; do
     shift
 done
 [ $# -eq 0 ] || shift
-cd "$work" && "$xstr" && "$top/tools/ncc" $model xs.c && mv xs.o strings.o &&
+cd "$work" && "$xstr" && "$top/tools/ncc" $model xs.c && mv xs.o $str.o &&
     rm -f xs.c &&
     exec "$top/tools/cc" -ccom $model $stack -o "$out" \
-        ${link:-$objs strings.o} "$@"
+        ${link:-$objs $str.o} "$@"

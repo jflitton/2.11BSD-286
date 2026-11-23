@@ -7,3 +7,6 @@
 /usr/libexec/spell		# installed with the lists spellin makes
 /usr/bin/spellin
 /usr/bin/spellout
+/usr/sbin/ntp			# its Makefile runs ntest, which it made
+/usr/sbin/ntpd
+/usr/sbin/ntpdc

@@ -14,9 +14,9 @@ and the others' in m and l.
 A Makefile is changed as it is copied where make itself is to find a
 file the system has: /usr/include, where a file depends on a header
 there, is OUT/root/usr/include; a directory of /usr/src in VPATH is the
-one of OUT/root; and anything else in the system's root that a target
-depends on, a file or a directory that was installed, is the one in
-OUT/dest.  A command it names by where the system has it is seen to as
+one of OUT/root; a library it names is OUT/root's; and
+anything else in the system's root that one depends on, a file or a
+directory that was installed, is the one in OUT/dest.  A command it names by where the system has it is seen to as
 it is run (sh.py), and where `make install` puts a file is left as it
 is: the commands that are given such a name put it in OUT/dest
 (commands.sh).
@@ -37,14 +37,17 @@ INC = re.compile(r"(?<![\w\"'=-])/usr/include(?=[/\s]|$)", re.M)
 
 VPATH = re.compile(r"^(VPATH\s*=.*)$", re.M)
 RULE = re.compile(r"^([^\t#=\n]*[^\t#=\n:]:)([^=\n]*)$", re.M)
-SYS = re.compile(r"(?<=\s)/(?=(?:usr/(?!include|src)|etc/|var/|bin/|sbin/|"
-                 r"lib/)\S)")
+SYS = re.compile(r"(?<=\s)/(?=(?:usr/(?!include|src|lib/lib)|etc/|var/|"
+                 r"bin/|sbin/)\S)")
+LIB = re.compile(r"(?<=[\s=])/(?=(?:usr/lib|lib)/(?:[ml]/)?(?:lib\S+\.a|"
+                 r"crt0\.o)(?:\s|$))")
 
 
 def makefile(text):
     text = INC.sub(root + "/usr/include", text)
     text = VPATH.sub(lambda m: m.group(1).replace("/usr/src",
                                                   root + "/usr/src"), text)
+    text = LIB.sub(root + "/", text)
     return RULE.sub(lambda m: m.group(1) +
                     SYS.sub(out + "/dest/", m.group(2)), text)
 

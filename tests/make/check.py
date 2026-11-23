@@ -11,7 +11,8 @@ installed must be one the root has, with those contents and that mode.
 Of the root's programs whose sources are in a DIR (usr/src/i286's
 Makefile: make table), each must have been installed; those of `left`,
 beside this, are made with a program their Makefile makes and runs, and
-are the 286's to make.
+are the 286's to make.  Those of `differs` are made, and are not yet
+what the other build makes of them.
 """
 import hashlib
 import os
@@ -62,6 +63,12 @@ for line in open(here + "/left"):
     if line:
         left.add(line[0])
 
+differs = set()
+for line in open(here + "/differs"):
+    line = line.split("#")[0].split()
+    if line:
+        differs.add(line[0])
+
 bad = []
 same = 0
 dest = out + "/dest"
@@ -72,10 +79,11 @@ for dp, dn, fn in os.walk(dest):
         if os.path.islink(t):
             continue
         if p not in want:
-            bad.append("NOT THE ROOT'S %s" % p)
+            if p not in differs:
+                bad.append("NOT THE ROOT'S %s" % p)
         elif hashlib.sha256(open(t, "rb").read()).hexdigest()[:16] != \
                 want[p][1]:
-            if p not in left:
+            if p not in left and p not in differs:
                 bad.append("DIFFERS %s" % p)
         elif p in mode and mode[p] != want[p][0]:
             bad.append("MODE %s: %s, and the root's is %s" %

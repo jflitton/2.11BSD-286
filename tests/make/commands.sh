@@ -12,6 +12,7 @@
 #	nroff, manroff	the system's nroff, as compiled for this machine
 #	strip		tools/strip.py
 #	install		install.py
+#	expr		this machine's, and the system's substr
 #	size		nothing
 #	ln, rm, mv, cp, mkdir, chmod	this machine's, on OUT/dest where
 #			the name is one in the system's root
@@ -39,6 +40,15 @@ run() {		# run NAME COMMAND...: NAME runs COMMAND with its arguments
 run sh python3 -I "$top/tests/make/sh.py"
 run cc python3 -I "$top/tests/make/cc.py" "$top" "$out"
 run install python3 -I "$top/tests/make/install.py" "$out"
+# expr substr, which the system's expr has and this machine's may not
+cat > "$b/expr" <<'END'
+#!/bin/sh
+if [ "$1" = substr ]; then
+    printf '%s\n' "$2" | cut -c"$3"-"$(($3 + $4 - 1))"
+else
+    exec /bin/expr "$@"
+fi
+END
 for t in as ld cpp; do run $t "$top/obj/host/ccom/$t"; done
 for t in yacc lex; do run $t "$top/obj/host/$t"; done
 for t in xstr mkstr tsort; do run $t "$h/$t"; done

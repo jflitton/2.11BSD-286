@@ -1,0 +1,4 @@
+# What both builds make, and not yet the same way: tests/make/run.sh
+# does not compare these.  The name the root has it by, and after # why.
+/usr/sbin/sendmail		# its Makefile's mkstrcc: mkstr, xstr, extract.c
+/usr/share/misc/sendmail.sr	# the messages mkstr takes out of it
