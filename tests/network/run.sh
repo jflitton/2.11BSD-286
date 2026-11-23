@@ -27,7 +27,10 @@
 #
 # The Ethernet card is 86Box's NETCARD, ne2k8 if it is not set, as in
 # tests/system.  TOOLS, TOOLS_KERNEL and TOOLS_PROGRAMS are as there
-# too.  Run from the top of the repository after `. tools/env.sh`.
+# too.  With ROOTFS set, that root file system is booted in place of the
+# one made here, with the kernel that is /unix in it, as in
+# tests/programs: one the system made itself (tests/self/progs.sh).
+# Run from the top of the repository after `. tools/env.sh`.
 set -e
 if [ "$EMU" = qemu ]; then
     echo "tests/network needs 86Box: the kernel is for a 286" >&2
@@ -43,7 +46,7 @@ buildsys
 # runs when it has built the rest, and what a client of rexecd sends: a
 # port for the errors, here none, a user, a password and a command.
 cd "$out"
-cp "$top/obj/root/root.fs" root.fs
+cp "${ROOTFS:-$top/obj/root/root.fs}" root.fs
 rm -rf checks
 python3 -I "$top/tests/harness/checks.py" "$top/tests/network/checks" checks
 python3 -I "$top/tools/strip.py" "$bin/ntest" checks/d/ntest

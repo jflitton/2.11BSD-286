@@ -7,8 +7,8 @@
 # own with the files they read.  A check is a few lines for the shell and
 # what they must write, to the byte.  Then use what needs a terminal: tty
 # and mesg, more, man, script, lock, tset and clear, the games
-# battlestar, hack, rogue, robots and hangman, window and ve; and stop
-# the system with shutdown.
+# battlestar, hack, backgammon, rogue, robots and hangman, window and
+# ve; and stop the system with shutdown.
 # The kernel, /boot, the C library, the programs and the root file system
 # are built as they would be for a real machine, as tests/system has
 # them.
@@ -119,6 +119,10 @@ TIMEOUT=${TIMEOUT:-1800} python3 -I "$top/tests/harness/runtest.py" \
     --type ">-: " 'quit' \
     --type "# " '/usr/games/hack' \
     --type "xprncd player" "${CTRLD}" \
+    --type "# " '/usr/games/backgammon' \
+    --type "rules of the game?" 'n' \
+    --type "this program?" 'n' \
+    --type "play both:" "${CTRLC}" \
     --type "# " '/usr/games/rogue -s' \
     --type "-more-" ' ' \
     --type "-more-" ' ' \
@@ -158,7 +162,9 @@ for want in "^/dev/tty00" "^is y" "^is n" "--More--(.*%)" \
     "Script started, file is /tmp/ts" "Script done, file is /tmp/ts" \
     "lock: /dev/tty00 on .* timeout in 15 minutes" "tset-vt100" \
     "^0000000  *033  *\[" "luxurious stateroom" "Your rating was" \
-    "End f input" "cannot lock score file" "Rogueists" "Directions:" \
+    "End f input" "cannot lock score file" \
+    "Do you need instructions for this program?" "play both:" \
+    "Rogueists" "Directions:" \
     "Word #:" "in-window" "/dev/ttyp[0-9]" "changed, line" "^ve-total" \
     "System going down IMMEDIATELY" "going down" \
     "System shutdown time has arrived" "halting"; do
@@ -170,4 +176,4 @@ done
 python3 -I "$top/tools/fsck.py" programs.img
 python3 -I "$top/tools/fsck.py" -p a spare.img
 python3 -I "$top/tools/fsck.py" -p e spare.img
-echo "programs: $n checks of the programs that work on text and files, of nroff and man, of tbl, eqn, refer, spell and the rest documents go through, of zic and /usr/adm's scripts, of disklabel, the file system checkers, dump, restor and the rest of the administrator's, and fstat, and of the games, and tty, mesg, more, man, script, lock, tset, clear, five games, window, ve and shutdown at a terminal"
+echo "programs: $n checks of the programs that work on text and files, of nroff and man, of tbl, eqn, refer, spell and the rest documents go through, of zic and /usr/adm's scripts, of disklabel, the file system checkers, dump, restor and the rest of the administrator's, and fstat, and of the games, and tty, mesg, more, man, script, lock, tset, clear, six games, window, ve and shutdown at a terminal"

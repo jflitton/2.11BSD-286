@@ -409,7 +409,11 @@ not for a change. A change is checked two ways, and
   the day into it; `adventure`, which its Makefile runs once to write
   the game, where the root has the program that writes it when it is
   first played; and two files that are made with the time, `fortune`'s
-  table and `phantasia`'s void.
+  table and `phantasia`'s void. What the system makes of those is run
+  instead: `tests/programs` and `tests/network` take a root as
+  `ROOTFS`, and pass on one the system installed `sendmail`, `hack`,
+  `backgammon`, `phantasia` and `adventure` in, but for `last`, which
+  finds there the logins of the machine that made them.
 - One machine is then booted to make what the changed files are part
   of and nothing else (`tests/self/select.py`): the programs a source
   is in, the libraries, the kernel, the C library or the boot programs.
