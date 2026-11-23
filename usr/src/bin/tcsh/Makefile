@@ -12,8 +12,10 @@ BUILD=tcsh
 
 LFLAGS=-I.
 
-SYSDEFINE=pdp11
-CFLAGS= -I. -O -D${SYSDEFINE}
+# The 286: the medium model, where the PDP-11 had overlays.
+SYSDEFINE=i286
+MODEL=	-mm
+CFLAGS= -I. -O ${MODEL} -D${SYSDEFINE}
 
 LDFLAGS=-i -X
 
@@ -143,11 +145,11 @@ OV7=
 
 tcsh: $(OBJS)
 	rm -f $@
-	/bin/ld -i -X -o tcsh /lib/crt0.o \
+	${CC} ${MODEL} ${LDFLAGS} -o tcsh \
 	$(BASE) \
-	-Z $(OV1) -Z $(OV2) -Z $(OV3) -Z $(OV4) \
-	-Z $(OV5) -Z $(OV6) -Z $(OV7) \
-	-Y -ltermcap -lc
+	$(OV1) $(OV2) $(OV3) $(OV4) \
+	$(OV5) $(OV6) $(OV7) \
+	${LIBES}
 	@-size $@
 
 .c.o: ${MKSTR}
@@ -160,7 +162,7 @@ tcsh: $(OBJS)
 
 strings.o: strings
 	${XSTR}
-	${CC} -c xs.c
+	${CC} ${MODEL} -c xs.c
 	mv -f xs.o strings.o
 	rm -f xs.c
 

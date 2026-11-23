@@ -21,13 +21,16 @@ small model /lib/crt0.o and /lib/libc.a, and /usr/lib/libNAME.a for
 each LIBRARY; for the medium model the same in /lib/m and /usr/lib/m,
 where the system's ld looks when it is given -mm, and for the large in
 /lib/l and /usr/lib/l.  lex's library,
-libln.a, is libl.a as well, a link, as upstream installs it: -ll.
+libln.a, is libl.a as well, a link, as upstream installs it: -ll; and
+libtermcap.a is libtermlib.a likewise.
 """
 import os
 import sys
 
 LINKED = ["sys", "i286", "i286at", "net", "netimp", "netinet", "netns"]
 OWN = ["arpa", "protocols"]
+# The other name upstream installs a library with, a link.
+OTHER = {"ln": "l", "termcap": "termlib"}
 
 
 def main():
@@ -67,9 +70,9 @@ def main():
         for l in libs:
             out.append("f /usr/lib%s/lib%s.a 444 %s" %
                        (sub, l, os.path.join(nlib, m, "lib%s.a" % l)))
-            if l == "ln":
-                out.append("h /usr/lib%s/libl.a /usr/lib%s/libln.a" %
-                           (sub, sub))
+            if l in OTHER:
+                out.append("h /usr/lib%s/lib%s.a /usr/lib%s/lib%s.a" %
+                           (sub, OTHER[l], sub, l))
     print("\n".join(out))
 
 

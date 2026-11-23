@@ -111,11 +111,14 @@ expreserve_SRCS= ucb/ex/expreserve.c
 expreserve_FLAGS= $(EXFLAGS)
 expreserve_MODEL= m
 
-# tcsh.  Its messages are taken out of its C into /etc/tcsh6.00strgs too,
-# by its own kind of mkstr, mkprstr: a call to xprintf with a string
-# becomes one to mkprintf with the string's place in the file
-# (jpnerror.c).  Three of its headers are made from its C, as its
-# Makefile makes them; they and the C mkstr makes are in obj/tcsh.
+# tcsh.  Its messages are taken out of its C into /etc/tcsh6.00strgs,
+# by its own kind of mkstr, mkprstr, and its other strings into one
+# array by xstr, as its Makefile has it (tools/xstrcc): a call to
+# xprintf with a string becomes one to mkprintf with the string's place
+# in the file (jpnerror.c).  Three of its headers are made from its C,
+# as its Makefile makes them, in obj/tcsh.  The files are compiled in
+# the order of the Makefile's OBJS and linked in the order it links
+# them, which was that of the PDP-11's overlays.
 TCSH=	sh.c sh.dir.c sh.dol.c sh.err.c sh.exec.c sh.char.c sh.exp.c \
 	sh.func.c sh.glob.c sh.hist.c sh.init.c sh.lex.c sh.misc.c \
 	sh.parse.c sh.print.c sh.proc.c sh.sem.c sh.set.c sh.time.c glob.c \
@@ -124,12 +127,22 @@ TCSH=	sh.c sh.dir.c sh.dol.c sh.err.c sh.exec.c sh.char.c sh.exp.c \
 	tc.bind.c tc.const.c tc.disc.c tc.func.c tc.os.c tc.printf.c \
 	tc.prompt.c tc.sched.c tc.str.c tc.vers.c tc.who.c alloc11.c \
 	jpnerror.c
+TCLINK=	tc.alloc.o alloc11.o jpnerror.o strings.o ed.defns.o ed.init.o \
+	ed.inputl.o ed.xmap.o glob.o sh.char.o sh.exp.o sh.hist.o sh.init.o \
+	sh.print.o sh.time.o tc.const.o tc.disc.o tc.os.o tc.printf.o \
+	tc.sched.o tc.str.o tc.who.o tc.vers.o tw.help.o tw.init.o \
+	tw.spell.o ed.chared.o ed.refresh.o sh.err.o sh.dol.o ed.screen.o \
+	sh.dir.o sh.exec.o sh.parse.o sh.func.o sh.misc.o tw.parse.o \
+	sh.lex.o sh.o sh.proc.o sh.sem.o sh.set.o tc.prompt.o sh.glob.o \
+	tc.bind.o tc.func.o
 TCO=	$(TOP)/obj/tcsh
 TCHDRS=	$(addprefix $(TCO)/,sh.err.h ed.defns.h tc.const.h)
-tcsh_SRCS=	$(addprefix $(TCO)/,$(TCSH))
-tcsh_FLAGS=	-I$(TCO) -I$(SRC)/bin/tcsh
+tcsh_SRCS=	$(addprefix bin/tcsh/,$(TCSH))
+tcsh_FLAGS=	-I$(TCO)
 tcsh_LIBS=	-ltermcap
 tcsh_MODEL=	m
+tcsh_XSTR=	yes
+tcsh_XSTRFLAGS=	-mkstr $(H)/mkprstr tcsh6.00strgs -link "$(TCLINK)"
 
 # The network's.
 ifconfig_SRCS=	sbin/ifconfig/ifconfig.c
@@ -631,9 +644,10 @@ teachgammon_FLAGS= -DV7
 teachgammon_LIBS= -ltermcap
 battlestar_SRCS= $(addprefix $(GS)/battlestar/,battlestar.c com1.c com2.c \
 		com3.c com4.c com5.c com6.c com7.c init.c cypher.c getcom.c \
-		parse.c room.c save.c fly.c misc.c dayobjs.c nightobjs.c \
-		words.c) $(addprefix $(GO)/battlestar/xx,dayfile.c \
-		nightfile.c globals.c)
+		parse.c room.c save.c fly.c misc.c) \
+		$(addprefix $(GO)/battlestar/xx,globals.c dayfile.c \
+		nightfile.c) $(addprefix $(GS)/battlestar/,dayobjs.c \
+		nightobjs.c words.c)
 battlestar_FLAGS= -I$(SRC)/games/battlestar
 battlestar_LIBS= $(CURSES)
 boggle_SRCS=	$(GS)/boggle/boggle.c
@@ -878,8 +892,6 @@ table:
 	    $(SRC)/,,$($(l)_LIBFLAGS)) | $($(l)_LIB)))
 	@:$(foreach y,$(YACCED),$(info YACC $(subst $(colon), ,$(y))))
 	@:$(foreach l,$(LEXED),$(info LEX $(subst $(colon), ,$(l))))
-	@:$(info MKSTR tcsh/tcsh6.00strgs | $(tcsh_MKSTR) | $(addprefix \
-	    bin/tcsh/,$(TCSH)) | $(tcsh_MKSTRDEPS))
 	@:$(info FILTERED games/nhack | hcrypt games/hack/crypt.c -Di286 | -mm \
 	    -Igames/hack | $(addprefix games/hack/,$(HACK)))
 	@:$(info SYSGEN $(SYSGEN))
@@ -941,6 +953,11 @@ $(H)/umkstr: $(SRC)/ucb/mkstr/mkstr.c | $(H)
 	@$(HOSTCC) $(HOSTCFLAGS) -Wno-error=implicit-function-declaration \
 	    -Wno-error=implicit-int -o $@ $<
 $(O)/ex: $(H)/umkstr
+$(H)/mkprstr: $(SRC)/bin/tcsh/mkprstr.c | $(H)
+	@echo hostcc tcsh/mkprstr
+	@$(HOSTCC) $(HOSTCFLAGS) -Wno-error=implicit-function-declaration \
+	    -Wno-error=implicit-int -o $@ $<
+$(O)/tcsh: $(H)/mkprstr $(TCHDRS)
 $(XO)/ex/ex_extern.o: $(O)/ex ;
 $(H)/xstr: $(SRC)/ucb/xstr.c | $(H)
 	@echo hostcc xstr
@@ -1280,30 +1297,14 @@ GAMEDATA=	$(GO)/battlestar/battle_strings $(GO)/fortunes.dat \
 		$(addprefix $(GO)/warp/smap.,0 1 2 3 4 5 6 7)
 
 # ex's sources with its messages taken out, and the file they are in.
-# mkstr is this directory's, compiled for the machine the system is
-# built on; the system compiles it for itself when it makes these
-# (tools/srcmk.py), and is told the same of each: what mkstr is given
-# besides the files, and what else must be made first, named from obj.
-$(H)/mkstr: $(SRC)/i286/mkstr.c | $(H)
-	@echo hostcc mkstr
-	@$(HOSTCC) $(HOSTCFLAGS) -o $@ $<
-tcsh_MKSTR=	-e xprintf=mkprintf -n 5
-tcsh_MKSTRDEPS=	tcsh/sh.err.h tcsh/ed.defns.h tcsh/tc.const.h
-
-# tcsh's, likewise, and its headers: sh.err.h has the numbers of its
-# errors, from sh.err.c, which has two sets of the flags that go with
-# them, the PDP-11's 16-bit ones and others; ed.defns.h the numbers of
-# the editor's functions; tc.const.h a declaration of each of its
-# constant strings.
+# tcsh's headers: sh.err.h has the numbers of its errors, from
+# sh.err.c, which has the flags that go with them for each machine, the
+# 286's first; ed.defns.h the numbers of the editor's functions;
+# tc.const.h a declaration of each of its constant strings.
 T=	$(SRC)/bin/tcsh
-$(TCO)/tcsh6.00strgs: $(addprefix $(T)/,$(TCSH)) $(wildcard $(T)/*.h) \
-		$(H)/mkstr | $(TCO)
-	$(H)/mkstr $(tcsh_MKSTR) $@ $(TCO) \
-	    $(addprefix $(T)/,$(TCSH))
-$(tcsh_SRCS): $(TCO)/tcsh6.00strgs $(TCHDRS) ;
 $(TCO)/sh.err.h: $(T)/sh.err.c | $(TCO)
 	{ echo '#ifndef _h_sh_err'; echo '#define _h_sh_err'; \
-	  sed '/^#if.*pdp11/,/^#else/d' $< | grep '^#define.*ERR_'; \
+	  sed '/^#else/,/^#endif.*i286/d' $< | grep '^#define.*ERR_'; \
 	  echo '#endif'; } > $@
 $(TCO)/ed.defns.h: $(T)/ed.defns.c | $(TCO)
 	{ echo '#ifndef _h_ed_defns'; echo '#define _h_ed_defns'; \
@@ -1313,11 +1314,11 @@ $(TCO)/tc.const.h: $(T)/tc.const.c | $(TCO)
 	    sed 's/Char \([a-zA-Z0-9_]*\).*/extern Char \1[];/' | sort > $@
 
 # The three headers for the system's own make (SYSRULES, above).
-SYSGEN+= $(tcsh_MKSTRDEPS)
+SYSGEN+= tcsh/sh.err.h tcsh/ed.defns.h tcsh/tc.const.h
 define tcsh_SYSRULES
 $S/i286/tcsh/sh.err.h: $S/bin/tcsh/sh.err.c
 	(echo '#ifndef _h_sh_err'; echo '#define _h_sh_err'; \
-	 sed '/^#if.*pdp11/,/^#else/d' $S/bin/tcsh/sh.err.c | grep '^#define.*ERR_'; \
+	 sed '/^#else/,/^#endif.*i286/d' $S/bin/tcsh/sh.err.c | grep '^#define.*ERR_'; \
 	 echo '#endif') > tcsh/sh.err.h
 
 $S/i286/tcsh/ed.defns.h: $S/bin/tcsh/ed.defns.c

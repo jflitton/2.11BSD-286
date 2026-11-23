@@ -192,6 +192,13 @@ realloc(p, nbytes)
 	register unsigned nw;
 	unsigned onw;
 
+	/*
+	 * Nothing to grow is a malloc, as fgetln has it for a stream's
+	 * first long line.  The word before address 0 is the top of the
+	 * PDP-11's stack, and outside a 286 program's data.
+	 */
+	if (p == NULL)
+		return(malloc(nbytes));
 	if (testbusy(p[-1].ptr))
 		free((char *)p);
 	onw = p[-1].ptr - p;

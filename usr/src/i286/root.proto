@@ -91,7 +91,7 @@ f /usr/share/misc/sendmail.hf 444 ../usr.sbin/sendmail/lib/sendmail.hf
 f /usr/share/misc/Mail.help 444 ../share/misc/Mail.help
 f /usr/share/misc/Mail.tildehelp 444 ../share/misc/Mail.tildehelp
 f /var/log/sendmail.st 666 ../../../obj/root/empty
-f /etc/tcsh6.00strgs 444 ../../../obj/tcsh/tcsh6.00strgs
+f /etc/tcsh6.00strgs 444 ../../../obj/xstr/tcsh/tcsh6.00strgs
 f /usr/share/misc/termcap 444 ../../../obj/root/termcap
 l /etc/termcap ../usr/share/misc/termcap
 f /var/run/utmp 644 ../../../obj/root/empty

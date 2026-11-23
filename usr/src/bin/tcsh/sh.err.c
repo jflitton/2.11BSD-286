@@ -49,7 +49,13 @@ static char sccsid[] = "@(#)sh.err.c      3.1 (2.11BSD) 2026/7/26";
 
 char   *seterr = NULL;	/* Holds last error if there was one */
 
-#if !defined(pdp11) && !defined(i286)
+#ifdef i286
+#define ERR_FLAGS	070000
+#define ERR_NAME	010000
+#define ERR_SILENT	020000
+#define ERR_OLD		040000
+#else
+#ifndef pdp11
 #define ERR_FLAGS	0xf0000000
 #define ERR_NAME	0x10000000
 #define ERR_SILENT	0x20000000
@@ -60,6 +66,7 @@ char   *seterr = NULL;	/* Holds last error if there was one */
 #define ERR_SILENT	020000
 #define ERR_OLD		040000
 #endif	/* pdp11 */
+#endif	/* i286 */
 
 static char *errorlist[] = 
 {
