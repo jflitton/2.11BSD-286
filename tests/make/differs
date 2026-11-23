@@ -4,3 +4,9 @@
 /usr/share/misc/sendmail.sr	# the messages mkstr takes out of it
 /usr/games/backgammon		# its Makefile puts the day in message.c
 /usr/games/phantasia		# its Makefile compiles fight.c without -O
+/usr/games/hack			# its Makefile has xstr after crypt, and links it -x
+/usr/games/adventure		# its Makefile runs a.out, which writes the game:
+/usr/games/lib/adventure/a.out	# the root has a.out, to write it when first run
+/usr/games/lib/fortunes.dat	# strfile -r orders it by the time
+/usr/games/lib/phantasia/void	# setfiles places it by the time
+/usr/games/lib/phantasia/phant.help	# its Makefile has tbl and nroff -Ttn300

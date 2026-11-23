@@ -17,9 +17,11 @@ import sys
 TOP = os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))))
 
-# Programs whose first source is one the Makefile of usr/src/i286 makes,
-# in obj, and where their own sources are.
+# Programs whose first source is not in their own directory, and that
+# directory: the source is one the Makefile of usr/src/i286 makes, in
+# obj, or, ranlib's, another program's.
 GENERATED = {
+    "ranlib": "usr.bin/ranlib",
     "awk": "bin/awk", "tcsh": "bin/tcsh", "expr": "bin", "hack": "games/hack",
     "egrep": "usr.bin", "bc": "usr.bin", "eqn": "usr.bin/eqn",
     "neqn": "usr.bin/neqn", "style1": "usr.bin/diction",

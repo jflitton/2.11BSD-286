@@ -1,7 +1,9 @@
 #	@(#)Makefile	4.3.2 (2.11BSD)	2025/11/27
 
 CFLAGS= -O
-LDFLAGS= -i
+# The 286: half the stack a program is linked with, for the room in
+# its data, which the table of spell.h nearly fills.
+LDFLAGS= -i -stack 4096
 
 all:	spell hlist hlista hlistb hstop spellin spellout
 

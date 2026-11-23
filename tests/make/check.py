@@ -8,6 +8,8 @@ OUT/dest is where the Makefiles of the DIRs installed, OUT/dest.meta
 the mode each file was to have (install.py), and OUT/root.list the
 root file system's own list (tools/fsck.py -l).  A file that was
 installed must be one the root has, with those contents and that mode.
+A page of the manual says at its foot the day it was formatted: one
+that differs from the root's is compared again without that.
 Of the root's programs whose sources are in a DIR (programs.py), each
 must have been installed; those of `left`, beside this, are made with a
 program their Makefile makes and runs, and are the 286's to make.
@@ -16,6 +18,8 @@ of them.
 """
 import hashlib
 import os
+import re
+import subprocess
 import sys
 
 here = os.path.dirname(os.path.abspath(__file__))
@@ -39,6 +43,21 @@ where = programs.installed(source)
 left = programs.Names(here + "/left")
 differs = programs.Names(here + "/differs")
 
+
+
+def page(p, t):
+    """Whether P is a page of the manual and T, as it was installed,
+    is the root's but for the day it was formatted."""
+    if not p.startswith(("/usr/man/", "/usr/new/man/")):
+        return False
+    day = re.compile(rb"Printed [0-9]+/[0-9]+/[0-9]+")
+    root = subprocess.run(
+        [sys.executable, "-I", top + "/tools/fsck.py", "-x", p,
+         top + "/obj/root/root.fs"], capture_output=True, check=True).stdout
+    return day.sub(b"Printed", root) == day.sub(b"Printed",
+                                                open(t, "rb").read())
+
+
 bad = []
 same = 0
 dest = out + "/dest"
@@ -53,7 +72,9 @@ for dp, dn, fn in os.walk(dest):
                 bad.append("NOT THE ROOT'S %s" % p)
         elif hashlib.sha256(open(t, "rb").read()).hexdigest()[:16] != \
                 want[p][1]:
-            if p not in left and p not in differs:
+            if page(p, t):
+                same += 1
+            elif p not in left and p not in differs:
                 bad.append("DIFFERS %s" % p)
         elif p in mode and mode[p] != want[p][0]:
             bad.append("MODE %s: %s, and the root's is %s" %

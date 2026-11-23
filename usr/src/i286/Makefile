@@ -673,6 +673,7 @@ mille_LIBS=	$(CURSES)
 monop_SRCS=	$(addprefix $(GS)/monop/,monop.c cards.c execute.c getinp.c \
 		houses.c jail.c misc.c morg.c print.c prop.c rent.c roll.c \
 		spec.c strcmp.c trade.c)
+monop_XSTR=	yes
 # phantasia's settings are its Makefile's, but for -Dpdp11, which is the
 # PDP-11's own.
 phantasia_SRCS=	$(addprefix $(GS)/phantasia/,main.c fight.c func0.c func1.c \

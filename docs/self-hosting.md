@@ -301,18 +301,15 @@ an hour each or more.
 `tests/self/run.sh` boots the system with that file system, has it make
 everything above, and compares each object, each program, the kernel
 and `/boot`, and each file that is not a program, with what the same
-sources make where the system is built: 2948 files, the stubs'
+sources make where the system is built: 3738 files, the stubs'
 assembly among them. A library is
 compared by its members, and by which they are and in what order, since
 the archive has the day it was made in it; a page of the manual has at
 its foot the day it was formatted, and two that differ are compared
-again without those lines. The libraries are installed before the
-programs are linked, so the programs are linked with what the system
-made; the programs are then installed, and each of the 317 as
-installed, stripped, must be what the root file system has from the
-other build. What is not a program is made by the programs the system
-has just made and installed, and is installed too: each of 1103 files
-and other names of one must be what was made. Last the
+again without those lines. The libraries are installed. What is not
+a program is made by the programs the system came with, and is
+installed too: each of 1106 files and other names of one must be what
+was made. Last the
 kernel is made to say that it was made there, installed with `/boot`,
 and the machine started again: it must come up on that kernel, with
 `init`, `getty`, `login` and the shell that it made.
@@ -328,9 +325,10 @@ of `bin`, `sbin`, `libexec`, `ucb`, `usr.bin`, `usr.sbin`, `games` and
 bin/sed usr.bin/yacc`). Each file that was installed is to be what the
 root had there before, which is what the other build makes, with the
 mode it had, and each of the root's programs whose sources are in those
-directories is to have been installed. The manual's pages are not
-compared, having the day they were formatted in them, nor is a file's
-owner and group.
+directories is to have been installed: 418 files in all of them. The
+manual's pages are not compared, having the day they were formatted in
+them, nor is a file's owner and group; nor the files of
+`tests/make/differs`, below.
 
 All of it is half a day of the 286's time, which is for a release and
 not for a change. A change is checked two ways, and
@@ -353,10 +351,15 @@ not for a change. A change is checked two ways, and
   `tests/make/left` lists what is made with one, `awk`, `tcsh`, `hack`,
   `battlestar` and nine more programs, and the tables and games' files
   such programs write. `tests/make/differs` lists what the two builds
-  do not yet make the same way: `sendmail`, whose Makefile takes its
-  messages out with a script of its own; `phantasia`, one file of which
-  its Makefile compiles without `-O`; and `backgammon`, whose Makefile
-  writes the day into it.
+  do not make the same way, which neither test compares: `sendmail`,
+  whose Makefile takes its messages out with a script of its own;
+  `hack`, whose Makefile has `xstr` after its `crypt`; `phantasia`, one
+  file of which its Makefile compiles without `-O`, and its help, which
+  the Makefile formats with `tbl`; `backgammon`, whose Makefile writes
+  the day into it; `adventure`, which its Makefile runs once to write
+  the game, where the root has the program that writes it when it is
+  first played; and two files that are made with the time, `fortune`'s
+  table and `phantasia`'s void.
 - One machine is then booted to make what the changed files are part
   of and nothing else (`tests/self/select.py`): the programs a source
   is in, the libraries, the kernel, the C library or the boot programs.
@@ -377,7 +380,8 @@ It says nothing of whether a 286 runs the system, which is for
 
 `sh tests/self/split.sh` is all of it in two machines or three at
 once, each with a fixed share: three is the most, since each keeps a
-processor of the host busy for as long as it runs.
+processor of the host busy for as long as it runs. With the faster
+processor that is a quarter of an hour.
 
 `tests/disk/run.sh` has the system make a disk that way, of a second
 drive of 133 MB with nothing on it, not a label. `tools/fsck.py` must

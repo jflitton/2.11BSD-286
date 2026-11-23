@@ -55,7 +55,8 @@ for p in newer:
         same += 1
         owners += after[p][1] != before[p][1]
 for p, prog in sorted(where.items()):
-    if programs.within(source[prog], dirs) and p not in newer:
+    if programs.within(source[prog], dirs) and p not in newer and \
+            p not in differs:
         bad.append("NOT INSTALLED %s" % p)
 for line in sorted(bad):
     print(line, file=sys.stderr)

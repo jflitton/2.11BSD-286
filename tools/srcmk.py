@@ -624,7 +624,11 @@ def programs():
     for target, deps, cmd in single:
         rules.append(fold(target + ":", deps).replace(":=\t", ":\t", 1) +
                      "\t" + cmd + "\n")
-    wanted = mkman.pages(SRC, os.path.join(SRC, "i286", "man.list"))
+    # A page of a directory beside /usr/man, /usr/new/man, is its
+    # program's Makefile's to make, upstream's, and is not in whatis.
+    wanted = [w for w in mkman.pages(SRC, os.path.join(SRC, "i286",
+                                                       "man.list"))
+              if not w[0].startswith("../")]
     names = mkman.others(wanted)
     files = set()       # sources that are given without their directory
     pages = []
@@ -637,9 +641,11 @@ def programs():
                 files.add(os.path.join(os.path.dirname(rel),
                                        m.group(1).decode()))
         pages.append("man/%s/%s" % (d, name))
-        rules.append("%s: $S/%s\n\tcd $S/%s && nroff -man -h %s > "
-                     "$S/i286/%s\n" % (pages[-1], rel, os.path.dirname(rel),
-                                       os.path.basename(rel), pages[-1]))
+        rules.append("%s: $S/%s\n\tcd $S/%s && nroff %s %s > "
+                     "$S/i286/%s\n" % (
+                         pages[-1], rel, os.path.dirname(rel),
+                         " ".join(["-man"] + mkman.tabs(path)),
+                         os.path.basename(rel), pages[-1]))
     mandirs = sorted(set(d for d, _, _ in wanted))
     mantext, mannames = groups("MAN", pages)
     targets = "".join("data-man: $(%s)\n" % n for n in mannames) + \
@@ -827,6 +833,37 @@ HEADERS = ["sys/pdp", "sys/pdpif", "sys/pdpuba"]
 LINKS = ["sys/machine"]
 
 
+# The directories of programs, which are made from the Makefiles there,
+# upstream's.
+PROGDIRS = ["bin", "sbin", "libexec", "ucb", "usr.bin", "usr.sbin", "games",
+            "new"]
+
+
+def walked(d):
+    """The directories make is in when it is run in D, D among them:
+    those D's Makefile names in SUBDIR or goes into to run make, and
+    so on from theirs; and what is under any of them with no Makefile
+    of its own, which is its files."""
+    out = [d]
+    text = open(os.path.join(SRC, d, "Makefile"),
+                encoding="latin-1").read().replace("\\\n", " ")
+    names = set()
+    for m in re.finditer(r"^SUBDIRS?\s*=(.*)$", text, re.M):
+        names.update(m.group(1).split())
+    names.update(re.findall(r"^\tcd ([\w.+-]+)\s*[;&].*\bmake\b", text, re.M))
+    for name in sorted(os.listdir(os.path.join(SRC, d))):
+        sub = d + "/" + name
+        if not os.path.isdir(os.path.join(SRC, sub)):
+            continue
+        if os.path.isfile(os.path.join(SRC, sub, "Makefile")):
+            if name in names:
+                out += walked(sub)
+        elif not os.path.isfile(os.path.join(SRC, sub, "makefile")):
+            out += [os.path.relpath(dp, SRC)
+                    for dp, _, _ in os.walk(os.path.join(SRC, sub))]
+    return out
+
+
 def main():
     if len(sys.argv) != 2:
         sys.exit(__doc__)
@@ -843,6 +880,8 @@ def main():
         data, datainstalled = programs()
     made["i286/Makefile"] = text
     dirs |= used
+    for d in PROGDIRS:
+        dirs.update(walked(d))
     empty += ["i286/" + d for d in gendirs + datadirs]
     empty += ["i286/lib/%s/%s" % (m, l) for m in "sml" for l in libs]
     made[MD + "/Makefile"] = HEAD % (
@@ -876,9 +915,12 @@ all install clean:
             # A name for another file is given what that file has in
             # it, which may be where the system has nothing.  What the
             # cross compiler says of a file is left beside it.
+            # One that is run, a script a Makefile has, is to be run
+            # there.
             if rel not in made and os.path.isfile(p) and \
                     not name.endswith(".err"):
-                proto.append("f /%s 644 %s" % (rel, p))
+                proto.append("f /%s %s %s" % (
+                    rel, "755" if os.access(p, os.X_OK) else "644", p))
     for rel in sorted(files):
         if os.path.dirname(rel) not in dirs:
             directory(os.path.dirname(rel))
