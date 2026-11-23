@@ -94,7 +94,9 @@ and into `/etc/tcsh6.00strgs` by `tcsh`'s own `mkprstr`; the page of
 the manual with the program. The other build follows it: the files in
 the order the Makefile links them, `xstr`, `mkstr` and `mkprstr`
 compiled for the machine it runs on (`tools/xstrcc`), and in the root
-the place, mode and other names upstream installs with. What was
+the place, mode, owner, group and other names upstream installs with:
+a program is root's and of the group `staff` unless its Makefile says
+another. What was
 changed in them for the 286:
 
 - A program that is more than the small model has the model in its
@@ -324,11 +326,12 @@ of `bin`, `sbin`, `libexec`, `ucb`, `usr.bin`, `usr.sbin`, `games` and
 `new`, or in the directories it is given (`sh tests/self/progs.sh
 bin/sed usr.bin/yacc`). Each file that was installed is to be what the
 root had there before, which is what the other build makes, with the
-mode it had, and each of the root's programs whose sources are in those
-directories is to have been installed: 418 files in all of them. The
-manual's pages are not compared, having the day they were formatted in
-them, nor is a file's owner and group; nor the files of
-`tests/make/differs`, below.
+mode, the owner and the group it had, and each of the root's programs
+whose sources are in those directories is to have been installed: 419
+files in all of them. Of a page of the manual, 110 of them, the mode
+and the owner are compared and no more, since it has the day it was
+formatted in it; the files of `tests/make/differs`, below, are not
+compared.
 
 All of it is half a day of the 286's time, which is for a release and
 not for a change. A change is checked two ways, and
@@ -340,8 +343,8 @@ not for a change. A change is checked two ways, and
   upstream's, `make`, `make install` and `make clean` in each
   directory, with that machine's `make` given the rules the system's
   has and none of its own, and compares what was installed with the
-  root file system: 491 files in four minutes, each with the contents
-  and the mode the root has. `HOST=1 sh tests/self/run.sh` runs the
+  root file system: 491 files in four minutes, each with the contents,
+  the mode and the owner and group the root has. `HOST=1 sh tests/self/run.sh` runs the
   ones `srcmk.py` writes, for `/boot`, the kernel and the libraries but
   the C library (`tests/self/host.sh`). That says the Makefiles name
   the right files, flags and order, and install each where the system

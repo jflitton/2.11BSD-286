@@ -16,7 +16,8 @@
 #	size		nothing
 #	ln, rm, mv, cp, mkdir, chmod	this machine's, on OUT/dest where
 #			the name is one in the system's root
-#	chown, chgrp	nothing: only the system gives a file away
+#	chown, chgrp	chown.py, which says in OUT/dest.meta whose a file
+#			was to be: only the system gives one away
 top=$1 out=$2
 b=$out/bin
 h=$out/hostbin
@@ -53,9 +54,10 @@ for t in as ld cpp; do run $t "$top/obj/host/ccom/$t"; done
 for t in yacc lex; do run $t "$top/obj/host/$t"; done
 for t in xstr mkstr tsort; do run $t "$h/$t"; done
 run manroff nroff -man -h
-for t in size chown chgrp ranlib; do
+for t in size ranlib; do
     printf '#!/bin/sh\nexit 0\n' > "$b/$t"
 done
+for t in chown chgrp; do run $t python3 -I "$top/tests/make/chown.py" "$out" $t; done
 cat > "$b/ar" <<END
 #!/bin/sh
 key=\$1 lib=\$2

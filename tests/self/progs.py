@@ -7,10 +7,11 @@ usage: progs.py TOP OUT NAME DIR...
 In OUT: before.list and after.list, the root file system before the
 system made anything and after it installed what it made
 (tools/fsck.py -l), and newer.list, the files it installed.  Each of
-those is to have the contents and the mode it had before, but for the
-manual's pages and the files of tests/make/differs; and each of the
-root's programs whose sources are in a DIR (tests/make/programs.py) is
-to be among them.
+those is to have the contents, the mode and the owner and group it had
+before, but for the files of tests/make/differs, and a page of the
+manual, whose contents have the day in them; and each of the root's
+programs whose sources are in a DIR (tests/make/programs.py) is to be
+among them.
 """
 import os
 import sys
@@ -38,22 +39,26 @@ source = programs.sources()
 where = programs.installed(source)
 
 bad = []
-same = pages = owners = 0
+same = pages = 0
 for p in newer:
-    if p.startswith("/usr/man/") or p.startswith("/usr/new/man/"):
-        pages += 1
-    elif p in differs:
+    page = p.startswith(("/usr/man/", "/usr/new/man/")) and \
+        p.endswith(".0")
+    if p in differs:
         pass
     elif p not in before:
         bad.append("NOT THE ROOT'S %s" % p)
-    elif after[p][2] != before[p][2]:
+    elif after[p][2] != before[p][2] and not page:
         bad.append("DIFFERS %s" % p)
     elif after[p][0] != before[p][0]:
         bad.append("MODE %s: %s, and the root's was %s" %
                    (p, after[p][0], before[p][0]))
+    elif after[p][1] != before[p][1]:
+        bad.append("OWNER %s: %s, and the root's was %s" %
+                   (p, after[p][1], before[p][1]))
+    elif page:
+        pages += 1
     else:
         same += 1
-        owners += after[p][1] != before[p][1]
 for p, prog in sorted(where.items()):
     if programs.within(source[prog], dirs) and p not in newer and \
             p not in differs:
@@ -64,6 +69,6 @@ if bad:
     sys.exit("%s: %d files are not what the root had (%s/self.img, "
              "/usr/src/log.*)" % (name, len(bad), out))
 print("%s: the system made and installed %d files from the Makefiles of "
-      "%s, each what its root had; %d pages of the manual besides, not "
-      "compared; %d have another owner or group than the root's" %
-      (name, same, " ".join(dirs), pages, owners))
+      "%s, each what its root had and whose; %d pages of the manual "
+      "besides, with the mode and owner the root's had" %
+      (name, same, " ".join(dirs), pages))

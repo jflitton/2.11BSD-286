@@ -119,3 +119,8 @@ cat8	usr.sbin/update/update.8 usr.sbin/vipw/vipw.8
 cat8	share/zoneinfo/zic.8 share/zoneinfo/zdump.8 man/man8/dump.8
 cat8	man/man8/dumpdir.8 man/man8/rdump.8 sbin/restor/restor.8
 cat8	usr.sbin/rmt/rmt.8
+
+# A page is root's and of the group staff, as upstream's Makefiles
+# install them, but these, which theirs give to bin: own, the numbers
+# of the owner and the group, and the pages as /usr/man has them.
+own 3.20	cat1/crontab.0 cat5/crontab.0 cat8/cron.0 cat6/warp.0

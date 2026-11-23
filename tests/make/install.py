@@ -8,8 +8,9 @@ The root is OUT/dest: to, which is a name in the system's root, is the
 file or the directory there, a directory if the root file system has
 one of the name (OUT/dirs).  What install would have made the mode,
 owner and group is a line of OUT/dest.meta, since only the system can
-give a file to another user: to mode owner group, with install's own
-where it is told none.  -s is the system's strip (tools/strip.py).
+give a file to another user: to mode owner group, with - where it is
+told none, when the file is whoever runs install's and of its
+directory's group.  -s is the system's strip (tools/strip.py).
 """
 import os
 import shutil
@@ -18,7 +19,7 @@ import sys
 
 out = sys.argv[1]
 a = sys.argv[2:]
-mode, owner, group, strip = "755", "root", "staff", False
+mode, owner, group, strip = "755", "-", "-", False
 files = []
 i = 0
 while i < len(a):

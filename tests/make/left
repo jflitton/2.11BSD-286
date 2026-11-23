@@ -21,6 +21,7 @@
 /usr/games/lib/bogdict		# boggle's comp
 /usr/games/lib/crib.instr	# nroff, which stops on it here
 /usr/games/lib/phantasia/phant.help	# tbl
+/usr/games/lib/phantasia/monsters	# given to daemon after setfiles is run
 /usr/games/lib/warp/smap.0	# warp's sm
 /usr/games/lib/warp/smap.1	# warp's sm
 /usr/games/lib/warp/smap.2	# warp's sm

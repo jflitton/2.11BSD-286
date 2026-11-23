@@ -14,8 +14,8 @@ the copies of them there say tmac/ where the system's say
 the system's nroff makes the same pages.
 
 LIST says which pages go on the system: a line names a directory of
-/usr/man (or one beside it, ../new/man/cat1, whose pages are not in
-whatis) and the sources, relative to SRC, usr/src, of the pages that go
+/usr/man (or one beside it, ../new/man/cat1, whose pages are in a
+whatis of its own, /usr/new/man/whatis) and the sources, relative to SRC, usr/src, of the pages that go
 in it; a Makefile there stands for the pages it formats, those its SRCS,
 SRCS1 and so on list, as usr/src/man/man2/Makefile does all of section
 2.  A page's name is its source's less the source's suffix, `.1`, `.3f`,
@@ -37,6 +37,10 @@ usr/src/man/Makefile makes it: makewhatis.sed is run on every page and
 what it writes is sorted, without repeats, by sort -u.  sed is the
 machine's own, run in the C locale; the lines are sorted by their bytes,
 as the system's sort sorts them.
+
+A page is root's and of the group staff, as upstream's Makefiles install
+them; a line `own UID.GID DIRECTORY/PAGE...` of LIST names those that
+are another's.
 
 In OUT: the directories with the pages, whatis, and man.proto, which
 lists them for tools/mkfs.py as root.proto includes it.
@@ -63,7 +67,7 @@ def pages(src, listing):
     named = set()
     for n, line in enumerate(open(listing), 1):
         w = line.split("#")[0].split()
-        if not w:
+        if not w or w[0] == "own":
             continue
         if len(w) < 2:
             fail("%s:%d: a directory and its pages" % (listing, n))
@@ -85,6 +89,23 @@ def pages(src, listing):
                 out.append((w[0], page, path, stood))
     return [(d, page, path) for d, page, path, stood in out
             if not (stood and (d, page) in named)]
+
+
+# Whose a page is, and its group's number: root's and staff's, as
+# upstream's Makefiles install nearly all of them.
+OWNER = "0.10"
+
+
+def owners(listing):
+    """The pages LISTING says are another's: (directory, page name) and
+    the owner and group, from its lines `own UID.GID DIRECTORY/PAGE...`."""
+    out = {}
+    for line in open(listing):
+        w = line.split("#")[0].split()
+        if w and w[0] == "own":
+            for page in w[2:]:
+                out[tuple(page.split("/"))] = w[1]
+    return out
 
 
 def sources(makefile):
@@ -221,31 +242,45 @@ def main():
         os.makedirs(os.path.join(out, d), exist_ok=True)
         open(os.path.join(out, d, name), "wb").write(r.stdout)
 
-    lines = []
-    for d, name in sorted(made):
-        if d.startswith("../"):
-            continue
-        r = subprocess.run(["sed", "-n", "-f",
-                            os.path.join(src, "man", "makewhatis.sed"),
-                            os.path.join(out, d, name)],
-                           capture_output=True, env=dict(os.environ,
-                                                         LC_ALL="C"))
-        if r.returncode:
-            fail("sed: " + r.stderr.decode("latin-1").strip())
-        lines += r.stdout.splitlines(True)
-    open(os.path.join(out, "whatis"), "wb").write(b"".join(sorted(set(lines))))
+    # whatis: /usr/man's, and one for each directory beside it, as
+    # makewhatis leaves that when the Makefile of usr/src/new runs it.
+    beside = sorted({os.path.dirname(d) for d, _ in made
+                     if d.startswith("../")})
+    for where in [""] + beside:
+        lines = []
+        for d, name in sorted(made):
+            if os.path.dirname(d) != where:
+                continue
+            r = subprocess.run(["sed", "-n", "-f",
+                                os.path.join(src, "man", "makewhatis.sed"),
+                                os.path.join(out, d, name)],
+                               capture_output=True, env=dict(os.environ,
+                                                             LC_ALL="C"))
+            if r.returncode:
+                fail("sed: " + r.stderr.decode("latin-1").strip())
+            lines += r.stdout.splitlines(True)
+        open(os.path.join(out, where, "whatis"), "wb").write(
+            b"".join(sorted(set(lines))))
 
     with open(os.path.join(out, "man.proto"), "w") as f:
         f.write("# The manual's pages, made by tools/mkman.py from %s.\n"
                 % os.path.relpath(listing, top))
         for d in sorted({d for d, _ in made} | {d for d, _ in linked}):
             f.write("d %s 755\n" % os.path.normpath("/usr/man/" + d))
+        whose = owners(listing)
         for d, name in sorted(made):
-            f.write("f %s/%s 444 %s/%s\n" %
-                    (os.path.normpath("/usr/man/" + d), name, d, name))
+            f.write("f %s/%s 444:%s %s/%s\n" %
+                    (os.path.normpath("/usr/man/" + d), name,
+                     whose.get((d, name), OWNER), d, name))
         for (d, name), (pd, page) in sorted(linked.items()):
             f.write("h /usr/man/%s/%s /usr/man/%s/%s\n" % (d, name, pd, page))
-        f.write("f /usr/man/whatis 444 whatis\n")
+        f.write("f /usr/man/whatis 444:%s whatis\n" % OWNER)
+        for where in beside:
+            at = os.path.normpath("/usr/man/" + where)
+            for n in range(1, 9):
+                if "%s/cat%d" % (where, n) not in {d for d, _ in made}:
+                    f.write("d %s/cat%d 755\n" % (at, n))
+            f.write("f %s/whatis 664 %s/whatis\n" % (at, where))
     print("mkman.py: %d pages and %d links to them" % (len(made), len(linked)))
 
 

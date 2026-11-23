@@ -25,10 +25,10 @@
 # SHARE, the directory in obj/tests has that after its name
 # (tests/self/split.sh).
 #
-# What is not compared: the manual's pages, which have the day they
-# were formatted in them; a file's owner and group, which the root file
-# system does not yet have as install gives them; and the files of
-# tests/make/differs, which the two builds do not yet make the same way.
+# A file's mode, owner and group are to be the root's too.  Of a page
+# of the manual those are all that is compared, since it has the day it
+# was formatted in it; and the files of tests/make/differs are not
+# compared, which the two builds do not make the same way.
 #
 # Run from the top of the repository after `. tools/env.sh`.
 set -e
@@ -76,7 +76,7 @@ do
 	fi
 done
 find /bin /sbin /lib /etc /usr/bin /usr/ucb /usr/sbin /usr/libexec \\
-    /usr/games /usr/new /usr/share /usr/lib /var/db \\
+    /usr/games /usr/new /usr/share /usr/lib /usr/man /var/db \\
     -newer /usr/src/made -type f -print > /newer.list
 sync
 date

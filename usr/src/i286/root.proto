@@ -46,7 +46,7 @@ d /usr/src 755
 l /sys usr/src/sys
 i ../../../obj/root/kernel.proto
 h /mdec/sduboot /mdec/wduboot
-f /etc/init 700 ../../../obj/root/bin/init
+f /etc/init 700:0.10 ../../../obj/root/bin/init
 f /etc/rc 644 etc/rc
 f /etc/rc.conf 644 etc/rc.conf
 f /etc/netstart 644 etc/netstart
@@ -91,7 +91,7 @@ f /usr/share/misc/sendmail.hf 444 ../usr.sbin/sendmail/lib/sendmail.hf
 f /usr/share/misc/Mail.help 444 ../share/misc/Mail.help
 f /usr/share/misc/Mail.tildehelp 444 ../share/misc/Mail.tildehelp
 f /var/log/sendmail.st 666 ../../../obj/root/empty
-f /etc/tcsh6.00strgs 444 ../../../obj/xstr/tcsh/tcsh6.00strgs
+f /etc/tcsh6.00strgs 444:0.10 ../../../obj/xstr/tcsh/tcsh6.00strgs
 f /usr/share/misc/termcap 444 ../../../obj/root/termcap
 l /etc/termcap ../usr/share/misc/termcap
 f /var/run/utmp 644 ../../../obj/root/empty
@@ -105,53 +105,53 @@ f /usr/adm/daemonlog 644 ../../../obj/root/empty
 f /usr/adm/debuglog 644 ../../../obj/root/empty
 f /usr/spool/mqueue/syslog 644 ../../../obj/root/empty
 f /usr/spool/at/lasttimedone 644:1.1 ../../../obj/root/zero
-f /usr/libexec/getty 555 ../../../obj/root/bin/getty
+f /usr/libexec/getty 555:0.10 ../../../obj/root/bin/getty
 f /bin/sh 755 ../../../obj/root/bin/sh
-f /bin/csh 755 ../../../obj/root/bin/csh
-f /bin/tcsh 755 ../../../obj/root/bin/tcsh
-f /bin/login 4755 ../../../obj/root/bin/login
-f /bin/ls 755 ../../../obj/root/bin/ls
+f /bin/csh 755:3.20 ../../../obj/root/bin/csh
+f /bin/tcsh 755:0.10 ../../../obj/root/bin/tcsh
+f /bin/login 4755:0.10 ../../../obj/root/bin/login
+f /bin/ls 755:0.10 ../../../obj/root/bin/ls
 f /bin/ps 2755:2 ../../../obj/root/bin/ps
-f /bin/sysctl 755 ../../../obj/root/bin/sysctl
-f /bin/mkdir 755 ../../../obj/root/bin/mkdir
-f /bin/stty 755 ../../../obj/root/bin/stty
-f /bin/test 755 ../../../obj/root/bin/test
-f /bin/hostname 755 ../../../obj/root/bin/hostname
-f /bin/cat 755 ../../../obj/root/bin/cat
-f /bin/chgrp 755 ../../../obj/root/bin/chgrp
-f /bin/chmod 755 ../../../obj/root/bin/chmod
-f /bin/cmp 755 ../../../obj/root/bin/cmp
-f /bin/cp 755 ../../../obj/root/bin/cp
-f /bin/date 755 ../../../obj/root/bin/date
-f /bin/dd 755 ../../../obj/root/bin/dd
+f /bin/sysctl 755:0.10 ../../../obj/root/bin/sysctl
+f /bin/mkdir 755:0.10 ../../../obj/root/bin/mkdir
+f /bin/stty 755:0.10 ../../../obj/root/bin/stty
+f /bin/test 755:0.10 ../../../obj/root/bin/test
+f /bin/hostname 755:0.10 ../../../obj/root/bin/hostname
+f /bin/cat 755:0.10 ../../../obj/root/bin/cat
+f /bin/chgrp 755:0.10 ../../../obj/root/bin/chgrp
+f /bin/chmod 755:0.10 ../../../obj/root/bin/chmod
+f /bin/cmp 755:0.10 ../../../obj/root/bin/cmp
+f /bin/cp 755:0.10 ../../../obj/root/bin/cp
+f /bin/date 755:0.10 ../../../obj/root/bin/date
+f /bin/dd 755:0.10 ../../../obj/root/bin/dd
 f /bin/df 2755:0.5 ../../../obj/root/bin/df
-f /bin/du 755 ../../../obj/root/bin/du
-f /bin/echo 755 ../../../obj/root/bin/echo
-f /bin/ed 755 ../../../obj/root/bin/ed
-f /bin/grep 755 ../../../obj/root/bin/grep
-f /bin/hostid 755 ../../../obj/root/bin/hostid
-f /bin/kill 755 ../../../obj/root/bin/kill
-f /bin/ln 755 ../../../obj/root/bin/ln
-f /bin/mv 755 ../../../obj/root/bin/mv
-f /bin/nice 755 ../../../obj/root/bin/nice
-f /bin/od 755 ../../../obj/root/bin/od
-f /bin/pagesize 755 ../../../obj/root/bin/pagesize
-f /bin/pr 755 ../../../obj/root/bin/pr
-f /bin/pwd 755 ../../../obj/root/bin/pwd
-f /bin/rm 755 ../../../obj/root/bin/rm
-f /bin/rmdir 755 ../../../obj/root/bin/rmdir
-f /bin/sync 755 ../../../obj/root/bin/sync
-f /bin/tee 755 ../../../obj/root/bin/tee
-f /bin/time 755 ../../../obj/root/bin/time
-f /bin/who 755 ../../../obj/root/bin/who
+f /bin/du 755:0.10 ../../../obj/root/bin/du
+f /bin/echo 755:0.10 ../../../obj/root/bin/echo
+f /bin/ed 755:0.10 ../../../obj/root/bin/ed
+f /bin/grep 755:0.10 ../../../obj/root/bin/grep
+f /bin/hostid 755:0.10 ../../../obj/root/bin/hostid
+f /bin/kill 755:0.10 ../../../obj/root/bin/kill
+f /bin/ln 755:0.10 ../../../obj/root/bin/ln
+f /bin/mv 755:0.10 ../../../obj/root/bin/mv
+f /bin/nice 755:0.10 ../../../obj/root/bin/nice
+f /bin/od 755:0.10 ../../../obj/root/bin/od
+f /bin/pagesize 755:0.10 ../../../obj/root/bin/pagesize
+f /bin/pr 755:0.10 ../../../obj/root/bin/pr
+f /bin/pwd 755:0.10 ../../../obj/root/bin/pwd
+f /bin/rm 755:0.10 ../../../obj/root/bin/rm
+f /bin/rmdir 755:0.10 ../../../obj/root/bin/rmdir
+f /bin/sync 755:0.10 ../../../obj/root/bin/sync
+f /bin/tee 755:0.10 ../../../obj/root/bin/tee
+f /bin/time 755:0.10 ../../../obj/root/bin/time
+f /bin/who 755:0.10 ../../../obj/root/bin/who
 f /bin/wall 2755:0.4 ../../../obj/root/bin/wall
 f /bin/write 2755:0.4 ../../../obj/root/bin/write
-f /bin/passwd 4755 ../../../obj/root/bin/passwd
-f /bin/chpass 4755 ../../../obj/root/bin/chpass
+f /bin/passwd 4755:0.10 ../../../obj/root/bin/passwd
+f /bin/chpass 4755:0.10 ../../../obj/root/bin/chpass
 h /bin/chfn /bin/chpass
 h /bin/chsh /bin/chpass
 h /bin/[ /bin/test
-f /usr/bin/sleep 755 ../../../obj/root/bin/sleep
+f /usr/bin/sleep 755:0.10 ../../../obj/root/bin/sleep
 f /usr/ucb/ex 1755 ../../../obj/root/bin/ex
 h /usr/ucb/vi /usr/ucb/ex
 h /usr/ucb/view /usr/ucb/ex
@@ -159,28 +159,28 @@ h /usr/bin/ex /usr/ucb/ex
 f /usr/share/misc/exstrings 444 ../../../obj/xstr/ex/exstrings
 f /usr/sbin/exrecover 4755 ../../../obj/root/bin/exrecover
 f /usr/sbin/expreserve 4755 ../../../obj/root/bin/expreserve
-f /sbin/mount 755 ../../../obj/root/bin/mount
-f /sbin/umount 755 ../../../obj/root/bin/umount
-f /sbin/reboot 755 ../../../obj/root/bin/reboot
-f /sbin/mknod 755 ../../../obj/root/bin/mknod
+f /sbin/mount 755:0.10 ../../../obj/root/bin/mount
+f /sbin/umount 755:0.10 ../../../obj/root/bin/umount
+f /sbin/reboot 755:0.10 ../../../obj/root/bin/reboot
+f /sbin/mknod 755:0.10 ../../../obj/root/bin/mknod
 f /sbin/fsck 755 ../../../obj/root/bin/fsck
-f /sbin/mkfs 755 ../../../obj/root/bin/mkfs
-f /sbin/newfs 755 ../../../obj/root/bin/newfs
+f /sbin/mkfs 755:0.10 ../../../obj/root/bin/mkfs
+f /sbin/newfs 755:0.10 ../../../obj/root/bin/newfs
 f /bin/disklabel 2755:5 ../../../obj/root/bin/disklabel
-f /sbin/dcheck 755 ../../../obj/root/bin/dcheck
-f /sbin/icheck 755 ../../../obj/root/bin/icheck
-f /sbin/ncheck 755 ../../../obj/root/bin/ncheck
-f /sbin/clri 755 ../../../obj/root/bin/clri
-f /sbin/badsect 755 ../../../obj/root/bin/badsect
+f /sbin/dcheck 755:0.10 ../../../obj/root/bin/dcheck
+f /sbin/icheck 755:0.10 ../../../obj/root/bin/icheck
+f /sbin/ncheck 755:0.10 ../../../obj/root/bin/ncheck
+f /sbin/clri 755:0.10 ../../../obj/root/bin/clri
+f /sbin/badsect 755:0.10 ../../../obj/root/bin/badsect
 f /usr/sbin/quot 2755:5 ../../../obj/root/bin/quot
-f /sbin/mkpasswd 755 ../../../obj/root/bin/mkpasswd
-f /usr/sbin/update 755 ../../../obj/root/bin/update
-f /usr/sbin/vipw 755 ../../../obj/root/bin/vipw
-f /usr/sbin/chown 755 ../../../obj/root/bin/chown
+f /sbin/mkpasswd 755:0.10 ../../../obj/root/bin/mkpasswd
+f /usr/sbin/update 755:0.10 ../../../obj/root/bin/update
+f /usr/sbin/vipw 755:0.10 ../../../obj/root/bin/vipw
+f /usr/sbin/chown 755:0.10 ../../../obj/root/bin/chown
 f /usr/sbin/adduser 755 ../../../obj/root/bin/adduser
-f /usr/sbin/dev_mkdb 755 ../../../obj/root/bin/dev_mkdb
+f /usr/sbin/dev_mkdb 755:0.10 ../../../obj/root/bin/dev_mkdb
 f /usr/sbin/arp 2755:2 ../../../obj/root/bin/arp
-f /usr/sbin/syslogd 755 ../../../obj/root/bin/syslogd
+f /usr/sbin/syslogd 755:0.10 ../../../obj/root/bin/syslogd
 f /usr/ucb/logger 755 ../../../obj/root/bin/logger
 f /sbin/dmesg 2755:2 ../../../obj/root/bin/dmesg
 f /usr/sbin/cron 111 ../../../obj/root/bin/cron
@@ -189,10 +189,10 @@ f /usr/bin/at 4755:1.0 ../../../obj/root/bin/at
 f /usr/bin/atq 4755:1.0 ../../../obj/root/bin/atq
 f /usr/bin/atrm 4755:1.0 ../../../obj/root/bin/atrm
 f /usr/libexec/atrun 755:1.0 ../../../obj/root/bin/atrun
-f /usr/sbin/accton 755 ../../../obj/root/bin/accton
-f /usr/libexec/acctd 700 ../../../obj/root/bin/acctd
+f /usr/sbin/accton 755:0.10 ../../../obj/root/bin/accton
+f /usr/libexec/acctd 700:0.10 ../../../obj/root/bin/acctd
 f /usr/ucb/lastcomm 755 ../../../obj/root/bin/lastcomm
-f /usr/sbin/sa 755 ../../../obj/root/bin/sa
+f /usr/sbin/sa 755:0.10 ../../../obj/root/bin/sa
 f /usr/bin/find 755 ../../../obj/root/bin/find
 d /usr/libexec/find 755
 f /usr/libexec/find/bigram 755 ../../../obj/root/bin/bigram
@@ -209,19 +209,19 @@ i ../../../obj/zoneinfo/zone.proto
 f /sbin/dump 755 ../../../obj/root/bin/dump
 f /sbin/rdump 755 ../../../obj/root/bin/rdump
 f /sbin/dumpdir 755 ../../../obj/root/bin/dumpdir
-f /sbin/restor 755 ../../../obj/root/bin/restor
-f /usr/sbin/rmt 755 ../../../obj/root/bin/rmt
+f /sbin/restor 755:0.10 ../../../obj/root/bin/restor
+f /usr/sbin/rmt 755:0.10 ../../../obj/root/bin/rmt
 f /etc/dumpdates 664:5 ../../../obj/root/empty
-f /bin/chflags 755 ../../../obj/root/bin/chflags
+f /bin/chflags 755:0.10 ../../../obj/root/bin/chflags
 d /usr/new 755
 f /usr/new/la 755 ../../../obj/root/bin/la
 d /usr/new/man 755
 f /usr/ucb/gcore 2755:2 ../../../obj/root/bin/gcore
 f /usr/ucb/window 755 ../../../obj/root/bin/window
-f /bin/expr 755 ../../../obj/root/bin/expr
+f /bin/expr 755:0.10 ../../../obj/root/bin/expr
 f /bin/awk 755 ../../../obj/root/bin/awk
-f /usr/bin/egrep 755 ../../../obj/root/bin/egrep
-f /usr/bin/bc 755 ../../../obj/root/bin/bc
+f /usr/bin/egrep 755:0.10 ../../../obj/root/bin/egrep
+f /usr/bin/bc 755:0.10 ../../../obj/root/bin/bc
 f /usr/bin/dc 755 ../../../obj/root/bin/dc
 f /usr/share/misc/lib.b 444 ../share/misc/lib.b
 f /bin/make 755 ../../../obj/root/bin/make
@@ -233,11 +233,11 @@ f /usr/libdata/lex/nrform 444 ../usr.bin/lex/nrform
 f /usr/sbin/pstat 2755:2 ../../../obj/root/bin/pstat
 f /usr/bin/fstat 2755:2 ../../../obj/root/bin/fstat
 f /usr/sbin/tracebuf 2755:2 ../../../obj/root/bin/tracebuf
-f /sbin/ifconfig 755 ../../../obj/root/bin/ifconfig
-f /bin/ping 4751 ../../../obj/root/bin/ping
-f /sbin/route 755 ../../../obj/root/bin/route
-f /usr/sbin/inetd 755 ../../../obj/root/bin/inetd
-f /usr/libexec/telnetd 755 ../../../obj/root/bin/telnetd
+f /sbin/ifconfig 755:0.10 ../../../obj/root/bin/ifconfig
+f /bin/ping 4751:0.10 ../../../obj/root/bin/ping
+f /sbin/route 755:0.10 ../../../obj/root/bin/route
+f /usr/sbin/inetd 755:0.10 ../../../obj/root/bin/inetd
+f /usr/libexec/telnetd 755:0.10 ../../../obj/root/bin/telnetd
 f /usr/ucb/telnet 755 ../../../obj/root/bin/telnet
 f /usr/ucb/w 2755:2 ../../../obj/root/bin/w
 h /usr/ucb/uptime /usr/ucb/w
@@ -249,49 +249,49 @@ f /usr/bin/bench 755 ../../../obj/root/bin/bench
 f /usr/bin/ve 755 ../../../obj/root/bin/ve
 h /sbin/halt /sbin/reboot
 h /sbin/fastboot /sbin/reboot
-f /usr/bin/basename 755 ../../../obj/root/bin/basename
-f /usr/bin/cal 755 ../../../obj/root/bin/cal
-f /usr/bin/cb 755 ../../../obj/root/bin/cb
-f /usr/bin/checkeq 755 ../../../obj/root/bin/checkeq
-f /usr/bin/col 755 ../../../obj/root/bin/col
-f /usr/bin/comm 755 ../../../obj/root/bin/comm
-f /usr/bin/crypt 755 ../../../obj/root/bin/crypt
-f /usr/bin/deroff 755 ../../../obj/root/bin/deroff
-f /usr/bin/fgrep 755 ../../../obj/root/bin/fgrep
-f /usr/bin/file 755 ../../../obj/root/bin/file
-f /usr/bin/join 755 ../../../obj/root/bin/join
-f /usr/bin/look 755 ../../../obj/root/bin/look
-f /usr/bin/mesg 755 ../../../obj/root/bin/mesg
-f /usr/bin/ptx 755 ../../../obj/root/bin/ptx
-f /usr/bin/rev 755 ../../../obj/root/bin/rev
-f /usr/bin/sort 755 ../../../obj/root/bin/sort
-f /usr/bin/spline 755 ../../../obj/root/bin/spline
-f /usr/bin/split 755 ../../../obj/root/bin/split
-f /usr/bin/sum 755 ../../../obj/root/bin/sum
-f /usr/bin/tabs 755 ../../../obj/root/bin/tabs
-f /usr/bin/tr 755 ../../../obj/root/bin/tr
-f /usr/bin/tsort 755 ../../../obj/root/bin/tsort
-f /usr/bin/tty 755 ../../../obj/root/bin/tty
-f /usr/bin/uniq 755 ../../../obj/root/bin/uniq
-f /usr/bin/units 755 ../../../obj/root/bin/units
-f /usr/bin/id 755 ../../../obj/root/bin/id
-f /usr/bin/printf 755 ../../../obj/root/bin/printf
-f /usr/bin/renice 755 ../../../obj/root/bin/renice
-f /usr/bin/touch 755 ../../../obj/root/bin/touch
-f /usr/bin/uname 755 ../../../obj/root/bin/uname
-f /usr/bin/whereis 755 ../../../obj/root/bin/whereis
-f /usr/bin/xargs 755 ../../../obj/root/bin/xargs
+f /usr/bin/basename 755:0.10 ../../../obj/root/bin/basename
+f /usr/bin/cal 755:0.10 ../../../obj/root/bin/cal
+f /usr/bin/cb 755:0.10 ../../../obj/root/bin/cb
+f /usr/bin/checkeq 755:0.10 ../../../obj/root/bin/checkeq
+f /usr/bin/col 755:0.10 ../../../obj/root/bin/col
+f /usr/bin/comm 755:0.10 ../../../obj/root/bin/comm
+f /usr/bin/crypt 755:0.10 ../../../obj/root/bin/crypt
+f /usr/bin/deroff 755:0.10 ../../../obj/root/bin/deroff
+f /usr/bin/fgrep 755:0.10 ../../../obj/root/bin/fgrep
+f /usr/bin/file 755:0.10 ../../../obj/root/bin/file
+f /usr/bin/join 755:0.10 ../../../obj/root/bin/join
+f /usr/bin/look 755:0.10 ../../../obj/root/bin/look
+f /usr/bin/mesg 755:0.10 ../../../obj/root/bin/mesg
+f /usr/bin/ptx 755:0.10 ../../../obj/root/bin/ptx
+f /usr/bin/rev 755:0.10 ../../../obj/root/bin/rev
+f /usr/bin/sort 755:0.10 ../../../obj/root/bin/sort
+f /usr/bin/spline 755:0.10 ../../../obj/root/bin/spline
+f /usr/bin/split 755:0.10 ../../../obj/root/bin/split
+f /usr/bin/sum 755:0.10 ../../../obj/root/bin/sum
+f /usr/bin/tabs 755:0.10 ../../../obj/root/bin/tabs
+f /usr/bin/tr 755:0.10 ../../../obj/root/bin/tr
+f /usr/bin/tsort 755:0.10 ../../../obj/root/bin/tsort
+f /usr/bin/tty 755:0.10 ../../../obj/root/bin/tty
+f /usr/bin/uniq 755:0.10 ../../../obj/root/bin/uniq
+f /usr/bin/units 755:0.10 ../../../obj/root/bin/units
+f /usr/bin/id 755:0.10 ../../../obj/root/bin/id
+f /usr/bin/printf 755:0.10 ../../../obj/root/bin/printf
+f /usr/bin/renice 755:0.10 ../../../obj/root/bin/renice
+f /usr/bin/touch 755:0.10 ../../../obj/root/bin/touch
+f /usr/bin/uname 755:0.10 ../../../obj/root/bin/uname
+f /usr/bin/whereis 755:0.10 ../../../obj/root/bin/whereis
+f /usr/bin/xargs 755:0.10 ../../../obj/root/bin/xargs
 f /usr/bin/m4 755 ../../../obj/root/bin/m4
 f /usr/bin/patch 755 ../../../obj/root/bin/patch
 f /usr/bin/shar 755 ../../../obj/root/bin/shar
 f /usr/bin/traverse 755 ../../../obj/root/bin/traverse
-f /usr/bin/install 755 ../../../obj/root/bin/xinstall
+f /usr/bin/install 755:0.10 ../../../obj/root/bin/xinstall
 f /usr/libexec/diff3 755 ../../../obj/root/bin/diff3
 f /usr/bin/diff3 755 ../usr.bin/diff3/diff3.sh
-f /usr/bin/whoami 755 ../usr.bin/id/whoami.sh
-f /usr/bin/groups 755 ../usr.bin/id/groups.sh
-f /usr/bin/nohup 555 ../usr.bin/nohup.sh
-f /usr/libexec/makekey 755 ../../../obj/root/bin/makekey
+f /usr/bin/whoami 755:0.10 ../usr.bin/id/whoami.sh
+f /usr/bin/groups 755:0.10 ../usr.bin/id/groups.sh
+f /usr/bin/nohup 555:0.10 ../usr.bin/nohup.sh
+f /usr/libexec/makekey 755:0.10 ../../../obj/root/bin/makekey
 f /usr/share/misc/units 444 ../share/misc/units
 f /usr/share/misc/eign 444 ../share/misc/eign
 f /usr/ucb/apply 755 ../../../obj/root/bin/apply
@@ -319,8 +319,8 @@ f /usr/ucb/wc 755 ../../../obj/root/bin/wc
 f /usr/ucb/xstr 755 ../../../obj/root/bin/xstr
 f /usr/ucb/yes 755 ../../../obj/root/bin/yes
 f /usr/ucb/compress 755 ../../../obj/root/bin/compress
-f /usr/ucb/mkstr 755 ../../../obj/root/bin/mkstr
-f /usr/ucb/more 755 ../../../obj/root/bin/more
+f /usr/ucb/mkstr 755:0.10 ../../../obj/root/bin/mkstr
+f /usr/ucb/more 755:0.10 ../../../obj/root/bin/more
 f /usr/ucb/tset 755 ../../../obj/root/bin/tset
 h /usr/ucb/u /usr/ucb/users
 h /usr/ucb/uncompress /usr/ucb/compress
@@ -328,22 +328,22 @@ h /usr/ucb/zcat /usr/ucb/compress
 h /usr/ucb/page /usr/ucb/more
 f /usr/share/misc/more.help 444 ../ucb/more/more.help
 h /usr/ucb/reset /usr/ucb/tset
-f /usr/ucb/lock 4755 ../../../obj/root/bin/lock
+f /usr/ucb/lock 4755:0.10 ../../../obj/root/bin/lock
 f /usr/ucb/which 755 ../ucb/which.csh
 f /bin/su 4755 ../../../obj/root/bin/su
-f /bin/tar 755 ../../../obj/root/bin/tar
+f /bin/tar 755:0.10 ../../../obj/root/bin/tar
 f /bin/sed 755 ../../../obj/root/bin/sed
-f /bin/strip 755 ../../../obj/root/bin/strip
+f /bin/strip 755:0.10 ../../../obj/root/bin/strip
 # The C compiler and what goes with it, where upstream has each; the
 # headers and the libraries are in cc.proto, which the Makefile makes.
-f /bin/cc 755 ../../../obj/root/bin/cc
+f /bin/cc 755:0.10 ../../../obj/root/bin/cc
 f /bin/as 755 ../../../obj/root/bin/as
-f /bin/ld 755 ../../../obj/root/bin/ld
+f /bin/ld 755:0.10 ../../../obj/root/bin/ld
 f /bin/ar 755 ../../../obj/root/bin/ar
-f /bin/nm 755 ../../../obj/root/bin/nm
-f /bin/size 755 ../../../obj/root/bin/size
-f /usr/bin/ranlib 755 ../../../obj/root/bin/ranlib
-f /usr/bin/lorder 555 ../usr.bin/lorder.sh
+f /bin/nm 755:0.10 ../../../obj/root/bin/nm
+f /bin/size 755:0.10 ../../../obj/root/bin/size
+f /usr/bin/ranlib 755:0.10 ../../../obj/root/bin/ranlib
+f /usr/bin/lorder 555:0.10 ../usr.bin/lorder.sh
 i ../../../obj/root/cc.proto
 f /lib/cpp 755 ../../../obj/root/bin/cpp
 f /lib/c0 755 ../../../obj/root/bin/c0
@@ -355,49 +355,49 @@ f /lib/c2l 755 ../../../obj/root/bin/c2l
 # and their logs are in learn.proto, which the Makefile makes.
 f /usr/libexec/calendar 755 ../../../obj/root/bin/calendar
 f /usr/bin/calendar 755 ../usr.bin/calendar/calendar.sh
-f /usr/bin/lint 555 ../usr.bin/lint.sh
-f /usr/bin/mkdep 555 ../usr.bin/mkdep.sh
+f /usr/bin/lint 555:0.10 ../usr.bin/lint.sh
+f /usr/bin/mkdep 555:0.10 ../usr.bin/mkdep.sh
 f /usr/bin/learn 755 ../../../obj/root/bin/learn
 i ../../../obj/root/learn.proto
 d /usr/share/learn/bin 755
 h /usr/share/learn/bin/learn /usr/bin/learn
 f /usr/share/learn/bin/lrntee 755 ../../../obj/root/bin/lrntee
 f /usr/share/learn/bin/lcount 755 ../../../obj/root/bin/lcount
-f /bin/diff 755 ../../../obj/root/bin/diff
-f /usr/libexec/diffh 755 ../../../obj/root/bin/diffh
+f /bin/diff 755:0.10 ../../../obj/root/bin/diff
+f /usr/libexec/diffh 755:0.10 ../../../obj/root/bin/diffh
 f /bin/true 755 ../bin/true.sh
 f /bin/false 755 ../bin/false.sh
 h /bin/e /bin/ed
-f /usr/sbin/chroot 4751 ../../../obj/root/bin/chroot
-f /usr/sbin/flformat 755 ../../../obj/root/bin/flformat
-f /usr/sbin/ac 755 ../../../obj/root/bin/ac
+f /usr/sbin/chroot 4751:0.10 ../../../obj/root/bin/chroot
+f /usr/sbin/flformat 755:0.10 ../../../obj/root/bin/flformat
+f /usr/sbin/ac 755:0.10 ../../../obj/root/bin/ac
 f /sbin/shutdown 4750:0.5 ../../../obj/root/bin/shutdown
 f /bin/rcp 4755 ../../../obj/root/bin/rcp
-f /usr/ucb/rlogin 4755 ../../../obj/root/bin/rlogin
+f /usr/ucb/rlogin 4755:0.10 ../../../obj/root/bin/rlogin
 f /usr/ucb/rsh 4755 ../../../obj/root/bin/rsh
-f /usr/ucb/ftp 755 ../../../obj/root/bin/ftp
+f /usr/ucb/ftp 755:0.10 ../../../obj/root/bin/ftp
 f /usr/ucb/tftp 755 ../../../obj/root/bin/tftp
-f /usr/ucb/finger 755 ../../../obj/root/bin/finger
+f /usr/ucb/finger 755:0.10 ../../../obj/root/bin/finger
 h /usr/ucb/f /usr/ucb/finger
 f /usr/ucb/talk 2755:4 ../../../obj/root/bin/talk
 f /usr/ucb/whois 755 ../../../obj/root/bin/whois
 f /usr/ucb/rwho 755 ../../../obj/root/bin/rwho
 f /usr/ucb/ruptime 755 ../../../obj/root/bin/ruptime
-f /usr/ucb/tcpdmatch 755 ../../../obj/root/bin/tcpdmatch
-f /usr/ucb/tcpdchk 755 ../../../obj/root/bin/tcpdchk
-f /usr/ucb/try-from 755 ../../../obj/root/bin/try-from
-f /usr/ucb/safe_finger 755 ../../../obj/root/bin/safe_finger
-f /usr/libexec/rlogind 755 ../../../obj/root/bin/rlogind
-f /usr/libexec/rshd 755 ../../../obj/root/bin/rshd
-f /usr/libexec/rexecd 755 ../../../obj/root/bin/rexecd
-f /usr/libexec/ftpd 755 ../../../obj/root/bin/ftpd
-f /usr/libexec/tftpd 755 ../../../obj/root/bin/tftpd
-f /usr/libexec/fingerd 755 ../../../obj/root/bin/fingerd
-f /usr/libexec/ntalkd 755 ../../../obj/root/bin/talkd
-f /usr/libexec/tcpd 1755 ../../../obj/root/bin/tcpd
-f /usr/sbin/rwhod 755 ../../../obj/root/bin/rwhod
-f /usr/sbin/nc 755 ../../../obj/root/bin/nc
-f /usr/sbin/traceroute 4551 ../../../obj/root/bin/traceroute
+f /usr/ucb/tcpdmatch 755:0.10 ../../../obj/root/bin/tcpdmatch
+f /usr/ucb/tcpdchk 755:0.10 ../../../obj/root/bin/tcpdchk
+f /usr/ucb/try-from 755:0.10 ../../../obj/root/bin/try-from
+f /usr/ucb/safe_finger 755:0.10 ../../../obj/root/bin/safe_finger
+f /usr/libexec/rlogind 755:0.10 ../../../obj/root/bin/rlogind
+f /usr/libexec/rshd 755:0.10 ../../../obj/root/bin/rshd
+f /usr/libexec/rexecd 755:0.10 ../../../obj/root/bin/rexecd
+f /usr/libexec/ftpd 755:0.10 ../../../obj/root/bin/ftpd
+f /usr/libexec/tftpd 755:0.10 ../../../obj/root/bin/tftpd
+f /usr/libexec/fingerd 755:0.10 ../../../obj/root/bin/fingerd
+f /usr/libexec/ntalkd 755:0.10 ../../../obj/root/bin/talkd
+f /usr/libexec/tcpd 1755:0.10 ../../../obj/root/bin/tcpd
+f /usr/sbin/rwhod 755:0.10 ../../../obj/root/bin/rwhod
+f /usr/sbin/nc 755:0.10 ../../../obj/root/bin/nc
+f /usr/sbin/traceroute 4551:0.10 ../../../obj/root/bin/traceroute
 f /usr/sbin/timed 755 ../../../obj/root/bin/timed
 f /usr/sbin/timedc 4555 ../../../obj/root/bin/timedc
 f /usr/sbin/ntp 755 ../../../obj/root/bin/ntp
@@ -411,13 +411,13 @@ f /bin/mail 4755 ../../../obj/root/bin/mail
 f /usr/ucb/Mail 755 ../../../obj/root/bin/Mail
 h /usr/ucb/mail /usr/ucb/Mail
 f /usr/ucb/fmt 755 ../../../obj/root/bin/fmt
-f /usr/libexec/comsat 755 ../../../obj/root/bin/comsat
+f /usr/libexec/comsat 755:0.10 ../../../obj/root/bin/comsat
 f /usr/ucb/biff 755 ../../../obj/root/bin/biff
 f /usr/ucb/from 755 ../../../obj/root/bin/from
 f /usr/ucb/msgs 755 ../../../obj/root/bin/msgs
 f /usr/ucb/vacation 755 ../../../obj/root/bin/vacation
-f /usr/libexec/popper 700 ../../../obj/nbin/popper
-f /usr/bin/nroff 755 ../../../obj/root/bin/nroff
+f /usr/libexec/popper 700:0.10 ../../../obj/nbin/popper
+f /usr/bin/nroff 755:0.10 ../../../obj/root/bin/nroff
 d /usr/share/tmac 755
 f /usr/share/tmac/tmac.a 444 ../share/tmac/tmac.a
 f /usr/share/tmac/tmac.an 444 ../share/tmac/tmac.an
@@ -471,31 +471,31 @@ f /usr/share/ms/s.tbl 444 ../share/ms/s.tbl
 f /usr/share/ms/s.ths 444 ../share/ms/s.ths
 f /usr/share/ms/s.toc 444 ../share/ms/s.toc
 d /usr/share/term 755
-f /usr/share/term/tab37.tab 755 ../../../obj/root/term/tab37.tab
-f /usr/share/term/tablpr.tab 755 ../../../obj/root/term/tablpr.tab
-f /usr/share/term/tab300.tab 755 ../../../obj/root/term/tab300.tab
-f /usr/share/term/tab300-12.tab 755 ../../../obj/root/term/tab300-12.tab
-f /usr/share/term/tab302.tab 755 ../../../obj/root/term/tab302.tab
-f /usr/share/term/tab302-12.tab 755 ../../../obj/root/term/tab302-12.tab
-f /usr/share/term/tab382.tab 755 ../../../obj/root/term/tab382.tab
-f /usr/share/term/tab382-12.tab 755 ../../../obj/root/term/tab382-12.tab
-f /usr/share/term/tab450.tab 755 ../../../obj/root/term/tab450.tab
-f /usr/share/term/tab450-12.tab 755 ../../../obj/root/term/tab450-12.tab
-f /usr/share/term/tab833.tab 755 ../../../obj/root/term/tab833.tab
-f /usr/share/term/tab833-12.tab 755 ../../../obj/root/term/tab833-12.tab
-f /usr/share/term/tabepson.tab 755 ../../../obj/root/term/tabepson.tab
-f /usr/share/term/tabitoh.tab 755 ../../../obj/root/term/tabitoh.tab
-f /usr/share/term/tabitoh12.tab 755 ../../../obj/root/term/tabitoh12.tab
-f /usr/share/term/tabnec.tab 755 ../../../obj/root/term/tabnec.tab
-f /usr/share/term/tabnec12.tab 755 ../../../obj/root/term/tabnec12.tab
-f /usr/share/term/tabnec-t.tab 755 ../../../obj/root/term/tabnec-t.tab
-f /usr/share/term/tabnec25-t.tab 755 ../../../obj/root/term/tabnec25-t.tab
-f /usr/share/term/tabqume.tab 755 ../../../obj/root/term/tabqume.tab
-f /usr/share/term/tabqume12.tab 755 ../../../obj/root/term/tabqume12.tab
-f /usr/share/term/tabxerox.tab 755 ../../../obj/root/term/tabxerox.tab
-f /usr/share/term/tabxerox12.tab 755 ../../../obj/root/term/tabxerox12.tab
-f /usr/share/term/tabx-ecs.tab 755 ../../../obj/root/term/tabx-ecs.tab
-f /usr/share/term/tabx-ecs12.tab 755 ../../../obj/root/term/tabx-ecs12.tab
+f /usr/share/term/tab37.tab 755:0.10 ../../../obj/root/term/tab37.tab
+f /usr/share/term/tablpr.tab 755:0.10 ../../../obj/root/term/tablpr.tab
+f /usr/share/term/tab300.tab 755:0.10 ../../../obj/root/term/tab300.tab
+f /usr/share/term/tab300-12.tab 755:0.10 ../../../obj/root/term/tab300-12.tab
+f /usr/share/term/tab302.tab 755:0.10 ../../../obj/root/term/tab302.tab
+f /usr/share/term/tab302-12.tab 755:0.10 ../../../obj/root/term/tab302-12.tab
+f /usr/share/term/tab382.tab 755:0.10 ../../../obj/root/term/tab382.tab
+f /usr/share/term/tab382-12.tab 755:0.10 ../../../obj/root/term/tab382-12.tab
+f /usr/share/term/tab450.tab 755:0.10 ../../../obj/root/term/tab450.tab
+f /usr/share/term/tab450-12.tab 755:0.10 ../../../obj/root/term/tab450-12.tab
+f /usr/share/term/tab833.tab 755:0.10 ../../../obj/root/term/tab833.tab
+f /usr/share/term/tab833-12.tab 755:0.10 ../../../obj/root/term/tab833-12.tab
+f /usr/share/term/tabepson.tab 755:0.10 ../../../obj/root/term/tabepson.tab
+f /usr/share/term/tabitoh.tab 755:0.10 ../../../obj/root/term/tabitoh.tab
+f /usr/share/term/tabitoh12.tab 755:0.10 ../../../obj/root/term/tabitoh12.tab
+f /usr/share/term/tabnec.tab 755:0.10 ../../../obj/root/term/tabnec.tab
+f /usr/share/term/tabnec12.tab 755:0.10 ../../../obj/root/term/tabnec12.tab
+f /usr/share/term/tabnec-t.tab 755:0.10 ../../../obj/root/term/tabnec-t.tab
+f /usr/share/term/tabnec25-t.tab 755:0.10 ../../../obj/root/term/tabnec25-t.tab
+f /usr/share/term/tabqume.tab 755:0.10 ../../../obj/root/term/tabqume.tab
+f /usr/share/term/tabqume12.tab 755:0.10 ../../../obj/root/term/tabqume12.tab
+f /usr/share/term/tabxerox.tab 755:0.10 ../../../obj/root/term/tabxerox.tab
+f /usr/share/term/tabxerox12.tab 755:0.10 ../../../obj/root/term/tabxerox12.tab
+f /usr/share/term/tabx-ecs.tab 755:0.10 ../../../obj/root/term/tabx-ecs.tab
+f /usr/share/term/tabx-ecs12.tab 755:0.10 ../../../obj/root/term/tabx-ecs12.tab
 h /usr/share/term/tabtn300.tab /usr/share/term/tablpr.tab
 h /usr/share/term/tabcrt.tab /usr/share/term/tablpr.tab
 h /usr/share/term/tab300s.tab /usr/share/term/tab302.tab
@@ -504,15 +504,15 @@ h /usr/share/term/tabdtc.tab /usr/share/term/tab302.tab
 h /usr/share/term/tabdtc12.tab /usr/share/term/tab302-12.tab
 h /usr/share/term/tabipsi.tab /usr/share/term/tab450.tab
 h /usr/share/term/tabipsi12.tab /usr/share/term/tab450-12.tab
-f /usr/share/term/README 644 ../usr.bin/roff/nroff_term/README
-f /usr/ucb/man 755 ../../../obj/root/bin/man
-f /usr/ucb/apropos 755 ../../../obj/root/bin/apropos
+f /usr/share/term/README 644:0.10 ../usr.bin/roff/nroff_term/README
+f /usr/ucb/man 755:0.10 ../../../obj/root/bin/man
+f /usr/ucb/apropos 755:0.10 ../../../obj/root/bin/apropos
 h /usr/ucb/whatis /usr/ucb/apropos
 d /usr/man 755
 f /usr/man/man.template 444 ../man/man.template
 f /usr/man/makewhatis.sed 444 ../man/makewhatis.sed
 f /usr/man/manroff 755 ../man/manroff
-f /usr/sbin/makewhatis 755 ../usr.sbin/makewhatis/makewhatis.sh
+f /usr/sbin/makewhatis 755:0.10 ../usr.sbin/makewhatis/makewhatis.sh
 f /usr/bin/tbl 755 ../../../obj/root/bin/tbl
 f /usr/bin/eqn 755 ../../../obj/root/bin/eqn
 f /usr/bin/neqn 755 ../../../obj/root/bin/neqn
