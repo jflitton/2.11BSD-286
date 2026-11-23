@@ -2,8 +2,9 @@
 # Run the system's own Makefiles, upstream's in each directory of
 # usr/src, where the system is built, and compare what `make install`
 # puts in the root with what the root file system has (obj/root/root.fs,
-# which usr/src/i286's Makefile makes): each file's contents, and its
-# mode.  No machine is booted.
+# which usr/src/i286's Makefile makes): each file's contents, mode,
+# owner and group, and each of the root's directories still there with
+# its own (check.py).  No machine is booted.
 #
 #	sh tests/make/run.sh [DIR ...]
 #
@@ -13,14 +14,18 @@
 # the rules the system's make has and none of its own (rules.mk), and
 # with the system's commands as this machine has them (commands.sh): the
 # system's compiler, assembler and linker compiled for it, and an
-# install that puts things in obj/tests/make/dest.
+# install that puts things in obj/tests/make/dest, where the root's
+# directories are made first, and which make takes to be there as the
+# system's make does.
 #
 # That says the Makefiles name the right files, flags and order, and
 # install each where the system has it.  It does not say the system's
 # make and shell read them as this machine's do, nor that the tools do
 # on the 286 what they do here: tests/self has the machine do it.  A
 # program a Makefile makes and then runs is the 286's and does not run
-# here; what is made with one is listed as left to the 286.
+# here; what is made with one is listed as left to the 286.  A line
+# that does no more than run one is passed over, and make goes on
+# (sh.py).
 #
 # Run from the top of the repository after `. tools/env.sh`.
 set -e
@@ -36,8 +41,7 @@ mkdir -p "$out/dest" "$out/log"
 : > "$out/dest.meta"
 python3 -I "$top/tools/fsck.py" -l "$top/obj/root/root.fs" > "$out/root.list"
 # The root's directories are there before anything is installed.
-awk '$2 == "d" { print $1 }' "$out/root.list" > "$out/dirs"
-while read d; do mkdir -p "$out/dest$d"; done < "$out/dirs"
+python3 -I "$here/dest.py" "$out"
 python3 -I "$here/stage.py" "$top" "$out"
 sh "$here/commands.sh" "$top" "$out"
 start=$(date +%s)

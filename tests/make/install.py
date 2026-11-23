@@ -10,7 +10,10 @@ one of the name (OUT/dirs).  What install would have made the mode,
 owner and group is a line of OUT/dest.meta, since only the system can
 give a file to another user: to mode owner group, with - where it is
 told none, when the file is whoever runs install's and of its
-directory's group.  -s is the system's strip (tools/strip.py).
+directory's group, and the number of its inode, as chown.py's; the
+file here has the mode but for setuid, setgid and sticky, which this
+machine may not give it, and its owner may read and write it, to be
+compared.  -s is the system's strip (tools/strip.py).
 """
 import os
 import shutil
@@ -56,5 +59,7 @@ for f in files:
     shutil.copyfile(f, t)
     if strip and subprocess.call(["strip", t]):
         sys.exit(1)
+    os.chmod(t, int(mode, 8) & 0o777 | 0o600)
     with open(out + "/dest.meta", "a") as m:
-        m.write("%s %s %s %s\n" % (name, mode, owner, group))
+        m.write("%s %s %s %s %d\n" % (name, mode, owner, group,
+                                       os.stat(t).st_ino))

@@ -9,6 +9,11 @@ A command that the Makefile names by where the system has it,
 at the start of COMMAND, or after ; | & ( or `, the directory is taken
 off.  A name that is not a command's, such as the place `make install`
 puts a file, is left as it is.  Then COMMAND is the shell's.
+
+A COMMAND that is no more than a program the Makefile made, ./setfiles,
+is the 286's, and does not run here: it is said so, and make goes on
+with what is after it, as it would when the program had done what it
+does on the system, where the files that it writes are left to the 286.
 """
 import os
 import re
@@ -17,8 +22,25 @@ import sys
 CMD = re.compile(r"(^\s*|[;|&(`]\s*)/(?:bin|sbin|usr/bin|usr/ucb|usr/sbin|"
                  r"lib|usr/lib|usr/man|usr/libexec|etc)/"
                  r"([A-Za-z0-9_.+-]+)(?=[\s;|&)`]|$)", re.M)
+ALONE = re.compile(r"\s*(\./[A-Za-z0-9_.+-]+)\s*$")
+A_MAGIC = b"\x86\x02"   # the 286's executable (tools/strip.py)
+
+
+def theirs(path):
+    """Whether PATH is a program of the 286's."""
+    try:
+        with open(path, "rb") as f:
+            return f.read(2) == A_MAGIC
+    except OSError:
+        return False
+
 
 args = sys.argv[1:]
 if len(args) >= 2 and args[0] == "-c":
+    alone = ALONE.match(args[1])
+    if alone and theirs(alone.group(1)):
+        print("sh: %s is the 286's, and is not run here" % alone.group(1),
+              file=sys.stderr)
+        sys.exit(0)
     args[1] = CMD.sub(lambda m: m.group(1) + m.group(2), args[1])
 os.execv("/bin/sh", ["sh"] + args)

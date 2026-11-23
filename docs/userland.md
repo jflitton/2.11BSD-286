@@ -1323,16 +1323,10 @@ and shifts by a count that is negative when the sum is, which each
 machine takes its own way: the index is the machine's own. The PDP-11's
 of `/usr/dict/papers`, on upstream's tape, was left out with the lists,
 and differs from the system's, its `.ib` 2172 bytes to 1982. The build's
-machine, whose `int` is 32 bits, does not make it; it is made on the
-system, as upstream's Makefile makes it there as it installs `refer`.
-As root:
-
-```
-cd /usr/dict/papers; sh runinv
-```
-
-which takes six seconds. Until then `refer` and `lookbib` have no index
-there, and `refer` finds only what it is given with `-p`.
+machine, whose `int` is 32 bits, would make another with them:
+`tools/runinv.py` makes it as `mkey` and `inv` do on the 286, the same
+to the byte as the system's, where upstream's Makefile has `runinv`
+make it as it installs `refer`.
 
 What the compiler needed:
 

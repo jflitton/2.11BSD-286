@@ -136,12 +136,22 @@ makedefs:	makedefs.c
 hack.onames.h:	makedefs def.objects.h
 	./makedefs > hack.onames.h
 
+# The game's directory is made anew, and in it what READ_ME says the
+# game reads and writes there, which hack cannot start without: its
+# data, help and rumors, an empty record and perm, and save, all the
+# game's own.
 install: $(GAME)
 	install -o $(GAMEUID) -m 4711 $(GAME) $(BINDIR)/$(GAME)
 	-rm -rf $(LIBDIR)
 	-mkdir -p ${LIBDIR}
 	chown daemon ${LIBDIR}
 	chmod 700 ${LIBDIR}
+	install -c -o $(GAMEUID) -m 644 data help hh rumors ${LIBDIR}
+	install -c -o $(GAMEUID) -m 644 /dev/null ${LIBDIR}/record
+	install -c -o $(GAMEUID) -m 644 /dev/null ${LIBDIR}/perm
+	mkdir ${LIBDIR}/save
+	chown daemon ${LIBDIR}/save
+	chmod 700 ${LIBDIR}/save
 
 #   The make node `depend' has been commented out as the current dependency
 # list is [now] not as simple as it used to be ...  The reason for this is

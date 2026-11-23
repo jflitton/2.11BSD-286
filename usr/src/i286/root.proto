@@ -360,7 +360,7 @@ f /usr/bin/mkdep 555:0.10 ../usr.bin/mkdep.sh
 f /usr/bin/learn 755 ../../../obj/root/bin/learn
 i ../../../obj/root/learn.proto
 d /usr/share/learn/bin 755
-h /usr/share/learn/bin/learn /usr/bin/learn
+f /usr/share/learn/bin/learn 755 ../../../obj/root/bin/learn
 f /usr/share/learn/bin/lrntee 755 ../../../obj/root/bin/lrntee
 f /usr/share/learn/bin/lcount 755 ../../../obj/root/bin/lcount
 f /bin/diff 755:0.10 ../../../obj/root/bin/diff
@@ -559,6 +559,9 @@ f /usr/dict/papers/INDEX 664:20 ../../dict/papers/INDEX
 f /usr/dict/papers/Rbstjissue 444:20 ../../dict/papers/Rbstjissue
 f /usr/dict/papers/Rv7man 444:20 ../../dict/papers/Rv7man
 f /usr/dict/papers/runinv 555:20 ../../dict/papers/runinv
+f /usr/dict/papers/Ind.ia 644:0.10 ../../../obj/papers/Ind.ia
+f /usr/dict/papers/Ind.ib 644:0.10 ../../../obj/papers/Ind.ib
+f /usr/dict/papers/Ind.ic 644:0.10 ../../../obj/papers/Ind.ic
 d /usr/games 755
 d /usr/games/lib 755:10
 d /usr/games/lib/adventure 755
@@ -612,7 +615,7 @@ f /usr/games/lib/hackdir/hh 644:1.10 ../games/hack/hh
 f /usr/games/lib/hackdir/rumors 644:1.10 ../games/hack/rumors
 f /usr/games/lib/hackdir/perm 644:1.10 ../../../obj/root/empty
 f /usr/games/lib/hackdir/record 644:1.10 ../../../obj/root/empty
-d /usr/games/lib/hackdir/save 755:1.10
+d /usr/games/lib/hackdir/save 700:1.10
 f /usr/games/hangman 755 ../../../obj/root/bin/hangman
 f /usr/games/hunt 755 ../../../obj/root/bin/hunt
 f /usr/games/lib/hunt.driver 755:10 ../../../obj/root/bin/hunt.driver
@@ -632,38 +635,38 @@ f /usr/games/lib/phantasia/lastdead 600:1.10 ../../../obj/games/phantasia/lastde
 f /usr/games/lib/phantasia/enemy 600:1.10 ../../../obj/games/phantasia/enemy
 f /usr/games/quiz 755 ../../../obj/root/bin/quiz
 d /usr/games/lib/quiz.k 755:10
-f /usr/games/lib/quiz.k/africa 444:10 ../games/quiz/quiz.k/africa
-f /usr/games/lib/quiz.k/america 444:10 ../games/quiz/quiz.k/america
-f /usr/games/lib/quiz.k/areas 444:10 ../games/quiz/quiz.k/areas
-f /usr/games/lib/quiz.k/arith 444:10 ../games/quiz/quiz.k/arith
-f /usr/games/lib/quiz.k/asia 444:10 ../games/quiz/quiz.k/asia
-f /usr/games/lib/quiz.k/babies 444:10 ../games/quiz/quiz.k/babies
-f /usr/games/lib/quiz.k/bard 444:10 ../games/quiz/quiz.k/bard
-f /usr/games/lib/quiz.k/chinese 444:10 ../games/quiz/quiz.k/chinese
-f /usr/games/lib/quiz.k/collectives 444:10 ../games/quiz/quiz.k/collectives
-f /usr/games/lib/quiz.k/ed 444:10 ../games/quiz/quiz.k/ed
-f /usr/games/lib/quiz.k/elements 444:10 ../games/quiz/quiz.k/elements
-f /usr/games/lib/quiz.k/europe 444:10 ../games/quiz/quiz.k/europe
-f /usr/games/lib/quiz.k/greek 444:10 ../games/quiz/quiz.k/greek
-f /usr/games/lib/quiz.k/inca 444:10 ../games/quiz/quiz.k/inca
-f /usr/games/lib/quiz.k/index 444:10 ../games/quiz/quiz.k/index
-f /usr/games/lib/quiz.k/latin 444:10 ../games/quiz/quiz.k/latin
-f /usr/games/lib/quiz.k/locomotive 444:10 ../games/quiz/quiz.k/locomotive
-f /usr/games/lib/quiz.k/midearth 444:10 ../games/quiz/quiz.k/midearth
-f /usr/games/lib/quiz.k/morse 444:10 ../games/quiz/quiz.k/morse
-f /usr/games/lib/quiz.k/murders 444:10 ../games/quiz/quiz.k/murders
-f /usr/games/lib/quiz.k/poetry 444:10 ../games/quiz/quiz.k/poetry
-f /usr/games/lib/quiz.k/posneg 444:10 ../games/quiz/quiz.k/posneg
-f /usr/games/lib/quiz.k/pres 444:10 ../games/quiz/quiz.k/pres
-f /usr/games/lib/quiz.k/province 444:10 ../games/quiz/quiz.k/province
-f /usr/games/lib/quiz.k/seq-easy 444:10 ../games/quiz/quiz.k/seq-easy
-f /usr/games/lib/quiz.k/seq-hard 444:10 ../games/quiz/quiz.k/seq-hard
-f /usr/games/lib/quiz.k/sexes 444:10 ../games/quiz/quiz.k/sexes
-f /usr/games/lib/quiz.k/sov 444:10 ../games/quiz/quiz.k/sov
-f /usr/games/lib/quiz.k/spell 444:10 ../games/quiz/quiz.k/spell
-f /usr/games/lib/quiz.k/state 444:10 ../games/quiz/quiz.k/state
-f /usr/games/lib/quiz.k/trek 444:10 ../games/quiz/quiz.k/trek
-f /usr/games/lib/quiz.k/ucc 444:10 ../games/quiz/quiz.k/ucc
+f /usr/games/lib/quiz.k/africa 644:10 ../games/quiz/quiz.k/africa
+f /usr/games/lib/quiz.k/america 644:10 ../games/quiz/quiz.k/america
+f /usr/games/lib/quiz.k/areas 644:10 ../games/quiz/quiz.k/areas
+f /usr/games/lib/quiz.k/arith 644:10 ../games/quiz/quiz.k/arith
+f /usr/games/lib/quiz.k/asia 644:10 ../games/quiz/quiz.k/asia
+f /usr/games/lib/quiz.k/babies 644:10 ../games/quiz/quiz.k/babies
+f /usr/games/lib/quiz.k/bard 644:10 ../games/quiz/quiz.k/bard
+f /usr/games/lib/quiz.k/chinese 644:10 ../games/quiz/quiz.k/chinese
+f /usr/games/lib/quiz.k/collectives 644:10 ../games/quiz/quiz.k/collectives
+f /usr/games/lib/quiz.k/ed 644:10 ../games/quiz/quiz.k/ed
+f /usr/games/lib/quiz.k/elements 644:10 ../games/quiz/quiz.k/elements
+f /usr/games/lib/quiz.k/europe 644:10 ../games/quiz/quiz.k/europe
+f /usr/games/lib/quiz.k/greek 644:10 ../games/quiz/quiz.k/greek
+f /usr/games/lib/quiz.k/inca 644:10 ../games/quiz/quiz.k/inca
+f /usr/games/lib/quiz.k/index 644:10 ../games/quiz/quiz.k/index
+f /usr/games/lib/quiz.k/latin 644:10 ../games/quiz/quiz.k/latin
+f /usr/games/lib/quiz.k/locomotive 644:10 ../games/quiz/quiz.k/locomotive
+f /usr/games/lib/quiz.k/midearth 644:10 ../games/quiz/quiz.k/midearth
+f /usr/games/lib/quiz.k/morse 644:10 ../games/quiz/quiz.k/morse
+f /usr/games/lib/quiz.k/murders 644:10 ../games/quiz/quiz.k/murders
+f /usr/games/lib/quiz.k/poetry 644:10 ../games/quiz/quiz.k/poetry
+f /usr/games/lib/quiz.k/posneg 644:10 ../games/quiz/quiz.k/posneg
+f /usr/games/lib/quiz.k/pres 644:10 ../games/quiz/quiz.k/pres
+f /usr/games/lib/quiz.k/province 644:10 ../games/quiz/quiz.k/province
+f /usr/games/lib/quiz.k/seq-easy 644:10 ../games/quiz/quiz.k/seq-easy
+f /usr/games/lib/quiz.k/seq-hard 644:10 ../games/quiz/quiz.k/seq-hard
+f /usr/games/lib/quiz.k/sexes 644:10 ../games/quiz/quiz.k/sexes
+f /usr/games/lib/quiz.k/sov 644:10 ../games/quiz/quiz.k/sov
+f /usr/games/lib/quiz.k/spell 644:10 ../games/quiz/quiz.k/spell
+f /usr/games/lib/quiz.k/state 644:10 ../games/quiz/quiz.k/state
+f /usr/games/lib/quiz.k/trek 644:10 ../games/quiz/quiz.k/trek
+f /usr/games/lib/quiz.k/ucc 644:10 ../games/quiz/quiz.k/ucc
 f /usr/games/robots 4711:1.0 ../../../obj/root/bin/robots
 f /usr/games/lib/robots_roll 644:1.10 ../../../obj/root/empty
 f /usr/games/rogue 4711:1.10 ../../../obj/root/bin/rogue

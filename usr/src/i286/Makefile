@@ -1262,6 +1262,17 @@ $(SO)/hstop: $(SP)/stop $(H)/spellin
 	@mkdir -p $(SO)
 	$(H)/spellin < $< > $@
 
+# The index refer searches /usr/dict/papers with, which refer's Makefile
+# has runinv make as it installs refer: mkey and inv, as the 286 has
+# them (tools/runinv.py).
+PA=		$(TOP)/usr/dict/papers
+PO=		$(TOP)/obj/papers
+$(PO)/Ind.ia: $(wildcard $(PA)/R*) $(SRC)/share/misc/eign \
+		$(TOP)/tools/runinv.py
+	python3 -I $(TOP)/tools/runinv.py $(SRC)/share/misc/eign $(PO) \
+	    $(wildcard $(PA)/R*)
+$(addprefix $(PO)/,Ind.ib Ind.ic): $(PO)/Ind.ia ;
+
 # The zone files, made by zic from the tables upstream's Makefile
 # installs, as the system's own zic makes them (tests/programs): their
 # numbers are four bytes, high byte first, on any machine.  This zic is
@@ -1563,6 +1574,7 @@ $(R)/root.fs: root.proto $(wildcard etc/* root/* skel/*) adventure/Makefile \
 		$(addprefix $(R)/me/,$(MEFILES)) \
 		$(patsubst %,$(R)/term/tab%.tab,$(TERMS)) $(MANO)/man.proto \
 		$(GAMEDATA) $(addprefix $(SO)/,hlista hlistb hstop) \
+		$(addprefix $(PO)/,Ind.ia Ind.ib Ind.ic) \
 		$(ZO)/zone.proto $(R)/cc.proto $(SRC)/usr.bin/lorder.sh \
 		$(R)/learn.proto $(SRC)/usr.bin/calendar/calendar.sh \
 		$(SRC)/usr.bin/lint.sh $(SRC)/usr.bin/mkdep.sh \

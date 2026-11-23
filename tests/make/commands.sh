@@ -14,11 +14,18 @@
 #	install		install.py
 #	expr		this machine's, and the system's substr
 #	size		nothing
-#	ln, rm, mv, cp, mkdir, chmod	this machine's, on OUT/dest where
+#	ln, rm, mv, cp, mkdir	this machine's, on OUT/dest where
 #			the name is one in the system's root
+#	chmod		chmod.py, the same, which says in OUT/dest.meta what
+#			mode it was to be: this machine may not set setuid
 #	chown, chgrp	chown.py, which says in OUT/dest.meta whose a file
 #			was to be: only the system gives one away
+#	make		this machine's, to which each of the root's
+#			directories is there and old, as on the system,
+#			where a rule that makes one does not run (-o, which
+#			make does not pass on to the makes it runs)
 top=$1 out=$2
+hostmake=$(command -v make)
 b=$out/bin
 h=$out/hostbin
 rm -rf "$b"
@@ -58,6 +65,11 @@ for t in size ranlib; do
     printf '#!/bin/sh\nexit 0\n' > "$b/$t"
 done
 for t in chown chgrp; do run $t python3 -I "$top/tests/make/chown.py" "$out" $t; done
+run chmod python3 -I "$top/tests/make/chmod.py" "$out"
+cat > "$b/make" <<END
+#!/bin/sh
+exec $hostmake \$(sed 's/^/-o /' "$out/dirs") "\$@"
+END
 cat > "$b/ar" <<END
 #!/bin/sh
 key=\$1 lib=\$2
@@ -81,14 +93,16 @@ done
 shift \$n
 cd "$top/obj/host" && exec ./nroff "\$@"
 END
+# strip writes the file over, as the system's does, which keeps it the
+# file it was, with its mode
 cat > "$b/strip" <<END
 #!/bin/sh
 for f; do
     python3 -I "$top/tools/strip.py" "\$f" "\$f.strip" &&
-        mv "\$f.strip" "\$f" || exit 1
+        cat "\$f.strip" > "\$f" && /bin/rm "\$f.strip" || exit 1
 done
 END
-for t in ln rm mv cp mkdir chmod; do
+for t in ln rm mv cp mkdir; do
     cat > "$b/$t" <<END
 #!/bin/sh
 n=\$#

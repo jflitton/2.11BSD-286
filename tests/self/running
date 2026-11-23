@@ -1,0 +1,20 @@
+# What the system changes of its root by running, whatever it makes:
+# tests/self/progs.py does not compare these.  The name, and after #
+# what changes it.
+/newer.list		# tests/self/progs.sh's list of what was installed
+/dev/tty00		# login, which gives the terminal to who logs in
+/dev/ttyv1		# getty, which opens the terminal to all
+/dev/ttyv2
+/dev/ttyv3
+/etc/acctd.cf		# accton, as /etc/rc starts it, which writes it
+/usr/adm/acct		# acctd, each process's account
+/usr/adm/cron		# cron
+/usr/adm/daemonlog	# syslogd
+/usr/adm/messages	# syslogd
+/usr/adm/lastlog	# login
+/usr/adm/wtmp		# init and login
+/var/run/*		# the daemons, and dev_mkdb and ps -U in /etc/rc
+/var/log/sendmail.st	# sendmail
+/var/cron		# cron, which makes its directories
+/var/cron/tabs
+/usr/spool/at/lasttimedone	# atrun, which cron runs

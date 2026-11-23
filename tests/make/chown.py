@@ -4,11 +4,12 @@ tests/make/run.sh.
 
 usage: chown.py OUT chown|chgrp [-R] [-f] OWNER[.GROUP]|GROUP file...
 
-Only the system gives a file away.  For each file that is one install
-put in the root, OUT/dest, or with -R is under a directory there, this
-adds a line to OUT/dest.meta as install.py does, the file's name, = for
-the mode it has, and the owner and group, with = for the one that is
-not changed; tests/make/check.py reads them after install's.
+Only the system gives a file away.  For each file or directory that is
+one of the root, in OUT/dest, and with -R each under a directory there,
+this adds a line to OUT/dest.meta as install.py does: its name, = for
+the mode it has, the owner and group, with = for the one that is not
+changed, and the number of its inode, which says it is the one given
+away; tests/make/check.py reads them in order after install's.
 """
 import os
 import sys
@@ -26,13 +27,15 @@ else:
 dest = out + "/dest"
 with open(out + "/dest.meta", "a") as m:
     for f in a[1:]:
-        if not f.startswith("/"):
+        if f.startswith("/") and not f.startswith(dest + "/"):
+            f = dest + f
+        t = os.path.abspath(f)
+        if not t.startswith(dest + "/") or not os.path.lexists(t):
             continue
-        t = dest + "/" + f.strip("/")
-        if os.path.isdir(t):
-            found = [os.path.join(dp, n) for dp, _, fn in os.walk(t)
-                     for n in fn] if deep else []
-        else:
-            found = [t] if os.path.isfile(t) else []
+        found = [t]
+        if deep and os.path.isdir(t):
+            found += [os.path.join(dp, n) for dp, dn, fn in os.walk(t)
+                      for n in dn + fn]
         for t in found:
-            m.write("%s = %s %s\n" % (t[len(dest):], owner, group))
+            m.write("%s = %s %s %d\n" % (t[len(dest):], owner, group,
+                                         os.lstat(t).st_ino))

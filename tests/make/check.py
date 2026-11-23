@@ -4,14 +4,24 @@ has, for tests/make/run.sh.
 
 usage: check.py TOP OUT SECONDS DIR...
 
-OUT/dest is where the Makefiles of the DIRs installed, OUT/dest.meta
-the mode each file was to have (install.py), and OUT/root.list the
-root file system's own list (tools/fsck.py -l).  A file that was
-installed must be one the root has, with those contents, that mode and
-the owner and group install was to give it, by their numbers in
-usr/src/etc/master.passwd and group: where it was given none, root,
-who runs it, and the group of the directory, as the system gives a new
-file.
+OUT/dest is the root the Makefiles of the DIRs installed in, with each
+of the root's directories made there first (dest.py: OUT/dirs.ino);
+OUT/dest.meta what install, chmod and chown were to make of a file's
+mode, owner and group, which only the system can give it (install.py,
+chmod.py, chown.py); and OUT/root.list the root file system's own list
+(tools/fsck.py -l).
+
+Each file of OUT/dest is to be one the root has, with those contents,
+and each directory one it has, and each with the root's mode, owner and
+group, by their numbers in usr/src/etc/master.passwd and group.  Those
+are what install, chmod and chown made them, in that order, of the file
+that is there, by any name it had or has: a line of dest.meta is of
+the file whose inode it names.
+Before them, a directory that was there is as the root has it; anything
+else is as the system makes a new one: of root, who runs make, and the
+group of its directory, with the mode this machine gave it, which is
+the system's, since what is copied is the system's sources.  Each of the
+root's directories is to be there still.
 A page of the manual says at its foot the day it was formatted: one
 that differs from the root's is compared again without that.
 Of the root's programs whose sources are in a DIR (programs.py), each
@@ -20,6 +30,7 @@ program their Makefile makes and runs, and are the 286's to make.
 Those of `differs` are made, and are not yet what the other build makes
 of them.
 """
+import collections
 import hashlib
 import os
 import re
@@ -32,15 +43,24 @@ import programs  # noqa: E402
 
 top, out, took = sys.argv[1:4]
 dirs = sys.argv[4:]
+dest = out + "/dest"
 
-want = {}
-group = {}      # a directory's
+want = {}       # a file's mode, sum, and owner and group
+wantdir = {}    # a directory's mode, and owner and group
 for line in open(out + "/root.list"):
     w = line.split()
     if len(w) >= 6 and w[1] == "f":
         want[w[0]] = (w[2], w[5], w[3])
     elif len(w) >= 4 and w[1] == "d":
-        group[w[0]] = w[3].partition(".")[2]
+        wantdir[w[0]] = (w[2], w[3])
+made = {}       # the inode of each directory as dest.py made it
+for line in open(out + "/dirs.ino"):
+    d, n = line.split()
+    made[d] = int(n)
+meta = collections.defaultdict(list)    # what was done to each inode
+for line in open(out + "/dest.meta"):
+    w = line.split()
+    meta[int(w[4])].append(w[1:4] + [os.path.normpath(w[0])])
 
 
 def numbers(path, field):
@@ -52,23 +72,68 @@ def numbers(path, field):
 
 uid = numbers(top + "/usr/src/etc/master.passwd", 2)
 gid = numbers(top + "/usr/src/etc/group", 2)
-mode = {}
+WHO = {"u": (0o4700, 6, 0o4000), "g": (0o2070, 3, 0o2000),
+       "o": (0o1007, 0, 0)}
+
+
+def chmod(mode, spec):
+    """MODE as chmod SPEC leaves it: a number, or [ugoa]+-=[rwxst],..."""
+    if spec.isdigit():
+        return int(spec, 8)
+    for clause in spec.split(","):
+        m = re.match(r"([ugoa]*)([-+=])([rwxst]*)$", clause)
+        if not m:
+            sys.exit("check.py: chmod %s is not one it knows" % spec)
+        who, op, perm = m.groups()
+        bits = mask = 0
+        for c in (who or "a").replace("a", "ugo"):
+            mask |= WHO[c][0]
+            for p in perm:
+                if p in "rwx":
+                    bits |= {"r": 4, "w": 2, "x": 1}[p] << WHO[c][1]
+                elif p == "s":
+                    bits |= WHO[c][2]
+                elif p == "t":
+                    bits |= 0o1000
+        if op == "+":
+            mode |= bits
+        elif op == "-":
+            mode &= ~bits
+        else:
+            mode = mode & ~mask | bits
+    return mode
+
+
 whose = {}
-# A line is install's, or after it chown's, with = for what is as it was.
-for line in open(out + "/dest.meta"):
-    p, m, o, g = line.split()[:4]
-    if m != "=":
-        mode[p] = m.lstrip("0") or "0"
-    there = group.get(os.path.dirname(p), "0")
-    was = whose.get(p, "0." + there).split(".")
-    whose[p] = "%s.%s" % (
-        was[0] if o == "=" else "0" if o == "-" else uid.get(o, o),
-        was[1] if g == "=" else there if g == "-" else gid.get(g, g))
+
+
+def state(p):
+    """The mode, owner and group the system would give P, of OUT/dest."""
+    if p in whose:
+        return whose[p]
+    st = os.lstat(dest + p)
+    if p in made and made[p] == st.st_ino:
+        mode = int(wantdir[p][0], 8)
+        owner, group = wantdir[p][1].split(".")
+    else:
+        mode = st.st_mode & 0o777
+        owner, group = "0", state(os.path.dirname(p))[2]
+    for m, o, g, q in meta[st.st_ino]:
+        if m != "=":
+            mode = chmod(mode, m)
+        if o != "=":
+            owner = "0" if o == "-" else uid.get(o, o)
+        if g != "=":
+            group = state(os.path.dirname(q))[2] if g == "-" else \
+                gid.get(g, g)
+    whose[p] = (mode, owner, group)
+    return whose[p]
+
+
 source = programs.sources()
 where = programs.installed(source)
 left = programs.Names(here + "/left")
 differs = programs.Names(here + "/differs")
-
 
 
 def page(p, t):
@@ -85,10 +150,25 @@ def page(p, t):
                                                 open(t, "rb").read())
 
 
+def compare(p, mode, owner):
+    """Whether P's mode and owner are MODE and OWNER, the root's."""
+    m, o, g = state(p)
+    if m != int(mode, 8):
+        bad.append("MODE %s: %o, and the root's is %s" % (p, m, mode))
+    elif "%s.%s" % (o, g) != owner:
+        bad.append("OWNER %s: %s.%s, and the root's is %s" % (p, o, g, owner))
+    else:
+        return True
+    return False
+
+
 bad = []
 same = 0
-dest = out + "/dest"
 for dp, dn, fn in os.walk(dest):
+    for d in dn:
+        p = os.path.join(dp, d)[len(dest):]
+        if p not in wantdir and not os.path.islink(dest + p):
+            bad.append("NOT THE ROOT'S %s/" % p)
     for f in fn:
         t = os.path.join(dp, f)
         p = t[len(dest):]
@@ -104,14 +184,13 @@ for dp, dn, fn in os.walk(dest):
                 if p not in left and p not in differs:
                     bad.append("DIFFERS %s" % p)
                 continue
-        if p in mode and mode[p] != want[p][0]:
-            bad.append("MODE %s: %s, and the root's is %s" %
-                       (p, mode[p], want[p][0]))
-        elif p in whose and whose[p] != want[p][2] and p not in left:
-            bad.append("OWNER %s: %s, and the root's is %s" %
-                       (p, whose[p], want[p][2]))
-        else:
+        if compare(p, want[p][0], want[p][2]):
             same += 1
+for p, (mode, owner) in sorted(wantdir.items()):
+    if not os.path.isdir(dest + p):
+        bad.append("GONE %s/" % p)
+    else:
+        compare(p, mode, owner)
 nleft = 0
 for p, name in sorted(where.items()):
     if not programs.within(source[name], dirs) or os.path.isfile(dest + p):
@@ -126,6 +205,6 @@ if bad:
     sys.exit("make: %d files are not what the root has (%s/log)" %
              (len(bad), out))
 print("make: the Makefiles of %s installed %d files where the system is "
-      "built, in %s s, each what the root has and whose; %d programs are "
-      "left to "
-      "the 286" % (" ".join(dirs), same, took, nleft))
+      "built, in %s s, each what the root has and whose, and left its %d "
+      "directories as it has them; %d programs are left to the 286" %
+      (" ".join(dirs), same, took, len(wantdir), nleft))

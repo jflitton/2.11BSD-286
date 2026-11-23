@@ -249,11 +249,11 @@ tests/self/run.sh       # the system making itself: the kernel, /boot,
                         # started again (docs/self-hosting.md)
 tests/self/progs.sh     # the system making its programs from the
                         # Makefiles of their own directories,
-                        # upstream's, and installing them: each to be
-                        # what its root had
+                        # upstream's, and installing them: the root
+                        # to be after it as it was before
 tests/make/run.sh       # those Makefiles run here, with no machine:
                         # what `make install` puts in the root is to be
-                        # what the root file system has
+                        # what the root file system has, and whose
 tests/self/changed.sh   # as much of that as a change calls for: the
                         # Makefiles run here with no machine, then one
                         # machine for what the changed files are part

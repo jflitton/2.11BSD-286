@@ -6,11 +6,13 @@
 #	make
 #	make install
 #
-# with its own make, compiler, assembler and linker.  Each file that is
-# installed is then to be what the root file system had there before,
-# which is what the other build makes (usr/src/i286's Makefile), with
-# the mode it had; and each of the root's programs whose sources are in
-# one of the directories is to have been installed.  tests/make runs the
+# with its own make, compiler, assembler and linker.  The root file
+# system is then to be as it was before, which is what the other build
+# makes (usr/src/i286's Makefile): each file that was installed with
+# the contents, mode, owner and group the root had there, and all else
+# as it was, nothing gone and nothing new (tests/self/progs.py); and each
+# of the root's programs whose sources are in one of the directories is
+# to have been installed.  tests/make runs the
 # same Makefiles where the system is built, and booting nothing: this
 # says the system's make and shell read them as that machine's do, and
 # that the tools do on the 286 what they do there.
@@ -25,10 +27,10 @@
 # SHARE, the directory in obj/tests has that after its name
 # (tests/self/split.sh).
 #
-# A file's mode, owner and group are to be the root's too.  Of a page
-# of the manual those are all that is compared, since it has the day it
-# was formatted in it; and the files of tests/make/differs are not
-# compared, which the two builds do not make the same way.
+# Of a page of the manual the contents are not compared, since it has
+# the day it was formatted in it, nor of the files of tests/make/differs,
+# which the two builds do not make the same way; nor is what the system
+# changes by running (tests/self/running).
 #
 # Run from the top of the repository after `. tools/env.sh`.
 set -e

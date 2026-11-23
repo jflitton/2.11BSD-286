@@ -95,9 +95,8 @@ the manual with the program. The other build follows it: the files in
 the order the Makefile links them, `xstr`, `mkstr` and `mkprstr`
 compiled for the machine it runs on (`tools/xstrcc`), and in the root
 the place, mode, owner, group and other names upstream installs with:
-a program is root's and of the group `staff` unless its Makefile says
-another. What was
-changed in them for the 286:
+a file is root's, and of its directory's group, unless its Makefile
+says another. What was changed in them for the 286:
 
 - A program that is more than the small model has the model in its
   Makefile, `-mm` or `-ml`, where the PDP-11 had overlays (`ld -Z`):
@@ -117,6 +116,11 @@ changed in them for the 286:
 - `-i`, `-n` and `-z`, the PDP-11's separate instruction and data
   spaces, are left where they are: the system's `ld` takes them and
   does nothing.
+
+And one is mended: `hack`'s made the game's directory anew and left it
+empty, and the game does not start without what its `READ_ME` says it
+reads and writes there. Its install puts those in: `data`, `help`,
+`hh` and `rumors`, an empty `record` and `perm`, and `save`.
 
 `/lib/cpp` says `unix` and `BSD2_11`, as upstream's does for the
 PDP-11: the Makefiles do not, and the sources ask.
@@ -149,7 +153,10 @@ a new system's, and a system that is in use has its own users and
 disks.
 
 `/usr/games/lib/battle_strings`, and the files of `ex`'s messages and
-`tcsh`'s, are made with those programs and installed with them.
+`tcsh`'s, are made with those programs and installed with them; and
+`refer`'s index of `/usr/dict/papers`, which `refer`'s install has its
+`runinv` make with `mkey` and `inv`. The other build makes that with
+`tools/runinv.py`, the same to the byte.
 
 ## A disk
 
@@ -324,14 +331,17 @@ program.
 Makefiles of their own directories: `make` and `make install` in each
 of `bin`, `sbin`, `libexec`, `ucb`, `usr.bin`, `usr.sbin`, `games` and
 `new`, or in the directories it is given (`sh tests/self/progs.sh
-bin/sed usr.bin/yacc`). Each file that was installed is to be what the
-root had there before, which is what the other build makes, with the
-mode, the owner and the group it had, and each of the root's programs
+bin/sed usr.bin/yacc`). The root is then to be as it was before,
+which is what the other build makes, name for name: each file with its
+contents, mode, owner, group and other names, each directory with its
+mode, owner and group, each device and symbolic link. Nothing is to be
+gone and nothing new, but what a system that is running writes
+(`tests/self/running`) and the `NAME.old` that `tcsh`'s and `init`'s
+Makefiles keep of what they install over. Each of the root's programs
 whose sources are in those directories is to have been installed: 419
-files in all of them. Of a page of the manual, 110 of them, the mode
-and the owner are compared and no more, since it has the day it was
-formatted in it; the files of `tests/make/differs`, below, are not
-compared.
+files in all of them, and 110 pages of the manual, whose contents are
+not compared, since a page has the day it was formatted in it; nor are
+those of the files of `tests/make/differs`, below.
 
 All of it is half a day of the 286's time, which is for a release and
 not for a change. A change is checked two ways, and
@@ -343,17 +353,21 @@ not for a change. A change is checked two ways, and
   upstream's, `make`, `make install` and `make clean` in each
   directory, with that machine's `make` given the rules the system's
   has and none of its own, and compares what was installed with the
-  root file system: 491 files in four minutes, each with the contents,
-  the mode and the owner and group the root has. `HOST=1 sh tests/self/run.sh` runs the
+  root file system: 500 files in four minutes, each with the contents,
+  mode, owner and group the root has, and the root's 105 directories
+  still there with theirs. The directories are there before anything
+  is installed, and that machine's `make` takes them to be, as the
+  system's does. `HOST=1 sh tests/self/run.sh` runs the
   ones `srcmk.py` writes, for `/boot`, the kernel and the libraries but
   the C library (`tests/self/host.sh`). That says the Makefiles name
   the right files, flags and order, and install each where the system
   has it. It does not say the system's `make` reads them so, nor that
   the tools do on the 286 what they do there. A program a Makefile
-  makes and then runs is the 286's and does not run there:
-  `tests/make/left` lists what is made with one, `awk`, `tcsh`, `hack`,
-  `battlestar` and nine more programs, and the tables and games' files
-  such programs write. `tests/make/differs` lists what the two builds
+  makes and then runs is the 286's and does not run there: a line that
+  does no more than run one, as `phantasia`'s `setfiles` and `ntp`'s
+  `ntest`, is passed over, and `tests/make/left` lists what is made
+  with one, `awk`, `tcsh`, `hack`, `battlestar` and five more programs,
+  and the tables and games' files such programs write. `tests/make/differs` lists what the two builds
   do not make the same way, which neither test compares: `sendmail`,
   whose Makefile takes its messages out with a script of its own;
   `hack`, whose Makefile has `xstr` after its `crypt`; `phantasia`, one
