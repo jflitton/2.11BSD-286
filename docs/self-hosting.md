@@ -26,13 +26,22 @@ the repository, 20 MB of them, and room for what is made of them, which
 is left beside them. The root file system has the directory, and `/sys`
 is a name for `/usr/src/sys`.
 
-The Makefiles of the repository are GNU make's, and the system's own
-`make` reads none of them: no pattern rules, no functions, no
-conditionals. So `srcmk.py` writes Makefiles that it does read, with a
-rule for every file, from the same tables: each of the repository's
-Makefiles prints, for `make table`, what it is made of, and that is all
-`srcmk.py` knows. What is to be changed is changed in the repository's
-Makefile, and the system's is written again.
+The programs are made from the Makefiles of their own directories,
+which are upstream's: `usr/src/bin/Makefile`, `usr/src/bin/sh/Makefile`
+and the rest, as 2.11BSD has them, changed where the 286 is not the
+PDP-11 ([below](#upstreams-makefiles)). They are in the repository and
+on the system the same, and a change made to one there is a change to
+the system's sources.
+
+The kernel, the programs that load it, the libraries and what is not a
+program are not made from such yet. The repository's Makefiles for
+those are GNU make's, and the system's own `make` reads none of them:
+no pattern rules, no functions, no conditionals. So `srcmk.py` writes
+Makefiles that it does read, with a rule for every file, from the same
+tables: each of the repository's Makefiles prints, for `make table`,
+what it is made of, and that is all `srcmk.py` knows. What is to be
+changed is changed in the repository's Makefile, and the system's is
+written again.
 
 ## Making it
 
@@ -46,8 +55,11 @@ cd /usr/src/sys/PC; make; make install           # the kernel
 cd /usr/src/lib/libc/i286; make; make install    # the C library, three models
 cd /usr/src/i286
 make libs; make install-libs                     # the other libraries
-make progs; make install-progs                   # the programs
 make data; make install-data                     # what is not a program
+
+cd /usr/src/bin; make; make install              # the programs, and so
+cd /usr/src/sbin; make; make install             # in libexec, ucb, usr.bin,
+                                                 # usr.sbin, games and new
 ```
 
 | in | `make` makes | `make install` |
@@ -55,31 +67,57 @@ make data; make install-data                     # what is not a program
 | `sys/i286stand` | `boot`, `hdboot.bin`, `flboot.bin`, `mbr.bin`, `fdboot.bin` | `/boot`, `/mdec/wduboot`, `/mdec/fluboot` |
 | `sys/PC` | `unix`, and `unix.map` | `/unix`; the one that was is `/unix.old` |
 | `lib/libc/i286/s`, `m`, `l` | `libc.a`, `crt0.o` | `/lib`, `/lib/m`, `/lib/l` |
-| `i286` | `lib/MODEL/libNAME.a`; `bin/NAME` | `/usr/lib`, `/usr/lib/m`, `/usr/lib/l`; each program where the root file system has it, without its symbols, with its mode and owner |
+| `i286` | `lib/MODEL/libNAME.a` | `/usr/lib`, `/usr/lib/m`, `/usr/lib/l` |
+| `bin`, `sbin`, `libexec`, `ucb`, `usr.bin`, `usr.sbin`, `games`, `new` | each program, beside its sources, and its page of the manual | each where upstream's Makefile installs it, with the mode, owner and group it gives |
 | `i286`, `make data` | [what is not a program](#what-is-not-a-program) | each where the root file system has it |
 
 A kernel that does not start is left behind by naming the other to
-`/boot`: `wd(0,0)unix.old` ([booting](boot.md)). `make bin/NAME` in
-`/usr/src/i286` makes one program. `make clean` in any of them removes
-what was made.
+`/boot`: `wd(0,0)unix.old` ([booting](boot.md)). `make` in a program's
+own directory, `/usr/src/bin/sed`, makes that one. `make clean` in any
+of them removes what was made.
 
-A program is one command of `cc`, which compiles all its files, as it
-is where the system is built; so a change to one file of `sendmail`
-compiles all of them. The kernel and the C library have a rule for each
-object. Everything is made again when a header changes.
-
-Some programs' sources are themselves made, and the system makes those
-as the other build does, in the same directories of `/usr/src/i286` as
-that one has in `obj`: `yacc` and `lex` their parsers and scanners;
-`awk`'s table by a program of `awk`'s own, compiled and run there;
-`ex`'s and `tcsh`'s C with the messages taken out by `mkstr`
-(`usr/src/i286/mkstr.c`, which both builds compile and run);
-`battlestar`'s likewise by its own; `hack`'s files through the
-preprocessor and its `crypt`. The C library's stubs for the system
+The kernel and the C library have a rule for each object, and are made
+again when a header changes. The C library's stubs for the system
 calls are written there too, a file of assembly for each call and each
 model, from `lib/libc/i286/sys/syscalls.tab`: by `mkstubs`
 (`sys/mkstubs.c` beside it), which both builds compile and run, and
 which has each agree with the kernel's table of calls.
+
+## Upstream's Makefiles
+
+A program's Makefile is the one 2.11BSD has for it, and makes it as
+that says: `yacc` and `lex` their parsers and scanners; `awk`'s table
+by a program of `awk`'s own; `csh`, `make`, `fsck`, `yacc` and `Mail`
+with their strings taken out by `xstr`; `ex` and `tcsh` with their
+messages taken out first, into `/usr/share/misc/exstrings` by `mkstr`
+and into `/etc/tcsh6.00strgs` by `tcsh`'s own `mkprstr`; the page of
+the manual with the program. The other build follows it: the files in
+the order the Makefile links them, `xstr`, `mkstr` and `mkprstr`
+compiled for the machine it runs on (`tools/xstrcc`), and in the root
+the place, mode and other names upstream installs with. What was
+changed in them for the 286:
+
+- A program that is more than the small model has the model in its
+  Makefile, `-mm` or `-ml`, where the PDP-11 had overlays (`ld -Z`):
+  `csh`, `tcsh`, `ex`, `sendmail`, `rogue`, `warp`, `hack` and
+  `phantasia` the medium, `make` and `window` the large.
+- One whose stack is more than the 8K a program is linked with has
+  `-stack N`: `ftp`, `ftpd`, `rshd`, `rexecd`, `tcpd` and the others of
+  its directory, `Mail`, `sendmail`, `refer`, `sortbib`, `syslogd`;
+  `dprog` has less, for the room in its data.
+- `bin/as` and `bin/ld` make the 286's assembler and linker, which are
+  in `i286` there; `timed`'s checksum is `i286/cksum.c`, as the compiler
+  leaves it.
+- A directory's list of programs has not the ones the port does not
+  have: the PDP-11's debugger and tape formats, Fortran and Pascal,
+  `uucp`, `lpr`, the quotas. `usr/src/local`, whose programs all
+  compile, is not made.
+- `-i`, `-n` and `-z`, the PDP-11's separate instruction and data
+  spaces, are left where they are: the system's `ld` takes them and
+  does nothing.
+
+`/lib/cpp` says `unix` and `BSD2_11`, as upstream's does for the
+PDP-11: the Makefiles do not, and the sources ask.
 
 ## What is not a program
 
@@ -280,24 +318,45 @@ and the machine started again: it must come up on that kernel, with
 `init`, `getty`, `login` and the shell that it made.
 
 `PARTS="stand kernel"` makes less (`stand`, `kernel`, `libc`, `libs`,
-`progs`, `data`), `ONLY="awk make"` only those programs, and
-`DATA="man zones"` only those kinds of what is not a program.
+`data`), and `DATA="man zones"` only those kinds of what is not a
+program.
+
+`tests/self/progs.sh` has the system make the programs, from the
+Makefiles of their own directories: `make` and `make install` in each
+of `bin`, `sbin`, `libexec`, `ucb`, `usr.bin`, `usr.sbin`, `games` and
+`new`, or in the directories it is given (`sh tests/self/progs.sh
+bin/sed usr.bin/yacc`). Each file that was installed is to be what the
+root had there before, which is what the other build makes, with the
+mode it had, and each of the root's programs whose sources are in those
+directories is to have been installed. The manual's pages are not
+compared, having the day they were formatted in them, nor is a file's
+owner and group.
 
 All of it is half a day of the 286's time, which is for a release and
 not for a change. A change is checked two ways, and
 `sh tests/self/changed.sh` does both:
 
-- `HOST=1 sh tests/self/run.sh` boots nothing. The same Makefiles are
-  run where the system is built, by that machine's `make`, with the
-  system's compiler, assembler and linker as they are compiled for it
-  (`tests/self/host.sh`), and each file compared as above: `/boot`, the
-  kernel, the libraries but the C library, and the programs, 726 files
-  in under two minutes. That says the Makefiles name the right files,
-  flags and order. It does not say the tools do on the 286 what they do
-  there. Eight files are made with a program the Makefiles make and
-  run, which is the 286's and does not run there: `ex`, `tcsh`, `awk`,
-  `battlestar`, `hack` and three files of their strings. The C library
-  and what is not a program are not made there, for the same reason.
+- Booting nothing. The Makefiles are run where the system is built,
+  by that machine's `make`, with the system's compiler, assembler and
+  linker as they are compiled for it. `sh tests/make/run.sh` runs
+  upstream's, `make`, `make install` and `make clean` in each
+  directory, with that machine's `make` given the rules the system's
+  has and none of its own, and compares what was installed with the
+  root file system: 491 files in four minutes, each with the contents
+  and the mode the root has. `HOST=1 sh tests/self/run.sh` runs the
+  ones `srcmk.py` writes, for `/boot`, the kernel and the libraries but
+  the C library (`tests/self/host.sh`). That says the Makefiles name
+  the right files, flags and order, and install each where the system
+  has it. It does not say the system's `make` reads them so, nor that
+  the tools do on the 286 what they do there. A program a Makefile
+  makes and then runs is the 286's and does not run there:
+  `tests/make/left` lists what is made with one, `awk`, `tcsh`, `hack`,
+  `battlestar` and nine more programs, and the tables and games' files
+  such programs write. `tests/make/differs` lists what the two builds
+  do not yet make the same way: `sendmail`, whose Makefile takes its
+  messages out with a script of its own; `phantasia`, one file of which
+  its Makefile compiles without `-O`; and `backgammon`, whose Makefile
+  writes the day into it.
 - One machine is then booted to make what the changed files are part
   of and nothing else (`tests/self/select.py`): the programs a source
   is in, the libraries, the kernel, the C library or the boot programs.
@@ -316,11 +375,9 @@ five of the largest programs in 304 seconds where the 286 takes 710.
 It says nothing of whether a 286 runs the system, which is for
 `run.sh` and the other suites, on the 286.
 
-`sh tests/self/split.sh` is all of it but in two machines or three at
+`sh tests/self/split.sh` is all of it in two machines or three at
 once, each with a fixed share: three is the most, since each keeps a
-processor of the host busy for as long as it runs. It leaves to
-`run.sh` in one machine that the programs are installed where the
-system has them and that the system starts on the ones it made.
+processor of the host busy for as long as it runs.
 
 `tests/disk/run.sh` has the system make a disk that way, of a second
 drive of 133 MB with nothing on it, not a label. `tools/fsck.py` must
@@ -393,14 +450,24 @@ dump on more than one diskette has not been run.
   table has `nroff` clear of the terminal's modes are a negative
   number, which it read as 0. The tables the other build made were
   right, an `int` being longer there; `mktab` writes them unsigned.
-- `make install-progs` puts the files of `ex`'s messages, `tcsh`'s and
-  `battlestar`'s in place with those programs: each has in it where in
-  its file a message is.
+- `realloc` of no memory is `malloc`. The C library's read the word
+  before the address it was given, which before address 0 is the top
+  of a PDP-11 program's stack and outside a 286 program's data: `mkstr`
+  ended there on the first file with a line across two of `fgetln`'s
+  buffers, which was `ex.c`.
+- `/usr/lib/libtermlib.a`, the other name of `libtermcap.a`, a link as
+  upstream installs it: `battlestar`'s Makefile and others ask for
+  `-ltermlib`.
+- `tcsh`'s `sh.err.c` has the 286's flags under `#ifdef i286`, which
+  the `unifdef` its Makefile runs can read; it does not read
+  `#if defined`.
 
 ## What it does not make yet
 
-- The Makefiles themselves, as above: they are written from the
-  repository's, and a change made to one on the system is lost when
-  they are written again.
+- The Makefiles of the kernel, of the programs that load it, of the
+  libraries and of what is not a program, as above: they are written
+  from the repository's, and a change made to one on the system is lost
+  when they are written again. Upstream has one for each of those
+  too.
 - A disk's first sector when it is shared with another system
   (`mbr.bin`, which is made): there is no device for it.

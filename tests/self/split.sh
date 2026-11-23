@@ -1,29 +1,24 @@
 #!/bin/sh
-# All of tests/self/run.sh, shared between two or three machines booted
-# at once, and never more: each is a processor of this one's, kept busy
-# for as long as it runs.
+# All of tests/self/run.sh and tests/self/progs.sh, shared between two
+# or three machines booted at once, and never more: each is a processor
+# of this one's, kept busy for as long as it runs.
 #
 #	sh tests/self/split.sh [-n] [2|3]
 #
 # Three if it is not said.  The shares are fixed, so that a machine
 # always has the same work:
 #
-#	of three	1  /boot, the kernel, the libraries, a quarter
-#			   of the programs
-#			2  half of the programs
-#			3  what is not a program, a quarter of the
-#			   programs
-#	of two		1  /boot, the kernel, the libraries, what is
-#			   not a program
+#	of three	1  /boot, the kernel, the libraries, what is
+#			   not a program (run.sh)
+#			2  the programs of bin, sbin, libexec and ucb
+#			   (progs.sh)
+#			3  those of usr.bin, usr.sbin, games and new
+#	of two		1  as of three
 #			2  the programs
 #
-# A program's share is by its place in the list of them
-# (tools/srcmk.py), not by its size.  Machines 2 and 3 link with the
-# libraries the system came with, which are what machine 1 makes, to
-# the byte, when it passes.  Left to run.sh with everything in one
-# machine: that the programs are installed where the system has them,
-# and that it starts on the ones it made.  With -n this says each
-# machine's share and boots none.
+# The machines with programs link them with the libraries the system
+# came with, which are what machine 1 makes, to the byte, when it
+# passes.  With -n this says each machine's share and boots none.
 #
 # The machines have the faster processor (CPU=486,
 # tests/harness/runtest.py) unless CPU says the 286.
@@ -61,33 +56,28 @@ if [ -z "$dry" ]; then
     mk -C "$src/i286" syslibs
     cp "$top/obj/root/root.fs" "$out/root.fs"
 fi
-rm -rf "$out/src"
-python3 -I "$top/tools/srcmk.py" "$out/src"
-# quarter N...: the programs of those quarters, by place in the list.
-quarter() {
-    awk -v q=" $* " 'index(q, " " (NR - 1) % 4 + 1 " ") { printf "%s ", $1 }' \
-        "$out/src/programs"
-}
+all="stand kernel libc libs data"
 if [ $n = 3 ]; then
-    parts1="stand kernel libc libs progs" only1=$(quarter 1)
-    parts2="progs" only2=$(quarter 2 3)
-    parts3="data progs" only3=$(quarter 4)
+    dirs2="bin sbin libexec ucb"
+    dirs3="usr.bin usr.sbin games new"
 else
-    parts1="stand kernel libc libs data" only1=
-    parts2="progs" only2=$(quarter 1 2 3 4)
+    dirs2="bin sbin libexec ucb usr.bin usr.sbin games new"
 fi
 pids=
 i=0
 while [ $i -lt $n ]; do
     i=$((i + 1))
-    eval "parts=\$parts$i only=\$only$i"
-    echo "split: machine $i: $parts${only:+, $(echo $only | wc -w | tr -d ' ') programs}"
+    eval "dirs=\$dirs$i"
+    echo "split: machine $i: ${dirs:-$all}"
     [ -z "$dry" ] || continue
     (
-        export SHARE=$i PARTS="$parts" ROOTFS="$out/root.fs"
-        [ -z "$only" ] || export ONLY="$only"
+        export SHARE=$i ROOTFS="$out/root.fs"
         start=$(date +%s)
-        if sh "$top/tests/self/run.sh" > "$out/$i.log" 2>&1; then
+        if if [ -n "$dirs" ]; then
+                sh "$top/tests/self/progs.sh" $dirs
+            else
+                PARTS=$all sh "$top/tests/self/run.sh"
+            fi > "$out/$i.log" 2>&1; then
             echo "PASS machine $i $(($(date +%s) - start)) s"
         else
             echo "FAIL machine $i $(($(date +%s) - start)) s: $out/$i.log"

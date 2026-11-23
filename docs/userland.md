@@ -98,7 +98,7 @@ Eight programs are medium-model so far: `csh`, `ex` and `tcsh`, here,
 and `warp` ([games](#games)). `csh` was linked with two
 overlays on the PDP-11; here its 67K of code is in two segments, and its
 data segment has 11K of data and 8K of stack, leaving about 45K for its
-heap. `ex`, which is also `vi`, had two overlays as well. Its 77K of
+heap. `ex`, which is also `vi`, had two overlays as well. Its 82K of
 code is in two segments, and its data segment has 35K of data and 8K of
 stack. That leaves about 21K for the table of lines, two bytes a line,
 or 10,000 lines. Of the data, 16K is `vi`'s copy of the screen, three
@@ -107,10 +107,10 @@ from is often far bigger than a terminal was: it holds 200 columns by 80
 lines, and the widest window is 256 columns. `vi` refuses a bigger
 window, as upstream's does, with "Screen too large for internal buffer".
 Its error messages are in `/usr/share/misc/exstrings`, as on the PDP-11,
-not in its data. `usr/src/i286/mkstr.c` does what `mkstr` did: it takes each
-message out of a copy of the C, in `obj/ex`, and puts the message's
-offset in the file in its place. That moves 5.7K out of the data
-segment. `/usr/share/misc/termcap` is upstream's, with the commonest
+not in its data: `mkstr` takes each message out of a copy of the C and
+puts the message's offset in the file in its place, and `xstr` gathers
+the other strings into one array, as its Makefile has it.
+`/usr/share/misc/termcap` is upstream's, with the commonest
 terminals moved to the front, as its Makefile has `ex` do;
 `tools/mktermcap.py` runs the same editor commands.
 
@@ -123,15 +123,15 @@ screens send them. Without such maps those keys' escape sequences are
 commands to `vi`: Home and End open a line, and Delete and the page keys
 change the case of a character.
 
-`tcsh` had seven overlays. Its 127K of code is in two segments, and its
-data segment has 26K of data and 8K of stack, leaving about 30K for its
-heap. Its own `mkprstr` took the format of each `xprintf` out of its C
-and into `/etc/tcsh6.00strgs`, and made the call one to `mkprintf`,
-which reads the format from the file; `mkstr.c` does that too
-(`-e xprintf=mkprintf -n 5`), and moves 6.5K. Three of its headers are
-made from its C, as its Makefile makes them: `sh.err.h` with the
-16-bit flags of its error numbers, which its Makefile chose with
-`unifdef -Dpdp11`.
+`tcsh` had seven overlays. Its 143K of code is in three segments, and
+its data segment has 27K of data and 8K of stack, leaving about 29K for
+its heap. Its own `mkprstr` takes the format of each `xprintf` out of
+its C and into `/etc/tcsh6.00strgs`, 5.8K, and makes the call one to
+`mkprintf`, which reads the format from the file; `xstr` has its other
+strings, as its Makefile has it. Three of its headers are made from its
+C, as its Makefile makes them: `sh.err.h` with the 16-bit flags of its
+error numbers, which its Makefile chooses with `unifdef`, `-Di286`
+where it was `-Dpdp11`.
 
 ## The library
 

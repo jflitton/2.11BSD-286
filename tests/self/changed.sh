@@ -36,6 +36,7 @@ if [ -z "$names" ]; then
 fi
 if [ -z "$dry" ]; then
     HOST=1 sh tests/self/run.sh
+    sh tests/make/run.sh
 fi
 . tests/harness/system.sh
 mf=$top/obj/tests/self$case-host/fs/src/i286/Makefile
@@ -55,8 +56,14 @@ echo "changed: because of $WHY"
 if [ -n "$CCOM" ]; then
     sh tests/ccom/self.sh
 fi
-if [ -n "$PARTS" ]; then
-    export PARTS ONLY
-    case " $PARTS " in *" progs "*) ;; *) unset ONLY ;; esac
+# The programs are made from the Makefiles of their own directories
+# (tests/self/progs.sh), and the rest from those tools/srcmk.py writes.
+case " $PARTS " in
+*" progs "*)
+    PARTS=$(echo " $PARTS " | sed 's/ progs / /')
+    sh tests/self/progs.sh $(python3 -I tests/make/programs.py $ONLY) ;;
+esac
+if [ -n "$(echo $PARTS)" ]; then
+    export PARTS
     sh tests/self/run.sh
 fi

@@ -22,10 +22,11 @@
 # program a Makefile makes and then runs is the 286's and does not run
 # here; what is made with one is listed as left to the 286.
 #
-# Run from the top of the repository after `. tools/env.sh`, with the
-# system built (make -C usr/src/i286 root).
+# Run from the top of the repository after `. tools/env.sh`.
 set -e
 top=$(cd "$(dirname "$0")/../.." && pwd)
+. "$top/tests/harness/system.sh"
+buildsys
 here=$top/tests/make
 out=$top/obj/tests/make
 dirs=${*:-"bin sbin libexec ucb usr.bin usr.sbin games new"}

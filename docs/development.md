@@ -243,15 +243,21 @@ tests/ccom/self.sh      # the system making its compiler: cc, cpp, the
                         # second time with the ones it had just made,
                         # each to be what is made of it here
 tests/self/run.sh       # the system making itself: the kernel, /boot,
-                        # the libraries, the programs, and its
-                        # databases, tables and manual, from /usr/src
-                        # on the 286, each to be what is made of it
-                        # here; installed, and started again
-                        # (docs/self-hosting.md)
+                        # the libraries, and its databases, tables and
+                        # manual, from /usr/src on the 286, each to be
+                        # what is made of it here; installed, and
+                        # started again (docs/self-hosting.md)
+tests/self/progs.sh     # the system making its programs from the
+                        # Makefiles of their own directories,
+                        # upstream's, and installing them: each to be
+                        # what its root had
+tests/make/run.sh       # those Makefiles run here, with no machine:
+                        # what `make install` puts in the root is to be
+                        # what the root file system has
 tests/self/changed.sh   # as much of that as a change calls for: the
-                        # Makefiles run here with no machine (HOST=1),
-                        # then one machine for what the changed files
-                        # are part of
+                        # Makefiles run here with no machine, then one
+                        # machine for what the changed files are part
+                        # of
 tests/self/split.sh     # all of it, shared between two machines or
                         # three at once
 tests/floppy/run.sh     # the system formatting diskettes and making

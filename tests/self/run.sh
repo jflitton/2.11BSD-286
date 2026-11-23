@@ -29,11 +29,12 @@
 # with the one it was built on beside it as /unix.old, and on the
 # programs it made: init, getty, login, the shell.
 #
-# PARTS is what is made, any of "stand kernel libc libs progs data", and
-# by default all of it: half a day of the machine's time.  With ONLY
-# set, the programs made are those it names and no others; with DATA,
-# the files that are not programs are those of the kinds it names, of
-# "etc roff learn spell zones games man", and none is installed.
+# PARTS is what is made, any of "stand kernel libc libs data", and by
+# default all of it.  With DATA, the files that are not programs are
+# those of the kinds it names, of "etc roff learn spell zones games
+# man", and none is installed.  The programs are not made here any
+# more: the system makes those from the Makefiles of their own
+# directories, upstream's, and tests/self/progs.sh has it do that.
 #
 # TOOLS, TOOLS_KERNEL, TOOLS_PROGRAMS and TOOLS_BOOT are as in
 # tests/system (tests/harness/system.sh) and say whose work the system
@@ -47,7 +48,8 @@
 # (tests/self/host.sh), and what they make compared the same way.  That
 # says the Makefiles name the right files, flags and order; that the
 # tools do on the 286 what they do here is the machine's to say.
-# PARTS is then of "stand kernel libs progs", all four by default.
+# PARTS is then of "stand kernel libs", all three by default; for the
+# programs it is tests/make/run.sh.
 #
 # With SHARE set, the directory in obj/tests has that after its name:
 # tests/self/split.sh boots two or three at once, each with a share.
@@ -83,7 +85,7 @@ nstand=$top/obj/nstand
 # the C library of each model; libs, the other libraries; progs, the
 # programs.
 if [ -n "$HOST" ]; then
-    PARTS=${PARTS:-"stand kernel libs progs"}
+    PARTS=${PARTS:-"stand kernel libs"}
     case " $PARTS " in
     *" libc "*|*" data "*)
         echo "HOST: libc and data run programs they make, which are" \
@@ -91,12 +93,15 @@ if [ -n "$HOST" ]; then
         exit 2 ;;
     esac
 fi
-PARTS=${PARTS:-"stand kernel libc libs progs data"}
+PARTS=${PARTS:-"stand kernel libc libs data"}
 for p in $PARTS; do
     case $p in
-    stand|kernel|libc|libs|progs|data) ;;
-    *)  echo "PARTS is of stand, kernel, libc, libs, progs and data," \
-            "not $p" >&2
+    stand|kernel|libc|libs|data) ;;
+    progs)
+        echo "PARTS: the programs are tests/self/progs.sh's, and" \
+            "tests/make/run.sh's where the system is built" >&2
+        exit 2 ;;
+    *)  echo "PARTS is of stand, kernel, libc, libs and data, not $p" >&2
         exit 2 ;;
     esac
 done
