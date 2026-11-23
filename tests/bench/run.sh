@@ -1,7 +1,7 @@
 #!/bin/sh
 # Measure the system: boot it from a hard disk to multi-user, log in on
 # the first serial port as root and run bench(1), this port's benchmark
-# (usr/src/i286/bench), while the harness times each of its tests from
+# (usr/src/local/bench), while the harness times each of its tests from
 # outside by the marks it writes and samples where the processor is
 # (runtest.py --mark and --profile).  Then print the table of what each
 # test took, and say where tools/kprof.py's account of where the time
@@ -65,8 +65,8 @@ TIMEOUT=${TIMEOUT:-900} python3 -I "$top/tests/harness/runtest.py" \
     --hd bench.img,$geometry,xtide --until halting \
     --mark '@@' --profile "$kernel:${MS:-5}" \
     --type "login: " "root" \
-    --type "# " "bench -m $*; echo \"ben\"\"ch-\$?\"" \
-    --type "bench-" 'bench -s 2 stat getpid; echo "sca""le-$?"' \
+    --type "# " "/usr/local/bench -m $*; echo \"ben\"\"ch-\$?\"" \
+    --type "bench-" '/usr/local/bench -s 2 stat getpid; echo "sca""le-$?"' \
     --type "scale-" 'tracebuf; echo "trace""buf-$?"' \
     --type "tracebuf-" 'sysctl hw.machine hw.physmem kern.ostype machdep.console_device; sysctl -a | grep -c " = "; echo "sys""ctl-$?"' \
     --type "sysctl-" 'top -s 1' \

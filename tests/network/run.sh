@@ -80,7 +80,7 @@ TIMEOUT=${TIMEOUT:-1200} python3 -I "$top/tests/harness/runtest.py" \
     --hd network.img,$geometry,xtide --until halting \
     --net ${NETCARD:-ne2k8} --term vt100:80x24 \
     --type "login: " "root" \
-    --type "# " 'adduser' \
+    --type "# " '/usr/local/adduser' \
     --type "Login name: " 'guest' \
     --type "Full name: " 'Guest User' \
     --type "Group [staff]: " 'guest' \
@@ -90,7 +90,7 @@ TIMEOUT=${TIMEOUT:-1200} python3 -I "$top/tests/harness/runtest.py" \
     --type "Add this user [y]: " '' \
     --type "New password:" 'Gu3st-pw' \
     --type "Retype new password:" 'Gu3st-pw' \
-    --type "# " 'sleep 3; adduser' \
+    --type "# " 'sleep 3; /usr/local/adduser' \
     --type "Login name: " 'ftp' \
     --type "Full name: " 'Anonymous FTP' \
     --type "Group [staff]: " 'guest' \

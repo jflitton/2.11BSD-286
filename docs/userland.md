@@ -21,9 +21,14 @@ are this system's to set up.
 
 What a user now expects and upstream's program does not do goes in a
 program of this port's own, beside upstream's rather than in its place,
-so that both are there. Each is in a directory of its own in
-`usr/src/i286`, and the Makefile lists them as `OWNPROGS`. The first is
-`adduser`. 2.11BSD has `adduser(8)` only as a manual page that says how
+so that both are there. They are where 2.11BSD has a site's own
+programs: each in a directory of `usr/src/local` with a Makefile of its
+own, which installs it in `/usr/local`, and a page in
+`/usr/local/man`, which `man` looks in after `/usr/man` and
+`/usr/new/man`. The csh's `path` has `/usr/local`, and root's `.profile`
+not, as upstream has them: root names one in full,
+`/usr/local/adduser`. The other build's Makefile lists them as
+`OWNPROGS`. The first is `adduser`. 2.11BSD has `adduser(8)` only as a manual page that says how
 to add a user by hand; `adduser` asks for the login name, full name,
 group, shell, home directory and uid, offering `staff`, `/bin/csh`,
 `/home/name` and the lowest uid from 100 that nobody has; has upstream's
@@ -1726,7 +1731,7 @@ program of the model there; and `tests/ccom/programs.sh` has it make
 motions and text objects, the visual modes, `.`, undo and redo of the
 last 40 changes, searches with patterns, and the commands after a colon,
 among them `:s`, `:g`, filters and reading from a command. It is this
-port's own, in `usr/src/i286/ve`, and compiles with either compiler.
+port's own, in `usr/src/local/ve`, and compiles with either compiler.
 
 - **The file is not in its data segment, nor all in memory.** The text
   is in blocks of 4K, each holding whole lines one after another; what
@@ -2243,18 +2248,19 @@ The programs: `init`, `getty`, `login`, `sh`, `csh`, `ls`, `cat`, `cp`,
 `sync`, `tee`, `test` (and `[`), `time`, `who`, `wall`, `write`, `date`,
 `hostname`, `hostid`, `pagesize`, `passwd`, `chpass` (and `chfn` and
 `chsh`), `ps`, `sysctl`, `tcsh`, `expr`, `awk` and `make`, and in
-`/usr/bin` `sleep`, `iostat`, `bench`, `find`, `crontab`, `at`, `atq`, `atrm`, `egrep`,
+`/usr/bin` `sleep`, `iostat`, `find`, `crontab`, `at`, `atq`, `atrm`, `egrep`,
 `bc`, `dc`, `yacc` and `lex`, and in `/sbin` `mount`, `umount`,
 `mknod`, `fsck`, `mkfs`, `newfs`, `mkpasswd`, `dmesg`, `reboot` and
 `halt`. `/usr/ucb` has `ex`, `vi` and `view`, one file under three
 names, as upstream has them, `w` and `uptime`, one file under two,
 `vmstat`, `top`, `logger` and `lastcomm`. `/usr/sbin` has `update`,
-`vipw`, `chown`, `adduser`, `dev_mkdb`, `pstat`, `tracebuf`, `syslogd`,
+`vipw`, `chown`, `dev_mkdb`, `pstat`, `tracebuf`, `syslogd`,
 `cron`, `accton`, `sa`, `zic`, `zdump`, `exrecover` and `expreserve`,
 and `/usr/libexec` `atrun` and `acctd`, and in `find` `updatedb` and
 the `bigram` and `code` it runs. `/usr/adm` has `daily`, `weekly` and
 `monthly` ([the log, and what the clock
-runs](#the-log-and-what-the-clock-runs)). For the network there are `ifconfig`, `ping` and `route` in
+runs](#the-log-and-what-the-clock-runs)). `/usr/local` has the port's
+own, `adduser`, `bench` and `ve`. For the network there are `ifconfig`, `ping` and `route` in
 `/sbin`, `inetd` and `arp` in `/usr/sbin`, `telnetd` in `/usr/libexec`,
 and `telnet` and `netstat` in `/usr/ucb`. `tools/mkfs.py` makes these
 other names as hard links, and also `[` and `halt`. It makes everything

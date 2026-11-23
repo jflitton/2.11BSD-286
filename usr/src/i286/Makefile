@@ -755,12 +755,13 @@ GAMEPROGS=	$(GAMESTD) adventure atc backgammon teachgammon battlestar boggle \
 		monop quiz robots rogue sail snake snscore busy trek warp \
 		words1 hack phantasia
 
-# This port's own (docs/userland.md), each in a directory here.
-adduser_SRCS=	i286/adduser/adduser.c
-bench_SRCS=	i286/bench/bench.c
+# This port's own (docs/userland.md), each in a directory of
+# usr/src/local, where upstream has a site's own programs.
+adduser_SRCS=	local/adduser/adduser.c
+bench_SRCS=	local/bench/bench.c
 # ve keeps the file it edits in segments it asks the system for
 # (segalloc(2)), so it is of the medium model for its code alone.
-ve_SRCS=	$(addprefix i286/ve/,main.c term.c screen.c text.c edit.c \
+ve_SRCS=	$(addprefix local/ve/,main.c term.c screen.c text.c edit.c \
 		normal.c insert.c search.c ex.c fmem.s)
 ve_MODEL=	m
 ve_LIBS=	-ltermcap

@@ -176,7 +176,7 @@ TIMEOUT=${TIMEOUT:-600} python3 -I "$top/tests/harness/runtest.py" \
     --key "# " "echo 'AZ!@#\$%^&*()_+{}|:<>?~'" \
     --key "# " '{Alt-F1}' \
     --type "# " 'cp /etc/master.passwd /tmp/mp; mkpasswd -p /tmp/mp; cmp /tmp/mp.dir /etc/passwd.dir && cmp /tmp/mp.pag /etc/passwd.pag && cmp /tmp/mp.orig /etc/passwd && echo "db-s""ame"' \
-    --type "# " 'adduser' \
+    --type "# " '/usr/local/adduser' \
     --type "Login name: " 'guest' \
     --type "Full name: " 'Guest User' \
     --type "Group [staff]: " 'guest' \

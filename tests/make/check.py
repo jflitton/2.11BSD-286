@@ -147,7 +147,7 @@ differs = programs.Names(here + "/differs")
 def page(p, t):
     """Whether P is a page of the manual and T, as it was installed,
     is the root's but for the day it was formatted."""
-    if not (p.startswith(("/usr/man/", "/usr/new/man/")) and
+    if not (p.startswith(("/usr/man/", "/usr/new/man/", "/usr/local/man/")) and
             p.endswith(".0")):
         return False
     day = re.compile(rb"Printed [0-9]+/[0-9]+/[0-9]+")

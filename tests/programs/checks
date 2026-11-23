@@ -2449,9 +2449,9 @@ segfree: Invalid argument
 == ve
 cp /mnt/d/edit .
 (echo 'jddGp:%s/a/A/g'; echo 'Onew@:wq') | tr @ '\033' > k
-ve edit < k > /dev/null; cat edit
+/usr/local/ve edit < k > /dev/null; cat edit
 (echo ':g/^#/d'; echo ':w out'; echo ':1,300s/:/;/g'; echo 'u:w und'; echo ':q!') > k
-ve /etc/termcap < k > /dev/null
+/usr/local/ve /etc/termcap < k > /dev/null
 grep -v '^#' /etc/termcap | cmp - out && cmp out und && echo same
 man ve | col -b | sed -n 9p
 --

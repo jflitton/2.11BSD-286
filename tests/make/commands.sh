@@ -20,6 +20,7 @@
 #	ex		for share/termcap's Makefile, which has it run
 #			reorder on termcap.src: tools/mktermcap.py, which
 #			does what reorder does
+#	makewhatis	the system's script, which sh.py reads
 #	tar		this machine's, which says in OUT/dest.meta that
 #			what tar xp writes is root's and wheel's, as the
 #			files of the system's /usr/src are, which it keeps
@@ -84,6 +85,7 @@ fi
 exec python3 -I "$top/tools/mktermcap.py" . termcap
 END
 run tar python3 -I "$top/tests/make/tar.py" "$out"
+run makewhatis "$b/sh" "$s/usr.sbin/makewhatis/makewhatis.sh"
 for t in xstr mkstr tsort; do run $t "$h/$t"; done
 run manroff nroff -man -h
 for t in size ranlib; do

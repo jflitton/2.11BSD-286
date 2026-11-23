@@ -12,7 +12,8 @@
 #			   share and the manual (progs.sh)
 #			2  the libraries, and the programs of bin, sbin,
 #			   libexec and ucb
-#			3  those of usr.bin, usr.sbin, games and new
+#			3  those of usr.bin, usr.sbin, games, local and
+#			   new
 #	of two		1  as of three
 #			2  the libraries and the programs
 #
@@ -61,9 +62,10 @@ all="stand kernel"
 dirs1="share man"
 if [ $n = 3 ]; then
     dirs2="lib/libc usr.lib bin sbin libexec ucb"
-    dirs3="usr.bin usr.sbin games new"
+    dirs3="usr.bin usr.sbin games local new"
 else
-    dirs2="lib/libc usr.lib bin sbin libexec ucb usr.bin usr.sbin games new"
+    dirs2="lib/libc usr.lib bin sbin libexec ucb usr.bin usr.sbin"
+    dirs2="$dirs2 games local new"
 fi
 pids=
 i=0

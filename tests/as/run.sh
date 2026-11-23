@@ -74,8 +74,8 @@ for f in $(find "$libc" -name '*.s' | sort); do
     both "$f" -I "$libc/crt/" -DFAR -DFARDATA
 done
 # and ve's, the one program with assembly of its own
-both "$top/usr/src/i286/ve/fmem.s" -I "$libc/crt/"
-both "$top/usr/src/i286/ve/fmem.s" -I "$libc/crt/" -DFAR
+both "$top/usr/src/local/ve/fmem.s" -I "$libc/crt/"
+both "$top/usr/src/local/ve/fmem.s" -I "$libc/crt/" -DFAR
 ${HOSTCC:-cc} -std=gnu89 -w -o "$out/mkstubs" "$libc/sys/mkstubs.c"
 for m in s m l; do
     rm -rf "$out/stubs/$m"

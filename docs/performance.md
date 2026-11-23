@@ -33,8 +33,8 @@ assembly and is not ported, so `prof` is not built.
 
 ## bench
 
-`bench` is this port's own (`usr/src/i286/bench`, installed as
-`/usr/bin/bench`). Each test does a fixed amount of one kind of work
+`bench` is this port's own (`usr/src/local/bench`, installed as
+`/usr/local/bench`). Each test does a fixed amount of one kind of work
 and prints how long it took by the system's clock, how much of that
 was the processor's in the program and its children and how much in
 the kernel for them, how many pieces of work that was, and what one

@@ -60,7 +60,8 @@ cd /usr/src/share; make; make install            # what is not a program
 
 cd /usr/src/bin; make; make install              # the programs, and so
 cd /usr/src/sbin; make; make install             # in libexec, ucb, usr.bin,
-                                                 # usr.sbin, games and new
+                                                 # usr.sbin, games, local
+                                                 # and new
 
 cd /usr/src/man; make; make install              # the manual, and whatis
 ```
@@ -73,7 +74,7 @@ cd /usr/src/man; make; make install              # the manual, and whatis
 | `lib/libc` | `libc.a`, `libc_m.a`, `libc_l.a`, and `crt0.o` of each model in `i286/csu` | `/lib`, `/lib/m`, `/lib/l` |
 | `usr.lib` | each library, of each model, beside its sources | `/usr/lib`, `/usr/lib/m`, `/usr/lib/l` |
 | `share` | `termcap`; `zic` and `zdump` ([what is not a program](#what-is-not-a-program)) | `/usr/share`: `misc`, `tmac`, `me`, `ms`, `tabset`, `learn`, `zoneinfo`; `/etc/termcap`, a symbolic link; `zic` and `zdump` in `/usr/sbin` |
-| `bin`, `sbin`, `libexec`, `ucb`, `usr.bin`, `usr.sbin`, `games`, `new` | each program, beside its sources, and its page of the manual | each where upstream's Makefile installs it, with the mode, owner and group it gives |
+| `bin`, `sbin`, `libexec`, `ucb`, `usr.bin`, `usr.sbin`, `games`, `local`, `new` | each program, beside its sources, and its page of the manual | each where upstream's Makefile installs it, with the mode, owner and group it gives |
 | `man` | the pages of `man1` to `man8` | `/usr/man/cat1` to `cat8`, with their other names; `/usr/man/whatis` |
 
 A kernel that does not start is left behind by naming the other to
@@ -118,8 +119,9 @@ says another. What was changed in them for the 286:
   leaves it.
 - A directory's list of programs has not the ones the port does not
   have: the PDP-11's debugger and tape formats, Fortran and Pascal,
-  `uucp`, `lpr`, the quotas. `usr/src/local`, whose programs all
-  compile, is not made. Nor has `share`'s list `adb`, whose scripts are
+  `uucp`, `lpr`, the quotas. `usr/src/local`'s list has the port's own
+  programs, `adduser`, `bench` and `ve`, in place of upstream's, which
+  all compile and are not made. Nor has `share`'s list `adb`, whose scripts are
   of the PDP-11 kernel's structures, nor `font` and `fontinfo`, the
   typesetter's and the Versatec's, which the port has no `troff` nor
   `vtroff` for; and `man`'s lists have the pages of what the port has,
@@ -366,7 +368,7 @@ the two.
 what is not a program and the manual, from the Makefiles of their own
 directories: `make` and `make install` in each of `lib/libc`,
 `usr.lib`, `share`, `bin`, `sbin`, `libexec`, `ucb`, `usr.bin`,
-`usr.sbin`, `games`, `new` and `man`, in that order, or in the
+`usr.sbin`, `games`, `local`, `new` and `man`, in that order, or in the
 directories it is given (`sh tests/self/progs.sh lib/libc bin/sed
 usr.bin/yacc man`). The root is then to be as it was
 before, which is what the other build makes, name for name: each file
@@ -394,8 +396,8 @@ not for a change. A change is checked two ways, and
   upstream's, `make`, `make install` and `make clean` in each
   directory, with that machine's `make` given the rules the system's
   has and none of its own, and compares what was installed with the
-  root file system: 2108 files in seven minutes, each with the contents,
-  mode, owner and group the root has, and the root's 106 directories
+  root file system: 2112 files in seven minutes, each with the contents,
+  mode, owner and group the root has, and the root's 109 directories
   still there with theirs. The directories are there before anything
   is installed, and that machine's `make` takes them to be, as the
   system's does; `/boot`'s and the kernel's are among them, and their
@@ -410,7 +412,9 @@ not for a change. A change is checked two ways, and
   `ntest`, is passed over, and `tests/make/left` lists what is made
   with one, `awk`, `tcsh`, `hack`, `battlestar` and five more programs,
   and the tables and games' files such programs write, and `whatis`,
-  which has their pages. `ex` for `termcap`, `zic` for the time zones
+  which has their pages, and `/usr/new`'s and `/usr/local`'s, made with
+  `/usr/man/makewhatis.sed`, which `man`'s Makefile installs after them
+  and a system has already. `ex` for `termcap`, `zic` for the time zones
   and `eqn` for `eqn(1)` are what the other build has for them. `tests/make/differs` lists what the two builds
   do not make the same way, which neither test compares: `sendmail`,
   whose Makefile takes its messages out with a script of its own;

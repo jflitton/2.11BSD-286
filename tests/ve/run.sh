@@ -1,5 +1,5 @@
 #!/bin/sh
-# Check ve, this port's editor (usr/src/i286/ve), on the machine the
+# Check ve, this port's editor (usr/src/local/ve), on the machine the
 # system is built on.  It is built there from the same sources, with
 # that machine's C compiler (cc, or HOSTCC) and the system's own termcap
 # library, and with tests/ve/host in place of what it has from the 286:
@@ -14,7 +14,7 @@
 set -e
 top=$(cd "$(dirname "$0")/../.." && pwd)
 here=$top/tests/ve
-src=$top/usr/src/i286/ve
+src=$top/usr/src/local/ve
 lib=$top/usr/src/usr.lib/libtermlib
 out=$top/obj/tests/ve
 mkdir -p "$out"

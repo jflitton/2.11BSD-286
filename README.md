@@ -57,8 +57,9 @@ The PDP-11 and the 286 are close enough that the tree carries over:
   ported](docs/unported.md) has the whole list.
 - Upstream's programs are kept as 2.11BSD has them, changed only for
   bugs, the compiler and each machine's settings. Newer behaviour goes
-  in programs of the port's own: so far `adduser`, `bench` and `ve`, an
-  editor in the manner of `vim`.
+  in programs of the port's own, in `/usr/local` as 2.11BSD has a site's
+  own: so far `adduser`, `bench` and `ve`, an editor in the manner of
+  `vim`.
 
 ## Building
 

@@ -210,7 +210,6 @@ f /sbin/mkpasswd 755:0.10 ../../../obj/root/bin/mkpasswd
 f /usr/sbin/update 755:0.10 ../../../obj/root/bin/update
 f /usr/sbin/vipw 755:0.10 ../../../obj/root/bin/vipw
 f /usr/sbin/chown 755:0.10 ../../../obj/root/bin/chown
-f /usr/sbin/adduser 755 ../../../obj/root/bin/adduser
 f /usr/sbin/dev_mkdb 755:0.10 ../../../obj/root/bin/dev_mkdb
 f /usr/sbin/arp 2755:2 ../../../obj/root/bin/arp
 f /usr/sbin/syslogd 755:0.10 ../../../obj/root/bin/syslogd
@@ -249,6 +248,21 @@ f /bin/chflags 755:0.10 ../../../obj/root/bin/chflags
 d /usr/new 755
 f /usr/new/la 755 ../../../obj/root/bin/la
 d /usr/new/man 755
+d /usr/new/man/cat2 755
+d /usr/new/man/cat3 755
+d /usr/new/man/cat4 755
+d /usr/new/man/cat5 755
+d /usr/new/man/cat6 755
+d /usr/new/man/cat7 755
+d /usr/new/man/cat8 755
+# This port's own programs, which upstream's place for a site's own has:
+# usr/src/local, which installs them here, and its manual beside the
+# system's.
+d /usr/local 755
+f /usr/local/adduser 755 ../../../obj/root/bin/adduser
+f /usr/local/bench 755 ../../../obj/root/bin/bench
+f /usr/local/ve 755 ../../../obj/root/bin/ve
+d /usr/local/man 755
 f /usr/ucb/gcore 2755:2 ../../../obj/root/bin/gcore
 f /usr/ucb/window 755 ../../../obj/root/bin/window
 f /bin/expr 755:0.10 ../../../obj/root/bin/expr
@@ -278,8 +292,6 @@ f /usr/ucb/vmstat 2755:2 ../../../obj/root/bin/vmstat
 f /usr/ucb/top 2755:2 ../../../obj/root/bin/top
 f /usr/ucb/netstat 2755:2 ../../../obj/root/bin/netstat
 f /usr/bin/iostat 2755:2 ../../../obj/root/bin/iostat
-f /usr/bin/bench 755 ../../../obj/root/bin/bench
-f /usr/bin/ve 755 ../../../obj/root/bin/ve
 h /sbin/halt /sbin/reboot
 h /sbin/fastboot /sbin/reboot
 f /usr/bin/basename 755:0.10 ../../../obj/root/bin/basename

@@ -24,10 +24,10 @@
 #
 # DIR is a directory of usr/src with a Makefile: lib/libc, bin,
 # usr.bin/yacc, share, man.  Without one it is the C library, the other
-# libraries (usr.lib), share, every directory of programs and man, in
-# that order, as the programs are linked with the libraries and upstream's
-# Makefile in /usr/src has the others; which is more than ten hours of
-# the 286's time.  The machine has the faster processor unless CPU=286
+# libraries (usr.lib), share, every directory of programs, local among
+# them, and man, in that order, as the programs are linked with the
+# libraries and upstream's Makefile in /usr/src has the others; which is
+# more than ten hours of the 286's time.  The machine has the faster processor unless CPU=286
 # is in the environment, as tests/self/changed.sh has it.  With ROOTFS
 # set, that root file system is the one booted, and none is made; with
 # SHARE, the directory in obj/tests has that after its name
@@ -48,7 +48,7 @@ top=$(cd "$(dirname "$0")/../.." && pwd)
 . "$top/tests/harness/system.sh"
 export CPU=${CPU:-486}
 dirs=${*:-"lib/libc usr.lib share bin sbin libexec ucb usr.bin usr.sbin games
-    new man"}
+    local new man"}
 name=self$case-progs${SHARE:+-$SHARE}
 out=$top/obj/tests/$name
 mkdir -p "$out"
@@ -85,7 +85,7 @@ do
 	fi
 done
 find /bin /sbin /lib /etc /usr/bin /usr/ucb /usr/sbin /usr/libexec \\
-    /usr/games /usr/new /usr/share /usr/lib /usr/man /var/db \\
+    /usr/games /usr/local /usr/new /usr/share /usr/lib /usr/man /var/db \\
     -newer /usr/src/made -type f -print > /newer.list
 sync
 date

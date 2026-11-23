@@ -38,7 +38,7 @@ buildsys
 here=$top/tests/make
 out=$top/obj/tests/make
 dirs=${*:-"lib/libc usr.lib share bin sbin libexec ucb usr.bin usr.sbin games
-    new man sys/i286stand sys/PC"}
+    local new man sys/i286stand sys/PC"}
 # The kernel says the day it was made, and is told the one the root's
 # says (usr/src/sys/conf/newvers.sh).
 DATE=$(sed -n 's/.*(\(.*\)).*/\1/p' "$top/obj/nPC/vers.c")

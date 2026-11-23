@@ -401,7 +401,7 @@ LINKS = ["sys/machine"]
 # whole: its Makefiles name their directories by macros, and the 286's
 # name the PDP-11's C (lib/libc/i286/gen).
 PROGDIRS = ["share", "bin", "sbin", "libexec", "ucb", "usr.bin", "usr.sbin",
-            "games", "new", "man"]
+            "games", "local", "new", "man"]
 LIBDIRS = ["usr.lib"]
 WHOLE = ["lib/libc"]
 # A Makefile that puts the medium model's objects in m and the large's

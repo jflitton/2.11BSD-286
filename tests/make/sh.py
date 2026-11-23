@@ -3,6 +3,7 @@
 tests/make/run.sh.
 
 usage: sh.py HOSTBIN OUT -c COMMAND
+       sh.py HOSTBIN OUT FILE [ARG...]
 
 A command that the Makefile names by where the system has it,
 /usr/ucb/xstr or /lib/cpp, is the one of that name here (commands.sh):
@@ -13,7 +14,8 @@ directory it goes into, one a redirection writes or a pattern of names,
 is that name in OUT/dest, the root here, as commands.sh's own commands
 have it; but /usr/include and /usr/src, which are OUT/root's
 (stage.py).  Then COMMAND is the shell's, in the C locale, as the
-system has no other.
+system has no other.  A FILE, a script, is read and its commands are
+seen to so, and it is run with its ARGs.
 
 A COMMAND that is no more than a program the Makefile made, ./setfiles,
 or one it installed that is not one of commands.sh's, /usr/bin/mkerrlst,
@@ -72,7 +74,12 @@ def here(m):
     return m.group(0)
 
 
-if len(args) >= 2 and args[0] == "-c":
+if args and not args[0].startswith("-") and os.path.isfile(args[0]):
+    with open(args[0], errors="surrogateescape") as f:
+        text = f.read()
+    text = CMD.sub(lambda m: m.group(1) + m.group(2), text)
+    args = ["-c", NAME.sub(root, text), args[0]] + args[1:]
+elif len(args) >= 2 and args[0] == "-c":
     args[1] = MADE.sub(here, args[1])
     alone = ALONE.match(args[1])
     if alone and (theirs(alone.group(1)) if alone.group(1).startswith(".")

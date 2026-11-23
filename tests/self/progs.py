@@ -111,8 +111,8 @@ for p in sorted(set(before) | set(after)):
     if p in running:
         continue
     b, a = before.get(p), after.get(p)
-    page = p.startswith(("/usr/man/", "/usr/new/man/")) and \
-        p.endswith(".0")
+    page = p.startswith(("/usr/man/", "/usr/new/man/",
+                         "/usr/local/man/")) and p.endswith(".0")
     if a is None:
         bad.append("GONE %s" % p)
     elif b is None:

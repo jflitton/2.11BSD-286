@@ -28,11 +28,10 @@ cat1	usr.bin/touch/touch.1 usr.bin/uname/uname.1 usr.bin/whereis/whereis.1
 cat1	usr.bin/xargs/xargs.1 usr.bin/xinstall/install.1 usr.sbin/cron/crontab.1
 cat1	usr.sbin/tracebuf/tracebuf.1 bin/chflags/chflags.1
 cat1	ucb/mkstr/mkstr.1 usr.bin/mkerrlst/mkerrlst.1
-# As the Makefile of usr/src/new installs its programs' pages.
+# As the Makefiles of usr/src/new and usr/src/local install their
+# programs' pages: local's are this port's own.
 ../new/man/cat1	new/la/la.1
-
-# This port's own editor.
-cat1	i286/ve/ve.1
+../local/man/cat1	local/ve/ve.1
 
 # The compiler and what goes with it: as and ld are the 286's own, and
 # so are their pages, and ld's a.out(5).

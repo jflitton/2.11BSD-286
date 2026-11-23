@@ -1050,7 +1050,7 @@ main(int argc, char **argv)
 		if (t->name == 0)
 			usage();
 	}
-	self = strchr(av0, '/') ? av0 : "/usr/bin/bench";
+	self = strchr(av0, '/') ? av0 : "/usr/local/bench";
 	(void)sprintf(file, "/tmp/bench%d", getpid());
 	(void)signal(SIGPIPE, SIG_IGN);
 	printf("%-8s %s    real    user     sys   count     each\n", "test",

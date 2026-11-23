@@ -16,9 +16,10 @@ beside it has eqn read first, `eqn eqn.1 | /usr/man/manroff`, is read
 by the eqn beside NROFF first, the system's built for the same machine.
 
 LIST says which pages go on the system: a line names a directory of
-/usr/man (or one beside it, ../new/man/cat1, whose pages are in a
-whatis of its own, /usr/new/man/whatis) and the sources, relative to SRC, usr/src, of the pages that go
-in it; a Makefile there stands for the pages it formats, those its SRCS,
+/usr/man (or one beside it, ../new/man/cat1 or ../local/man/cat1, whose
+pages are in a whatis of its own, /usr/new/man/whatis or
+/usr/local/man/whatis) and the sources, relative to SRC, usr/src, of
+the pages that go in it; a Makefile there stands for the pages it formats, those its SRCS,
 SRCS1 and so on list, as usr/src/man/man2/Makefile does all of section
 2.  A page's name is its source's less the source's suffix, `.1`, `.3f`,
 `.man` or the like: bin/ar/ar.5.5 would be ar.0.  A source followed by a
@@ -269,7 +270,8 @@ def main():
         open(os.path.join(out, d, name), "wb").write(r.stdout)
 
     # whatis: /usr/man's, and one for each directory beside it, as
-    # makewhatis leaves that when the Makefile of usr/src/new runs it.
+    # makewhatis leaves that when the Makefile of usr/src/new or
+    # usr/src/local runs it.
     beside = sorted({os.path.dirname(d) for d, _ in made
                      if d.startswith("../")})
     for where in [""] + beside:
@@ -303,9 +305,6 @@ def main():
         f.write("f /usr/man/whatis 444:%s whatis\n" % OWNER)
         for where in beside:
             at = os.path.normpath("/usr/man/" + where)
-            for n in range(1, 9):
-                if "%s/cat%d" % (where, n) not in {d for d, _ in made}:
-                    f.write("d %s/cat%d 755\n" % (at, n))
             f.write("f %s/whatis 664 %s/whatis\n" % (at, where))
     print("mkman.py: %d pages and %d links to them" % (len(made), len(linked)))
 

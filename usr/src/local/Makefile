@@ -5,7 +5,9 @@ CFLAGS=	-O
 LDFLAGS= -i
 
 # Programs that live in subdirectories, and have makefiles of their own.
-SUBDIR= afio cxref ddd less mkovmake mtools welcome qterm zmodem
+# The 286's are this port's own; upstream's, afio cxref ddd less mkovmake
+# mtools welcome qterm zmodem, are not made.
+SUBDIR= adduser bench ve
 
 # C programs that live in the current directory and do not need
 # explicit make lines.

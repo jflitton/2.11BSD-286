@@ -138,7 +138,7 @@ TIMEOUT=${TIMEOUT:-1800} python3 -I "$top/tests/harness/runtest.py" \
     --type "Escape character is" 'echo "in-win""dow"; tty' \
     --type "in-window" "${CTRLP}" \
     --type "Command:" 'qy' \
-    --type "# " 'cp /etc/services /tmp/sv; ve /tmp/sv' \
+    --type "# " 'cp /etc/services /tmp/sv; /usr/local/ve /tmp/sv' \
     --type "lines, " "Gototal ${ESC}:f" \
     --type "changed, line" ':w' \
     --type "lines, " ':q' \
