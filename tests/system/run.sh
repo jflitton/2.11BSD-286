@@ -241,7 +241,7 @@ $services$services$services${CTRLD}" \
 
 serial=$out/serial.txt
 for want in "shell-ok /root" "/tmp/dir" "same" "xa" "xb" "xc" "status 3" \
-    "/dev/console /dev/errlog /dev/klog /dev/kmem" "master.passwd" \
+    "/dev/acctlog /dev/console /dev/errlog /dev/fl0a" "master.passwd" \
     "in-csh" "n=3 b v42" "f:/etc/motd" "f:/etc/group" "hist one two" \
     "said xy" "isdir" "st=4" "nosuch: Undefined variable" "/etc /tmp" \
     "Terminated *sleep 30" "[0-9.]*u [0-9.]*s 0:0[12] " \

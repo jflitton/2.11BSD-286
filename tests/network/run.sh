@@ -99,7 +99,7 @@ TIMEOUT=${TIMEOUT:-1200} python3 -I "$top/tests/harness/runtest.py" \
     --type "Retype new password:" 'N0-0ne-in' \
     --type "# " 'sleep 3; mount /dev/wd0d /mnt; sh /mnt/check.sh; umount /mnt' \
     --type "checks: " 'rlogin localhost -l guest' \
-    --type "$ " 'echo "rl""-in" $TERM `tty`; who am i' \
+    --type "$ " 'who am i; echo "rl""-in" $TERM `tty`' \
     --type "rl-in" "${CTRLD}" \
     --type "# " 'rm /home/guest/.rhosts; rlogin localhost -l guest' \
     --type "Password:" 'Gu3st-pw' \

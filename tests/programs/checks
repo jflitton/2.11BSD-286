@@ -906,7 +906,7 @@ cp -r /usr/man/cat4 /usr/man/cat7 m
 makewhatis /tmp/w/m
 grep ' ([47]) - ' /usr/man/whatis | cmp - m/whatis && wc -l < m/whatis
 --
-      24
+      25
 =file tab.t
 .TS
 center box;
