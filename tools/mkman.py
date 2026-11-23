@@ -14,7 +14,8 @@ the copies of them there say tmac/ where the system's say
 the system's nroff makes the same pages.
 
 LIST says which pages go on the system: a line names a directory of
-/usr/man and the sources, relative to SRC, usr/src, of the pages that go
+/usr/man (or one beside it, ../new/man/cat1, whose pages are not in
+whatis) and the sources, relative to SRC, usr/src, of the pages that go
 in it; a Makefile there stands for the pages it formats, those its SRCS,
 SRCS1 and so on list, as usr/src/man/man2/Makefile does all of section
 2.  A page's name is its source's less the source's suffix, `.1`, `.3f`,
@@ -222,6 +223,8 @@ def main():
 
     lines = []
     for d, name in sorted(made):
+        if d.startswith("../"):
+            continue
         r = subprocess.run(["sed", "-n", "-f",
                             os.path.join(src, "man", "makewhatis.sed"),
                             os.path.join(out, d, name)],
@@ -236,9 +239,10 @@ def main():
         f.write("# The manual's pages, made by tools/mkman.py from %s.\n"
                 % os.path.relpath(listing, top))
         for d in sorted({d for d, _ in made} | {d for d, _ in linked}):
-            f.write("d /usr/man/%s 755\n" % d)
+            f.write("d %s 755\n" % os.path.normpath("/usr/man/" + d))
         for d, name in sorted(made):
-            f.write("f /usr/man/%s/%s 444 %s/%s\n" % (d, name, d, name))
+            f.write("f %s/%s 444 %s/%s\n" %
+                    (os.path.normpath("/usr/man/" + d), name, d, name))
         for (d, name), (pd, page) in sorted(linked.items()):
             f.write("h /usr/man/%s/%s /usr/man/%s/%s\n" % (d, name, pd, page))
         f.write("f /usr/man/whatis 444 whatis\n")

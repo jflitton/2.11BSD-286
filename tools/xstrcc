@@ -8,35 +8,58 @@
 #	xstr; cc -c MODEL xs.c; mv xs.o strings.o	the strings, once
 #	cc LDFLAGS -o OUT file.o ... strings.o LIBS
 #
-# usage: xstrcc XSTR WORK OUT FLAGS... -- FILE.c... [-- LINK...]
+# usage: xstrcc XSTR WORK OUT [-mkstr MKSTR NAME] [-link "OBJECT ..."]
+#		FLAGS... -- FILE.c... [-- LINK...]
 #
 # XSTR is xstr compiled for this machine, WORK a directory for what is
 # made on the way, and FLAGS cc's: the model, -O, -D, -I and -stack N.
 # The objects are linked in the order of the files, strings.o after
-# them, and LINK, objects and -l libraries, after that.  The compiler is
-# the system's own (tools/ncc, tools/cc -ccom).
+# them, or in the order -link gives them, and LINK, objects and -l
+# libraries, after that.  The compiler is the system's own (tools/ncc,
+# tools/cc -ccom).
+#
+# With -mkstr the program's error messages are taken out of each file
+# first, into the file NAME in WORK, as ex's Makefile has it:
+#
+#	mkstr - NAME x file.c			which writes xfile.c
+#	cc -E FLAGS xfile.c | xstr -c -
+#
+# MKSTR being mkstr compiled for this machine.  That is done on a copy
+# of the file in WORK, with the file's directory among those the
+# preprocessor looks in for a header.
 top=$(cd "$(dirname "$0")/.." && pwd)
 xstr=$1 work=$2 out=$3
 shift 3
-flags= model= stack=
+flags= model= stack= mkstr= name= link=
 while [ "$1" != -- ]; do
     case $1 in
     -ms|-mm|-ml) model=$1 ;;
     -stack) stack="-stack $2"; shift ;;
+    -mkstr) mkstr=$2 name=$3; shift 2 ;;
+    -link) link=$2; shift ;;
     *) flags="$flags $1" ;;
     esac
     shift
 done
 shift
-rm -rf "$work"
+[ -n "$work" ] && [ "$work" != / ] || exit 1
 mkdir -p "$work" || exit 1
 work=$(cd "$work" && pwd)
+find "$work" -type f -exec rm -f {} +
 objs=
 while [ $# -gt 0 ] && [ "$1" != -- ]; do
     base=$(basename "$1" .c)
-    (cd "$(dirname "$1")" &&
-        "$top/tools/ncc" -E $model $flags -o /dev/stdout "$base.c") |
-        (cd "$work" && "$xstr" -c -) || exit 1
+    dir=$(cd "$(dirname "$1")" && pwd)
+    if [ -n "$mkstr" ]; then
+        (cd "$work" && cp "$dir/$base.c" . && "$mkstr" - "$name" x "$base.c" &&
+            "$top/tools/ncc" -E $model $flags "-I$dir" -o /dev/stdout \
+                "x$base.c" | "$xstr" -c - && rm -f "x$base.c" "$base.c") ||
+            exit 1
+    else
+        (cd "$dir" &&
+            "$top/tools/ncc" -E $model $flags -o /dev/stdout "$base.c") |
+            (cd "$work" && "$xstr" -c -) || exit 1
+    fi
     (cd "$work" && "$top/tools/ncc" $model $flags x.c &&
         mv x.o "$base.o" && rm -f x.c) || exit 1
     objs="$objs $base.o"
@@ -45,4 +68,5 @@ done
 [ $# -eq 0 ] || shift
 cd "$work" && "$xstr" && "$top/tools/ncc" $model xs.c && mv xs.o strings.o &&
     rm -f xs.c &&
-    exec "$top/tools/cc" -ccom $model $stack -o "$out" $objs strings.o "$@"
+    exec "$top/tools/cc" -ccom $model $stack -o "$out" \
+        ${link:-$objs strings.o} "$@"

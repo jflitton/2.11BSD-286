@@ -81,25 +81,35 @@ csh_MODEL=	m
 csh_XSTR=	yes
 
 # ex, which is also vi.  Its error messages are taken out of its C into
-# a file, /usr/share/misc/exstrings, that it reads them from
-# (mkstr.c, here): the PDP-11 needed the room in its 64K of data, and
-# so does the medium model.  The sources mkstr makes are in obj/ex.
+# a file, /usr/share/misc/exstrings, that it reads them from, and its
+# other strings into one array, as its Makefile has it: by mkstr and
+# xstr, the tree's, compiled for this machine (tools/xstrcc).  The files
+# are compiled in the order of the Makefile's OBJS and linked in the
+# order it links them, which was that of the PDP-11's overlays.
+# exrecover has ex's own ex_extern.o, as there, and so its model.
 EX=	ex.c ex_addr.c ex_cmds.c ex_cmds2.c ex_cmdsub.c ex_data.c \
 	ex_extern.c ex_get.c ex_io.c ex_put.c ex_re.c ex_set.c ex_subr.c \
 	ex_tagio.c ex_temp.c ex_tty.c ex_unix.c ex_v.c ex_vadj.c ex_vget.c \
 	ex_vmain.c ex_voper.c ex_vops.c ex_vops2.c ex_vops3.c ex_vput.c \
 	ex_vwind.c printf.c
-EXFLAGS=	-I$(SRC)/ucb/ex -DTABS=8 -DLISPCODE -DCHDIR -DVFORK -DFASTTAG \
-		-DTEMP512K
-EXO=	$(TOP)/obj/ex
-ex_SRCS=	$(addprefix $(EXO)/,$(EX))
+EXLINK=	ex_voper.o ex_vget.o ex_vops.o ex_vops2.o ex_vops3.o ex_set.o \
+	ex_re.o ex_io.o ex_tty.o ex_unix.o ex.o ex_v.o ex_addr.o ex_cmds.o \
+	ex_cmds2.o ex_cmdsub.o ex_tagio.o ex_get.o ex_temp.o ex_vadj.o \
+	ex_vmain.o ex_vwind.o ex_vput.o ex_put.o ex_subr.o printf.o \
+	strings.o ex_data.o ex_extern.o
+EXFLAGS=	-DTABS=8 -DLISPCODE -DCHDIR -DVFORK -DFASTTAG -DTEMP512K
+ex_SRCS=	$(addprefix ucb/ex/,$(EX))
 ex_FLAGS=	$(EXFLAGS)
 ex_LIBS=	-ltermcap
 ex_MODEL=	m
-exrecover_SRCS=	ucb/ex/exrecover.c ucb/ex/ex_extern.c
+ex_XSTR=	yes
+ex_XSTRFLAGS=	-mkstr $(H)/umkstr exstrings -link "$(EXLINK)"
+exrecover_SRCS=	ucb/ex/exrecover.c $(XO)/ex/ex_extern.o
 exrecover_FLAGS= $(EXFLAGS)
+exrecover_MODEL= m
 expreserve_SRCS= ucb/ex/expreserve.c
 expreserve_FLAGS= $(EXFLAGS)
+expreserve_MODEL= m
 
 # tcsh.  Its messages are taken out of its C into /etc/tcsh6.00strgs too,
 # by its own kind of mkstr, mkprstr: a call to xprintf with a string
@@ -866,8 +876,6 @@ table:
 	    $(SRC)/,,$($(l)_LIBFLAGS)) | $($(l)_LIB)))
 	@:$(foreach y,$(YACCED),$(info YACC $(subst $(colon), ,$(y))))
 	@:$(foreach l,$(LEXED),$(info LEX $(subst $(colon), ,$(l))))
-	@:$(info MKSTR ex/exstrings | $(ex_MKSTR) | $(addprefix \
-	    ucb/ex/,$(EX)) | )
 	@:$(info MKSTR tcsh/tcsh6.00strgs | $(tcsh_MKSTR) | $(addprefix \
 	    bin/tcsh/,$(TCSH)) | $(tcsh_MKSTRDEPS))
 	@:$(info FILTERED games/nhack | hcrypt games/hack/crypt.c -Di286 | -mm \
@@ -906,7 +914,7 @@ table:
 
 .PHONY:	all list ccprogs table root syslibs clean FORCE
 
-$(O) $(O)/log $(EXO) $(TCO) $(H) $(G) $(AWKG):
+$(O) $(O)/log $(TCO) $(H) $(G) $(AWKG):
 	mkdir -p $@
 
 HDRS:=	$(wildcard $(TOP)/usr/include/*.h $(SRC)/sys/h/*.h $(SRC)/sys/i286/*.h)
@@ -926,6 +934,12 @@ srcs=	$(foreach s,$($(1)_SRCS),$(if $(filter /%,$(s)),$(s),$(SRC)/$(s)))
 # its own Makefile has it (tools/xstrcc): xstr is the tree's, compiled
 # for this machine.
 XO=	$(TOP)/obj/xstr
+$(H)/umkstr: $(SRC)/ucb/mkstr/mkstr.c | $(H)
+	@echo hostcc ucb/mkstr
+	@$(HOSTCC) $(HOSTCFLAGS) -Wno-error=implicit-function-declaration \
+	    -Wno-error=implicit-int -o $@ $<
+$(O)/ex: $(H)/umkstr
+$(XO)/ex/ex_extern.o: $(O)/ex ;
 $(H)/xstr: $(SRC)/ucb/xstr.c | $(H)
 	@echo hostcc xstr
 	@$(HOSTCC) $(HOSTCFLAGS) -Wno-error=implicit-function-declaration \
@@ -945,7 +959,8 @@ $(O)/$(1): $$(call srcs,$(1)) $(HDRS) $(H)/xstr $(TOP)/tools/xstrcc \
 		$(call lib,$(1))/crt0.o $(call lib,$(1))/libc.$(call lx,$(1)) \
 		$$(patsubst -l%,$(call lib,$(1))/lib%.$(call lx,$(1)),$$($(1)_LIBS)) | $(O)/log
 	@echo cc $(1)
-	@$(TOP)/tools/xstrcc $(H)/xstr $(XO)/$(1) $$@ -m$(call model,$(1)) \
+	@$(TOP)/tools/xstrcc $(H)/xstr $(XO)/$(1) $$@ $$($(1)_XSTRFLAGS) \
+	    -m$(call model,$(1)) \
 	    -O $$($(1)_FLAGS) -- $$(call srcs,$(1)) -- $$($(1)_LIBS) \
 	    > $(O)/log/$(1) 2>&1 || { cat $(O)/log/$(1); rm -f $$@; exit 1; }
 endef
@@ -1270,14 +1285,8 @@ GAMEDATA=	$(GO)/battlestar/battle_strings $(GO)/fortunes.dat \
 $(H)/mkstr: $(SRC)/i286/mkstr.c | $(H)
 	@echo hostcc mkstr
 	@$(HOSTCC) $(HOSTCFLAGS) -o $@ $<
-ex_MKSTR=
 tcsh_MKSTR=	-e xprintf=mkprintf -n 5
 tcsh_MKSTRDEPS=	tcsh/sh.err.h tcsh/ed.defns.h tcsh/tc.const.h
-$(EXO)/exstrings: $(addprefix $(SRC)/ucb/ex/,$(EX)) \
-		$(wildcard $(SRC)/ucb/ex/*.h) $(H)/mkstr | $(EXO)
-	$(H)/mkstr $(ex_MKSTR) $@ $(EXO) \
-	    $(addprefix $(SRC)/ucb/ex/,$(EX))
-$(ex_SRCS): $(EXO)/exstrings ;
 
 # tcsh's, likewise, and its headers: sh.err.h has the numbers of its
 # errors, from sh.err.c, which has two sets of the flags that go with
@@ -1720,5 +1729,5 @@ endef
 SYSRULES+= games_SYSRULES
 
 clean:
-	rm -rf $(O) $(EXO) $(TCO) $(H) $(G) $(R) $(MANO) $(GO) $(SO) $(ZO) \
+	rm -rf $(O) $(XO) $(TCO) $(H) $(G) $(R) $(MANO) $(GO) $(SO) $(ZO) \
 	    $(foreach l,$(LIBRARIES),$(LIB)/[sml]/$(l) $(LIB)/[sml]/lib$(l).$(LX))

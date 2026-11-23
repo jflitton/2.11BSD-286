@@ -27,8 +27,12 @@ DEBUGFLAGS=	-DTRACE -g
 NONDEBUGFLAGS=	-O
 DEB=	${NONDEBUGFLAGS}	# or ${DEBUGFLAGS} to to debug
 OPTIONS= -DLISPCODE -DCHDIR -DVFORK -DFASTTAG -DTEMP512K
-CFLAGS=	-DTABS=8 ${OPTIONS} ${DEB}
-LDFLAGS= -X -i
+# The 80286: ex is of the medium model, its code being more than a
+# segment of 64K, where the PDP-11 had it in overlays; exrecover has
+# ex's ex_extern.o, and so the same model, and expreserve with it.
+MODEL=	-mm
+CFLAGS=	-DTABS=8 ${OPTIONS} ${DEB} ${MODEL}
+LDFLAGS= -X -i ${MODEL}
 TERMLIB=	-ltermcap
 MKSTR=	${BINDIR}/mkstr
 OBJS=	ex.o ex_addr.o ex_cmds.o ex_cmds2.o ex_cmdsub.o \
@@ -55,13 +59,13 @@ SRC6=	printf.c expreserve.c exrecover.c
 all:	a.out exrecover expreserve
 
 a.out: ${OBJS}
-	ld ${LDFLAGS} /lib/crt0.o \
-		-Z ex_voper.o ex_vget.o ex_vops.o ex_vops2.o ex_vops3.o \
-		-Z ex_set.o ex_re.o ex_io.o ex_tty.o ex_unix.o ex.o ex_v.o \
-		-Y ex_addr.o ex_cmds.o ex_cmds2.o ex_cmdsub.o ex_tagio.o \
+	${CC} ${LDFLAGS} \
+		   ex_voper.o ex_vget.o ex_vops.o ex_vops2.o ex_vops3.o \
+		   ex_set.o ex_re.o ex_io.o ex_tty.o ex_unix.o ex.o ex_v.o \
+		   ex_addr.o ex_cmds.o ex_cmds2.o ex_cmdsub.o ex_tagio.o \
 		   ex_get.o ex_temp.o ex_vadj.o ex_vmain.o ex_vwind.o\
 		   ex_vput.o ex_put.o ex_subr.o printf.o strings.o \
-		   ex_data.o ex_extern.o ${TERMLIB} -lc
+		   ex_data.o ex_extern.o ${TERMLIB}
 
 tags:	/tmp
 	${CTAGS} -w ex.[hc] ex_*.[hc]
@@ -74,7 +78,7 @@ ex_vars.h:
 # xstr: hands off!
 strings.o: strings
 	${XSTR}
-	${CC} -c -o strings.o xs.c
+	${CC} ${MODEL} -c -o strings.o xs.c
 	
 exrecover: exrecover.o ex_extern.o
 	${CC} ${LDFLAGS} exrecover.o ex_extern.o -o exrecover

@@ -9,7 +9,7 @@
 
 CFLAGS= -O -DMEASURE
 LDFLAGS= -i
-MACHINE= pdp
+MACHINE= i286
 LIBS=
 PROGRS=	timed timedc
 
@@ -29,13 +29,15 @@ COMMO=	byteorder.o measure.o cksum.o
 
 all:	${PROGRS}
 
-#cksum.o:
-#	cc ${CFLAGS} -c ${MACHINE}/$*.c
+# The 80286's is C as the compiler leaves it; the PDP-11's had its
+# assembly put right by hand (pdp/cksum-fix).
 cksum.o:
-	cc ${CFLAGS} -S ${MACHINE}/cksum.c
-	ed - < ${MACHINE}/cksum-fix > /dev/null cksum.s
-	as - -o $@ cksum.s
-	rm -f cksum.s
+	cc ${CFLAGS} -c ${MACHINE}/$*.c
+#cksum.o:
+#	cc ${CFLAGS} -S ${MACHINE}/cksum.c
+#	ed - < ${MACHINE}/cksum-fix > /dev/null cksum.s
+#	as - -o $@ cksum.s
+#	rm -f cksum.s
 
 timed: 	${OBJDS} ${COMMO}
 	cc ${LDFLAGS} ${CFLAGS} ${OBJDS} ${COMMO} ${LIBS} -o timed 

@@ -58,7 +58,9 @@ cat1	usr.bin/printf/printf.1 usr.bin/shar/shar.1 usr.bin/shar/traverse.1
 cat1	usr.bin/touch/touch.1 usr.bin/uname/uname.1 usr.bin/whereis/whereis.1
 cat1	usr.bin/xargs/xargs.1 usr.bin/xinstall/install.1 usr.sbin/cron/crontab.1
 cat1	usr.sbin/nc/nc.1 usr.sbin/tracebuf/tracebuf.1 bin/chflags/chflags.1
-cat1	new/la/la.1 man/man1/gcore.1 man/man1/window.1
+cat1	man/man1/gcore.1 man/man1/window.1 ucb/mkstr/mkstr.1
+# As the Makefile of usr/src/new installs its programs' pages.
+../new/man/cat1	new/la/la.1
 
 # This port's own editor.
 cat1	i286/ve/ve.1
@@ -90,6 +92,7 @@ cat6	games/phantasia/phant.nr:phantasia games/sail/sail.6
 cat7	man/man7/Makefile
 
 cat8	man/man8/intro.8 man/man8/fsck.8 man/man8/getty.8 man/man8/makekey.8
+cat8	usr.sbin/nc/nc.1
 cat8	man/man8/rc.8 man/man8/routed.8 man/man8/sendmail.8 man/man8/sync.8
 cat8	man/man8/timed.8 man/man8/timedc.8
 cat8	bin/disklabel/disklabel.8 bin/ping/ping.8 bin/sysctl/sysctl.8
