@@ -1,9 +1,10 @@
 #
-#       @(#)hosts.allow        2.0 (2.11BSD) 2026/10/11
+# Who may reach the daemons that inetd starts through tcpd: a line names
+# daemons, a colon, and the clients they take.  What no line here takes,
+# /etc/hosts.deny refuses.  Upstream's takes its
+# example domain and the names without a dot.  This takes everyone, as
+# the system did before it had tcpd; to keep to a network, put in the
+# place of the last line, say,
+#	ALL: LOCAL 192.168.0.
 #
-ftpd: .example.com LOCAL
-rlogind: .example.com LOCAL
-rshd: .example.com LOCAL
-tftpd: .example.com LOCAL
-popper: .example.com LOCAL
-telnetd: .example.com LOCAL
+ALL: ALL

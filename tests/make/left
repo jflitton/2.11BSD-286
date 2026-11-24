@@ -1,8 +1,0 @@
-# What tests/make/run.sh does not have made where the system is built:
-# made by a program its Makefile makes and runs that only the 286 can
-# run, there being nothing here that does what it does.  The name the
-# root has it by, and after # the program.
-/usr/games/lib/adventure/a.out	# adventure's, which its Makefile runs to
-				# read the game in and write itself out with
-				# it as /usr/games/adventure; the root has it
-				# to do that when the game is first played

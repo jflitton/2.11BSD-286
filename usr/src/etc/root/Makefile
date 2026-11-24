@@ -12,6 +12,8 @@ DESTDIR=/foobar
 OWN=root
 GRP=wheel
 
+# The 286's: and root's keys for vi (dot.exrc).
+
 # all the usual targets do nothing
 all install depend lint clean tags:
 
@@ -20,3 +22,4 @@ distribution:
 	install -c -o ${OWN} -g ${GRP} -m 644 dot.login ${DESTDIR}/root/.login
 	install -c -o ${OWN} -g ${GRP} -m 644 dot.profile ${DESTDIR}/root/.profile
 	install -c -o ${OWN} -g ${GRP} -m 644 dot.minimal ${DESTDIR}/.profile
+	install -c -o ${OWN} -g ${GRP} -m 644 dot.exrc ${DESTDIR}/root/.exrc

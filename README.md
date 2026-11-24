@@ -71,8 +71,8 @@ differ only by case.
 ```sh
 make -C usr/src/sys/PC                # the kernel
 make -C usr/src/sys/i286stand         # the boot sectors and /boot
-make -C usr/src/lib/libc/i286         # the C library
-make -C usr/src/i286 all root         # the programs and the root file system
+make -C usr/src root                  # the rest, by its Makefiles, and the
+                                      # root file system
 python3 tools/mkdisk.py -p -b obj/nstand/hdboot.bin -m obj/nstand/mbr.bin \
     disk.img a=obj/root/root.fs b=swap:4000
 ```

@@ -1,6 +1,6 @@
 /*
  * Taken in ahead of zic.c when the build makes the zone files with a
- * zic of the machine it runs on (usr/src/i286/Makefile): there time_t
+ * zic of the machine it runs on (tools/build/host.mk): there time_t
  * is 64 bits, and zic, which works out from time_t which years a file
  * covers, would write each rule's changes up to the year 292 billion.
  * The system's time_t is a long, 32 bits, as the PDP-11's is, so that

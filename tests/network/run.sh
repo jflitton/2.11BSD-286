@@ -49,7 +49,7 @@ cd "$out"
 cp "${ROOTFS:-$top/obj/root/root.fs}" root.fs
 rm -rf checks
 python3 -I "$top/tests/harness/checks.py" "$top/tests/network/checks" checks
-python3 -I "$top/tools/strip.py" "$bin/ntest" checks/d/ntest
+python3 -I "$top/tools/strip.py" "$made/usr.sbin/ntp/ntest" checks/d/ntest
 printf '0\0guest\0Gu3st-pw\0echo rexec-$USER; echo err >&2\0' > checks/d/rexec.in
 {
     echo "d /t 755"; echo "d /x 755"; echo "d /d 755"

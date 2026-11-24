@@ -2,7 +2,7 @@
 """Compare how the two compilers lay structures out.
 
 usage: layouts.py headers DIR [HEADER ...]
-       layouts.py programs DIR [PROGRAM ...]
+       layouts.py programs DIR [DIRECTORY ...]
        layouts.py tools
 
 The system is built by its own compiler or by the cross compiler, and
@@ -18,8 +18,10 @@ the medium.  For each it has each compiler compile the size, each
 member's offset, and for a bit field the bits a store of ones to it
 sets, and prints what differs, with how many it compared.  DIR has the
 files made on the way, and results.json.  The second does the same for
-what the programs' own sources define (usr/src/i286/Makefile's PROGS,
-or those PROGRAMs), in each program's model and with its flags.
+what the programs' own sources define: each C file the build compiled
+(make -C usr/src, tools/build/cc.py), or those compiled in the
+DIRECTORYs of usr/src or under them, in the model and with the flags it
+was compiled with, as the build left it.
 
 What a file defines is read from clang's syntax tree (clang -Xclang
 -ast-dump=json) of what the system's preprocessor makes of it, so clang
@@ -422,43 +424,35 @@ def report(outdir, results, notes):
         len(types), len(results), len(diff)))
 
 
-# What the programs are made of, by the Makefile: name, model, sources
-# and flags, a line each.
-PRINT = """printall:
-\t@$(foreach p,$(PROGS),echo '$(p)|$(call model,$(p))|$(call srcs,$(p))|' \\
-\t    $(foreach a,$($(p)_FLAGS),"'$(a)'");)
-"""
-
-
 def programs(outdir, only):
-    """What the programs' own sources define, each once."""
+    """What the programs' own sources define, each once.  OUT/sources
+    has a line for each C file the build compiled: the directory of
+    usr/src, the file, the model and the flags (tools/build/cc.py); the
+    file is the one in OUT/root/usr/src, which has what the build made
+    there."""
     os.makedirs(outdir, exist_ok=True)
-    mk = os.path.join(outdir, "print.mk")
-    with open(mk, "w") as f:
-        f.write(PRINT)
-    out = subprocess.run(["make", "-s", "-f", "Makefile", "-f", mk,
-                          "printall"],
-                         cwd=os.path.join(TOP, "usr", "src", "i286"),
-                         capture_output=True, text=True, check=True).stdout
+    out = os.path.join(TOP, "obj", "nbuild")
+    src_root = os.path.join(out, "root", "usr", "src")
+    compiled = {}
+    for line in open(os.path.join(out, "sources")):
+        w = shlex.split(line)
+        compiled[w[0], w[1]] = w[2:]
     system = [os.path.realpath(d) for d in
               (INC, os.path.join(SYS, "h"), os.path.join(SYS, "i286"),
-               os.path.join(SYS, "net"), os.path.join(SYS, "netinet"))]
+               os.path.join(SYS, "net"), os.path.join(SYS, "netinet"),
+               os.path.join(src_root, "sys"))]
 
     def theirs(f):
         return not any(f.startswith(d + "/") for d in system)
     jobs, seen = [], set()
-    for line in out.splitlines():
-        prog, model, srcs, fl = line.split("|", 3)
-        if only and prog not in only:
+    for k, ((d, f), w) in enumerate(sorted(compiled.items())):
+        if only and not any(d == o or d.startswith(o + "/") for o in only):
             continue
-        fl = [a for a in shlex.split(fl) if a[:2] in ("-D", "-U", "-I")]
-        for k, src in enumerate(srcs.split()):
-            # hack's are usr/src/games/hack's, encrypted
-            src = re.sub(r"/obj/games/n?hack/", "/usr/src/games/hack/", src)
-            if src.endswith(".c") and src not in seen:
-                seen.add(src)
-                jobs.append((prog, model, fl, src,
-                             os.path.join(outdir, "%s-%d" % (prog, k))))
+        if f not in seen:
+            seen.add(f)
+            jobs.append((d, w[0], w[1:], os.path.join(src_root, f),
+                         os.path.join(outdir, "%s-%d" % (
+                             d.replace("/", "-"), k))))
 
     def read(job):
         prog, model, fl, src, base = job

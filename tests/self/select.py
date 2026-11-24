@@ -17,25 +17,24 @@ written is for the shell:
 A file that the tools which do the making are made of, or a header
 every program reads, calls for the sample: the compiler made by itself,
 with its directories, the kernel, and a program of each model, sed, csh
-and make.  The other build, and what writes the system's /usr/src,
-call for programs made with programs their Makefiles make and run,
-which tests/make runs its own builds of, and only the 286 its own.  Any other
-file of usr/src calls for what is made of it: of a directory that
-make is run in when usr/src's Makefile runs it (tools/srcmk.py), the
-deepest it is in, and the directory of each program whose sources it
-is among, as the other build has them (tests/make/programs.py); of the
-kernel's sources and its configuration (sys/conf, sys/PC), the kernel;
-and of /boot's, those.
+and make.  The build where the system is built (tools/build), and what
+writes the system's /usr/src, call for programs made with programs
+their Makefiles make and run, which that build runs its own builds of,
+and only the 286 its own.  Any other file of usr/src calls for what is
+made of it: of a directory that make is run in when usr/src's Makefile
+runs it (tools/srcmk.py), the deepest it is in, and each directory that
+compiles it, as the build where the system is built did
+(tests/self/built.py); of the kernel's sources and its configuration
+(sys/conf, sys/PC), the kernel; and of /boot's, those.
 """
 import os
-import subprocess
 import sys
 
 TOP = os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(TOP, "tools"))
-sys.path.insert(0, os.path.join(TOP, "tests", "make"))
-import programs  # noqa: E402
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import built  # noqa: E402
 import srcmk  # noqa: E402
 
 TOOLS = ("usr/src/lib/ccom/", "usr/src/lib/cpp/", "usr/src/lib/c2/",
@@ -44,7 +43,7 @@ TOOLS = ("usr/src/lib/ccom/", "usr/src/lib/cpp/", "usr/src/lib/c2/",
          "usr/src/usr.bin/yacc/", "usr/src/usr.bin/lex/",
          "usr/src/usr.bin/ranlib/", "usr/include/", "usr/src/sys/h/")
 BUILD = ("tools/srcmk.py", "tools/cc", "tools/ncc", "tests/self/",
-         "usr/src/i286/Makefile")
+         "tools/build/")
 SAMPLE = ["bin/sed", "bin/csh", "bin/make"]
 UNSEEN = ["bin/awk", "bin/tcsh", "ucb/ex", "games/battlestar", "games/hack"]
 
@@ -60,15 +59,8 @@ for macro in ("LIBDIR", "SRCDIR"):
             order += line.split("=", 1)[1].split()
 
 
-# The directories of the programs each source is among.
-among = {}
-source = programs.sources()
-for line in subprocess.run(["make", "-s", "-C", srcmk.SRC + "/i286", "table"],
-                           capture_output=True, text=True,
-                           check=True).stdout.splitlines():
-    head, flags, srcs, libs = line[len("PROG "):].split("|")
-    for f in srcs.split():
-        among.setdefault(f, set()).add(source[head.split()[0]])
+# The directories each source is compiled in.
+among = built.sources(built.build(TOP))
 
 
 def directory(name):

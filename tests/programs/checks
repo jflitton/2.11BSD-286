@@ -809,8 +809,8 @@ root
 total
 =file manroff
 # sh /mnt/d/manroff SOURCE PAGE: whether nroff makes of SOURCE, as
-# manroff does, what the build made of it (tools/mkman.py), but for the
-# date each was printed on.
+# manroff does, what the build made of it (its Makefile's manroff, as
+# tools/build has it), but for the date each was printed on.
 nroff -man -h $1 | sed 's,^Printed [0-9/]*,Printed,' > a
 sed 's,^Printed [0-9/]*,Printed,' $2 | cmp - a && echo $2
 == nroff

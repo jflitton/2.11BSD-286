@@ -1,5 +1,0 @@
-#
-# Host names, for gethostbyname and gethostbyaddr.  Upstream's
-# (../../etc/hosts) names its own example network.
-#
-127.0.0.1	localhost

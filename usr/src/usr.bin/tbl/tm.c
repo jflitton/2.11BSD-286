@@ -4,12 +4,13 @@ static char sccsid[] = "@(#)tm.c	4.3 (2.11BSD) 2026/5/9";
 
  /* tm.c: split numerical fields */
 # include "t..c"
+char *
 maknew(str)
 	char *str;
 {
 	/* make two numerical fields */
-	int dpoint, c;
-	char *p, *q, *ba;
+	int c;
+	char *p, *q, *ba, *dpoint;
 	p = str;
 	for (ba= 0; c = *str; str++)
 		if (c == '\\' && *(str+1)== '&')
@@ -22,7 +23,7 @@ maknew(str)
 			if (*str=='.' && !ineqn(str,p) &&
 				(str>p && digit(*(str-1)) ||
 				digit(*(str+1))))
-					dpoint=(int)str;
+					dpoint=str;
 			}
 		if (dpoint==0)
 			for(; str>p; str--)
@@ -32,7 +33,7 @@ maknew(str)
 			}
 		if (!dpoint && p==str) /* not numerical, don't split */
 			return(0);
-		if (dpoint) str=(char *)dpoint;
+		if (dpoint) str=dpoint;
 		}
 	else
 		str = ba;
@@ -45,7 +46,7 @@ maknew(str)
 	q = exstore;
 	while (*exstore++ = *str++);
 	*p = 0;
-	return((int)q);
+	return(q);
 	}
 ineqn (s, p)
 	char *s, *p;

@@ -106,9 +106,9 @@ by a program of `awk`'s own; `csh`, `make`, `fsck`, `yacc` and `Mail`
 with their strings taken out by `xstr`; `ex` and `tcsh` with their
 messages taken out first, into `/usr/share/misc/exstrings` by `mkstr`
 and into `/etc/tcsh6.00strgs` by `tcsh`'s own `mkprstr`; the page of
-the manual with the program. The other build follows it: the files in
-the order the Makefile links them, `xstr`, `mkstr` and `mkprstr`
-compiled for the machine it runs on (`tools/xstrcc`), and in the root
+the manual with the program. The other build runs the same Makefiles,
+with `xstr`, `mkstr` and `mkprstr` compiled for the machine it runs on
+(`tools/build/commands.sh`), and gives what they install in the root
 the place, mode, owner, group and other names upstream installs with:
 a file is root's, and of its directory's group, unless its Makefile
 says another. What was changed in them for the 286:
@@ -177,10 +177,10 @@ is installed where `cc` links a program of that model with it (`/lib`,
 - `usr.lib` makes the eight libraries the programs are linked with.
   `libwrap` is `tcpd`'s, which its Makefile makes and does not install.
 
-The other build makes the C library in the order the Makefile has the
-system make it, `lorder *.o | tsort` and two `ar ma`, with
-`tools/lorder.py`, which prints what the system's `lorder` does, and
-the tree's `tsort` compiled for the machine it runs on.
+The other build makes the C library with the same Makefile, `lorder
+*.o | tsort` and two `ar ma`, with `tools/lorder.py`, which prints what
+the system's `lorder` does, and the tree's `tsort` compiled for the
+machine it runs on.
 
 And one is mended: `hack`'s made the game's directory anew and left it
 empty, and the game does not start without what its `READ_ME` says it
@@ -341,8 +341,8 @@ reboot
 
 - The miniroot's devices are made by `/dev/MAKEDEV`, which is
   upstream's with the 286's devices in place of the PDP-11's
-  (`usr/src/i286/etc/MAKEDEV`); the root's own are still listed in
-  `root.proto`, and the two agree.
+  (`usr/src/etc/MAKEDEV`), which makes the root's too, as `etc`'s
+  `distribution` runs it (`MAKEDEV all`).
 - The machine needs 800K above 1M for the miniroot, and what the
   programs take beside.
 - `/boot` loads `miniroot` only from a diskette.
@@ -389,8 +389,8 @@ and `make installsrc` in `/usr/src`, or `make` and `make install` in
 each of the directories it is given (`sh tests/self/progs.sh lib/libc
 bin/sed usr.bin/yacc man`). Nor is `make` to say that a command
 failed, which a Makefile that runs `make` in its directories goes on
-from. The root is then to be as it was before, which is what the other
-build makes, name for name: each file
+from. The root is then to be as it was before, which is what the
+same Makefiles made where the system is built, name for name: each file
 with its contents, mode, owner, group and other names, each directory
 with its mode, owner and group, each device and symbolic link. A
 library has the day it was made in it, and whose its members were, and
@@ -404,29 +404,31 @@ whose sources are in those directories is to have been installed, each
 library of `/lib` and `/usr/lib`, and each page of the manual whose
 source is in one of them. A page has at its foot the day it was
 formatted, and is compared without it; the files of
-`tests/make/differs`, below, are not compared.
+`tests/self/differs`, below, are not compared.
 
 All of it is half a day of the 286's time, which is for a release and
 not for a change. A change is checked two ways, and
 `sh tests/self/changed.sh` does both:
 
-- Booting nothing. The Makefiles are run where the system is built,
-  by that machine's `make`, with the system's compiler, assembler and
-  linker as they are compiled for it. `sh tests/make/run.sh` runs
-  upstream's, `make build`, `make installsrc` and `make clean` in
-  `usr/src`, and `make`, `make install` and `make clean` in `/boot`'s
-  and the kernel's directories, with that machine's `make` given the
-  rules the system's has and none of its own, and compares what was
-  installed with the root file system: 2205 files in ten minutes, each
-  with the contents, mode, owner and group the root has, and the root's
-  109 directories still there with theirs. The directories are there
-  before anything is installed, and that machine's `make` takes them
-  to be, as the system's does; so is what a system has already that
-  the Makefiles read and none installs, `/usr/dict`, and the scripts
-  `local`'s and `new`'s run, `makewhatis` and what it reads, which
-  `usr.sbin`'s and `man`'s install after them. `/boot`'s and the
-  kernel's directories are among them, and their installs too.
-  `HOST=1 sh tests/self/run.sh` runs those two the same way and
+- Booting nothing. The root the tests boot is made by the same
+  Makefiles where the system is built (`make -C usr/src root`,
+  `tools/build/build.sh`): `make build` and `make installsrc` in
+  `usr/src`, after `etc`'s `distribution`, which makes the root's
+  directories, `/etc` and `/dev`, run by that machine's `make` with the
+  rules the system's has and none of its own, and with the system's
+  compiler, assembler and linker as they are compiled for it. What
+  `make install` would put in the system's root is put in one of the
+  build's own, with what it would have of mode, owner and group noted
+  beside it, of which `tools/mkfs.py` makes the root file system. That
+  machine's `make` takes the root's directories to be there, as the
+  system's does; so is what a system has already that the Makefiles
+  read and none installs, `/usr/dict`, and the scripts `man`'s
+  Makefile installs and others run, `manroff` and `makewhatis`, which
+  are installed first. `sh tests/make/run.sh` makes it and compares
+  it with `tests/make/list`, each file, directory, device and link with
+  its mode, owner and group: 2681 names, in eight minutes the first
+  time and two after a change. `HOST=1 sh tests/self/run.sh` makes `/boot`
+  and the kernel with their Makefiles the same way and
   compares what they make, each object (`tests/self/host.sh`). That
   says the Makefiles name the right files, flags and order, and install
   each where the system has it. It does not say the system's `make`
@@ -440,26 +442,24 @@ not for a change. A change is checked two ways, and
   `runinv`; `ex` for `termcap` and `awk`'s `tokenscript`, `zic`,
   `spellin`, `tbl` and `eqn` are the tree's for that machine. A line
   that does no more than run one with nothing to stand for it, as
-  `ntp`'s `ntest`, is passed over, and `tests/make/left` lists what is
-  made with one: `adventure`'s game, which only a 286 can write. That
+  `ntp`'s `ntest`, is passed over; and `adventure`'s game, which only a
+  286 can write, is not made: its Makefile installs instead what makes
+  it there when it is first played, the program, its text and a
+  Makefile of the port's (`tools/build/adventure.mk`). That
   machine's `make` takes the `./` from a name, and then looks for it
   in `VPATH`, where the system's does not: such a name is given it
   whole (`ranlib`'s `./misc.o`, which is not `ar`'s); and its `cc`
   links an object named twice once, as the system's does (`hack`'s).
-  `tests/make/differs` lists what the two builds do not make the same
-  way, which neither test compares: `sendmail`,
-  whose Makefile takes its messages out with a script of its own;
-  `hack`, whose Makefile has `xstr` after its `crypt`; `phantasia`, one
-  file of which its Makefile compiles without `-O`, and its help, which
-  the Makefile formats with `tbl`; `backgammon`, whose Makefile writes
-  the day into it; `adventure`, which its Makefile runs once to write
-  the game, where the root has the program that writes it when it is
-  first played; and two files that are made with the time, `fortune`'s
-  table and `phantasia`'s void. What the system makes of those is run
-  instead: `tests/programs` and `tests/network` take a root as
-  `ROOTFS`, and pass on one the system installed `sendmail`, `hack`,
-  `backgammon`, `phantasia` and `adventure` in, but for `last`, which
-  finds there the logins of the machine that made them.
+  `tests/self/differs` lists what the system does not make the same
+  way, which `tests/self/progs.sh` does not compare: `backgammon`, whose
+  Makefile writes the day into it; `adventure`'s game; and two files
+  that are made with the time, `fortune`'s table and `phantasia`'s
+  void. Before the root was made so, by the port's own Makefile, the
+  system's `sendmail`, `hack`, `backgammon`, `phantasia` and
+  `adventure` were run instead: `tests/programs` and `tests/network`
+  take a root as `ROOTFS`, and passed on one the system installed them
+  in, but for `last`, which found there the logins of the machine that
+  made them.
 - One machine is then booted to make what the changed files are part
   of and nothing else (`tests/self/select.py`): with `make` in the
   directory whose Makefile makes a file, and in those of the programs
@@ -548,10 +548,8 @@ dump on more than one diskette has not been run.
   what a program's memory happened to hold, or the time. `setfiles`
   wrote the members it had not set of `phantasia`'s structures as its
   stack had them, and `initdeck` the addresses of its tables: both
-  write zeros now. `strfile -r` seeds its generator with the time; the
-  one that makes `fortunes.dat` is linked with a `random()` that is
-  `rand()` from its first number (`usr/src/i286/norandom.c`), as the
-  other build's stand-in for it has it.
+  write zeros now. `strfile -r` seeds its generator with the time, so
+  that `fortunes.dat` is not compared (`tests/self/differs`).
 - `mktab` wrote a table's numbers with `%d`, and `nroff` reads digits
   and nothing else: where an `int` is 16 bits, the bits a printer's
   table has `nroff` clear of the terminal's modes are a negative

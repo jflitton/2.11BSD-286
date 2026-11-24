@@ -3,7 +3,8 @@
 The programs, libraries and data in upstream's tree that the system does
 not have yet, grouped by what each waits on, so that the next batch can
 be chosen from here. The list was made by comparing the programs that
-`usr/src/i286/Makefile` builds with the directories of `bin`, `sbin`,
+the build made, then the port's own Makefile, now upstream's Makefiles
+(`make -C usr/src`), with the directories of `bin`, `sbin`,
 `ucb`, `usr.bin`, `usr.sbin`, `libexec`, `usr.lib`, `games`, `new` and
 `local`. When a program is ported, take it off.
 

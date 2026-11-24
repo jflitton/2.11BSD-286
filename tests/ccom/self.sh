@@ -2,15 +2,14 @@
 # Test that the system makes its own compiler: boot it from a hard
 # disk, as tests/programs does, and have it compile, assemble and link
 # from their sources cc, /lib/cpp, the compiler's two passes and its
-# object code improver, as, ld, ar, ranlib, nm and size (CCPROGS in
-# usr/src/i286/Makefile, which says what each is made of).  Each is to
+# object code improver, as, ld, ar, ranlib, nm and size (PROGS, below,
+# which says what each is made of, as its Makefile has it).  Each is to
 # be, to the byte, what the same tools make of it where the system is
 # built (tools/cc -ccom), which the disk has to compare with.
 #
 # It does so twice.  The first time the tools at work are those of the
-# root file system, most of them the cross compiler's work; they are
-# then put where those were, and the second time the tools are what the
-# system made of itself.
+# root file system; they are then put where those were, and the second
+# time the tools are what the system made of itself.
 #
 # The sources are on a file system of their own, where the objects and
 # the programs are made too, laid out as in usr/src, and each program
@@ -42,8 +41,24 @@ if [ -z "$ROOTFS" ]; then
     ROOTFS=$top/obj/root/root.fs
 else
     buildbase
-    mk -C "$src/i286" syslibs
 fi
+mk -C "$src/lib/libc/i286" TOOLS=native
+
+# Each program, and what cc is given to make it, its model if not the
+# small, the flags its Makefile gives, and its sources, named from
+# usr/src.
+PROGS="cc bin/cc.c
+cpp -DLIBVMF=0 -Ilib/cpp lib/cpp/cpp.c lib/cpp/cpc.c lib/cpp/token.c
+c0 lib/ccom/c00.c lib/ccom/c01.c lib/ccom/c02.c lib/ccom/c03.c lib/ccom/c04.c lib/ccom/c05.c lib/ccom/ansi.c
+c1 lib/ccom/i286/c10.c lib/ccom/i286/c11.c lib/ccom/i286/c12.c lib/ccom/i286/c13.c lib/ccom/i286/c14.c lib/ccom/i286/c15.c
+c2 lib/c2/i286/c20.c lib/c2/i286/c21.c
+c2l -ml lib/c2/i286/c20.c lib/c2/i286/c21.c
+as bin/as/i286/as0.c bin/as/i286/as1.c bin/as/i286/as2.c bin/as/i286/as3.c
+ld bin/ld/i286/ld.c
+ar -Ibin/ar bin/ar/append.c bin/ar/ar.c bin/ar/archive.c bin/ar/contents.c bin/ar/delete.c bin/ar/extract.c bin/ar/misc.c bin/ar/move.c bin/ar/print.c bin/ar/replace.c bin/ar/strmode.c
+ranlib -Ibin/ar bin/ar/archive.c usr.bin/ranlib/build.c usr.bin/ranlib/misc.c usr.bin/ranlib/ranlib.c usr.bin/ranlib/touch.c
+nm -Ibin/ar bin/nm/nm.c
+size bin/size.c"
 
 # The file system: /progs has a line for each program, its name and
 # what cc is given to make it; /src the sources those name, and the
@@ -53,7 +68,7 @@ cd "$out"
 cp "$ROOTFS" root.fs
 rm -rf fs
 mkdir fs fs/want
-make -s -C "$src/i286" ccprogs > fs/progs
+echo "$PROGS" > fs/progs
 n=$(wc -l < fs/progs | tr -d ' ')
 {
     echo "d /src 755"; echo "d /want 755"

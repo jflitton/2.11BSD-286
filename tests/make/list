@@ -1,0 +1,2681 @@
+/ d 755 0.0
+/.profile f 644 0.0
+/bin d 755 0.0
+/bin/[ f 755 0.10 = /bin/[
+/bin/ar f 755 0.0
+/bin/as f 755 0.0
+/bin/awk f 755 0.0
+/bin/cat f 755 0.10
+/bin/cc f 755 0.10
+/bin/chflags f 755 0.10
+/bin/chfn f 4755 0.10 = /bin/chfn
+/bin/chgrp f 755 0.10
+/bin/chmod f 755 0.10
+/bin/chpass f 4755 0.10 = /bin/chfn
+/bin/chsh f 4755 0.10 = /bin/chfn
+/bin/cmp f 755 0.10
+/bin/cp f 755 0.10
+/bin/csh f 755 3.20
+/bin/date f 755 0.10
+/bin/dd f 755 0.10
+/bin/df f 2755 0.5
+/bin/diff f 755 0.10
+/bin/disklabel f 2755 0.5
+/bin/du f 755 0.10
+/bin/e f 755 0.10 = /bin/e
+/bin/echo f 755 0.10
+/bin/ed f 755 0.10 = /bin/e
+/bin/expr f 755 0.10
+/bin/false f 755 0.0
+/bin/grep f 755 0.10
+/bin/hostid f 755 0.10
+/bin/hostname f 755 0.10
+/bin/kill f 755 0.10
+/bin/ld f 755 0.10
+/bin/ln f 755 0.10
+/bin/login f 4755 0.10
+/bin/ls f 755 0.10
+/bin/mail f 4755 0.0
+/bin/make f 755 0.0
+/bin/mkdir f 755 0.10
+/bin/mv f 755 0.10
+/bin/nice f 755 0.10
+/bin/nm f 755 0.10
+/bin/od f 755 0.10
+/bin/pagesize f 755 0.10
+/bin/passwd f 4755 0.10
+/bin/ping f 4751 0.10
+/bin/pr f 755 0.10
+/bin/ps f 2755 0.2
+/bin/pwd f 755 0.10
+/bin/rcp f 4755 0.0
+/bin/rm f 755 0.10
+/bin/rmdir f 755 0.10
+/bin/sed f 755 0.0
+/bin/sh f 755 0.0
+/bin/size f 755 0.10
+/bin/strip f 755 0.10
+/bin/stty f 755 0.10
+/bin/su f 4755 0.0
+/bin/sync f 755 0.10
+/bin/sysctl f 755 0.10
+/bin/tar f 755 0.10
+/bin/tcsh f 755 0.10
+/bin/tee f 755 0.10
+/bin/test f 755 0.10 = /bin/[
+/bin/time f 755 0.10
+/bin/true f 755 0.0
+/bin/wall f 2755 0.4
+/bin/who f 755 0.10
+/bin/write f 2755 0.4
+/boot f 744 0.0
+/dev d 755 0.0
+/dev/MAKEDEV f 555 0.0
+/dev/MAKEDEV.local f 555 0.0
+/dev/acctlog c 600 0.0 3 2
+/dev/console c 622 0.0 0 0
+/dev/errlog c 600 0.0 3 1
+/dev/fl0a b 640 0.5 3 0
+/dev/fl0b b 640 0.5 3 1
+/dev/fl1a b 640 0.5 3 8
+/dev/fl1b b 640 0.5 3 9
+/dev/klog c 600 0.0 3 0
+/dev/kmem c 640 0.2 1 1
+/dev/mem c 640 0.2 1 0
+/dev/null c 666 0.0 1 2
+/dev/ptyp0 c 666 0.0 5 0
+/dev/ptyp1 c 666 0.0 5 1
+/dev/ptyp2 c 666 0.0 5 2
+/dev/ptyp3 c 666 0.0 5 3
+/dev/ptyp4 c 666 0.0 5 4
+/dev/ptyp5 c 666 0.0 5 5
+/dev/ptyp6 c 666 0.0 5 6
+/dev/ptyp7 c 666 0.0 5 7
+/dev/rd0 b 600 0.0 0 0
+/dev/rd1 b 600 0.0 0 1
+/dev/rfl0a c 640 0.5 11 0
+/dev/rfl0b c 640 0.5 11 1
+/dev/rfl1a c 640 0.5 11 8
+/dev/rfl1b c 640 0.5 11 9
+/dev/rsd0a c 640 0.5 9 0
+/dev/rsd0b c 640 0.5 9 1
+/dev/rsd0c c 640 0.5 9 2
+/dev/rsd0d c 640 0.5 9 3
+/dev/rsd0e c 640 0.5 9 4
+/dev/rsd0f c 640 0.5 9 5
+/dev/rsd0g c 640 0.5 9 6
+/dev/rsd0h c 640 0.5 9 7
+/dev/rsd1a c 640 0.5 9 8
+/dev/rsd1b c 640 0.5 9 9
+/dev/rsd1c c 640 0.5 9 10
+/dev/rsd1d c 640 0.5 9 11
+/dev/rsd1e c 640 0.5 9 12
+/dev/rsd1f c 640 0.5 9 13
+/dev/rsd1g c 640 0.5 9 14
+/dev/rsd1h c 640 0.5 9 15
+/dev/rwd0a c 640 0.5 8 0
+/dev/rwd0b c 640 0.5 8 1
+/dev/rwd0c c 640 0.5 8 2
+/dev/rwd0d c 640 0.5 8 3
+/dev/rwd0e c 640 0.5 8 4
+/dev/rwd0f c 640 0.5 8 5
+/dev/rwd0g c 640 0.5 8 6
+/dev/rwd0h c 640 0.5 8 7
+/dev/rwd1a c 640 0.5 8 8
+/dev/rwd1b c 640 0.5 8 9
+/dev/rwd1c c 640 0.5 8 10
+/dev/rwd1d c 640 0.5 8 11
+/dev/rwd1e c 640 0.5 8 12
+/dev/rwd1f c 640 0.5 8 13
+/dev/rwd1g c 640 0.5 8 14
+/dev/rwd1h c 640 0.5 8 15
+/dev/sd0a b 640 0.5 2 0
+/dev/sd0b b 640 0.2 2 1
+/dev/sd0c b 640 0.5 2 2
+/dev/sd0d b 640 0.5 2 3
+/dev/sd0e b 640 0.5 2 4
+/dev/sd0f b 640 0.5 2 5
+/dev/sd0g b 640 0.5 2 6
+/dev/sd0h b 640 0.5 2 7
+/dev/sd1a b 640 0.5 2 8
+/dev/sd1b b 640 0.2 2 9
+/dev/sd1c b 640 0.5 2 10
+/dev/sd1d b 640 0.5 2 11
+/dev/sd1e b 640 0.5 2 12
+/dev/sd1f b 640 0.5 2 13
+/dev/sd1g b 640 0.5 2 14
+/dev/sd1h b 640 0.5 2 15
+/dev/tty c 666 0.0 2 0
+/dev/tty00 c 666 0.0 10 0
+/dev/tty01 c 666 0.0 10 1
+/dev/ttyp0 c 666 0.0 6 0
+/dev/ttyp1 c 666 0.0 6 1
+/dev/ttyp2 c 666 0.0 6 2
+/dev/ttyp3 c 666 0.0 6 3
+/dev/ttyp4 c 666 0.0 6 4
+/dev/ttyp5 c 666 0.0 6 5
+/dev/ttyp6 c 666 0.0 6 6
+/dev/ttyp7 c 666 0.0 6 7
+/dev/ttyv1 c 666 0.0 0 1
+/dev/ttyv2 c 666 0.0 0 2
+/dev/ttyv3 c 666 0.0 0 3
+/dev/wd0a b 640 0.5 1 0
+/dev/wd0b b 640 0.2 1 1
+/dev/wd0c b 640 0.5 1 2
+/dev/wd0d b 640 0.5 1 3
+/dev/wd0e b 640 0.5 1 4
+/dev/wd0f b 640 0.5 1 5
+/dev/wd0g b 640 0.5 1 6
+/dev/wd0h b 640 0.5 1 7
+/dev/wd1a b 640 0.5 1 8
+/dev/wd1b b 640 0.2 1 9
+/dev/wd1c b 640 0.5 1 10
+/dev/wd1d b 640 0.5 1 11
+/dev/wd1e b 640 0.5 1 12
+/dev/wd1f b 640 0.5 1 13
+/dev/wd1g b 640 0.5 1 14
+/dev/wd1h b 640 0.5 1 15
+/etc d 755 0.0
+/etc/Mail.rc f 444 0.0
+/etc/acctd.cf f 644 0.0
+/etc/aliases f 644 0.0
+/etc/aliases.dir f 644 0.0
+/etc/aliases.pag f 644 0.0
+/etc/crontab f 644 0.0
+/etc/disktab f 644 0.0
+/etc/dumpdates f 664 0.5
+/etc/fstab f 644 0.0
+/etc/ftpusers f 644 0.0
+/etc/gettytab f 644 0.0
+/etc/group f 644 0.0
+/etc/hosts f 644 0.0
+/etc/hosts.allow f 644 0.0
+/etc/hosts.deny f 644 0.0
+/etc/hosts.equiv f 600 0.0
+/etc/inetd.conf f 644 0.0
+/etc/inetd.conf.nowrappers f 644 0.0
+/etc/init f 700 0.10
+/etc/master.passwd f 600 0.0
+/etc/motd f 644 0.0
+/etc/netstart f 644 0.0
+/etc/networks f 644 0.0
+/etc/ntp.conf f 644 0.0
+/etc/passwd f 644 0.0
+/etc/passwd.dir f 644 0.0
+/etc/passwd.pag f 644 0.0
+/etc/protocols f 644 0.0
+/etc/rc f 644 0.0
+/etc/rc.conf f 644 0.0
+/etc/sendmail.cf f 644 0.0
+/etc/sendmail.fc f 644 0.0
+/etc/services f 644 0.0
+/etc/shells f 644 0.0
+/etc/syserrlst f 644 0.0
+/etc/syslog.conf f 644 0.0
+/etc/tcsh6.00strgs f 444 0.10
+/etc/termcap l ../usr/share/misc/termcap
+/etc/ttys f 644 0.0
+/home d 755 0.0
+/lib d 755 0.0
+/lib/c0 f 755 0.0
+/lib/c1 f 755 0.0
+/lib/c2 f 755 0.0
+/lib/c2l f 755 0.0
+/lib/cpp f 755 0.0
+/lib/crt0.o f 644 0.0
+/lib/l d 755 0.0
+/lib/l/crt0.o f 644 0.0
+/lib/l/libc.a f 644 0.0
+/lib/libc.a f 644 0.0
+/lib/m d 755 0.0
+/lib/m/crt0.o f 644 0.0
+/lib/m/libc.a f 644 0.0
+/lost+found d 755 0.0
+/mdec d 755 0.0
+/mdec/fluboot f 644 0.0
+/mdec/sduboot f 644 0.0 = /mdec/sduboot
+/mdec/wduboot f 644 0.0 = /mdec/sduboot
+/mnt d 755 0.0
+/root d 755 0.0
+/root/.cshrc f 644 0.0
+/root/.exrc f 644 0.0
+/root/.login f 644 0.0
+/root/.profile f 644 0.0
+/sbin d 755 0.0
+/sbin/badsect f 755 0.10
+/sbin/clri f 755 0.10
+/sbin/dcheck f 755 0.10
+/sbin/dmesg f 2755 0.2
+/sbin/dump f 755 0.0
+/sbin/dumpdir f 755 0.0
+/sbin/fastboot f 755 0.10 = /sbin/fastboot
+/sbin/fsck f 755 0.0
+/sbin/halt f 755 0.10 = /sbin/fastboot
+/sbin/icheck f 755 0.10
+/sbin/ifconfig f 755 0.10
+/sbin/mkfs f 755 0.10
+/sbin/mknod f 755 0.10
+/sbin/mkpasswd f 755 0.10
+/sbin/mount f 755 0.10
+/sbin/ncheck f 755 0.10
+/sbin/newfs f 755 0.10
+/sbin/rdump f 755 0.0
+/sbin/reboot f 755 0.10 = /sbin/fastboot
+/sbin/restor f 755 0.10
+/sbin/route f 755 0.10
+/sbin/routed f 755 0.0
+/sbin/shutdown f 4750 0.5
+/sbin/umount f 755 0.10
+/sys l usr/src/sys
+/tmp d 1777 0.0
+/unix f 744 0.2
+/usr d 755 0.0
+/usr/adm d 755 0.0
+/usr/adm/acct f 644 0.0
+/usr/adm/cron f 644 0.0
+/usr/adm/daemonlog f 644 0.0
+/usr/adm/daily f 755 0.0
+/usr/adm/debuglog f 644 0.0
+/usr/adm/lastlog f 644 0.0
+/usr/adm/lpd-errs f 644 0.0
+/usr/adm/messages f 644 0.0
+/usr/adm/monthly f 755 0.0
+/usr/adm/savacct f 644 0.0
+/usr/adm/usracct f 644 0.0
+/usr/adm/weekly f 755 0.0
+/usr/adm/wtmp f 644 0.0
+/usr/bin d 755 0.0
+/usr/bin/addbib f 755 0.0
+/usr/bin/at f 4755 1.0
+/usr/bin/atq f 4755 1.0
+/usr/bin/atrm f 4755 1.0
+/usr/bin/basename f 755 0.10
+/usr/bin/bc f 755 0.10
+/usr/bin/cal f 755 0.10
+/usr/bin/calendar f 755 0.0
+/usr/bin/cb f 755 0.10
+/usr/bin/checkeq f 755 0.10
+/usr/bin/col f 755 0.10
+/usr/bin/comm f 755 0.10
+/usr/bin/crontab f 4111 0.0
+/usr/bin/crypt f 755 0.10
+/usr/bin/dc f 755 0.0
+/usr/bin/deroff f 755 0.10
+/usr/bin/diction f 755 0.0
+/usr/bin/diff3 f 755 0.0
+/usr/bin/egrep f 755 0.10
+/usr/bin/eqn f 755 0.0
+/usr/bin/ex f 1755 0.0 = /usr/bin/ex
+/usr/bin/explain f 755 0.0
+/usr/bin/fgrep f 755 0.10
+/usr/bin/file f 755 0.10
+/usr/bin/find f 755 0.0
+/usr/bin/fstat f 2755 0.2
+/usr/bin/groups f 755 0.10
+/usr/bin/id f 755 0.10
+/usr/bin/indxbib f 755 0.0
+/usr/bin/install f 755 0.10
+/usr/bin/iostat f 2755 0.2
+/usr/bin/join f 755 0.10
+/usr/bin/learn f 755 0.0
+/usr/bin/lex f 755 0.0
+/usr/bin/lint f 555 0.10
+/usr/bin/look f 755 0.10
+/usr/bin/lookbib f 755 0.0
+/usr/bin/lorder f 555 0.10
+/usr/bin/m4 f 755 0.0
+/usr/bin/mailq l ../sbin/sendmail
+/usr/bin/mesg f 755 0.10
+/usr/bin/mkdep f 555 0.10
+/usr/bin/mkerrlst f 755 0.10
+/usr/bin/neqn f 755 0.0
+/usr/bin/newaliases l ../sbin/sendmail
+/usr/bin/nohup f 555 0.10
+/usr/bin/nroff f 755 0.10
+/usr/bin/patch f 755 0.0
+/usr/bin/printf f 755 0.10
+/usr/bin/ptx f 755 0.10
+/usr/bin/ranlib f 755 0.10
+/usr/bin/refer f 755 0.0
+/usr/bin/renice f 755 0.10
+/usr/bin/rev f 755 0.10
+/usr/bin/roffbib f 755 0.0
+/usr/bin/shar f 755 0.0
+/usr/bin/sleep f 755 0.10
+/usr/bin/sort f 755 0.10
+/usr/bin/sortbib f 755 0.0
+/usr/bin/spell f 755 0.0
+/usr/bin/spellin f 755 0.0
+/usr/bin/spellout f 755 0.0
+/usr/bin/spline f 755 0.10
+/usr/bin/split f 755 0.10
+/usr/bin/style f 755 0.0
+/usr/bin/sum f 755 0.10
+/usr/bin/tabs f 755 0.10
+/usr/bin/tbl f 755 0.0
+/usr/bin/touch f 755 0.10
+/usr/bin/tr f 755 0.10
+/usr/bin/traverse f 755 0.0
+/usr/bin/tsort f 755 0.10
+/usr/bin/tty f 755 0.10
+/usr/bin/uname f 755 0.10
+/usr/bin/uniq f 755 0.10
+/usr/bin/units f 755 0.10
+/usr/bin/whereis f 755 0.10
+/usr/bin/whoami f 755 0.10
+/usr/bin/xargs f 755 0.10
+/usr/bin/yacc f 755 0.0
+/usr/dict d 755 0.0
+/usr/dict/README f 444 0.10
+/usr/dict/connectives f 644 0.10
+/usr/dict/hlista f 644 0.0
+/usr/dict/hlistb f 644 0.0
+/usr/dict/hstop f 644 0.0
+/usr/dict/papers d 775 0.10
+/usr/dict/papers/INDEX f 664 0.20
+/usr/dict/papers/Ind.ia f 644 0.10
+/usr/dict/papers/Ind.ib f 644 0.10
+/usr/dict/papers/Ind.ic f 644 0.10
+/usr/dict/papers/Rbstjissue f 444 0.20
+/usr/dict/papers/Rv7man f 444 0.20
+/usr/dict/papers/runinv f 555 0.20
+/usr/dict/words f 444 3.10
+/usr/games d 755 0.0
+/usr/games/arithmetic f 755 0.0
+/usr/games/atc f 4711 5.10
+/usr/games/backgammon f 755 0.0
+/usr/games/banner f 755 0.0
+/usr/games/battlestar f 755 0.0
+/usr/games/bcd f 755 0.0
+/usr/games/boggle f 755 0.0
+/usr/games/btlgammon f 755 0.0
+/usr/games/canfield f 755 0.0
+/usr/games/cfscores f 755 0.0
+/usr/games/cribbage f 755 0.0
+/usr/games/factor f 755 0.0
+/usr/games/fish f 755 0.0
+/usr/games/fortune f 4711 1.0
+/usr/games/hack f 4711 1.0
+/usr/games/hangman f 755 0.0
+/usr/games/hunt f 755 0.0
+/usr/games/lib d 755 0.10
+/usr/games/lib/adventure d 755 0.0
+/usr/games/lib/adventure/Makefile f 644 0.0
+/usr/games/lib/adventure/a.out f 755 0.0
+/usr/games/lib/adventure/glorkz f 644 0.0
+/usr/games/lib/atc d 700 5.10
+/usr/games/lib/atc/ATC_scores f 600 5.10
+/usr/games/lib/atc/Game_List f 600 5.10
+/usr/games/lib/atc/Killer f 600 5.10
+/usr/games/lib/atc/crossover f 600 5.10
+/usr/games/lib/atc/default f 600 5.10
+/usr/games/lib/atc/easy f 600 5.10
+/usr/games/lib/atc/game_2 f 600 5.10
+/usr/games/lib/backrules f 755 0.10
+/usr/games/lib/battle_strings f 644 0.10
+/usr/games/lib/battlestar.log f 666 0.10
+/usr/games/lib/bogdict f 644 0.10
+/usr/games/lib/busy f 755 1.10
+/usr/games/lib/cards.pck f 644 0.10
+/usr/games/lib/cfscores f 777 0.10
+/usr/games/lib/crib.instr f 644 0.10
+/usr/games/lib/fortunes.dat f 600 1.10
+/usr/games/lib/hackdir d 700 1.10
+/usr/games/lib/hackdir/data f 644 1.10
+/usr/games/lib/hackdir/help f 644 1.10
+/usr/games/lib/hackdir/hh f 644 1.10
+/usr/games/lib/hackdir/perm f 644 1.10
+/usr/games/lib/hackdir/record f 644 1.10
+/usr/games/lib/hackdir/rumors f 644 1.10
+/usr/games/lib/hackdir/save d 700 1.10
+/usr/games/lib/hunt.driver f 755 0.10
+/usr/games/lib/phantasia d 755 1.10
+/usr/games/lib/phantasia/characs f 600 1.10
+/usr/games/lib/phantasia/enemy f 600 1.10
+/usr/games/lib/phantasia/gold f 600 1.10
+/usr/games/lib/phantasia/lastdead f 600 1.10
+/usr/games/lib/phantasia/mess f 600 1.10
+/usr/games/lib/phantasia/monsters f 444 1.10
+/usr/games/lib/phantasia/motd f 600 1.10
+/usr/games/lib/phantasia/phant.help f 444 1.10
+/usr/games/lib/phantasia/void f 600 1.10
+/usr/games/lib/quiz.k d 755 0.10
+/usr/games/lib/quiz.k/africa f 644 0.10
+/usr/games/lib/quiz.k/america f 644 0.10
+/usr/games/lib/quiz.k/areas f 644 0.10
+/usr/games/lib/quiz.k/arith f 644 0.10
+/usr/games/lib/quiz.k/asia f 644 0.10
+/usr/games/lib/quiz.k/babies f 644 0.10
+/usr/games/lib/quiz.k/bard f 644 0.10
+/usr/games/lib/quiz.k/chinese f 644 0.10
+/usr/games/lib/quiz.k/collectives f 644 0.10
+/usr/games/lib/quiz.k/ed f 644 0.10
+/usr/games/lib/quiz.k/elements f 644 0.10
+/usr/games/lib/quiz.k/europe f 644 0.10
+/usr/games/lib/quiz.k/greek f 644 0.10
+/usr/games/lib/quiz.k/inca f 644 0.10
+/usr/games/lib/quiz.k/index f 644 0.10
+/usr/games/lib/quiz.k/latin f 644 0.10
+/usr/games/lib/quiz.k/locomotive f 644 0.10
+/usr/games/lib/quiz.k/midearth f 644 0.10
+/usr/games/lib/quiz.k/morse f 644 0.10
+/usr/games/lib/quiz.k/murders f 644 0.10
+/usr/games/lib/quiz.k/poetry f 644 0.10
+/usr/games/lib/quiz.k/posneg f 644 0.10
+/usr/games/lib/quiz.k/pres f 644 0.10
+/usr/games/lib/quiz.k/province f 644 0.10
+/usr/games/lib/quiz.k/seq-easy f 644 0.10
+/usr/games/lib/quiz.k/seq-hard f 644 0.10
+/usr/games/lib/quiz.k/sexes f 644 0.10
+/usr/games/lib/quiz.k/sov f 644 0.10
+/usr/games/lib/quiz.k/spell f 644 0.10
+/usr/games/lib/quiz.k/state f 644 0.10
+/usr/games/lib/quiz.k/trek f 644 0.10
+/usr/games/lib/quiz.k/ucc f 644 0.10
+/usr/games/lib/robots_roll f 644 1.10
+/usr/games/lib/rogue.scores f 644 1.10
+/usr/games/lib/saillog f 644 1.10
+/usr/games/lib/snakerawscores f 644 1.10
+/usr/games/lib/warp d 755 3.10
+/usr/games/lib/warp/smap.0 f 644 3.10
+/usr/games/lib/warp/smap.1 f 644 3.10
+/usr/games/lib/warp/smap.2 f 644 3.10
+/usr/games/lib/warp/smap.3 f 644 3.10
+/usr/games/lib/warp/smap.4 f 644 3.10
+/usr/games/lib/warp/smap.5 f 644 3.10
+/usr/games/lib/warp/smap.6 f 644 3.10
+/usr/games/lib/warp/smap.7 f 644 3.10
+/usr/games/lib/warp/warp.doc f 644 3.10
+/usr/games/lib/warp/warp.news f 644 3.10
+/usr/games/lib/words1 f 755 0.10
+/usr/games/mille f 755 0.10
+/usr/games/monop f 755 0.0
+/usr/games/morse f 755 0.0
+/usr/games/number f 755 0.0
+/usr/games/phantasia f 4711 1.0
+/usr/games/ppt f 755 0.0
+/usr/games/primes f 755 0.0
+/usr/games/quiz f 755 0.0
+/usr/games/rain f 755 0.0
+/usr/games/robots f 4711 1.0
+/usr/games/rogue f 4711 1.10
+/usr/games/sail f 4755 1.0
+/usr/games/snake f 4755 1.0
+/usr/games/snscore f 755 1.0
+/usr/games/teachgammon f 755 0.0
+/usr/games/trek f 755 0.0
+/usr/games/wargames f 755 0.0
+/usr/games/warp f 4711 3.0
+/usr/games/words f 755 0.0
+/usr/games/worm f 755 0.0
+/usr/games/worms f 755 0.0
+/usr/games/wump f 755 0.0
+/usr/include d 755 0.0
+/usr/include/DEFS.inc f 444 0.0
+/usr/include/a.out.h f 444 0.0
+/usr/include/ar.h f 444 0.0
+/usr/include/arpa d 755 0.0
+/usr/include/arpa/ftp.h f 444 0.0
+/usr/include/arpa/inet.h f 444 0.0
+/usr/include/arpa/nameser.h f 444 0.0
+/usr/include/arpa/telnet.h f 444 0.0
+/usr/include/arpa/tftp.h f 444 0.0
+/usr/include/assert.h f 444 0.0
+/usr/include/ctype.h f 444 0.0
+/usr/include/curses.h f 444 0.0
+/usr/include/dbm.h f 444 0.0
+/usr/include/err.h f 444 0.0
+/usr/include/errlst.h f 444 0.0
+/usr/include/errno.h l sys/errno.h
+/usr/include/fcntl.h f 444 0.0
+/usr/include/float.h l machine/float.h
+/usr/include/frame.h l machine/frame.h
+/usr/include/fstab.h f 444 0.0
+/usr/include/grp.h f 444 0.0
+/usr/include/i286 d 755 0.0
+/usr/include/i286/ansi.h f 444 0.0
+/usr/include/i286/boot.h f 444 0.0
+/usr/include/i286/cpu.h f 444 0.0
+/usr/include/i286/float.h f 444 0.0
+/usr/include/i286/fperr.h f 444 0.0
+/usr/include/i286/frame.h f 444 0.0
+/usr/include/i286/limits.h f 444 0.0
+/usr/include/i286/machparam.h f 444 0.0
+/usr/include/i286/net_mac.h f 444 0.0
+/usr/include/i286/psl.h f 444 0.0
+/usr/include/i286/reg.h f 444 0.0
+/usr/include/i286/seg.h f 444 0.0
+/usr/include/i286/trap.h f 444 0.0
+/usr/include/i286/vmparam.h f 444 0.0
+/usr/include/i286at d 755 0.0
+/usr/include/i286at/ahareg.h f 444 0.0
+/usr/include/i286at/flreg.h f 444 0.0
+/usr/include/i286at/pcdisk.h f 444 0.0
+/usr/include/i286at/vt.h f 444 0.0
+/usr/include/ident.h f 444 0.0
+/usr/include/inttypes.h f 444 0.0
+/usr/include/iso646.h f 444 0.0
+/usr/include/lastlog.h f 444 0.0
+/usr/include/limits.h f 444 0.0
+/usr/include/locale.h f 444 0.0
+/usr/include/machine l i286
+/usr/include/math.h f 444 0.0
+/usr/include/memory.h f 444 0.0
+/usr/include/mp.h f 444 0.0
+/usr/include/mtab.h f 444 0.0
+/usr/include/ndbm.h f 444 0.0
+/usr/include/net d 755 0.0
+/usr/include/net/af.h f 444 0.0
+/usr/include/net/if.h f 444 0.0
+/usr/include/net/if_arp.h f 444 0.0
+/usr/include/net/netisr.h f 444 0.0
+/usr/include/net/raw_cb.h f 444 0.0
+/usr/include/net/route.h f 444 0.0
+/usr/include/netdb.h f 444 0.0
+/usr/include/netimp d 755 0.0
+/usr/include/netimp/if_imp.h f 444 0.0
+/usr/include/netimp/if_imphost.h f 444 0.0
+/usr/include/netinet d 755 0.0
+/usr/include/netinet/icmp_var.h f 444 0.0
+/usr/include/netinet/if_ether.h f 444 0.0
+/usr/include/netinet/in.h f 444 0.0
+/usr/include/netinet/in_pcb.h f 444 0.0
+/usr/include/netinet/in_systm.h f 444 0.0
+/usr/include/netinet/in_var.h f 444 0.0
+/usr/include/netinet/ip.h f 444 0.0
+/usr/include/netinet/ip_icmp.h f 444 0.0
+/usr/include/netinet/ip_var.h f 444 0.0
+/usr/include/netinet/tcp.h f 444 0.0
+/usr/include/netinet/tcp_debug.h f 444 0.0
+/usr/include/netinet/tcp_fsm.h f 444 0.0
+/usr/include/netinet/tcp_seq.h f 444 0.0
+/usr/include/netinet/tcp_timer.h f 444 0.0
+/usr/include/netinet/tcp_var.h f 444 0.0
+/usr/include/netinet/tcpip.h f 444 0.0
+/usr/include/netinet/udp.h f 444 0.0
+/usr/include/netinet/udp_var.h f 444 0.0
+/usr/include/netns d 755 0.0
+/usr/include/netns/idp.h f 444 0.0
+/usr/include/netns/idp_var.h f 444 0.0
+/usr/include/netns/ns.h f 444 0.0
+/usr/include/netns/ns_error.h f 444 0.0
+/usr/include/netns/ns_if.h f 444 0.0
+/usr/include/netns/ns_pcb.h f 444 0.0
+/usr/include/netns/sp.h f 444 0.0
+/usr/include/netns/spidp.h f 444 0.0
+/usr/include/netns/spp_debug.h f 444 0.0
+/usr/include/netns/spp_timer.h f 444 0.0
+/usr/include/netns/spp_var.h f 444 0.0
+/usr/include/nlist.h f 444 0.0
+/usr/include/paths.h f 444 0.0
+/usr/include/pcc.h f 444 0.0
+/usr/include/protocols d 755 0.0
+/usr/include/protocols/dumprestor.h f 444 0.0
+/usr/include/protocols/routed.h f 444 0.0
+/usr/include/protocols/rwhod.h f 444 0.0
+/usr/include/protocols/talkd.h f 444 0.0
+/usr/include/protocols/timed.h f 444 0.0
+/usr/include/pwd.h f 444 0.0
+/usr/include/ranlib.h f 444 0.0
+/usr/include/regexp.h f 444 0.0
+/usr/include/resolv.h f 444 0.0
+/usr/include/segment.h f 444 0.0
+/usr/include/setjmp.h f 444 0.0
+/usr/include/sgtty.h f 444 0.0
+/usr/include/signal.h f 444 0.0
+/usr/include/stab.h f 444 0.0
+/usr/include/stdarg.h f 444 0.0
+/usr/include/stdint.h f 444 0.0
+/usr/include/stdio.h f 444 0.0
+/usr/include/stdlib.h f 444 0.0
+/usr/include/string.h f 444 0.0
+/usr/include/strings.h f 444 0.0
+/usr/include/struct.h f 444 0.0
+/usr/include/sys d 755 0.0
+/usr/include/sys/acct.h f 444 0.0
+/usr/include/sys/buf.h f 444 0.0
+/usr/include/sys/callout.h f 444 0.0
+/usr/include/sys/clist.h f 444 0.0
+/usr/include/sys/conf.h f 444 0.0
+/usr/include/sys/dir.h f 444 0.0
+/usr/include/sys/disk.h f 444 0.0
+/usr/include/sys/disklabel.h f 444 0.0
+/usr/include/sys/dk.h f 444 0.0
+/usr/include/sys/dkbad.h f 444 0.0
+/usr/include/sys/domain.h f 444 0.0
+/usr/include/sys/errno.h f 444 0.0
+/usr/include/sys/exec.h f 444 0.0
+/usr/include/sys/file.h f 444 0.0
+/usr/include/sys/fs.h f 444 0.0
+/usr/include/sys/ingreslock.h f 444 0.0
+/usr/include/sys/inode.h f 444 0.0
+/usr/include/sys/ioctl.h f 444 0.0
+/usr/include/sys/ioctl_compat.h f 444 0.0
+/usr/include/sys/kernel.h f 444 0.0
+/usr/include/sys/localopts.h f 444 0.0
+/usr/include/sys/map.h f 444 0.0
+/usr/include/sys/mbuf.h f 444 0.0
+/usr/include/sys/mount.h f 444 0.0
+/usr/include/sys/msgbuf.h f 444 0.0
+/usr/include/sys/mtio.h f 444 0.0
+/usr/include/sys/namei.h f 444 0.0
+/usr/include/sys/param.h f 444 0.0
+/usr/include/sys/proc.h f 444 0.0
+/usr/include/sys/protosw.h f 444 0.0
+/usr/include/sys/ptrace.h f 444 0.0
+/usr/include/sys/quota.h f 444 0.0
+/usr/include/sys/reboot.h f 444 0.0
+/usr/include/sys/resource.h f 444 0.0
+/usr/include/sys/select.h f 444 0.0
+/usr/include/sys/signalvar.h f 444 0.0
+/usr/include/sys/socket.h f 444 0.0
+/usr/include/sys/socketvar.h f 444 0.0
+/usr/include/sys/stat.h f 444 0.0
+/usr/include/sys/stddef.h f 444 0.0
+/usr/include/sys/sysctl.h f 444 0.0
+/usr/include/sys/syslog.h f 444 0.0
+/usr/include/sys/systm.h f 444 0.0
+/usr/include/sys/tablet.h f 444 0.0
+/usr/include/sys/text.h f 444 0.0
+/usr/include/sys/time.h f 444 0.0
+/usr/include/sys/timeb.h f 444 0.0
+/usr/include/sys/times.h f 444 0.0
+/usr/include/sys/trace.h f 444 0.0
+/usr/include/sys/tty.h f 444 0.0
+/usr/include/sys/ttychars.h f 444 0.0
+/usr/include/sys/ttydefaults.h f 444 0.0
+/usr/include/sys/ttydev.h f 444 0.0
+/usr/include/sys/types.h f 444 0.0
+/usr/include/sys/uba.h f 444 0.0
+/usr/include/sys/uio.h f 444 0.0
+/usr/include/sys/un.h f 444 0.0
+/usr/include/sys/unpcb.h f 444 0.0
+/usr/include/sys/user.h f 444 0.0
+/usr/include/sys/utsname.h f 444 0.0
+/usr/include/sys/vcmd.h f 444 0.0
+/usr/include/sys/vm.h f 444 0.0
+/usr/include/sys/vmmac.h f 444 0.0
+/usr/include/sys/vmmeter.h f 444 0.0
+/usr/include/sys/vmparam.h f 444 0.0
+/usr/include/sys/vmsystm.h f 444 0.0
+/usr/include/sys/wait.h f 444 0.0
+/usr/include/syscall.h f 444 0.0
+/usr/include/sysexits.h f 444 0.0
+/usr/include/syslog.h l sys/syslog.h
+/usr/include/time.h f 444 0.0
+/usr/include/ttyent.h f 444 0.0
+/usr/include/tzfile.h f 444 0.0
+/usr/include/unistd.h f 444 0.0
+/usr/include/utmp.h f 444 0.0
+/usr/include/varargs.h f 444 0.0
+/usr/include/vfont.h f 444 0.0
+/usr/include/vmf.h f 444 0.0
+/usr/lib d 755 0.0
+/usr/lib/l d 755 0.0
+/usr/lib/l/libcurses.a f 644 0.0
+/usr/lib/l/libdbm.a f 644 0.0
+/usr/lib/l/liberrlst.a f 644 0.0
+/usr/lib/l/libl.a f 644 0.0 = /usr/lib/l/libl.a
+/usr/lib/l/libln.a f 644 0.0 = /usr/lib/l/libl.a
+/usr/lib/l/libm.a f 644 0.0 = /usr/lib/l/libm.a
+/usr/lib/l/libom.a f 644 0.0 = /usr/lib/l/libm.a
+/usr/lib/l/libtermcap.a f 644 0.0 = /usr/lib/l/libtermcap.a
+/usr/lib/l/libtermlib.a f 644 0.0 = /usr/lib/l/libtermcap.a
+/usr/lib/l/libutil.a f 644 0.10
+/usr/lib/l/liby.a f 644 0.0
+/usr/lib/libcurses.a f 644 0.0
+/usr/lib/libdbm.a f 644 0.0
+/usr/lib/liberrlst.a f 644 0.0
+/usr/lib/libl.a f 644 0.0 = /usr/lib/libl.a
+/usr/lib/libln.a f 644 0.0 = /usr/lib/libl.a
+/usr/lib/libm.a f 644 0.0 = /usr/lib/libm.a
+/usr/lib/libom.a f 644 0.0 = /usr/lib/libm.a
+/usr/lib/libtermcap.a f 644 0.0 = /usr/lib/libtermcap.a
+/usr/lib/libtermlib.a f 644 0.0 = /usr/lib/libtermcap.a
+/usr/lib/libutil.a f 644 0.10
+/usr/lib/liby.a f 644 0.0
+/usr/lib/m d 755 0.0
+/usr/lib/m/libcurses.a f 644 0.0
+/usr/lib/m/libdbm.a f 644 0.0
+/usr/lib/m/liberrlst.a f 644 0.0
+/usr/lib/m/libl.a f 644 0.0 = /usr/lib/m/libl.a
+/usr/lib/m/libln.a f 644 0.0 = /usr/lib/m/libl.a
+/usr/lib/m/libm.a f 644 0.0 = /usr/lib/m/libm.a
+/usr/lib/m/libom.a f 644 0.0 = /usr/lib/m/libm.a
+/usr/lib/m/libtermcap.a f 644 0.0 = /usr/lib/m/libtermcap.a
+/usr/lib/m/libtermlib.a f 644 0.0 = /usr/lib/m/libtermcap.a
+/usr/lib/m/libutil.a f 644 0.10
+/usr/lib/m/liby.a f 644 0.0
+/usr/libdata d 755 0.0
+/usr/libdata/lex d 755 0.0
+/usr/libdata/lex/ncform f 444 0.0
+/usr/libdata/lex/nrform f 444 0.0
+/usr/libexec d 755 0.0
+/usr/libexec/acctd f 700 0.10
+/usr/libexec/atrun f 755 1.0
+/usr/libexec/calendar f 755 0.0
+/usr/libexec/comsat f 755 0.10
+/usr/libexec/diction d 755 0.0
+/usr/libexec/diction/dprog f 755 0.0
+/usr/libexec/diction/style1 f 755 0.0
+/usr/libexec/diction/style2 f 755 0.0
+/usr/libexec/diction/style3 f 755 0.0
+/usr/libexec/diff3 f 755 0.0
+/usr/libexec/diffh f 755 0.10
+/usr/libexec/find d 755 0.0
+/usr/libexec/find/bigram f 755 0.0
+/usr/libexec/find/code f 755 0.0
+/usr/libexec/find/updatedb f 755 0.0
+/usr/libexec/fingerd f 755 0.10
+/usr/libexec/ftpd f 755 0.10
+/usr/libexec/getty f 555 0.10
+/usr/libexec/makekey f 755 0.10
+/usr/libexec/ntalkd f 755 0.10
+/usr/libexec/popper f 700 0.10
+/usr/libexec/refer d 755 0.0
+/usr/libexec/refer/deliv f 755 0.0
+/usr/libexec/refer/hunt f 755 0.0
+/usr/libexec/refer/inv f 755 0.0
+/usr/libexec/refer/mkey f 755 0.0
+/usr/libexec/rexecd f 755 0.10
+/usr/libexec/rlogind f 755 0.10
+/usr/libexec/rshd f 755 0.10
+/usr/libexec/spell f 755 0.0
+/usr/libexec/tcpd f 1755 0.10
+/usr/libexec/telnetd f 755 0.10
+/usr/libexec/tftpd f 755 0.10
+/usr/local d 755 0.0
+/usr/local/adduser f 755 0.0
+/usr/local/bench f 755 0.0
+/usr/local/man d 755 0.0
+/usr/local/man/cat1 d 755 0.0
+/usr/local/man/cat1/ve.0 f 444 0.10
+/usr/local/man/whatis f 664 0.0
+/usr/local/ve f 755 0.0
+/usr/man d 755 0.0
+/usr/man/cat1 d 755 0.0
+/usr/man/cat1/addbib.0 f 444 0.10
+/usr/man/cat1/apply.0 f 444 0.10
+/usr/man/cat1/apropos.0 f 444 0.10
+/usr/man/cat1/ar.0 f 444 0.10
+/usr/man/cat1/as.0 f 444 0.10
+/usr/man/cat1/at.0 f 444 0.10
+/usr/man/cat1/atq.0 f 444 0.10
+/usr/man/cat1/atrm.0 f 444 0.10
+/usr/man/cat1/awk.0 f 444 0.10
+/usr/man/cat1/basename.0 f 444 0.10
+/usr/man/cat1/bc.0 f 444 0.10
+/usr/man/cat1/biff.0 f 444 0.10
+/usr/man/cat1/binmail.0 f 444 0.10
+/usr/man/cat1/cal.0 f 444 0.10
+/usr/man/cat1/calendar.0 f 444 0.10
+/usr/man/cat1/case.0 f 444 0.10 = /usr/man/cat1/case.0
+/usr/man/cat1/cat.0 f 444 0.10
+/usr/man/cat1/cb.0 f 444 0.10
+/usr/man/cat1/cc.0 f 444 0.10
+/usr/man/cat1/cd.0 f 444 0.10
+/usr/man/cat1/checkeq.0 f 444 0.10 = /usr/man/cat1/checkeq.0
+/usr/man/cat1/checknr.0 f 444 0.10
+/usr/man/cat1/chflags.0 f 444 0.10
+/usr/man/cat1/chfn.0 f 444 0.10 = /usr/man/cat1/chfn.0
+/usr/man/cat1/chgrp.0 f 444 0.10
+/usr/man/cat1/chmod.0 f 444 0.10
+/usr/man/cat1/chpass.0 f 444 0.10 = /usr/man/cat1/chfn.0
+/usr/man/cat1/chsh.0 f 444 0.10 = /usr/man/cat1/chfn.0
+/usr/man/cat1/clear.0 f 444 0.10
+/usr/man/cat1/cmp.0 f 444 0.10
+/usr/man/cat1/col.0 f 444 0.10
+/usr/man/cat1/colcrt.0 f 444 0.10
+/usr/man/cat1/colrm.0 f 444 0.10
+/usr/man/cat1/comm.0 f 444 0.10
+/usr/man/cat1/compress.0 f 444 0.10 = /usr/man/cat1/compress.0
+/usr/man/cat1/cp.0 f 444 0.10
+/usr/man/cat1/cpp.0 f 444 0.10
+/usr/man/cat1/crontab.0 f 444 3.20
+/usr/man/cat1/csh.0 f 444 0.10
+/usr/man/cat1/ctags.0 f 444 0.10
+/usr/man/cat1/date.0 f 444 0.10
+/usr/man/cat1/dc.0 f 444 0.10
+/usr/man/cat1/dd.0 f 444 0.10
+/usr/man/cat1/deroff.0 f 444 0.10
+/usr/man/cat1/df.0 f 444 0.10
+/usr/man/cat1/diction.0 f 444 0.10 = /usr/man/cat1/diction.0
+/usr/man/cat1/diff.0 f 444 0.10 = /usr/man/cat1/diff.0
+/usr/man/cat1/diff3.0 f 444 0.10
+/usr/man/cat1/diffh.0 f 444 0.10 = /usr/man/cat1/diff.0
+/usr/man/cat1/du.0 f 444 0.10
+/usr/man/cat1/echo.0 f 444 0.10
+/usr/man/cat1/ed.0 f 444 0.10
+/usr/man/cat1/edit.0 f 444 0.10 = /usr/man/cat1/edit.0
+/usr/man/cat1/egrep.0 f 444 0.10 = /usr/man/cat1/egrep.0
+/usr/man/cat1/eqn.0 f 444 0.10 = /usr/man/cat1/checkeq.0
+/usr/man/cat1/ex.0 f 444 0.10 = /usr/man/cat1/edit.0
+/usr/man/cat1/expand.0 f 444 0.10 = /usr/man/cat1/expand.0
+/usr/man/cat1/explain.0 f 444 0.10 = /usr/man/cat1/diction.0
+/usr/man/cat1/expr.0 f 444 0.10
+/usr/man/cat1/false.0 f 444 0.10
+/usr/man/cat1/fgrep.0 f 444 0.10 = /usr/man/cat1/egrep.0
+/usr/man/cat1/file.0 f 444 0.10
+/usr/man/cat1/find.0 f 444 0.10
+/usr/man/cat1/finger.0 f 444 0.10
+/usr/man/cat1/fmt.0 f 444 0.10
+/usr/man/cat1/fold.0 f 444 0.10
+/usr/man/cat1/for.0 f 444 0.10 = /usr/man/cat1/case.0
+/usr/man/cat1/from.0 f 444 0.10
+/usr/man/cat1/ftp.0 f 444 0.10
+/usr/man/cat1/gcore.0 f 444 0.10
+/usr/man/cat1/grep.0 f 444 0.10 = /usr/man/cat1/egrep.0
+/usr/man/cat1/groups.0 f 444 0.10
+/usr/man/cat1/head.0 f 444 0.10
+/usr/man/cat1/hostid.0 f 444 0.10
+/usr/man/cat1/hostname.0 f 444 0.10
+/usr/man/cat1/id.0 f 444 0.10
+/usr/man/cat1/if.0 f 444 0.10 = /usr/man/cat1/case.0
+/usr/man/cat1/indent.0 f 444 0.10
+/usr/man/cat1/indxbib.0 f 444 0.10 = /usr/man/cat1/indxbib.0
+/usr/man/cat1/install.0 f 444 0.10
+/usr/man/cat1/intro.0 f 444 0.10
+/usr/man/cat1/iostat.0 f 444 0.10
+/usr/man/cat1/join.0 f 444 0.10
+/usr/man/cat1/kill.0 f 444 0.10
+/usr/man/cat1/last.0 f 444 0.10
+/usr/man/cat1/lastcomm.0 f 444 0.10
+/usr/man/cat1/ld.0 f 444 0.10
+/usr/man/cat1/learn.0 f 444 0.10
+/usr/man/cat1/leave.0 f 444 0.10
+/usr/man/cat1/lex.0 f 444 0.10
+/usr/man/cat1/ln.0 f 444 0.10
+/usr/man/cat1/lock.0 f 444 0.10
+/usr/man/cat1/logger.0 f 444 0.10
+/usr/man/cat1/login.0 f 444 0.10
+/usr/man/cat1/look.0 f 444 0.10
+/usr/man/cat1/lookbib.0 f 444 0.10 = /usr/man/cat1/indxbib.0
+/usr/man/cat1/lorder.0 f 444 0.10
+/usr/man/cat1/ls.0 f 444 0.10
+/usr/man/cat1/m4.0 f 444 0.10
+/usr/man/cat1/mail.0 f 444 0.10
+/usr/man/cat1/make.0 f 444 0.10
+/usr/man/cat1/man.0 f 444 0.10
+/usr/man/cat1/mesg.0 f 444 0.10
+/usr/man/cat1/mkdep.0 f 444 0.10
+/usr/man/cat1/mkdir.0 f 444 0.10
+/usr/man/cat1/mkerrlst.0 f 444 0.10
+/usr/man/cat1/mkstr.0 f 444 0.10
+/usr/man/cat1/more.0 f 444 0.10 = /usr/man/cat1/more.0
+/usr/man/cat1/msgs.0 f 444 0.10
+/usr/man/cat1/mv.0 f 444 0.10
+/usr/man/cat1/neqn.0 f 444 0.10 = /usr/man/cat1/checkeq.0
+/usr/man/cat1/netstat.0 f 444 0.10
+/usr/man/cat1/newaliases.0 f 444 0.10
+/usr/man/cat1/nice.0 f 444 0.10 = /usr/man/cat1/nice.0
+/usr/man/cat1/nm.0 f 444 0.10
+/usr/man/cat1/nohup.0 f 444 0.10 = /usr/man/cat1/nice.0
+/usr/man/cat1/nroff.0 f 444 0.10
+/usr/man/cat1/od.0 f 444 0.10
+/usr/man/cat1/page.0 f 444 0.10 = /usr/man/cat1/more.0
+/usr/man/cat1/pagesize.0 f 444 0.10
+/usr/man/cat1/passwd.0 f 444 0.10
+/usr/man/cat1/patch.0 f 444 0.10
+/usr/man/cat1/pr.0 f 444 0.10
+/usr/man/cat1/printenv.0 f 444 0.10
+/usr/man/cat1/printf.0 f 444 0.10
+/usr/man/cat1/ps.0 f 444 0.10
+/usr/man/cat1/ptx.0 f 444 0.10
+/usr/man/cat1/pwd.0 f 444 0.10
+/usr/man/cat1/ranlib.0 f 444 0.10
+/usr/man/cat1/rcp.0 f 444 0.10
+/usr/man/cat1/refer.0 f 444 0.10
+/usr/man/cat1/reset.0 f 444 0.10 = /usr/man/cat1/reset.0
+/usr/man/cat1/rev.0 f 444 0.10
+/usr/man/cat1/rlogin.0 f 444 0.10
+/usr/man/cat1/rm.0 f 444 0.10
+/usr/man/cat1/rmdir.0 f 444 0.10
+/usr/man/cat1/roffbib.0 f 444 0.10
+/usr/man/cat1/rsh.0 f 444 0.10
+/usr/man/cat1/ruptime.0 f 444 0.10
+/usr/man/cat1/rwho.0 f 444 0.10
+/usr/man/cat1/script.0 f 444 0.10
+/usr/man/cat1/sed.0 f 444 0.10
+/usr/man/cat1/sh.0 f 444 0.10 = /usr/man/cat1/case.0
+/usr/man/cat1/shar.0 f 444 0.10
+/usr/man/cat1/size.0 f 444 0.10
+/usr/man/cat1/sleep.0 f 444 0.10
+/usr/man/cat1/soelim.0 f 444 0.10
+/usr/man/cat1/sort.0 f 444 0.10
+/usr/man/cat1/sortbib.0 f 444 0.10
+/usr/man/cat1/spell.0 f 444 0.10 = /usr/man/cat1/spell.0
+/usr/man/cat1/spellin.0 f 444 0.10 = /usr/man/cat1/spell.0
+/usr/man/cat1/spellout.0 f 444 0.10 = /usr/man/cat1/spell.0
+/usr/man/cat1/spline.0 f 444 0.10
+/usr/man/cat1/split.0 f 444 0.10
+/usr/man/cat1/strings.0 f 444 0.10
+/usr/man/cat1/strip.0 f 444 0.10
+/usr/man/cat1/stty.0 f 444 0.10
+/usr/man/cat1/style.0 f 444 0.10
+/usr/man/cat1/su.0 f 444 0.10
+/usr/man/cat1/sum.0 f 444 0.10
+/usr/man/cat1/tabs.0 f 444 0.10
+/usr/man/cat1/tail.0 f 444 0.10
+/usr/man/cat1/talk.0 f 444 0.10
+/usr/man/cat1/tar.0 f 444 0.10
+/usr/man/cat1/tbl.0 f 444 0.10
+/usr/man/cat1/tcsh.0 f 444 0.10
+/usr/man/cat1/tee.0 f 444 0.10
+/usr/man/cat1/telnet.0 f 444 0.10
+/usr/man/cat1/test.0 f 444 0.10
+/usr/man/cat1/tftp.0 f 444 0.10
+/usr/man/cat1/time.0 f 444 0.10
+/usr/man/cat1/top.0 f 444 0.10
+/usr/man/cat1/touch.0 f 444 0.10
+/usr/man/cat1/tr.0 f 444 0.10
+/usr/man/cat1/tracebuf.0 f 444 0.10
+/usr/man/cat1/traverse.0 f 444 0.10
+/usr/man/cat1/true.0 f 444 0.10
+/usr/man/cat1/tset.0 f 444 0.10 = /usr/man/cat1/reset.0
+/usr/man/cat1/tsort.0 f 444 0.10
+/usr/man/cat1/tty.0 f 444 0.10
+/usr/man/cat1/ul.0 f 444 0.10
+/usr/man/cat1/uname.0 f 444 0.10
+/usr/man/cat1/uncompress.0 f 444 0.10 = /usr/man/cat1/compress.0
+/usr/man/cat1/unexpand.0 f 444 0.10 = /usr/man/cat1/expand.0
+/usr/man/cat1/unifdef.0 f 444 0.10
+/usr/man/cat1/uniq.0 f 444 0.10
+/usr/man/cat1/units.0 f 444 0.10
+/usr/man/cat1/uptime.0 f 444 0.10
+/usr/man/cat1/users.0 f 444 0.10
+/usr/man/cat1/vacation.0 f 444 0.10
+/usr/man/cat1/vi.0 f 444 0.10
+/usr/man/cat1/vmstat.0 f 444 0.10
+/usr/man/cat1/w.0 f 444 0.10
+/usr/man/cat1/wait.0 f 444 0.10
+/usr/man/cat1/wall.0 f 444 0.10
+/usr/man/cat1/wc.0 f 444 0.10
+/usr/man/cat1/what.0 f 444 0.10
+/usr/man/cat1/whatis.0 f 444 0.10
+/usr/man/cat1/whereis.0 f 444 0.10
+/usr/man/cat1/which.0 f 444 0.10
+/usr/man/cat1/while.0 f 444 0.10 = /usr/man/cat1/case.0
+/usr/man/cat1/who.0 f 444 0.10
+/usr/man/cat1/whoami.0 f 444 0.10
+/usr/man/cat1/whois.0 f 444 0.10
+/usr/man/cat1/window.0 f 444 0.10
+/usr/man/cat1/write.0 f 444 0.10
+/usr/man/cat1/xargs.0 f 444 0.10
+/usr/man/cat1/xstr.0 f 444 0.10
+/usr/man/cat1/yacc.0 f 444 0.10
+/usr/man/cat1/yes.0 f 444 0.10
+/usr/man/cat1/zcat.0 f 444 0.10 = /usr/man/cat1/compress.0
+/usr/man/cat2 d 755 0.0
+/usr/man/cat2/accept.0 f 444 0.10
+/usr/man/cat2/access.0 f 444 0.10
+/usr/man/cat2/acct.0 f 444 0.10
+/usr/man/cat2/adjtime.0 f 444 0.10
+/usr/man/cat2/bind.0 f 444 0.10
+/usr/man/cat2/brk.0 f 444 0.10 = /usr/man/cat2/brk.0
+/usr/man/cat2/chdir.0 f 444 0.10
+/usr/man/cat2/chflags.0 f 444 0.10 = /usr/man/cat2/chflags.0
+/usr/man/cat2/chmod.0 f 444 0.10 = /usr/man/cat2/chmod.0
+/usr/man/cat2/chown.0 f 444 0.10 = /usr/man/cat2/chown.0
+/usr/man/cat2/chroot.0 f 444 0.10
+/usr/man/cat2/close.0 f 444 0.10
+/usr/man/cat2/connect.0 f 444 0.10
+/usr/man/cat2/dup.0 f 444 0.10 = /usr/man/cat2/dup.0
+/usr/man/cat2/dup2.0 f 444 0.10 = /usr/man/cat2/dup.0
+/usr/man/cat2/errno.0 f 444 0.10
+/usr/man/cat2/execve.0 f 444 0.10
+/usr/man/cat2/exit.0 f 444 0.10
+/usr/man/cat2/fchdir.0 f 444 0.10 = /usr/man/cat2/chmod.0
+/usr/man/cat2/fchflags.0 f 444 0.10 = /usr/man/cat2/chflags.0
+/usr/man/cat2/fchmod.0 f 444 0.10 = /usr/man/cat2/chmod.0
+/usr/man/cat2/fchown.0 f 444 0.10 = /usr/man/cat2/chown.0
+/usr/man/cat2/fcntl.0 f 444 0.10
+/usr/man/cat2/fetchi.0 f 444 0.10
+/usr/man/cat2/flock.0 f 444 0.10
+/usr/man/cat2/fork.0 f 444 0.10
+/usr/man/cat2/fperr.0 f 444 0.10
+/usr/man/cat2/fstat.0 f 444 0.10 = /usr/man/cat2/fstat.0
+/usr/man/cat2/fstatfs.0 f 444 0.10 = /usr/man/cat2/fstatfs.0
+/usr/man/cat2/fsync.0 f 444 0.10
+/usr/man/cat2/ftruncate.0 f 444 0.10 = /usr/man/cat2/ftruncate.0
+/usr/man/cat2/getdtablesize.0 f 444 0.10
+/usr/man/cat2/getegid.0 f 444 0.10 = /usr/man/cat2/getegid.0
+/usr/man/cat2/geteuid.0 f 444 0.10 = /usr/man/cat2/geteuid.0
+/usr/man/cat2/getfsstat.0 f 444 0.10
+/usr/man/cat2/getgid.0 f 444 0.10 = /usr/man/cat2/getegid.0
+/usr/man/cat2/getgroups.0 f 444 0.10
+/usr/man/cat2/gethostid.0 f 444 0.10 = /usr/man/cat2/gethostid.0
+/usr/man/cat2/gethostname.0 f 444 0.10 = /usr/man/cat2/gethostname.0
+/usr/man/cat2/getitimer.0 f 444 0.10 = /usr/man/cat2/getitimer.0
+/usr/man/cat2/getlogin.0 f 444 0.10 = /usr/man/cat2/getlogin.0
+/usr/man/cat2/getpagesize.0 f 444 0.10
+/usr/man/cat2/getpeername.0 f 444 0.10
+/usr/man/cat2/getpgrp.0 f 444 0.10
+/usr/man/cat2/getpid.0 f 444 0.10 = /usr/man/cat2/getpid.0
+/usr/man/cat2/getppid.0 f 444 0.10 = /usr/man/cat2/getpid.0
+/usr/man/cat2/getpriority.0 f 444 0.10 = /usr/man/cat2/getpriority.0
+/usr/man/cat2/getrlimit.0 f 444 0.10 = /usr/man/cat2/getrlimit.0
+/usr/man/cat2/getrusage.0 f 444 0.10
+/usr/man/cat2/getsockname.0 f 444 0.10
+/usr/man/cat2/getsockopt.0 f 444 0.10 = /usr/man/cat2/getsockopt.0
+/usr/man/cat2/gettimeofday.0 f 444 0.10 = /usr/man/cat2/gettimeofday.0
+/usr/man/cat2/getuid.0 f 444 0.10 = /usr/man/cat2/geteuid.0
+/usr/man/cat2/intro.0 f 444 0.10
+/usr/man/cat2/ioctl.0 f 444 0.10
+/usr/man/cat2/kill.0 f 444 0.10
+/usr/man/cat2/killpg.0 f 444 0.10
+/usr/man/cat2/link.0 f 444 0.10
+/usr/man/cat2/listen.0 f 444 0.10
+/usr/man/cat2/lock.0 f 444 0.10
+/usr/man/cat2/lseek.0 f 444 0.10
+/usr/man/cat2/lstat.0 f 444 0.10 = /usr/man/cat2/fstat.0
+/usr/man/cat2/mkdir.0 f 444 0.10
+/usr/man/cat2/mknod.0 f 444 0.10
+/usr/man/cat2/mount.0 f 444 0.10 = /usr/man/cat2/mount.0
+/usr/man/cat2/nostk.0 f 444 0.10
+/usr/man/cat2/open.0 f 444 0.10
+/usr/man/cat2/phys.0 f 444 0.10
+/usr/man/cat2/pipe.0 f 444 0.10
+/usr/man/cat2/profil.0 f 444 0.10
+/usr/man/cat2/pselect.0 f 444 0.10 = /usr/man/cat2/pselect.0
+/usr/man/cat2/ptrace.0 f 444 0.10
+/usr/man/cat2/quota.0 f 444 0.10
+/usr/man/cat2/read.0 f 444 0.10 = /usr/man/cat2/read.0
+/usr/man/cat2/readlink.0 f 444 0.10
+/usr/man/cat2/readv.0 f 444 0.10 = /usr/man/cat2/read.0
+/usr/man/cat2/reboot.0 f 444 0.10
+/usr/man/cat2/recv.0 f 444 0.10 = /usr/man/cat2/recv.0
+/usr/man/cat2/recvfrom.0 f 444 0.10 = /usr/man/cat2/recv.0
+/usr/man/cat2/recvmsg.0 f 444 0.10 = /usr/man/cat2/recv.0
+/usr/man/cat2/rename.0 f 444 0.10
+/usr/man/cat2/rmdir.0 f 444 0.10
+/usr/man/cat2/sbrk.0 f 444 0.10 = /usr/man/cat2/brk.0
+/usr/man/cat2/segalloc.0 f 444 0.10 = /usr/man/cat2/segalloc.0
+/usr/man/cat2/segfree.0 f 444 0.10 = /usr/man/cat2/segalloc.0
+/usr/man/cat2/segsize.0 f 444 0.10 = /usr/man/cat2/segalloc.0
+/usr/man/cat2/select.0 f 444 0.10 = /usr/man/cat2/pselect.0
+/usr/man/cat2/send.0 f 444 0.10 = /usr/man/cat2/send.0
+/usr/man/cat2/sendmsg.0 f 444 0.10 = /usr/man/cat2/send.0
+/usr/man/cat2/sendto.0 f 444 0.10 = /usr/man/cat2/send.0
+/usr/man/cat2/setegid.0 f 444 0.10 = /usr/man/cat2/setegid.0
+/usr/man/cat2/seteuid.0 f 444 0.10 = /usr/man/cat2/setegid.0
+/usr/man/cat2/setgid.0 f 444 0.10 = /usr/man/cat2/setegid.0
+/usr/man/cat2/setgroups.0 f 444 0.10
+/usr/man/cat2/sethostid.0 f 444 0.10 = /usr/man/cat2/gethostid.0
+/usr/man/cat2/sethostname.0 f 444 0.10 = /usr/man/cat2/gethostname.0
+/usr/man/cat2/setitimer.0 f 444 0.10 = /usr/man/cat2/getitimer.0
+/usr/man/cat2/setlogin.0 f 444 0.10 = /usr/man/cat2/getlogin.0
+/usr/man/cat2/setpgrp.0 f 444 0.10
+/usr/man/cat2/setpriority.0 f 444 0.10 = /usr/man/cat2/getpriority.0
+/usr/man/cat2/setquota.0 f 444 0.10
+/usr/man/cat2/setregid.0 f 444 0.10
+/usr/man/cat2/setreuid.0 f 444 0.10
+/usr/man/cat2/setrlimit.0 f 444 0.10 = /usr/man/cat2/getrlimit.0
+/usr/man/cat2/setsockopt.0 f 444 0.10 = /usr/man/cat2/getsockopt.0
+/usr/man/cat2/settimeofday.0 f 444 0.10 = /usr/man/cat2/gettimeofday.0
+/usr/man/cat2/setuid.0 f 444 0.10 = /usr/man/cat2/setegid.0
+/usr/man/cat2/shutdown.0 f 444 0.10
+/usr/man/cat2/sigaction.0 f 444 0.10
+/usr/man/cat2/sigaltstack.0 f 444 0.10
+/usr/man/cat2/sigblock.0 f 444 0.10
+/usr/man/cat2/sigpause.0 f 444 0.10
+/usr/man/cat2/sigpending.0 f 444 0.10
+/usr/man/cat2/sigprocmask.0 f 444 0.10
+/usr/man/cat2/sigreturn.0 f 444 0.10
+/usr/man/cat2/sigsetmask.0 f 444 0.10
+/usr/man/cat2/sigstack.0 f 444 0.10
+/usr/man/cat2/sigsuspend.0 f 444 0.10
+/usr/man/cat2/sigvec.0 f 444 0.10
+/usr/man/cat2/sigwait.0 f 444 0.10
+/usr/man/cat2/socket.0 f 444 0.10
+/usr/man/cat2/socketpair.0 f 444 0.10
+/usr/man/cat2/stat.0 f 444 0.10 = /usr/man/cat2/fstat.0
+/usr/man/cat2/statfs.0 f 444 0.10 = /usr/man/cat2/fstatfs.0
+/usr/man/cat2/symlink.0 f 444 0.10
+/usr/man/cat2/sync.0 f 444 0.10
+/usr/man/cat2/syscall.0 f 444 0.10
+/usr/man/cat2/truncate.0 f 444 0.10 = /usr/man/cat2/ftruncate.0
+/usr/man/cat2/ucall.0 f 444 0.10
+/usr/man/cat2/umask.0 f 444 0.10
+/usr/man/cat2/umount.0 f 444 0.10 = /usr/man/cat2/mount.0
+/usr/man/cat2/unlink.0 f 444 0.10
+/usr/man/cat2/utimes.0 f 444 0.10
+/usr/man/cat2/vfork.0 f 444 0.10
+/usr/man/cat2/vhangup.0 f 444 0.10
+/usr/man/cat2/wait.0 f 444 0.10 = /usr/man/cat2/wait.0
+/usr/man/cat2/wait3.0 f 444 0.10 = /usr/man/cat2/wait.0
+/usr/man/cat2/wait4.0 f 444 0.10 = /usr/man/cat2/wait.0
+/usr/man/cat2/waitpid.0 f 444 0.10 = /usr/man/cat2/wait.0
+/usr/man/cat2/write.0 f 444 0.10 = /usr/man/cat2/write.0
+/usr/man/cat2/writev.0 f 444 0.10 = /usr/man/cat2/write.0
+/usr/man/cat3 d 755 0.0
+/usr/man/cat3/_longjmp.0 f 444 0.10 = /usr/man/cat3/_longjmp.0
+/usr/man/cat3/_setjmp.0 f 444 0.10 = /usr/man/cat3/_longjmp.0
+/usr/man/cat3/abort.0 f 444 0.10
+/usr/man/cat3/abs.0 f 444 0.10
+/usr/man/cat3/acos.0 f 444 0.10 = /usr/man/cat3/acos.0
+/usr/man/cat3/acosh.0 f 444 0.10 = /usr/man/cat3/acosh.0
+/usr/man/cat3/addr.0 f 444 0.10 = /usr/man/cat3/addr.0
+/usr/man/cat3/alarm.0 f 444 0.10
+/usr/man/cat3/alloca.0 f 444 0.10 = /usr/man/cat3/alloca.0
+/usr/man/cat3/alphasort.0 f 444 0.10 = /usr/man/cat3/alphasort.0
+/usr/man/cat3/arc.0 f 444 0.10 = /usr/man/cat3/arc.0
+/usr/man/cat3/asctime.0 f 444 0.10 = /usr/man/cat3/asctime.0
+/usr/man/cat3/asin.0 f 444 0.10 = /usr/man/cat3/acos.0
+/usr/man/cat3/asinh.0 f 444 0.10 = /usr/man/cat3/acosh.0
+/usr/man/cat3/assert.0 f 444 0.10
+/usr/man/cat3/atan.0 f 444 0.10 = /usr/man/cat3/acos.0
+/usr/man/cat3/atan2.0 f 444 0.10 = /usr/man/cat3/acos.0
+/usr/man/cat3/atanh.0 f 444 0.10 = /usr/man/cat3/acosh.0
+/usr/man/cat3/atof.0 f 444 0.10 = /usr/man/cat3/atof.0
+/usr/man/cat3/atoi.0 f 444 0.10 = /usr/man/cat3/atof.0
+/usr/man/cat3/atol.0 f 444 0.10 = /usr/man/cat3/atof.0
+/usr/man/cat3/bcmp.0 f 444 0.10 = /usr/man/cat3/bcmp.0
+/usr/man/cat3/bcopy.0 f 444 0.10 = /usr/man/cat3/bcmp.0
+/usr/man/cat3/bstring.0 f 444 0.10 = /usr/man/cat3/bcmp.0
+/usr/man/cat3/byteorder.0 f 444 0.10 = /usr/man/cat3/byteorder.0
+/usr/man/cat3/bzero.0 f 444 0.10 = /usr/man/cat3/bcmp.0
+/usr/man/cat3/cabs.0 f 444 0.10 = /usr/man/cat3/cabs.0
+/usr/man/cat3/calloc.0 f 444 0.10 = /usr/man/cat3/alloca.0
+/usr/man/cat3/cbrt.0 f 444 0.10 = /usr/man/cat3/cbrt.0
+/usr/man/cat3/ceil.0 f 444 0.10 = /usr/man/cat3/ceil.0
+/usr/man/cat3/circle.0 f 444 0.10 = /usr/man/cat3/arc.0
+/usr/man/cat3/clearerr.0 f 444 0.10 = /usr/man/cat3/clearerr.0
+/usr/man/cat3/closedir.0 f 444 0.10 = /usr/man/cat3/closedir.0
+/usr/man/cat3/closelog.0 f 444 0.10 = /usr/man/cat3/closelog.0
+/usr/man/cat3/comp.0 f 444 0.10 = /usr/man/cat3/comp.0
+/usr/man/cat3/compat-sys5.0 f 444 0.10 = /usr/man/cat3/compat-sys5.0
+/usr/man/cat3/cont.0 f 444 0.10 = /usr/man/cat3/arc.0
+/usr/man/cat3/cos.0 f 444 0.10 = /usr/man/cat3/acos.0
+/usr/man/cat3/cosh.0 f 444 0.10 = /usr/man/cat3/cosh.0
+/usr/man/cat3/creat.0 f 444 0.10
+/usr/man/cat3/crypt.0 f 444 0.10 = /usr/man/cat3/crypt.0
+/usr/man/cat3/ctime.0 f 444 0.10 = /usr/man/cat3/asctime.0
+/usr/man/cat3/ctype.0 f 444 0.10
+/usr/man/cat3/curses.0 f 444 0.10
+/usr/man/cat3/daemon.0 f 444 0.10
+/usr/man/cat3/dbm.0 f 444 0.10 = /usr/man/cat3/dbm.0
+/usr/man/cat3/dbm_clearerr.0 f 444 0.10 = /usr/man/cat3/dbm_clearerr.0
+/usr/man/cat3/dbm_close.0 f 444 0.10 = /usr/man/cat3/dbm_clearerr.0
+/usr/man/cat3/dbm_delete.0 f 444 0.10 = /usr/man/cat3/dbm_clearerr.0
+/usr/man/cat3/dbm_error.0 f 444 0.10 = /usr/man/cat3/dbm_clearerr.0
+/usr/man/cat3/dbm_fetch.0 f 444 0.10 = /usr/man/cat3/dbm_clearerr.0
+/usr/man/cat3/dbm_firstkey.0 f 444 0.10 = /usr/man/cat3/dbm_clearerr.0
+/usr/man/cat3/dbm_nextkey.0 f 444 0.10 = /usr/man/cat3/dbm_clearerr.0
+/usr/man/cat3/dbm_open.0 f 444 0.10 = /usr/man/cat3/dbm_clearerr.0
+/usr/man/cat3/dbm_store.0 f 444 0.10 = /usr/man/cat3/dbm_clearerr.0
+/usr/man/cat3/dbminit.0 f 444 0.10 = /usr/man/cat3/dbm.0
+/usr/man/cat3/delete.0 f 444 0.10 = /usr/man/cat3/dbm.0
+/usr/man/cat3/devname.0 f 444 0.10 = /usr/man/cat3/devname.0
+/usr/man/cat3/devname_close.0 f 444 0.10 = /usr/man/cat3/devname.0
+/usr/man/cat3/directory.0 f 444 0.10 = /usr/man/cat3/closedir.0
+/usr/man/cat3/ecvt.0 f 444 0.10 = /usr/man/cat3/ecvt.0
+/usr/man/cat3/edata.0 f 444 0.10 = /usr/man/cat3/edata.0
+/usr/man/cat3/encrypt.0 f 444 0.10 = /usr/man/cat3/crypt.0
+/usr/man/cat3/end.0 f 444 0.10 = /usr/man/cat3/edata.0
+/usr/man/cat3/endfsent.0 f 444 0.10 = /usr/man/cat3/endfsent.0
+/usr/man/cat3/endgrent.0 f 444 0.10 = /usr/man/cat3/endgrent.0
+/usr/man/cat3/endhostent.0 f 444 0.10 = /usr/man/cat3/endhostent.0
+/usr/man/cat3/endnetent.0 f 444 0.10 = /usr/man/cat3/endnetent.0
+/usr/man/cat3/endprotoent.0 f 444 0.10 = /usr/man/cat3/endprotoent.0
+/usr/man/cat3/endpwent.0 f 444 0.10 = /usr/man/cat3/endpwent.0
+/usr/man/cat3/endservent.0 f 444 0.10 = /usr/man/cat3/endservent.0
+/usr/man/cat3/endttyent.0 f 444 0.10 = /usr/man/cat3/endttyent.0
+/usr/man/cat3/endusershell.0 f 444 0.10 = /usr/man/cat3/endusershell.0
+/usr/man/cat3/environ.0 f 444 0.10 = /usr/man/cat3/environ.0
+/usr/man/cat3/erase.0 f 444 0.10 = /usr/man/cat3/arc.0
+/usr/man/cat3/erf.0 f 444 0.10 = /usr/man/cat3/erf.0
+/usr/man/cat3/erfc.0 f 444 0.10 = /usr/man/cat3/erf.0
+/usr/man/cat3/err.0 f 444 0.10 = /usr/man/cat3/err.0
+/usr/man/cat3/errx.0 f 444 0.10 = /usr/man/cat3/err.0
+/usr/man/cat3/etext.0 f 444 0.10 = /usr/man/cat3/edata.0
+/usr/man/cat3/execl.0 f 444 0.10 = /usr/man/cat3/environ.0
+/usr/man/cat3/execle.0 f 444 0.10 = /usr/man/cat3/environ.0
+/usr/man/cat3/execlp.0 f 444 0.10 = /usr/man/cat3/environ.0
+/usr/man/cat3/execv.0 f 444 0.10 = /usr/man/cat3/environ.0
+/usr/man/cat3/execve.0 f 444 0.10 = /usr/man/cat3/environ.0
+/usr/man/cat3/execvp.0 f 444 0.10 = /usr/man/cat3/environ.0
+/usr/man/cat3/exit.0 f 444 0.10
+/usr/man/cat3/exp.0 f 444 0.10 = /usr/man/cat3/exp.0
+/usr/man/cat3/expm1.0 f 444 0.10 = /usr/man/cat3/exp.0
+/usr/man/cat3/fabs.0 f 444 0.10 = /usr/man/cat3/ceil.0
+/usr/man/cat3/fclose.0 f 444 0.10
+/usr/man/cat3/fcvt.0 f 444 0.10 = /usr/man/cat3/ecvt.0
+/usr/man/cat3/fdopen.0 f 444 0.10 = /usr/man/cat3/fdopen.0
+/usr/man/cat3/feof.0 f 444 0.10 = /usr/man/cat3/clearerr.0
+/usr/man/cat3/ferror.0 f 444 0.10 = /usr/man/cat3/clearerr.0
+/usr/man/cat3/fetch.0 f 444 0.10 = /usr/man/cat3/dbm.0
+/usr/man/cat3/fflush.0 f 444 0.10 = /usr/man/cat3/fflush.0
+/usr/man/cat3/ffs.0 f 444 0.10 = /usr/man/cat3/bcmp.0
+/usr/man/cat3/fgetc.0 f 444 0.10 = /usr/man/cat3/fgetc.0
+/usr/man/cat3/fgetln.0 f 444 0.10
+/usr/man/cat3/fgetpos.0 f 444 0.10 = /usr/man/cat3/fgetpos.0
+/usr/man/cat3/fgets.0 f 444 0.10 = /usr/man/cat3/fgets.0
+/usr/man/cat3/fileno.0 f 444 0.10 = /usr/man/cat3/clearerr.0
+/usr/man/cat3/firstkey.0 f 444 0.10 = /usr/man/cat3/dbm.0
+/usr/man/cat3/floor.0 f 444 0.10 = /usr/man/cat3/ceil.0
+/usr/man/cat3/fopen.0 f 444 0.10 = /usr/man/cat3/fdopen.0
+/usr/man/cat3/fprintf.0 f 444 0.10 = /usr/man/cat3/fprintf.0
+/usr/man/cat3/fpurge.0 f 444 0.10 = /usr/man/cat3/fflush.0
+/usr/man/cat3/fputc.0 f 444 0.10 = /usr/man/cat3/fputc.0
+/usr/man/cat3/fputs.0 f 444 0.10 = /usr/man/cat3/fputs.0
+/usr/man/cat3/fread.0 f 444 0.10 = /usr/man/cat3/fread.0
+/usr/man/cat3/free.0 f 444 0.10 = /usr/man/cat3/alloca.0
+/usr/man/cat3/freopen.0 f 444 0.10 = /usr/man/cat3/fdopen.0
+/usr/man/cat3/frexp.0 f 444 0.10 = /usr/man/cat3/frexp.0
+/usr/man/cat3/fropen.0 f 444 0.10 = /usr/man/cat3/fropen.0
+/usr/man/cat3/fscanf.0 f 444 0.10 = /usr/man/cat3/fscanf.0
+/usr/man/cat3/fseek.0 f 444 0.10 = /usr/man/cat3/fgetpos.0
+/usr/man/cat3/fsetpos.0 f 444 0.10 = /usr/man/cat3/fgetpos.0
+/usr/man/cat3/ftell.0 f 444 0.10 = /usr/man/cat3/fgetpos.0
+/usr/man/cat3/ftime.0 f 444 0.10 = /usr/man/cat3/ftime.0
+/usr/man/cat3/funopen.0 f 444 0.10 = /usr/man/cat3/fropen.0
+/usr/man/cat3/fwopen.0 f 444 0.10 = /usr/man/cat3/fropen.0
+/usr/man/cat3/fwrite.0 f 444 0.10 = /usr/man/cat3/fread.0
+/usr/man/cat3/gamma.0 f 444 0.10 = /usr/man/cat3/gamma.0
+/usr/man/cat3/gcvt.0 f 444 0.10 = /usr/man/cat3/ecvt.0
+/usr/man/cat3/getc.0 f 444 0.10 = /usr/man/cat3/fgetc.0
+/usr/man/cat3/getchar.0 f 444 0.10 = /usr/man/cat3/fgetc.0
+/usr/man/cat3/getdisk.0 f 444 0.10 = /usr/man/cat3/getdisk.0
+/usr/man/cat3/getdiskbyname.0 f 444 0.10 = /usr/man/cat3/getdisk.0
+/usr/man/cat3/getenv.0 f 444 0.10 = /usr/man/cat3/getenv.0
+/usr/man/cat3/getfsent.0 f 444 0.10 = /usr/man/cat3/endfsent.0
+/usr/man/cat3/getfsfile.0 f 444 0.10 = /usr/man/cat3/endfsent.0
+/usr/man/cat3/getfsspec.0 f 444 0.10 = /usr/man/cat3/endfsent.0
+/usr/man/cat3/getfstype.0 f 444 0.10 = /usr/man/cat3/endfsent.0
+/usr/man/cat3/getgrent.0 f 444 0.10 = /usr/man/cat3/endgrent.0
+/usr/man/cat3/getgrgid.0 f 444 0.10 = /usr/man/cat3/endgrent.0
+/usr/man/cat3/getgrnam.0 f 444 0.10 = /usr/man/cat3/endgrent.0
+/usr/man/cat3/getgrouplist.0 f 444 0.10
+/usr/man/cat3/gethostbyaddr.0 f 444 0.10 = /usr/man/cat3/endhostent.0
+/usr/man/cat3/gethostbyname.0 f 444 0.10 = /usr/man/cat3/endhostent.0
+/usr/man/cat3/gethostent.0 f 444 0.10 = /usr/man/cat3/endhostent.0
+/usr/man/cat3/getloadavg.0 f 444 0.10
+/usr/man/cat3/getmntinfo.0 f 444 0.10
+/usr/man/cat3/getmode.0 f 444 0.10 = /usr/man/cat3/getmode.0
+/usr/man/cat3/getnetbyaddr.0 f 444 0.10 = /usr/man/cat3/endnetent.0
+/usr/man/cat3/getnetbyname.0 f 444 0.10 = /usr/man/cat3/endnetent.0
+/usr/man/cat3/getnetent.0 f 444 0.10 = /usr/man/cat3/endnetent.0
+/usr/man/cat3/getopt.0 f 444 0.10
+/usr/man/cat3/getpass.0 f 444 0.10
+/usr/man/cat3/getprotobyname.0 f 444 0.10 = /usr/man/cat3/endprotoent.0
+/usr/man/cat3/getprotobynumber.0 f 444 0.10 = /usr/man/cat3/endprotoent.0
+/usr/man/cat3/getprotoent.0 f 444 0.10 = /usr/man/cat3/endprotoent.0
+/usr/man/cat3/getpwent.0 f 444 0.10 = /usr/man/cat3/endpwent.0
+/usr/man/cat3/getpwnam.0 f 444 0.10 = /usr/man/cat3/endpwent.0
+/usr/man/cat3/getpwuid.0 f 444 0.10 = /usr/man/cat3/endpwent.0
+/usr/man/cat3/gets.0 f 444 0.10 = /usr/man/cat3/fgets.0
+/usr/man/cat3/getservbyname.0 f 444 0.10 = /usr/man/cat3/endservent.0
+/usr/man/cat3/getservbyport.0 f 444 0.10 = /usr/man/cat3/endservent.0
+/usr/man/cat3/getservent.0 f 444 0.10 = /usr/man/cat3/endservent.0
+/usr/man/cat3/getsubopt.0 f 444 0.10
+/usr/man/cat3/getttyent.0 f 444 0.10 = /usr/man/cat3/endttyent.0
+/usr/man/cat3/getttynam.0 f 444 0.10 = /usr/man/cat3/endttyent.0
+/usr/man/cat3/getusershell.0 f 444 0.10 = /usr/man/cat3/endusershell.0
+/usr/man/cat3/getw.0 f 444 0.10 = /usr/man/cat3/fgetc.0
+/usr/man/cat3/getwd.0 f 444 0.10
+/usr/man/cat3/gmtime.0 f 444 0.10 = /usr/man/cat3/asctime.0
+/usr/man/cat3/gtty.0 f 444 0.10 = /usr/man/cat3/gtty.0
+/usr/man/cat3/hosts_access.0 f 444 0.10
+/usr/man/cat3/htonl.0 f 444 0.10 = /usr/man/cat3/byteorder.0
+/usr/man/cat3/htons.0 f 444 0.10 = /usr/man/cat3/byteorder.0
+/usr/man/cat3/hypot.0 f 444 0.10 = /usr/man/cat3/cabs.0
+/usr/man/cat3/index.0 f 444 0.10 = /usr/man/cat3/index.0
+/usr/man/cat3/inet.0 f 444 0.10 = /usr/man/cat3/addr.0
+/usr/man/cat3/inet_addr.0 f 444 0.10 = /usr/man/cat3/addr.0
+/usr/man/cat3/inet_lnaof.0 f 444 0.10 = /usr/man/cat3/addr.0
+/usr/man/cat3/inet_makeaddr.0 f 444 0.10 = /usr/man/cat3/addr.0
+/usr/man/cat3/inet_netof.0 f 444 0.10 = /usr/man/cat3/addr.0
+/usr/man/cat3/inet_network.0 f 444 0.10 = /usr/man/cat3/addr.0
+/usr/man/cat3/inet_ntoa.0 f 444 0.10 = /usr/man/cat3/addr.0
+/usr/man/cat3/initgroups.0 f 444 0.10
+/usr/man/cat3/initstate.0 f 444 0.10 = /usr/man/cat3/initstate.0
+/usr/man/cat3/insque.0 f 444 0.10 = /usr/man/cat3/insque.0
+/usr/man/cat3/intro.0 f 444 0.10
+/usr/man/cat3/isalnum.0 f 444 0.10
+/usr/man/cat3/isalpha.0 f 444 0.10
+/usr/man/cat3/isascii.0 f 444 0.10
+/usr/man/cat3/isatty.0 f 444 0.10 = /usr/man/cat3/isatty.0
+/usr/man/cat3/isblank.0 f 444 0.10
+/usr/man/cat3/iscntrl.0 f 444 0.10
+/usr/man/cat3/isdigit.0 f 444 0.10
+/usr/man/cat3/isgraph.0 f 444 0.10
+/usr/man/cat3/islower.0 f 444 0.10
+/usr/man/cat3/isprint.0 f 444 0.10
+/usr/man/cat3/ispunct.0 f 444 0.10
+/usr/man/cat3/isspace.0 f 444 0.10
+/usr/man/cat3/isupper.0 f 444 0.10
+/usr/man/cat3/isxdigit.0 f 444 0.10
+/usr/man/cat3/j0.0 f 444 0.10 = /usr/man/cat3/j0.0
+/usr/man/cat3/j1.0 f 444 0.10 = /usr/man/cat3/j0.0
+/usr/man/cat3/jn.0 f 444 0.10 = /usr/man/cat3/j0.0
+/usr/man/cat3/l3tol.0 f 444 0.10 = /usr/man/cat3/l3tol.0
+/usr/man/cat3/label.0 f 444 0.10 = /usr/man/cat3/arc.0
+/usr/man/cat3/ldexp.0 f 444 0.10 = /usr/man/cat3/frexp.0
+/usr/man/cat3/ldfps.0 f 444 0.10
+/usr/man/cat3/lgamma.0 f 444 0.10 = /usr/man/cat3/gamma.0
+/usr/man/cat3/lib2648.0 f 444 0.10
+/usr/man/cat3/line.0 f 444 0.10 = /usr/man/cat3/arc.0
+/usr/man/cat3/linemod.0 f 444 0.10 = /usr/man/cat3/arc.0
+/usr/man/cat3/localtime.0 f 444 0.10 = /usr/man/cat3/asctime.0
+/usr/man/cat3/log.0 f 444 0.10 = /usr/man/cat3/exp.0
+/usr/man/cat3/log10.0 f 444 0.10 = /usr/man/cat3/exp.0
+/usr/man/cat3/log1p.0 f 444 0.10 = /usr/man/cat3/exp.0
+/usr/man/cat3/longjmp.0 f 444 0.10 = /usr/man/cat3/_longjmp.0
+/usr/man/cat3/ltol3.0 f 444 0.10 = /usr/man/cat3/l3tol.0
+/usr/man/cat3/malloc.0 f 444 0.10 = /usr/man/cat3/alloca.0
+/usr/man/cat3/math.0 f 444 0.10
+/usr/man/cat3/memccpy.0 f 444 0.10 = /usr/man/cat3/compat-sys5.0
+/usr/man/cat3/memchr.0 f 444 0.10 = /usr/man/cat3/compat-sys5.0
+/usr/man/cat3/memcmp.0 f 444 0.10 = /usr/man/cat3/compat-sys5.0
+/usr/man/cat3/memcpy.0 f 444 0.10 = /usr/man/cat3/compat-sys5.0
+/usr/man/cat3/memset.0 f 444 0.10 = /usr/man/cat3/compat-sys5.0
+/usr/man/cat3/mkstemp.0 f 444 0.10 = /usr/man/cat3/mkstemp.0
+/usr/man/cat3/mktemp.0 f 444 0.10 = /usr/man/cat3/mkstemp.0
+/usr/man/cat3/modf.0 f 444 0.10 = /usr/man/cat3/frexp.0
+/usr/man/cat3/moncontrol.0 f 444 0.10 = /usr/man/cat3/moncontrol.0
+/usr/man/cat3/monitor.0 f 444 0.10 = /usr/man/cat3/moncontrol.0
+/usr/man/cat3/monstartup.0 f 444 0.10 = /usr/man/cat3/moncontrol.0
+/usr/man/cat3/move.0 f 444 0.10 = /usr/man/cat3/arc.0
+/usr/man/cat3/mp.0 f 444 0.10
+/usr/man/cat3/ndbm.0 f 444 0.10 = /usr/man/cat3/dbm_clearerr.0
+/usr/man/cat3/network.0 f 444 0.10 = /usr/man/cat3/addr.0
+/usr/man/cat3/nextkey.0 f 444 0.10 = /usr/man/cat3/dbm.0
+/usr/man/cat3/nice.0 f 444 0.10
+/usr/man/cat3/nlist.0 f 444 0.10
+/usr/man/cat3/ns.0 f 444 0.10 = /usr/man/cat3/ns.0
+/usr/man/cat3/ns_addr.0 f 444 0.10 = /usr/man/cat3/ns.0
+/usr/man/cat3/ns_ntoa.0 f 444 0.10 = /usr/man/cat3/ns.0
+/usr/man/cat3/ntoa.0 f 444 0.10 = /usr/man/cat3/addr.0
+/usr/man/cat3/ntohl.0 f 444 0.10 = /usr/man/cat3/byteorder.0
+/usr/man/cat3/ntohs.0 f 444 0.10 = /usr/man/cat3/byteorder.0
+/usr/man/cat3/opendir.0 f 444 0.10 = /usr/man/cat3/closedir.0
+/usr/man/cat3/openlog.0 f 444 0.10 = /usr/man/cat3/closelog.0
+/usr/man/cat3/openpl.0 f 444 0.10 = /usr/man/cat3/arc.0
+/usr/man/cat3/pause.0 f 444 0.10
+/usr/man/cat3/pclose.0 f 444 0.10 = /usr/man/cat3/pclose.0
+/usr/man/cat3/perror.0 f 444 0.10 = /usr/man/cat3/perror.0
+/usr/man/cat3/plot.0 f 444 0.10 = /usr/man/cat3/arc.0
+/usr/man/cat3/point.0 f 444 0.10 = /usr/man/cat3/arc.0
+/usr/man/cat3/popen.0 f 444 0.10 = /usr/man/cat3/pclose.0
+/usr/man/cat3/pow.0 f 444 0.10 = /usr/man/cat3/exp.0
+/usr/man/cat3/printf.0 f 444 0.10 = /usr/man/cat3/fprintf.0
+/usr/man/cat3/psignal.0 f 444 0.10 = /usr/man/cat3/psignal.0
+/usr/man/cat3/putc.0 f 444 0.10 = /usr/man/cat3/fputc.0
+/usr/man/cat3/putchar.0 f 444 0.10 = /usr/man/cat3/fputc.0
+/usr/man/cat3/puts.0 f 444 0.10 = /usr/man/cat3/fputs.0
+/usr/man/cat3/putw.0 f 444 0.10 = /usr/man/cat3/fputc.0
+/usr/man/cat3/qsort.0 f 444 0.10
+/usr/man/cat3/rand.0 f 444 0.10 = /usr/man/cat3/rand.0
+/usr/man/cat3/random.0 f 444 0.10 = /usr/man/cat3/initstate.0
+/usr/man/cat3/rcmd.0 f 444 0.10 = /usr/man/cat3/rcmd.0
+/usr/man/cat3/re_comp.0 f 444 0.10 = /usr/man/cat3/comp.0
+/usr/man/cat3/re_exec.0 f 444 0.10 = /usr/man/cat3/comp.0
+/usr/man/cat3/readdir.0 f 444 0.10 = /usr/man/cat3/closedir.0
+/usr/man/cat3/realloc.0 f 444 0.10 = /usr/man/cat3/alloca.0
+/usr/man/cat3/regex.0 f 444 0.10 = /usr/man/cat3/comp.0
+/usr/man/cat3/remove.0 f 444 0.10
+/usr/man/cat3/remque.0 f 444 0.10 = /usr/man/cat3/insque.0
+/usr/man/cat3/resolver.0 f 444 0.10
+/usr/man/cat3/rewind.0 f 444 0.10 = /usr/man/cat3/fgetpos.0
+/usr/man/cat3/rewinddir.0 f 444 0.10 = /usr/man/cat3/closedir.0
+/usr/man/cat3/rexec.0 f 444 0.10
+/usr/man/cat3/rindex.0 f 444 0.10 = /usr/man/cat3/index.0
+/usr/man/cat3/rint.0 f 444 0.10 = /usr/man/cat3/ceil.0
+/usr/man/cat3/rresvport.0 f 444 0.10 = /usr/man/cat3/rcmd.0
+/usr/man/cat3/ruserok.0 f 444 0.10 = /usr/man/cat3/rcmd.0
+/usr/man/cat3/scandir.0 f 444 0.10 = /usr/man/cat3/alphasort.0
+/usr/man/cat3/scanf.0 f 444 0.10 = /usr/man/cat3/fscanf.0
+/usr/man/cat3/seekdir.0 f 444 0.10 = /usr/man/cat3/closedir.0
+/usr/man/cat3/setbuf.0 f 444 0.10 = /usr/man/cat3/setbuf.0
+/usr/man/cat3/setbuffer.0 f 444 0.10 = /usr/man/cat3/setbuf.0
+/usr/man/cat3/setenv.0 f 444 0.10 = /usr/man/cat3/getenv.0
+/usr/man/cat3/setfsent.0 f 444 0.10 = /usr/man/cat3/endfsent.0
+/usr/man/cat3/setgrent.0 f 444 0.10 = /usr/man/cat3/endgrent.0
+/usr/man/cat3/sethostent.0 f 444 0.10 = /usr/man/cat3/endhostent.0
+/usr/man/cat3/sethostfile.0 f 444 0.10 = /usr/man/cat3/endhostent.0
+/usr/man/cat3/setjmp.0 f 444 0.10 = /usr/man/cat3/_longjmp.0
+/usr/man/cat3/setkey.0 f 444 0.10 = /usr/man/cat3/crypt.0
+/usr/man/cat3/setlinebuf.0 f 444 0.10 = /usr/man/cat3/setbuf.0
+/usr/man/cat3/setlogmask.0 f 444 0.10 = /usr/man/cat3/closelog.0
+/usr/man/cat3/setmode.0 f 444 0.10 = /usr/man/cat3/getmode.0
+/usr/man/cat3/setnetent.0 f 444 0.10 = /usr/man/cat3/endnetent.0
+/usr/man/cat3/setpassent.0 f 444 0.10 = /usr/man/cat3/endpwent.0
+/usr/man/cat3/setprotoent.0 f 444 0.10 = /usr/man/cat3/endprotoent.0
+/usr/man/cat3/setpwent.0 f 444 0.10 = /usr/man/cat3/endpwent.0
+/usr/man/cat3/setpwfile.0 f 444 0.10 = /usr/man/cat3/endpwent.0
+/usr/man/cat3/setrgid.0 f 444 0.10 = /usr/man/cat3/setrgid.0
+/usr/man/cat3/setruid.0 f 444 0.10 = /usr/man/cat3/setrgid.0
+/usr/man/cat3/setservent.0 f 444 0.10 = /usr/man/cat3/endservent.0
+/usr/man/cat3/setstate.0 f 444 0.10 = /usr/man/cat3/initstate.0
+/usr/man/cat3/setttyent.0 f 444 0.10 = /usr/man/cat3/endttyent.0
+/usr/man/cat3/setusershell.0 f 444 0.10 = /usr/man/cat3/endusershell.0
+/usr/man/cat3/setvbuf.0 f 444 0.10 = /usr/man/cat3/setbuf.0
+/usr/man/cat3/sigaddset.0 f 444 0.10 = /usr/man/cat3/sigaddset.0
+/usr/man/cat3/sigdelset.0 f 444 0.10 = /usr/man/cat3/sigaddset.0
+/usr/man/cat3/sigemptyset.0 f 444 0.10 = /usr/man/cat3/sigaddset.0
+/usr/man/cat3/sigfillset.0 f 444 0.10 = /usr/man/cat3/sigaddset.0
+/usr/man/cat3/siginterrupt.0 f 444 0.10
+/usr/man/cat3/sigismember.0 f 444 0.10 = /usr/man/cat3/sigaddset.0
+/usr/man/cat3/signal.0 f 444 0.10
+/usr/man/cat3/sigsetops.0 f 444 0.10 = /usr/man/cat3/sigaddset.0
+/usr/man/cat3/sin.0 f 444 0.10 = /usr/man/cat3/acos.0
+/usr/man/cat3/sinh.0 f 444 0.10 = /usr/man/cat3/cosh.0
+/usr/man/cat3/sleep.0 f 444 0.10 = /usr/man/cat3/sleep.0
+/usr/man/cat3/snprintf.0 f 444 0.10 = /usr/man/cat3/fprintf.0
+/usr/man/cat3/space.0 f 444 0.10 = /usr/man/cat3/arc.0
+/usr/man/cat3/sprintf.0 f 444 0.10 = /usr/man/cat3/fprintf.0
+/usr/man/cat3/sqrt.0 f 444 0.10 = /usr/man/cat3/cbrt.0
+/usr/man/cat3/srand.0 f 444 0.10 = /usr/man/cat3/rand.0
+/usr/man/cat3/srandom.0 f 444 0.10 = /usr/man/cat3/initstate.0
+/usr/man/cat3/sscanf.0 f 444 0.10 = /usr/man/cat3/fscanf.0
+/usr/man/cat3/stdarg.0 f 444 0.10
+/usr/man/cat3/stdio.0 f 444 0.10
+/usr/man/cat3/store.0 f 444 0.10 = /usr/man/cat3/dbm.0
+/usr/man/cat3/strcasecmp.0 f 444 0.10 = /usr/man/cat3/index.0
+/usr/man/cat3/strcat.0 f 444 0.10 = /usr/man/cat3/index.0
+/usr/man/cat3/strchr.0 f 444 0.10 = /usr/man/cat3/compat-sys5.0
+/usr/man/cat3/strcmp.0 f 444 0.10 = /usr/man/cat3/index.0
+/usr/man/cat3/strcpy.0 f 444 0.10 = /usr/man/cat3/index.0
+/usr/man/cat3/strcspn.0 f 444 0.10
+/usr/man/cat3/strdup.0 f 444 0.10
+/usr/man/cat3/strerror.0 f 444 0.10 = /usr/man/cat3/perror.0
+/usr/man/cat3/strftime.0 f 444 0.10
+/usr/man/cat3/string.0 f 444 0.10 = /usr/man/cat3/index.0
+/usr/man/cat3/strlen.0 f 444 0.10 = /usr/man/cat3/index.0
+/usr/man/cat3/strncasecmp.0 f 444 0.10 = /usr/man/cat3/index.0
+/usr/man/cat3/strncat.0 f 444 0.10 = /usr/man/cat3/index.0
+/usr/man/cat3/strncmp.0 f 444 0.10 = /usr/man/cat3/index.0
+/usr/man/cat3/strncpy.0 f 444 0.10 = /usr/man/cat3/index.0
+/usr/man/cat3/strpbrk.0 f 444 0.10
+/usr/man/cat3/strrchr.0 f 444 0.10 = /usr/man/cat3/compat-sys5.0
+/usr/man/cat3/strsep.0 f 444 0.10
+/usr/man/cat3/strspn.0 f 444 0.10
+/usr/man/cat3/strstr.0 f 444 0.10
+/usr/man/cat3/strtoimax.0 f 444 0.10 = /usr/man/cat3/strtoimax.0
+/usr/man/cat3/strtok.0 f 444 0.10
+/usr/man/cat3/strtol.0 f 444 0.10 = /usr/man/cat3/strtoimax.0
+/usr/man/cat3/strtoul.0 f 444 0.10 = /usr/man/cat3/strtoul.0
+/usr/man/cat3/strtoumax.0 f 444 0.10 = /usr/man/cat3/strtoul.0
+/usr/man/cat3/stty.0 f 444 0.10 = /usr/man/cat3/gtty.0
+/usr/man/cat3/swab.0 f 444 0.10
+/usr/man/cat3/swapdevname.0 f 444 0.10
+/usr/man/cat3/sys_siglist.0 f 444 0.10 = /usr/man/cat3/psignal.0
+/usr/man/cat3/sysctl.0 f 444 0.10
+/usr/man/cat3/syserrlst.0 f 444 0.10
+/usr/man/cat3/syslog.0 f 444 0.10 = /usr/man/cat3/closelog.0
+/usr/man/cat3/system.0 f 444 0.10
+/usr/man/cat3/tan.0 f 444 0.10 = /usr/man/cat3/acos.0
+/usr/man/cat3/tanh.0 f 444 0.10 = /usr/man/cat3/cosh.0
+/usr/man/cat3/telldir.0 f 444 0.10 = /usr/man/cat3/closedir.0
+/usr/man/cat3/tempnam.0 f 444 0.10 = /usr/man/cat3/tempnam.0
+/usr/man/cat3/termcap.0 f 444 0.10 = /usr/man/cat3/termcap.0
+/usr/man/cat3/tgetent.0 f 444 0.10 = /usr/man/cat3/termcap.0
+/usr/man/cat3/tgetflag.0 f 444 0.10 = /usr/man/cat3/termcap.0
+/usr/man/cat3/tgetnum.0 f 444 0.10 = /usr/man/cat3/termcap.0
+/usr/man/cat3/tgetstr.0 f 444 0.10 = /usr/man/cat3/termcap.0
+/usr/man/cat3/tgoto.0 f 444 0.10 = /usr/man/cat3/termcap.0
+/usr/man/cat3/time.0 f 444 0.10 = /usr/man/cat3/ftime.0
+/usr/man/cat3/times.0 f 444 0.10
+/usr/man/cat3/timezone.0 f 444 0.10 = /usr/man/cat3/asctime.0
+/usr/man/cat3/tmpfile.0 f 444 0.10 = /usr/man/cat3/tempnam.0
+/usr/man/cat3/tmpnam.0 f 444 0.10 = /usr/man/cat3/tempnam.0
+/usr/man/cat3/toascii.0 f 444 0.10
+/usr/man/cat3/tolower.0 f 444 0.10
+/usr/man/cat3/toupper.0 f 444 0.10
+/usr/man/cat3/tputs.0 f 444 0.10 = /usr/man/cat3/termcap.0
+/usr/man/cat3/ttyname.0 f 444 0.10 = /usr/man/cat3/isatty.0
+/usr/man/cat3/ttyslot.0 f 444 0.10 = /usr/man/cat3/isatty.0
+/usr/man/cat3/ualarm.0 f 444 0.10
+/usr/man/cat3/uname.0 f 444 0.10
+/usr/man/cat3/ungetc.0 f 444 0.10
+/usr/man/cat3/unsetenv.0 f 444 0.10 = /usr/man/cat3/getenv.0
+/usr/man/cat3/usleep.0 f 444 0.10 = /usr/man/cat3/sleep.0
+/usr/man/cat3/utime.0 f 444 0.10
+/usr/man/cat3/valloc.0 f 444 0.10
+/usr/man/cat3/varargs.0 f 444 0.10
+/usr/man/cat3/verr.0 f 444 0.10 = /usr/man/cat3/err.0
+/usr/man/cat3/verrx.0 f 444 0.10 = /usr/man/cat3/err.0
+/usr/man/cat3/vfprintf.0 f 444 0.10 = /usr/man/cat3/fprintf.0
+/usr/man/cat3/vfscanf.0 f 444 0.10 = /usr/man/cat3/fscanf.0
+/usr/man/cat3/vprintf.0 f 444 0.10 = /usr/man/cat3/fprintf.0
+/usr/man/cat3/vscanf.0 f 444 0.10 = /usr/man/cat3/fscanf.0
+/usr/man/cat3/vsnprintf.0 f 444 0.10 = /usr/man/cat3/fprintf.0
+/usr/man/cat3/vsprintf.0 f 444 0.10 = /usr/man/cat3/fprintf.0
+/usr/man/cat3/vsscanf.0 f 444 0.10 = /usr/man/cat3/fscanf.0
+/usr/man/cat3/vsyslog.0 f 444 0.10 = /usr/man/cat3/closelog.0
+/usr/man/cat3/vwarnx.0 f 444 0.10 = /usr/man/cat3/err.0
+/usr/man/cat3/warn.0 f 444 0.10 = /usr/man/cat3/err.0
+/usr/man/cat3/warnx.0 f 444 0.10 = /usr/man/cat3/err.0
+/usr/man/cat3/y0.0 f 444 0.10 = /usr/man/cat3/j0.0
+/usr/man/cat3/y1.0 f 444 0.10 = /usr/man/cat3/j0.0
+/usr/man/cat3/yn.0 f 444 0.10 = /usr/man/cat3/j0.0
+/usr/man/cat4 d 755 0.0
+/usr/man/cat4/arp.0 f 444 0.10
+/usr/man/cat4/fl.0 f 444 0.10
+/usr/man/cat4/icmp.0 f 444 0.10
+/usr/man/cat4/inet.0 f 444 0.10
+/usr/man/cat4/ip.0 f 444 0.10
+/usr/man/cat4/lo.0 f 444 0.10
+/usr/man/cat4/networking.0 f 444 0.10
+/usr/man/cat4/null.0 f 444 0.10
+/usr/man/cat4/pty.0 f 444 0.10
+/usr/man/cat4/tcp.0 f 444 0.10
+/usr/man/cat4/tty.0 f 444 0.10
+/usr/man/cat4/udp.0 f 444 0.10
+/usr/man/cat5 d 755 0.0
+/usr/man/cat5/L-devices.0 f 444 0.10
+/usr/man/cat5/L-dialcodes.0 f 444 0.10
+/usr/man/cat5/L.aliases.0 f 444 0.10
+/usr/man/cat5/L.cmds.0 f 444 0.10
+/usr/man/cat5/L.sys.0 f 444 0.10
+/usr/man/cat5/USERFILE.0 f 444 0.10
+/usr/man/cat5/a.out.0 f 444 0.10
+/usr/man/cat5/acct.0 f 444 0.10
+/usr/man/cat5/aliases.0 f 444 0.10
+/usr/man/cat5/ar.0 f 444 0.10
+/usr/man/cat5/core.0 f 444 0.10
+/usr/man/cat5/crontab.0 f 444 3.20
+/usr/man/cat5/dir.0 f 444 0.10
+/usr/man/cat5/disklabel.0 f 444 0.10
+/usr/man/cat5/disktab.0 f 444 0.10
+/usr/man/cat5/dtab.0 f 444 0.10
+/usr/man/cat5/dump.0 f 444 0.10 = /usr/man/cat5/dump.0
+/usr/man/cat5/dumpdates.0 f 444 0.10 = /usr/man/cat5/dump.0
+/usr/man/cat5/fs.0 f 444 0.10 = /usr/man/cat5/fs.0
+/usr/man/cat5/fstab.0 f 444 0.10
+/usr/man/cat5/gettytab.0 f 444 0.10
+/usr/man/cat5/group.0 f 444 0.10
+/usr/man/cat5/hosts.0 f 444 0.10
+/usr/man/cat5/hosts_access.0 f 444 0.10
+/usr/man/cat5/hosts_options.0 f 444 0.10
+/usr/man/cat5/inode.0 f 444 0.10 = /usr/man/cat5/fs.0
+/usr/man/cat5/map3270.0 f 444 0.10
+/usr/man/cat5/networks.0 f 444 0.10
+/usr/man/cat5/passwd.0 f 444 0.10
+/usr/man/cat5/phones.0 f 444 0.10
+/usr/man/cat5/plot.0 f 444 0.10
+/usr/man/cat5/printcap.0 f 444 0.10
+/usr/man/cat5/protocols.0 f 444 0.10
+/usr/man/cat5/ranlib.0 f 444 0.10
+/usr/man/cat5/remote.0 f 444 0.10
+/usr/man/cat5/resolver.0 f 444 0.10
+/usr/man/cat5/services.0 f 444 0.10
+/usr/man/cat5/shells.0 f 444 0.10
+/usr/man/cat5/stack.0 f 444 0.10
+/usr/man/cat5/syserrlst.0 f 444 0.10
+/usr/man/cat5/tar.0 f 444 0.10
+/usr/man/cat5/termcap.0 f 444 0.10
+/usr/man/cat5/tp.0 f 444 0.10
+/usr/man/cat5/ttys.0 f 444 0.10
+/usr/man/cat5/types.0 f 444 0.10
+/usr/man/cat5/tzfile.0 f 444 0.10
+/usr/man/cat5/utmp.0 f 444 0.10 = /usr/man/cat5/utmp.0
+/usr/man/cat5/uuencode.0 f 444 0.10
+/usr/man/cat5/vfont.0 f 444 0.10
+/usr/man/cat5/vgrindefs.0 f 444 0.10
+/usr/man/cat5/wtmp.0 f 444 0.10 = /usr/man/cat5/utmp.0
+/usr/man/cat6 d 755 0.0
+/usr/man/cat6/adventure.0 f 444 0.10
+/usr/man/cat6/arithmetic.0 f 444 0.10
+/usr/man/cat6/atc.0 f 444 0.10
+/usr/man/cat6/backgammon.0 f 444 0.10
+/usr/man/cat6/banner.0 f 444 0.10
+/usr/man/cat6/battlestar.0 f 444 0.10
+/usr/man/cat6/bcd.0 f 444 0.10
+/usr/man/cat6/boggle.0 f 444 0.10
+/usr/man/cat6/canfield.0 f 444 0.10 = /usr/man/cat6/canfield.0
+/usr/man/cat6/cfscores.0 f 444 0.10 = /usr/man/cat6/canfield.0
+/usr/man/cat6/cribbage.0 f 444 0.10
+/usr/man/cat6/fish.0 f 444 0.10
+/usr/man/cat6/fortune.0 f 444 0.10
+/usr/man/cat6/hack.0 f 444 0.10
+/usr/man/cat6/hangman.0 f 444 0.10
+/usr/man/cat6/hunt.0 f 444 0.10
+/usr/man/cat6/mille.0 f 444 0.10
+/usr/man/cat6/monop.0 f 444 0.10
+/usr/man/cat6/number.0 f 444 0.10
+/usr/man/cat6/phantasia.0 f 444 0.10
+/usr/man/cat6/quiz.0 f 444 0.10
+/usr/man/cat6/rain.0 f 444 0.10
+/usr/man/cat6/robots.0 f 444 0.10
+/usr/man/cat6/rogue.0 f 444 0.10
+/usr/man/cat6/sail.0 f 444 0.10
+/usr/man/cat6/snake.0 f 444 0.10 = /usr/man/cat6/snake.0
+/usr/man/cat6/snscore.0 f 444 0.10 = /usr/man/cat6/snake.0
+/usr/man/cat6/trek.0 f 444 0.10
+/usr/man/cat6/warp.0 f 444 0.10
+/usr/man/cat6/words.0 f 444 0.10
+/usr/man/cat6/worm.0 f 444 0.10
+/usr/man/cat6/worms.0 f 444 0.10
+/usr/man/cat6/wump.0 f 444 0.10
+/usr/man/cat7 d 755 0.0
+/usr/man/cat7/ascii.0 f 444 0.10
+/usr/man/cat7/environ.0 f 444 0.10
+/usr/man/cat7/eqnchar.0 f 444 0.10
+/usr/man/cat7/hier.0 f 444 0.10
+/usr/man/cat7/hostname.0 f 444 0.10
+/usr/man/cat7/intro.0 f 444 0.10 = /usr/man/cat7/intro.0
+/usr/man/cat7/mailaddr.0 f 444 0.10
+/usr/man/cat7/man.0 f 444 0.10
+/usr/man/cat7/mdoc.0 f 444 0.10
+/usr/man/cat7/mdoc.samples.0 f 444 0.10
+/usr/man/cat7/me.0 f 444 0.10
+/usr/man/cat7/miscellaneous.0 f 444 0.10 = /usr/man/cat7/intro.0
+/usr/man/cat7/ms.0 f 444 0.10
+/usr/man/cat7/term.0 f 444 0.10
+/usr/man/cat8 d 755 0.0
+/usr/man/cat8/ac.0 f 444 0.10
+/usr/man/cat8/acctd.0 f 444 0.10
+/usr/man/cat8/accton.0 f 444 0.10
+/usr/man/cat8/arp.0 f 444 0.10
+/usr/man/cat8/badsect.0 f 444 0.10
+/usr/man/cat8/chown.0 f 444 0.10
+/usr/man/cat8/chroot.0 f 444 0.10
+/usr/man/cat8/clri.0 f 444 0.10
+/usr/man/cat8/comsat.0 f 444 0.10
+/usr/man/cat8/cron.0 f 444 3.20
+/usr/man/cat8/dcheck.0 f 444 0.10
+/usr/man/cat8/dev_mkdb.0 f 444 0.10
+/usr/man/cat8/disklabel.0 f 444 0.10
+/usr/man/cat8/dmesg.0 f 444 0.10
+/usr/man/cat8/dump.0 f 444 0.10
+/usr/man/cat8/dumpdir.0 f 444 0.10
+/usr/man/cat8/fastboot.0 f 444 0.10 = /usr/man/cat8/fastboot.0
+/usr/man/cat8/fingerd.0 f 444 0.10
+/usr/man/cat8/flformat.0 f 444 0.10
+/usr/man/cat8/fsck.0 f 444 0.10
+/usr/man/cat8/fstat.0 f 444 0.10
+/usr/man/cat8/ftpd.0 f 444 0.10
+/usr/man/cat8/getty.0 f 444 0.10
+/usr/man/cat8/halt.0 f 444 0.10 = /usr/man/cat8/fastboot.0
+/usr/man/cat8/icheck.0 f 444 0.10
+/usr/man/cat8/ifconfig.0 f 444 0.10
+/usr/man/cat8/inetd.0 f 444 0.10
+/usr/man/cat8/init.0 f 444 0.10
+/usr/man/cat8/intro.0 f 444 0.10
+/usr/man/cat8/makekey.0 f 444 0.10
+/usr/man/cat8/makewhatis.0 f 444 0.10
+/usr/man/cat8/mkfs.0 f 444 0.10
+/usr/man/cat8/mknod.0 f 444 0.10
+/usr/man/cat8/mkpasswd.0 f 444 0.10
+/usr/man/cat8/mount.0 f 444 0.10
+/usr/man/cat8/nc.0 f 444 0.10
+/usr/man/cat8/ncheck.0 f 444 0.10
+/usr/man/cat8/newfs.0 f 444 0.10
+/usr/man/cat8/ntp.0 f 444 0.10
+/usr/man/cat8/ntpd.0 f 444 0.10
+/usr/man/cat8/ntpdc.0 f 444 0.10
+/usr/man/cat8/ping.0 f 444 0.10
+/usr/man/cat8/popper.0 f 444 0.10
+/usr/man/cat8/pstat.0 f 444 0.10
+/usr/man/cat8/quot.0 f 444 0.10
+/usr/man/cat8/rc.0 f 444 0.10
+/usr/man/cat8/rdump.0 f 444 0.10
+/usr/man/cat8/reboot.0 f 444 0.10 = /usr/man/cat8/fastboot.0
+/usr/man/cat8/renice.0 f 444 0.10
+/usr/man/cat8/restor.0 f 444 0.10
+/usr/man/cat8/rexecd.0 f 444 0.10
+/usr/man/cat8/rlogind.0 f 444 0.10
+/usr/man/cat8/rmt.0 f 444 0.10
+/usr/man/cat8/route.0 f 444 0.10
+/usr/man/cat8/routed.0 f 444 0.10
+/usr/man/cat8/rshd.0 f 444 0.10
+/usr/man/cat8/rwhod.0 f 444 0.10
+/usr/man/cat8/sa.0 f 444 0.10
+/usr/man/cat8/sendmail.0 f 444 0.10
+/usr/man/cat8/shutdown.0 f 444 0.10
+/usr/man/cat8/sync.0 f 444 0.10
+/usr/man/cat8/sysctl.0 f 444 0.10
+/usr/man/cat8/syslogd.0 f 444 0.10
+/usr/man/cat8/talkd.0 f 444 0.10
+/usr/man/cat8/tcpd.0 f 444 0.10
+/usr/man/cat8/tcpdchk.0 f 444 0.10
+/usr/man/cat8/tcpdmatch.0 f 444 0.10
+/usr/man/cat8/telnetd.0 f 444 0.10
+/usr/man/cat8/tftpd.0 f 444 0.10
+/usr/man/cat8/timed.0 f 444 0.10
+/usr/man/cat8/timedc.0 f 444 0.10
+/usr/man/cat8/traceroute.0 f 444 0.10
+/usr/man/cat8/umount.0 f 444 0.10
+/usr/man/cat8/update.0 f 444 0.10
+/usr/man/cat8/vipw.0 f 444 0.10
+/usr/man/cat8/zdump.0 f 444 0.10
+/usr/man/cat8/zic.0 f 444 0.10
+/usr/man/makewhatis.sed f 444 0.10
+/usr/man/man.template f 444 0.10
+/usr/man/manroff f 755 0.10
+/usr/man/whatis f 444 0.10
+/usr/msgs d 777 0.0
+/usr/new d 755 0.0
+/usr/new/la f 755 0.0
+/usr/new/man d 755 0.0
+/usr/new/man/cat1 d 755 0.0
+/usr/new/man/cat1/la.0 f 444 0.10
+/usr/new/man/cat2 d 755 0.0
+/usr/new/man/cat3 d 755 0.0
+/usr/new/man/cat4 d 755 0.0
+/usr/new/man/cat5 d 755 0.0
+/usr/new/man/cat6 d 755 0.0
+/usr/new/man/cat7 d 755 0.0
+/usr/new/man/cat8 d 755 0.0
+/usr/new/man/whatis f 664 0.0
+/usr/preserve d 755 0.0
+/usr/pub d 755 0.0
+/usr/pub/ascii f 444 0.10
+/usr/pub/eqnchar f 444 0.10
+/usr/pub/greek f 444 0.10
+/usr/sbin d 755 0.0
+/usr/sbin/ac f 755 0.10
+/usr/sbin/accton f 755 0.10
+/usr/sbin/arp f 2755 0.2
+/usr/sbin/chown f 755 0.10
+/usr/sbin/chroot f 4751 0.10
+/usr/sbin/cron f 111 0.0
+/usr/sbin/dev_mkdb f 755 0.10
+/usr/sbin/expreserve f 4755 0.0
+/usr/sbin/exrecover f 4755 0.0
+/usr/sbin/flformat f 755 0.10
+/usr/sbin/inetd f 755 0.10
+/usr/sbin/makewhatis f 755 0.10
+/usr/sbin/nc f 755 0.10
+/usr/sbin/ntp f 755 0.0
+/usr/sbin/ntpd f 755 0.0
+/usr/sbin/ntpdc f 755 0.0
+/usr/sbin/pstat f 2755 0.2
+/usr/sbin/quot f 2755 0.5
+/usr/sbin/rmt f 755 0.10
+/usr/sbin/rwhod f 755 0.10
+/usr/sbin/sa f 755 0.10
+/usr/sbin/sendmail f 4755 0.0
+/usr/sbin/syslogd f 755 0.10
+/usr/sbin/timed f 755 0.0
+/usr/sbin/timedc f 4555 0.0
+/usr/sbin/tracebuf f 2755 0.2
+/usr/sbin/traceroute f 4551 0.10
+/usr/sbin/update f 755 0.10
+/usr/sbin/vipw f 755 0.10
+/usr/sbin/zdump f 755 0.10
+/usr/sbin/zic f 755 0.10
+/usr/share d 755 0.0
+/usr/share/learn d 755 0.10
+/usr/share/learn/C d 755 0.0
+/usr/share/learn/C/L0 f 644 0.0
+/usr/share/learn/C/L0.1a f 644 0.0
+/usr/share/learn/C/L1.1a f 644 0.0
+/usr/share/learn/C/L1.1b f 644 0.0
+/usr/share/learn/C/L1.1c f 644 0.0
+/usr/share/learn/C/L1.1d f 644 0.0
+/usr/share/learn/C/L1.1e f 644 0.0
+/usr/share/learn/C/L1.1f f 644 0.0
+/usr/share/learn/C/L10 f 644 0.0
+/usr/share/learn/C/L11.1a f 644 0.0
+/usr/share/learn/C/L11.2a f 644 0.0
+/usr/share/learn/C/L12.1a f 644 0.0
+/usr/share/learn/C/L12.1b f 644 0.0
+/usr/share/learn/C/L13.1a f 644 0.0
+/usr/share/learn/C/L14.1a f 644 0.0
+/usr/share/learn/C/L14.2a f 644 0.0
+/usr/share/learn/C/L14.2b f 644 0.0
+/usr/share/learn/C/L15.1a f 644 0.0
+/usr/share/learn/C/L15.1b f 644 0.0
+/usr/share/learn/C/L16.2a f 644 0.0
+/usr/share/learn/C/L16.2b f 644 0.0
+/usr/share/learn/C/L16.2c f 644 0.0
+/usr/share/learn/C/L17.1a f 644 0.0
+/usr/share/learn/C/L17.1c f 644 0.0
+/usr/share/learn/C/L18.1a f 644 0.0
+/usr/share/learn/C/L19.1a f 644 0.0
+/usr/share/learn/C/L2.1a f 644 0.0
+/usr/share/learn/C/L2.1b f 644 0.0
+/usr/share/learn/C/L2.1c f 644 0.0
+/usr/share/learn/C/L2.1d f 644 0.0
+/usr/share/learn/C/L2.1e f 644 0.0
+/usr/share/learn/C/L20.1a f 644 0.0
+/usr/share/learn/C/L3.1a f 644 0.0
+/usr/share/learn/C/L3.1b f 644 0.0
+/usr/share/learn/C/L30.1a f 644 0.0
+/usr/share/learn/C/L31.1a f 644 0.0
+/usr/share/learn/C/L32.1a f 644 0.0
+/usr/share/learn/C/L33.1a f 644 0.0
+/usr/share/learn/C/L35.1a f 644 0.0
+/usr/share/learn/C/L37.1a f 644 0.0
+/usr/share/learn/C/L4.1a f 644 0.0
+/usr/share/learn/C/L40.1a f 644 0.0
+/usr/share/learn/C/L41.1a f 644 0.0
+/usr/share/learn/C/L42.1a f 644 0.0
+/usr/share/learn/C/L43.1a f 644 0.0
+/usr/share/learn/C/L43.1b f 644 0.0
+/usr/share/learn/C/L5.1a f 644 0.0
+/usr/share/learn/C/L5.1b f 644 0.0
+/usr/share/learn/C/L5.1c f 644 0.0
+/usr/share/learn/C/L5.1d f 644 0.0
+/usr/share/learn/C/L5.1e f 644 0.0
+/usr/share/learn/C/L5.1f f 644 0.0
+/usr/share/learn/C/L5.1g f 644 0.0
+/usr/share/learn/C/L5.2a f 644 0.0
+/usr/share/learn/C/L5.2b f 644 0.0
+/usr/share/learn/C/L5.2e f 644 0.0
+/usr/share/learn/C/L5.3e f 644 0.0
+/usr/share/learn/C/L50.1a f 644 0.0
+/usr/share/learn/C/L9.1a f 644 0.0
+/usr/share/learn/C/getline.c f 644 0.0
+/usr/share/learn/C/getline.o f 644 0.0
+/usr/share/learn/C/getnum.c f 644 0.0
+/usr/share/learn/C/getnum.o f 644 0.0
+/usr/share/learn/Linfo f 644 0.10
+/usr/share/learn/Xinfo f 644 0.10
+/usr/share/learn/bin d 755 0.10
+/usr/share/learn/bin/lcount f 755 0.10
+/usr/share/learn/bin/learn f 755 0.10
+/usr/share/learn/bin/lrntee f 755 0.10
+/usr/share/learn/editor d 755 0.0
+/usr/share/learn/editor/L0 f 644 0.0
+/usr/share/learn/editor/L1.1a f 644 0.0
+/usr/share/learn/editor/L10.1a f 644 0.0
+/usr/share/learn/editor/L10.1b f 644 0.0
+/usr/share/learn/editor/L10.2a f 644 0.0
+/usr/share/learn/editor/L10.2b f 644 0.0
+/usr/share/learn/editor/L10.2c f 644 0.0
+/usr/share/learn/editor/L10.3a f 644 0.0
+/usr/share/learn/editor/L10.3b f 644 0.0
+/usr/share/learn/editor/L10.3c f 644 0.0
+/usr/share/learn/editor/L10.3d f 644 0.0
+/usr/share/learn/editor/L10.3e f 644 0.0
+/usr/share/learn/editor/L10.3f f 644 0.0
+/usr/share/learn/editor/L11.1a f 644 0.0
+/usr/share/learn/editor/L11.2a f 644 0.0
+/usr/share/learn/editor/L11.2b f 644 0.0
+/usr/share/learn/editor/L11.2c f 644 0.0
+/usr/share/learn/editor/L12.1a f 644 0.0
+/usr/share/learn/editor/L12.1b f 644 0.0
+/usr/share/learn/editor/L12.2a f 644 0.0
+/usr/share/learn/editor/L12.2b f 644 0.0
+/usr/share/learn/editor/L12.2c f 644 0.0
+/usr/share/learn/editor/L12.3a f 644 0.0
+/usr/share/learn/editor/L13.1a f 644 0.0
+/usr/share/learn/editor/L13.2a f 644 0.0
+/usr/share/learn/editor/L13.2b f 644 0.0
+/usr/share/learn/editor/L13.3a f 644 0.0
+/usr/share/learn/editor/L14.1a f 644 0.0
+/usr/share/learn/editor/L14.2a f 644 0.0
+/usr/share/learn/editor/L14.2b f 644 0.0
+/usr/share/learn/editor/L15.1a f 644 0.0
+/usr/share/learn/editor/L15.1b f 644 0.0
+/usr/share/learn/editor/L15.2a f 644 0.0
+/usr/share/learn/editor/L15.2b f 644 0.0
+/usr/share/learn/editor/L15.2c f 644 0.0
+/usr/share/learn/editor/L15.2d f 644 0.0
+/usr/share/learn/editor/L15.3b f 644 0.0
+/usr/share/learn/editor/L15.3d f 644 0.0
+/usr/share/learn/editor/L15.3e f 644 0.0
+/usr/share/learn/editor/L15.3f f 644 0.0
+/usr/share/learn/editor/L16.1a f 644 0.0
+/usr/share/learn/editor/L16.1b f 644 0.0
+/usr/share/learn/editor/L16.1c f 644 0.0
+/usr/share/learn/editor/L16.2a f 644 0.0
+/usr/share/learn/editor/L16.2c f 644 0.0
+/usr/share/learn/editor/L17.2a f 644 0.0
+/usr/share/learn/editor/L17.2b f 644 0.0
+/usr/share/learn/editor/L17.2c f 644 0.0
+/usr/share/learn/editor/L17.2d f 644 0.0
+/usr/share/learn/editor/L18.1a f 644 0.0
+/usr/share/learn/editor/L18.2a f 644 0.0
+/usr/share/learn/editor/L18.2c f 644 0.0
+/usr/share/learn/editor/L18.2d f 644 0.0
+/usr/share/learn/editor/L18.2e f 644 0.0
+/usr/share/learn/editor/L18.3a f 644 0.0
+/usr/share/learn/editor/L18.3b f 644 0.0
+/usr/share/learn/editor/L19.1a f 644 0.0
+/usr/share/learn/editor/L19.1b f 644 0.0
+/usr/share/learn/editor/L19.2a f 644 0.0
+/usr/share/learn/editor/L19.2c f 644 0.0
+/usr/share/learn/editor/L19.2d f 644 0.0
+/usr/share/learn/editor/L19.2e f 644 0.0
+/usr/share/learn/editor/L19.2f f 644 0.0
+/usr/share/learn/editor/L19.3b f 644 0.0
+/usr/share/learn/editor/L2.1a f 644 0.0
+/usr/share/learn/editor/L2.2a f 644 0.0
+/usr/share/learn/editor/L20.01a f 644 0.0
+/usr/share/learn/editor/L20.01b f 644 0.0
+/usr/share/learn/editor/L20.01c f 644 0.0
+/usr/share/learn/editor/L20.1a f 644 0.0
+/usr/share/learn/editor/L20.2a f 644 0.0
+/usr/share/learn/editor/L20.2b f 644 0.0
+/usr/share/learn/editor/L20.2c f 644 0.0
+/usr/share/learn/editor/L21.1a f 644 0.0
+/usr/share/learn/editor/L21.1b f 644 0.0
+/usr/share/learn/editor/L21.1c f 644 0.0
+/usr/share/learn/editor/L21.1d f 644 0.0
+/usr/share/learn/editor/L21.1e f 644 0.0
+/usr/share/learn/editor/L3.1a f 644 0.0
+/usr/share/learn/editor/L3.1b f 644 0.0
+/usr/share/learn/editor/L3.1c f 644 0.0
+/usr/share/learn/editor/L30.1a f 644 0.0
+/usr/share/learn/editor/L30.1b f 644 0.0
+/usr/share/learn/editor/L30.2a f 644 0.0
+/usr/share/learn/editor/L30.2b f 644 0.0
+/usr/share/learn/editor/L30.2c f 644 0.0
+/usr/share/learn/editor/L30.2d f 644 0.0
+/usr/share/learn/editor/L30.2e f 644 0.0
+/usr/share/learn/editor/L30.2f f 644 0.0
+/usr/share/learn/editor/L30.2g f 644 0.0
+/usr/share/learn/editor/L30.2h f 644 0.0
+/usr/share/learn/editor/L31.1a f 644 0.0
+/usr/share/learn/editor/L31.2b f 644 0.0
+/usr/share/learn/editor/L31.2c f 644 0.0
+/usr/share/learn/editor/L32.1a f 644 0.0
+/usr/share/learn/editor/L32.1b f 644 0.0
+/usr/share/learn/editor/L32.1c f 644 0.0
+/usr/share/learn/editor/L32.2a f 644 0.0
+/usr/share/learn/editor/L32.2b f 644 0.0
+/usr/share/learn/editor/L32.2c f 644 0.0
+/usr/share/learn/editor/L32.2d f 644 0.0
+/usr/share/learn/editor/L32.2e f 644 0.0
+/usr/share/learn/editor/L32.2f f 644 0.0
+/usr/share/learn/editor/L32.2g f 644 0.0
+/usr/share/learn/editor/L33.1a f 644 0.0
+/usr/share/learn/editor/L33.1b f 644 0.0
+/usr/share/learn/editor/L33.2a f 644 0.0
+/usr/share/learn/editor/L33.2b f 644 0.0
+/usr/share/learn/editor/L33.2c f 644 0.0
+/usr/share/learn/editor/L34.1a f 644 0.0
+/usr/share/learn/editor/L34.1b f 644 0.0
+/usr/share/learn/editor/L34.2a f 644 0.0
+/usr/share/learn/editor/L34.2b f 644 0.0
+/usr/share/learn/editor/L34.2c f 644 0.0
+/usr/share/learn/editor/L34.2d f 644 0.0
+/usr/share/learn/editor/L34.2e f 644 0.0
+/usr/share/learn/editor/L34.2f f 644 0.0
+/usr/share/learn/editor/L35.1a f 644 0.0
+/usr/share/learn/editor/L35.2a f 644 0.0
+/usr/share/learn/editor/L35.2b f 644 0.0
+/usr/share/learn/editor/L35.2c f 644 0.0
+/usr/share/learn/editor/L35.2d f 644 0.0
+/usr/share/learn/editor/L35.2e f 644 0.0
+/usr/share/learn/editor/L36.1a f 644 0.0
+/usr/share/learn/editor/L36.2a f 644 0.0
+/usr/share/learn/editor/L36.2b f 644 0.0
+/usr/share/learn/editor/L36.2c f 644 0.0
+/usr/share/learn/editor/L36.2d f 644 0.0
+/usr/share/learn/editor/L37.1a f 644 0.0
+/usr/share/learn/editor/L37.2a f 644 0.0
+/usr/share/learn/editor/L37.2b f 644 0.0
+/usr/share/learn/editor/L37.2c f 644 0.0
+/usr/share/learn/editor/L37.2d f 644 0.0
+/usr/share/learn/editor/L37.2e f 644 0.0
+/usr/share/learn/editor/L37.2f f 644 0.0
+/usr/share/learn/editor/L38.1a f 644 0.0
+/usr/share/learn/editor/L38.2a f 644 0.0
+/usr/share/learn/editor/L38.2b f 644 0.0
+/usr/share/learn/editor/L39.1a f 644 0.0
+/usr/share/learn/editor/L4.1a f 644 0.0
+/usr/share/learn/editor/L4.1b f 644 0.0
+/usr/share/learn/editor/L4.2a f 644 0.0
+/usr/share/learn/editor/L4.2b f 644 0.0
+/usr/share/learn/editor/L40.1a f 644 0.0
+/usr/share/learn/editor/L40.1b f 644 0.0
+/usr/share/learn/editor/L40.2b f 644 0.0
+/usr/share/learn/editor/L40.2c f 644 0.0
+/usr/share/learn/editor/L40.2d f 644 0.0
+/usr/share/learn/editor/L41.1a f 644 0.0
+/usr/share/learn/editor/L41.1b f 644 0.0
+/usr/share/learn/editor/L42.1a f 644 0.0
+/usr/share/learn/editor/L42.2a f 644 0.0
+/usr/share/learn/editor/L42.2b f 644 0.0
+/usr/share/learn/editor/L42.2c f 644 0.0
+/usr/share/learn/editor/L43.1a f 644 0.0
+/usr/share/learn/editor/L43.2a f 644 0.0
+/usr/share/learn/editor/L43.2b f 644 0.0
+/usr/share/learn/editor/L43.2c f 644 0.0
+/usr/share/learn/editor/L43.2d f 644 0.0
+/usr/share/learn/editor/L44.1a f 644 0.0
+/usr/share/learn/editor/L44.1b f 644 0.0
+/usr/share/learn/editor/L44.1c f 644 0.0
+/usr/share/learn/editor/L44.1d f 644 0.0
+/usr/share/learn/editor/L44.1e f 644 0.0
+/usr/share/learn/editor/L44.1f f 644 0.0
+/usr/share/learn/editor/L44.1g f 644 0.0
+/usr/share/learn/editor/L44.1h f 644 0.0
+/usr/share/learn/editor/L44.1i f 644 0.0
+/usr/share/learn/editor/L45.1a f 644 0.0
+/usr/share/learn/editor/L45.1b f 644 0.0
+/usr/share/learn/editor/L5.1a f 644 0.0
+/usr/share/learn/editor/L50.1a f 644 0.0
+/usr/share/learn/editor/L50.1b f 644 0.0
+/usr/share/learn/editor/L50.1c f 644 0.0
+/usr/share/learn/editor/L50.2c f 644 0.0
+/usr/share/learn/editor/L50.2d f 644 0.0
+/usr/share/learn/editor/L50.2e f 644 0.0
+/usr/share/learn/editor/L50.2f f 644 0.0
+/usr/share/learn/editor/L50.2g f 644 0.0
+/usr/share/learn/editor/L51.1a f 644 0.0
+/usr/share/learn/editor/L51.2a f 644 0.0
+/usr/share/learn/editor/L51.2b f 644 0.0
+/usr/share/learn/editor/L51.2c f 644 0.0
+/usr/share/learn/editor/L52.1a f 644 0.0
+/usr/share/learn/editor/L52.1b f 644 0.0
+/usr/share/learn/editor/L52.2a f 644 0.0
+/usr/share/learn/editor/L52.2b f 644 0.0
+/usr/share/learn/editor/L52.2c f 644 0.0
+/usr/share/learn/editor/L53.1a f 644 0.0
+/usr/share/learn/editor/L53.2b f 644 0.0
+/usr/share/learn/editor/L54.1a f 644 0.0
+/usr/share/learn/editor/L54.1b f 644 0.0
+/usr/share/learn/editor/L55.1a f 644 0.0
+/usr/share/learn/editor/L56.1a f 644 0.0
+/usr/share/learn/editor/L57.1a f 644 0.0
+/usr/share/learn/editor/L6.1a f 644 0.0
+/usr/share/learn/editor/L6.2a f 644 0.0
+/usr/share/learn/editor/L6.2b f 644 0.0
+/usr/share/learn/editor/L60.1a f 644 0.0
+/usr/share/learn/editor/L60.1b f 644 0.0
+/usr/share/learn/editor/L60.2a f 644 0.0
+/usr/share/learn/editor/L60.2b f 644 0.0
+/usr/share/learn/editor/L60.2c f 644 0.0
+/usr/share/learn/editor/L60.2d f 644 0.0
+/usr/share/learn/editor/L61.1a f 644 0.0
+/usr/share/learn/editor/L62.1a f 644 0.0
+/usr/share/learn/editor/L62.2a f 644 0.0
+/usr/share/learn/editor/L62.2b f 644 0.0
+/usr/share/learn/editor/L62.2c f 644 0.0
+/usr/share/learn/editor/L63.1a f 644 0.0
+/usr/share/learn/editor/L63.1b f 644 0.0
+/usr/share/learn/editor/L63.1c f 644 0.0
+/usr/share/learn/editor/L63.1d f 644 0.0
+/usr/share/learn/editor/L63.1e f 644 0.0
+/usr/share/learn/editor/L64.1a f 644 0.0
+/usr/share/learn/editor/L64.1b f 644 0.0
+/usr/share/learn/editor/L65.1a f 644 0.0
+/usr/share/learn/editor/L66.1a f 644 0.0
+/usr/share/learn/editor/L7.1a f 644 0.0
+/usr/share/learn/editor/L7.1b f 644 0.0
+/usr/share/learn/editor/L7.2c f 644 0.0
+/usr/share/learn/editor/L70.1a f 644 0.0
+/usr/share/learn/editor/L70.2a f 644 0.0
+/usr/share/learn/editor/L70.2b f 644 0.0
+/usr/share/learn/editor/L70.2c f 644 0.0
+/usr/share/learn/editor/L70.2d f 644 0.0
+/usr/share/learn/editor/L70.2e f 644 0.0
+/usr/share/learn/editor/L70.2f f 644 0.0
+/usr/share/learn/editor/L70.2g f 644 0.0
+/usr/share/learn/editor/L71.1a f 644 0.0
+/usr/share/learn/editor/L72.1a f 644 0.0
+/usr/share/learn/editor/L72.2a f 644 0.0
+/usr/share/learn/editor/L72.2b f 644 0.0
+/usr/share/learn/editor/L72.2c f 644 0.0
+/usr/share/learn/editor/L72.2d f 644 0.0
+/usr/share/learn/editor/L73.1a f 644 0.0
+/usr/share/learn/editor/L74.1a f 644 0.0
+/usr/share/learn/editor/L8.1a f 644 0.0
+/usr/share/learn/editor/L8.1b f 644 0.0
+/usr/share/learn/editor/L8.2a f 644 0.0
+/usr/share/learn/editor/L8.2b f 644 0.0
+/usr/share/learn/editor/L8.2c f 644 0.0
+/usr/share/learn/editor/L9.1a f 644 0.0
+/usr/share/learn/editor/L9.2a f 644 0.0
+/usr/share/learn/editor/L9.2b f 644 0.0
+/usr/share/learn/editor/L9.2d f 644 0.0
+/usr/share/learn/editor/L9.2e f 644 0.0
+/usr/share/learn/editor/L9.3c f 644 0.0
+/usr/share/learn/eqn d 755 0.0
+/usr/share/learn/eqn/Init f 555 0.0
+/usr/share/learn/eqn/L0 f 644 0.0
+/usr/share/learn/eqn/L0.1a f 644 0.0
+/usr/share/learn/eqn/L1.1a f 644 0.0
+/usr/share/learn/eqn/L1.1b f 644 0.0
+/usr/share/learn/eqn/L1.1c f 644 0.0
+/usr/share/learn/eqn/L1.1d f 644 0.0
+/usr/share/learn/eqn/L1.1e f 644 0.0
+/usr/share/learn/eqn/L1.1f f 644 0.0
+/usr/share/learn/eqn/L10.1a f 644 0.0
+/usr/share/learn/eqn/L10.1b f 644 0.0
+/usr/share/learn/eqn/L10.1c f 644 0.0
+/usr/share/learn/eqn/L10.2c f 644 0.0
+/usr/share/learn/eqn/L11.1a f 644 0.0
+/usr/share/learn/eqn/L11.1b f 644 0.0
+/usr/share/learn/eqn/L11.1c f 644 0.0
+/usr/share/learn/eqn/L11.1d f 644 0.0
+/usr/share/learn/eqn/L11.1e f 644 0.0
+/usr/share/learn/eqn/L11.1f f 644 0.0
+/usr/share/learn/eqn/L11.1g f 644 0.0
+/usr/share/learn/eqn/L12.1a f 644 0.0
+/usr/share/learn/eqn/L12.1b f 644 0.0
+/usr/share/learn/eqn/L12.1c f 644 0.0
+/usr/share/learn/eqn/L12.1d f 644 0.0
+/usr/share/learn/eqn/L12.1e f 644 0.0
+/usr/share/learn/eqn/L2.1a f 644 0.0
+/usr/share/learn/eqn/L2.1b f 644 0.0
+/usr/share/learn/eqn/L2.1c f 644 0.0
+/usr/share/learn/eqn/L2.1d f 644 0.0
+/usr/share/learn/eqn/L2.1e f 644 0.0
+/usr/share/learn/eqn/L2.1f f 644 0.0
+/usr/share/learn/eqn/L2.2a f 644 0.0
+/usr/share/learn/eqn/L2.2b f 644 0.0
+/usr/share/learn/eqn/L2.2e f 644 0.0
+/usr/share/learn/eqn/L3.1a f 644 0.0
+/usr/share/learn/eqn/L3.1b f 644 0.0
+/usr/share/learn/eqn/L3.1c f 644 0.0
+/usr/share/learn/eqn/L3.1d f 644 0.0
+/usr/share/learn/eqn/L3.1e f 644 0.0
+/usr/share/learn/eqn/L3.2a f 644 0.0
+/usr/share/learn/eqn/L3.2c f 644 0.0
+/usr/share/learn/eqn/L3.2d f 644 0.0
+/usr/share/learn/eqn/L4.1a f 644 0.0
+/usr/share/learn/eqn/L4.1b f 644 0.0
+/usr/share/learn/eqn/L4.1c f 644 0.0
+/usr/share/learn/eqn/L4.1d f 644 0.0
+/usr/share/learn/eqn/L4.2a f 644 0.0
+/usr/share/learn/eqn/L4.2c f 644 0.0
+/usr/share/learn/eqn/L5.1a f 644 0.0
+/usr/share/learn/eqn/L5.1b f 644 0.0
+/usr/share/learn/eqn/L5.1c f 644 0.0
+/usr/share/learn/eqn/L5.1d f 644 0.0
+/usr/share/learn/eqn/L5.1e f 644 0.0
+/usr/share/learn/eqn/L5.1f f 644 0.0
+/usr/share/learn/eqn/L5.1g f 644 0.0
+/usr/share/learn/eqn/L5.1h f 644 0.0
+/usr/share/learn/eqn/L5.2b f 644 0.0
+/usr/share/learn/eqn/L5.2d f 644 0.0
+/usr/share/learn/eqn/L5.2g f 644 0.0
+/usr/share/learn/eqn/L6.1a f 644 0.0
+/usr/share/learn/eqn/L6.1b f 644 0.0
+/usr/share/learn/eqn/L6.1c f 644 0.0
+/usr/share/learn/eqn/L6.1d f 644 0.0
+/usr/share/learn/eqn/L7.1a f 644 0.0
+/usr/share/learn/eqn/L7.1b f 644 0.0
+/usr/share/learn/eqn/L7.1c f 644 0.0
+/usr/share/learn/eqn/L7.1d f 644 0.0
+/usr/share/learn/eqn/L7.2b f 644 0.0
+/usr/share/learn/eqn/L7.2c f 644 0.0
+/usr/share/learn/eqn/L8.1a f 644 0.0
+/usr/share/learn/eqn/L8.1b f 644 0.0
+/usr/share/learn/eqn/L8.2b f 644 0.0
+/usr/share/learn/eqn/L9.1a f 644 0.0
+/usr/share/learn/eqn/L9.1b f 644 0.0
+/usr/share/learn/eqn/L9.2a f 644 0.0
+/usr/share/learn/eqn/L9.2b f 644 0.0
+/usr/share/learn/eqn/L9.3b f 644 0.0
+/usr/share/learn/eqn/tinyms f 644 0.0
+/usr/share/learn/files d 755 0.0
+/usr/share/learn/files/L0 f 644 0.0
+/usr/share/learn/files/L0.01a f 644 0.0
+/usr/share/learn/files/L0.1a f 644 0.0
+/usr/share/learn/files/L0.1b f 644 0.0
+/usr/share/learn/files/L0.1c f 644 0.0
+/usr/share/learn/files/L0.1d f 644 0.0
+/usr/share/learn/files/L1.1a f 644 0.0
+/usr/share/learn/files/L1.2a f 644 0.0
+/usr/share/learn/files/L1.2b f 644 0.0
+/usr/share/learn/files/L10.1a f 644 0.0
+/usr/share/learn/files/L10.2a f 644 0.0
+/usr/share/learn/files/L10.2b f 644 0.0
+/usr/share/learn/files/L10.3a f 644 0.0
+/usr/share/learn/files/L10.3b f 644 0.0
+/usr/share/learn/files/L10.3c f 644 0.0
+/usr/share/learn/files/L10.3d f 644 0.0
+/usr/share/learn/files/L11.1a f 644 0.0
+/usr/share/learn/files/L11.2a f 644 0.0
+/usr/share/learn/files/L11.2b f 644 0.0
+/usr/share/learn/files/L11.3a f 644 0.0
+/usr/share/learn/files/L11.3b f 644 0.0
+/usr/share/learn/files/L11.3c f 644 0.0
+/usr/share/learn/files/L12.1a f 644 0.0
+/usr/share/learn/files/L12.2a f 644 0.0
+/usr/share/learn/files/L12.2b f 644 0.0
+/usr/share/learn/files/L12.2c f 644 0.0
+/usr/share/learn/files/L12.3a f 644 0.0
+/usr/share/learn/files/L12.3b f 644 0.0
+/usr/share/learn/files/L12.3c f 644 0.0
+/usr/share/learn/files/L13.01a f 644 0.0
+/usr/share/learn/files/L13.1a f 644 0.0
+/usr/share/learn/files/L13.1b f 644 0.0
+/usr/share/learn/files/L13.1c f 644 0.0
+/usr/share/learn/files/L13.1d f 644 0.0
+/usr/share/learn/files/L13.1e f 644 0.0
+/usr/share/learn/files/L13.1f f 644 0.0
+/usr/share/learn/files/L13.1g f 644 0.0
+/usr/share/learn/files/L2.1a f 644 0.0
+/usr/share/learn/files/L2.2a f 644 0.0
+/usr/share/learn/files/L2.2b f 644 0.0
+/usr/share/learn/files/L3.1a f 644 0.0
+/usr/share/learn/files/L3.2a f 644 0.0
+/usr/share/learn/files/L3.2b f 644 0.0
+/usr/share/learn/files/L3.3a f 644 0.0
+/usr/share/learn/files/L3.3b f 644 0.0
+/usr/share/learn/files/L4.1a f 644 0.0
+/usr/share/learn/files/L4.2a f 644 0.0
+/usr/share/learn/files/L4.2b f 644 0.0
+/usr/share/learn/files/L4.3a f 644 0.0
+/usr/share/learn/files/L4.3b f 644 0.0
+/usr/share/learn/files/L4.3c f 644 0.0
+/usr/share/learn/files/L5.1a f 644 0.0
+/usr/share/learn/files/L5.1b f 644 0.0
+/usr/share/learn/files/L5.1c f 644 0.0
+/usr/share/learn/files/L5.1d f 644 0.0
+/usr/share/learn/files/L5.1e f 644 0.0
+/usr/share/learn/files/L6.1a f 644 0.0
+/usr/share/learn/files/L6.1b f 644 0.0
+/usr/share/learn/files/L6.1c f 644 0.0
+/usr/share/learn/files/L6.1d f 644 0.0
+/usr/share/learn/files/L6.1e f 644 0.0
+/usr/share/learn/files/L6.2a f 644 0.0
+/usr/share/learn/files/L6.2b f 644 0.0
+/usr/share/learn/files/L7.1a f 644 0.0
+/usr/share/learn/files/L7.2a f 644 0.0
+/usr/share/learn/files/L7.2b f 644 0.0
+/usr/share/learn/files/L7.3a f 644 0.0
+/usr/share/learn/files/L7.3b f 644 0.0
+/usr/share/learn/files/L7.3c f 644 0.0
+/usr/share/learn/files/L8.1a f 644 0.0
+/usr/share/learn/files/L8.2a f 644 0.0
+/usr/share/learn/files/L8.2b f 644 0.0
+/usr/share/learn/files/L8.2c f 644 0.0
+/usr/share/learn/files/L9.1a f 644 0.0
+/usr/share/learn/files/L9.2a f 644 0.0
+/usr/share/learn/files/L9.2b f 644 0.0
+/usr/share/learn/files/L9.2c f 644 0.0
+/usr/share/learn/macros d 755 0.0
+/usr/share/learn/macros/L0 f 644 0.0
+/usr/share/learn/macros/L1.1a f 644 0.0
+/usr/share/learn/macros/L10.1a f 644 0.0
+/usr/share/learn/macros/L11.1a f 644 0.0
+/usr/share/learn/macros/L12.1a f 644 0.0
+/usr/share/learn/macros/L13.1a f 644 0.0
+/usr/share/learn/macros/L14.1a f 644 0.0
+/usr/share/learn/macros/L15.1a f 644 0.0
+/usr/share/learn/macros/L2.1a f 644 0.0
+/usr/share/learn/macros/L3.1a f 644 0.0
+/usr/share/learn/macros/L4.1a f 644 0.0
+/usr/share/learn/macros/L5.1a f 644 0.0
+/usr/share/learn/macros/L6.1a f 644 0.0
+/usr/share/learn/macros/L7.1a f 644 0.0
+/usr/share/learn/macros/L8.1a f 644 0.0
+/usr/share/learn/macros/L9.1a f 644 0.0
+/usr/share/learn/morefiles d 755 0.0
+/usr/share/learn/morefiles/L0 f 644 0.0
+/usr/share/learn/morefiles/L0.1a f 644 0.0
+/usr/share/learn/morefiles/L0.1b f 644 0.0
+/usr/share/learn/morefiles/L0.1c f 644 0.0
+/usr/share/learn/morefiles/L0.1d f 644 0.0
+/usr/share/learn/morefiles/L0.1e f 644 0.0
+/usr/share/learn/morefiles/L0.1f f 644 0.0
+/usr/share/learn/morefiles/L0.1g f 644 0.0
+/usr/share/learn/morefiles/L1.1a f 644 0.0
+/usr/share/learn/morefiles/L1.1b f 644 0.0
+/usr/share/learn/morefiles/L1.1c f 644 0.0
+/usr/share/learn/morefiles/L1.1d f 644 0.0
+/usr/share/learn/morefiles/L2.1a f 644 0.0
+/usr/share/learn/morefiles/L2.1b f 644 0.0
+/usr/share/learn/morefiles/L2.1c f 644 0.0
+/usr/share/learn/morefiles/L2.1d f 644 0.0
+/usr/share/learn/morefiles/L2.1e f 644 0.0
+/usr/share/learn/morefiles/L2.1f f 644 0.0
+/usr/share/learn/morefiles/L3.1a f 644 0.0
+/usr/share/learn/morefiles/L3.1b f 644 0.0
+/usr/share/learn/morefiles/L3.1c f 644 0.0
+/usr/share/learn/morefiles/L3.1d f 644 0.0
+/usr/share/learn/morefiles/L3.1e f 644 0.0
+/usr/share/learn/morefiles/L3.1f f 644 0.0
+/usr/share/learn/morefiles/L3.1g f 644 0.0
+/usr/share/learn/morefiles/L4.1a f 644 0.0
+/usr/share/learn/morefiles/L4.1b f 644 0.0
+/usr/share/learn/morefiles/L4.1c f 644 0.0
+/usr/share/learn/morefiles/L4.1d f 644 0.0
+/usr/share/learn/morefiles/L4.1e f 644 0.0
+/usr/share/learn/morefiles/L4.1f f 644 0.0
+/usr/share/learn/morefiles/L4.1g f 644 0.0
+/usr/share/learn/morefiles/L4.2a f 644 0.0
+/usr/share/learn/morefiles/L5.1a f 644 0.0
+/usr/share/learn/morefiles/L5.1b f 644 0.0
+/usr/share/learn/morefiles/L5.1c f 644 0.0
+/usr/share/learn/morefiles/L5.1d f 644 0.0
+/usr/share/learn/morefiles/L5.1e f 644 0.0
+/usr/share/learn/morefiles/L6.1a f 644 0.0
+/usr/share/learn/morefiles/L6.1b f 644 0.0
+/usr/share/learn/morefiles/L6.1c f 644 0.0
+/usr/share/learn/morefiles/L6.1d f 644 0.0
+/usr/share/learn/morefiles/L6.1e f 644 0.0
+/usr/share/learn/morefiles/L6.2e f 644 0.0
+/usr/share/learn/morefiles/L7.1a f 644 0.0
+/usr/share/learn/vi d 755 0.0
+/usr/share/learn/vi/Init f 555 0.0
+/usr/share/learn/vi/L0 f 644 0.0
+/usr/share/learn/vi/L1.1a f 644 0.0
+/usr/share/learn/vi/L1.1b f 644 0.0
+/usr/share/learn/vi/L1.2 f 644 0.0
+/usr/share/learn/vi/L2.1 f 644 0.0
+/usr/share/learn/vi/L2.2 f 644 0.0
+/usr/share/learn/vi/L2.3 f 644 0.0
+/usr/share/learn/vi/L2.4 f 644 0.0
+/usr/share/learn/vi/L3.1 f 644 0.0
+/usr/share/learn/vi/L3.2 f 644 0.0
+/usr/share/learn/vi/L3.3 f 644 0.0
+/usr/share/learn/vi/L3.4 f 644 0.0
+/usr/share/learn/vi/L4.0 f 644 0.0
+/usr/share/learn/vi/L4.1 f 644 0.0
+/usr/share/learn/vi/L4.2 f 644 0.0
+/usr/share/learn/vi/L4.3 f 644 0.0
+/usr/share/learn/vi/L5.1 f 644 0.0
+/usr/share/learn/vi/L5.2 f 644 0.0
+/usr/share/learn/vi/L5.3 f 644 0.0
+/usr/share/learn/vi/L5.4 f 644 0.0
+/usr/share/learn/vi/L6.1 f 644 0.0
+/usr/share/learn/vi/L6.2 f 644 0.0
+/usr/share/learn/vi/L6.3 f 644 0.0
+/usr/share/learn/vi/L6.4 f 644 0.0
+/usr/share/learn/vi/longtext f 644 0.0
+/usr/share/me d 755 0.0
+/usr/share/me/acm.me f 444 0.0
+/usr/share/me/chars.me f 444 0.0
+/usr/share/me/deltext.me f 444 0.0
+/usr/share/me/eqn.me f 444 0.0
+/usr/share/me/float.me f 444 0.0
+/usr/share/me/footnote.me f 444 0.0
+/usr/share/me/index.me f 444 0.0
+/usr/share/me/local.me f 444 0.0
+/usr/share/me/null.me f 444 0.0
+/usr/share/me/refer.me f 444 0.0
+/usr/share/me/revisions f 444 0.0
+/usr/share/me/sh.me f 444 0.0
+/usr/share/me/summary.extern f 444 0.0
+/usr/share/me/tbl.me f 444 0.0
+/usr/share/me/test.accent f 444 0.0
+/usr/share/me/test.umlaut f 444 0.0
+/usr/share/me/thesis.me f 444 0.0
+/usr/share/misc d 755 0.0
+/usr/share/misc/Mail.help f 444 0.0
+/usr/share/misc/Mail.tildehelp f 444 0.0
+/usr/share/misc/dict.d f 444 0.0
+/usr/share/misc/eign f 444 0.0
+/usr/share/misc/explain.d f 444 0.0
+/usr/share/misc/exstrings f 444 0.0
+/usr/share/misc/lib.b f 444 0.0
+/usr/share/misc/map3270 f 444 0.0
+/usr/share/misc/more.help f 444 0.0
+/usr/share/misc/sendmail.hf f 444 0.0
+/usr/share/misc/sendmail.sr f 644 0.0
+/usr/share/misc/termcap f 444 0.0
+/usr/share/misc/units f 444 0.0
+/usr/share/misc/vlpmacs f 444 0.0
+/usr/share/misc/yaccpar f 755 0.0
+/usr/share/ms d 755 0.0
+/usr/share/ms/README f 444 0.0
+/usr/share/ms/end.awk f 444 0.0
+/usr/share/ms/endnote f 555 0.0
+/usr/share/ms/s.acc f 444 0.0
+/usr/share/ms/s.cov f 444 0.0
+/usr/share/ms/s.eqn f 444 0.0
+/usr/share/ms/s.ref f 444 0.0
+/usr/share/ms/s.tbl f 444 0.0
+/usr/share/ms/s.ths f 444 0.0
+/usr/share/ms/s.toc f 444 0.0
+/usr/share/tabset d 755 0.0
+/usr/share/tabset/3101 f 444 0.0
+/usr/share/tabset/aa f 444 0.0
+/usr/share/tabset/aed512 f 444 0.0
+/usr/share/tabset/beehive f 444 0.0
+/usr/share/tabset/diablo f 444 0.0
+/usr/share/tabset/dtc382 f 444 0.0
+/usr/share/tabset/ibm3101 f 444 0.0
+/usr/share/tabset/std f 444 0.0
+/usr/share/tabset/stdcrt f 444 0.0
+/usr/share/tabset/tandem653 f 444 0.0
+/usr/share/tabset/teleray f 444 0.0
+/usr/share/tabset/vt100 f 444 0.0
+/usr/share/tabset/wyse-adds f 444 0.0
+/usr/share/tabset/xerox1720 f 444 0.0
+/usr/share/tabset/xerox1730 f 444 0.0
+/usr/share/tabset/xerox1730-lm f 444 0.0
+/usr/share/tabset/zenith29 f 444 0.0
+/usr/share/term d 755 0.0
+/usr/share/term/README f 644 0.10
+/usr/share/term/tab300-12.tab f 755 0.10
+/usr/share/term/tab300.tab f 755 0.10
+/usr/share/term/tab300s-12.tab f 755 0.10 = /usr/share/term/tab300s-12.tab
+/usr/share/term/tab300s.tab f 755 0.10 = /usr/share/term/tab300s.tab
+/usr/share/term/tab302-12.tab f 755 0.10 = /usr/share/term/tab300s-12.tab
+/usr/share/term/tab302.tab f 755 0.10 = /usr/share/term/tab300s.tab
+/usr/share/term/tab37.tab f 755 0.10
+/usr/share/term/tab382-12.tab f 755 0.10
+/usr/share/term/tab382.tab f 755 0.10
+/usr/share/term/tab450-12.tab f 755 0.10 = /usr/share/term/tab450-12.tab
+/usr/share/term/tab450.tab f 755 0.10 = /usr/share/term/tab450.tab
+/usr/share/term/tab833-12.tab f 755 0.10
+/usr/share/term/tab833.tab f 755 0.10
+/usr/share/term/tabcrt.tab f 755 0.10 = /usr/share/term/tabcrt.tab
+/usr/share/term/tabdtc.tab f 755 0.10 = /usr/share/term/tab300s.tab
+/usr/share/term/tabdtc12.tab f 755 0.10 = /usr/share/term/tab300s-12.tab
+/usr/share/term/tabepson.tab f 755 0.10
+/usr/share/term/tabipsi.tab f 755 0.10 = /usr/share/term/tab450.tab
+/usr/share/term/tabipsi12.tab f 755 0.10 = /usr/share/term/tab450-12.tab
+/usr/share/term/tabitoh.tab f 755 0.10
+/usr/share/term/tabitoh12.tab f 755 0.10
+/usr/share/term/tablpr.tab f 755 0.10 = /usr/share/term/tabcrt.tab
+/usr/share/term/tabnec-t.tab f 755 0.10
+/usr/share/term/tabnec.tab f 755 0.10
+/usr/share/term/tabnec12.tab f 755 0.10
+/usr/share/term/tabnec25-t.tab f 755 0.10
+/usr/share/term/tabqume.tab f 755 0.10
+/usr/share/term/tabqume12.tab f 755 0.10
+/usr/share/term/tabtn300.tab f 755 0.10 = /usr/share/term/tabcrt.tab
+/usr/share/term/tabx-ecs.tab f 755 0.10
+/usr/share/term/tabx-ecs12.tab f 755 0.10
+/usr/share/term/tabxerox.tab f 755 0.10
+/usr/share/term/tabxerox12.tab f 755 0.10
+/usr/share/tmac d 755 0.0
+/usr/share/tmac/tmac.a f 444 0.0
+/usr/share/tmac/tmac.an f 444 0.0
+/usr/share/tmac/tmac.an.new f 444 0.0
+/usr/share/tmac/tmac.an6n f 444 0.0
+/usr/share/tmac/tmac.an6t f 444 0.0
+/usr/share/tmac/tmac.ayday f 444 0.0
+/usr/share/tmac/tmac.bib f 444 0.0
+/usr/share/tmac/tmac.cp f 444 0.0
+/usr/share/tmac/tmac.doc f 444 0.0
+/usr/share/tmac/tmac.doc-common f 444 0.0
+/usr/share/tmac/tmac.doc-ditroff f 444 0.0
+/usr/share/tmac/tmac.doc-nroff f 444 0.0
+/usr/share/tmac/tmac.doc-syms f 444 0.0
+/usr/share/tmac/tmac.e f 444 0.0
+/usr/share/tmac/tmac.imagen f 444 0.0
+/usr/share/tmac/tmac.os f 444 0.0
+/usr/share/tmac/tmac.r f 444 0.0
+/usr/share/tmac/tmac.s f 444 0.0
+/usr/share/tmac/tmac.scover f 444 0.0
+/usr/share/tmac/tmac.sdisp f 444 0.0
+/usr/share/tmac/tmac.skeep f 444 0.0
+/usr/share/tmac/tmac.srefs f 444 0.0
+/usr/share/tmac/tmac.vcat f 444 0.0
+/usr/share/zoneinfo d 755 0.0
+/usr/share/zoneinfo/Australia d 755 0.0
+/usr/share/zoneinfo/Australia/NSW f 644 0.0 = /usr/share/zoneinfo/Australia/NSW
+/usr/share/zoneinfo/Australia/North f 644 0.0
+/usr/share/zoneinfo/Australia/Queensland f 644 0.0
+/usr/share/zoneinfo/Australia/South f 644 0.0
+/usr/share/zoneinfo/Australia/Tasmania f 644 0.0
+/usr/share/zoneinfo/Australia/Victoria f 644 0.0 = /usr/share/zoneinfo/Australia/NSW
+/usr/share/zoneinfo/Australia/West f 644 0.0
+/usr/share/zoneinfo/CET f 644 0.0 = /usr/share/zoneinfo/CET
+/usr/share/zoneinfo/CST6CDT f 644 0.0 = /usr/share/zoneinfo/CST6CDT
+/usr/share/zoneinfo/Canada d 755 0.0
+/usr/share/zoneinfo/Canada/Atlantic f 644 0.0
+/usr/share/zoneinfo/Canada/Central f 644 0.0
+/usr/share/zoneinfo/Canada/Eastern f 644 0.0
+/usr/share/zoneinfo/Canada/Mountain f 644 0.0
+/usr/share/zoneinfo/Canada/Newfoundland f 644 0.0
+/usr/share/zoneinfo/Canada/Pacific f 644 0.0
+/usr/share/zoneinfo/Canada/Yukon f 644 0.0
+/usr/share/zoneinfo/EET f 644 0.0
+/usr/share/zoneinfo/EST f 644 0.0 = /usr/share/zoneinfo/EST
+/usr/share/zoneinfo/EST5EDT f 644 0.0 = /usr/share/zoneinfo/EST5EDT
+/usr/share/zoneinfo/GB-Eire f 644 0.0
+/usr/share/zoneinfo/GMT f 644 0.0 = /usr/share/zoneinfo/GMT
+/usr/share/zoneinfo/GMT+1 f 644 0.0
+/usr/share/zoneinfo/GMT+10 f 644 0.0
+/usr/share/zoneinfo/GMT+11 f 644 0.0
+/usr/share/zoneinfo/GMT+12 f 644 0.0
+/usr/share/zoneinfo/GMT+13 f 644 0.0
+/usr/share/zoneinfo/GMT+2 f 644 0.0
+/usr/share/zoneinfo/GMT+3 f 644 0.0
+/usr/share/zoneinfo/GMT+4 f 644 0.0
+/usr/share/zoneinfo/GMT+5 f 644 0.0
+/usr/share/zoneinfo/GMT+6 f 644 0.0
+/usr/share/zoneinfo/GMT+7 f 644 0.0
+/usr/share/zoneinfo/GMT+8 f 644 0.0
+/usr/share/zoneinfo/GMT+9 f 644 0.0
+/usr/share/zoneinfo/GMT-1 f 644 0.0
+/usr/share/zoneinfo/GMT-10 f 644 0.0
+/usr/share/zoneinfo/GMT-11 f 644 0.0
+/usr/share/zoneinfo/GMT-12 f 644 0.0
+/usr/share/zoneinfo/GMT-2 f 644 0.0
+/usr/share/zoneinfo/GMT-3 f 644 0.0
+/usr/share/zoneinfo/GMT-4 f 644 0.0
+/usr/share/zoneinfo/GMT-5 f 644 0.0
+/usr/share/zoneinfo/GMT-6 f 644 0.0
+/usr/share/zoneinfo/GMT-7 f 644 0.0
+/usr/share/zoneinfo/GMT-8 f 644 0.0
+/usr/share/zoneinfo/GMT-9 f 644 0.0
+/usr/share/zoneinfo/Greenwich f 644 0.0 = /usr/share/zoneinfo/GMT
+/usr/share/zoneinfo/HST f 644 0.0 = /usr/share/zoneinfo/HST
+/usr/share/zoneinfo/Iceland f 644 0.0
+/usr/share/zoneinfo/Japan f 644 0.0
+/usr/share/zoneinfo/MET f 644 0.0 = /usr/share/zoneinfo/CET
+/usr/share/zoneinfo/MST f 644 0.0 = /usr/share/zoneinfo/MST
+/usr/share/zoneinfo/MST7MDT f 644 0.0 = /usr/share/zoneinfo/MST7MDT
+/usr/share/zoneinfo/NZ f 644 0.0
+/usr/share/zoneinfo/PST8PDT f 644 0.0 = /usr/share/zoneinfo/PST8PDT
+/usr/share/zoneinfo/Poland f 644 0.0
+/usr/share/zoneinfo/Singapore f 644 0.0
+/usr/share/zoneinfo/SystemV d 755 0.0
+/usr/share/zoneinfo/SystemV/AST4 f 644 0.0
+/usr/share/zoneinfo/SystemV/AST4ADT f 644 0.0
+/usr/share/zoneinfo/SystemV/CST6 f 644 0.0
+/usr/share/zoneinfo/SystemV/CST6CDT f 644 0.0
+/usr/share/zoneinfo/SystemV/EST5 f 644 0.0
+/usr/share/zoneinfo/SystemV/EST5EDT f 644 0.0
+/usr/share/zoneinfo/SystemV/HST10 f 644 0.0
+/usr/share/zoneinfo/SystemV/MST7 f 644 0.0
+/usr/share/zoneinfo/SystemV/MST7MDT f 644 0.0
+/usr/share/zoneinfo/SystemV/PST8 f 644 0.0
+/usr/share/zoneinfo/SystemV/PST8PDT f 644 0.0
+/usr/share/zoneinfo/SystemV/YST9 f 644 0.0
+/usr/share/zoneinfo/SystemV/YST9YDT f 644 0.0
+/usr/share/zoneinfo/Turkey f 644 0.0
+/usr/share/zoneinfo/UCT f 644 0.0 = /usr/share/zoneinfo/GMT
+/usr/share/zoneinfo/US d 755 0.0
+/usr/share/zoneinfo/US/Arizona f 644 0.0 = /usr/share/zoneinfo/MST
+/usr/share/zoneinfo/US/Central f 644 0.0 = /usr/share/zoneinfo/CST6CDT
+/usr/share/zoneinfo/US/East-Indiana f 644 0.0 = /usr/share/zoneinfo/EST
+/usr/share/zoneinfo/US/Eastern f 644 0.0 = /usr/share/zoneinfo/EST5EDT
+/usr/share/zoneinfo/US/Hawaii f 644 0.0 = /usr/share/zoneinfo/HST
+/usr/share/zoneinfo/US/Mountain f 644 0.0 = /usr/share/zoneinfo/MST7MDT
+/usr/share/zoneinfo/US/Pacific f 644 0.0 = /usr/share/zoneinfo/PST8PDT
+/usr/share/zoneinfo/US/Pacific-New f 644 0.0
+/usr/share/zoneinfo/US/Yukon f 644 0.0
+/usr/share/zoneinfo/UTC f 644 0.0 = /usr/share/zoneinfo/GMT
+/usr/share/zoneinfo/Universal f 644 0.0 = /usr/share/zoneinfo/GMT
+/usr/share/zoneinfo/W-SU f 644 0.0
+/usr/share/zoneinfo/WET f 644 0.0
+/usr/skel d 755 0.0
+/usr/skel/.cshrc f 644 0.0
+/usr/skel/.login f 644 0.0
+/usr/skel/.profile f 644 0.0
+/usr/spool d 755 0.0
+/usr/spool/at d 755 1.1
+/usr/spool/at/lasttimedone f 644 1.1
+/usr/spool/at/past d 755 1.1
+/usr/spool/mail d 755 0.0
+/usr/spool/mqueue d 755 0.0
+/usr/spool/mqueue/syslog f 644 0.0
+/usr/spool/rwho d 755 0.0
+/usr/src d 755 0.0
+/usr/tmp d 1777 0.0
+/usr/ucb d 755 0.0
+/usr/ucb/Mail f 755 0.0 = /usr/ucb/Mail
+/usr/ucb/apply f 755 0.0
+/usr/ucb/apropos f 755 0.10 = /usr/ucb/apropos
+/usr/ucb/biff f 755 0.0
+/usr/ucb/checknr f 755 0.0
+/usr/ucb/clear f 755 0.0
+/usr/ucb/colcrt f 755 0.0
+/usr/ucb/colrm f 755 0.0
+/usr/ucb/compress f 755 0.0 = /usr/ucb/compress
+/usr/ucb/ctags f 755 0.0
+/usr/ucb/ex f 1755 0.0 = /usr/bin/ex
+/usr/ucb/expand f 755 0.0
+/usr/ucb/f f 755 0.10 = /usr/ucb/f
+/usr/ucb/finger f 755 0.10 = /usr/ucb/f
+/usr/ucb/fmt f 755 0.0
+/usr/ucb/fold f 755 0.0
+/usr/ucb/from f 755 0.0
+/usr/ucb/ftp f 755 0.10
+/usr/ucb/gcore f 2755 0.2
+/usr/ucb/head f 755 0.0
+/usr/ucb/indent f 755 0.0
+/usr/ucb/last f 755 0.0
+/usr/ucb/lastcomm f 755 0.0
+/usr/ucb/leave f 755 0.0
+/usr/ucb/lock f 4755 0.10
+/usr/ucb/logger f 755 0.0
+/usr/ucb/mail f 755 0.0 = /usr/ucb/Mail
+/usr/ucb/man f 755 0.10
+/usr/ucb/mkstr f 755 0.10
+/usr/ucb/more f 755 0.10 = /usr/ucb/more
+/usr/ucb/msgs f 755 0.0
+/usr/ucb/netstat f 2755 0.2
+/usr/ucb/page f 755 0.10 = /usr/ucb/more
+/usr/ucb/printenv f 755 0.0
+/usr/ucb/reset f 755 0.0 = /usr/ucb/reset
+/usr/ucb/rlogin f 4755 0.10
+/usr/ucb/rsh f 4755 0.0
+/usr/ucb/ruptime f 755 0.0
+/usr/ucb/rwho f 755 0.0
+/usr/ucb/safe_finger f 755 0.10
+/usr/ucb/script f 755 0.0
+/usr/ucb/soelim f 755 0.0
+/usr/ucb/strings f 755 0.0
+/usr/ucb/tail f 755 0.0
+/usr/ucb/talk f 2755 0.4
+/usr/ucb/tcpdchk f 755 0.10
+/usr/ucb/tcpdmatch f 755 0.10
+/usr/ucb/telnet f 755 0.0
+/usr/ucb/tftp f 755 0.0
+/usr/ucb/top f 2755 0.2
+/usr/ucb/try-from f 755 0.10
+/usr/ucb/tset f 755 0.0 = /usr/ucb/reset
+/usr/ucb/u f 755 0.0 = /usr/ucb/u
+/usr/ucb/ul f 755 0.0
+/usr/ucb/uncompress f 755 0.0 = /usr/ucb/compress
+/usr/ucb/unexpand f 755 0.0
+/usr/ucb/unifdef f 755 0.0
+/usr/ucb/uptime f 2755 0.2 = /usr/ucb/uptime
+/usr/ucb/users f 755 0.0 = /usr/ucb/u
+/usr/ucb/vacation f 755 0.0
+/usr/ucb/vi f 1755 0.0 = /usr/bin/ex
+/usr/ucb/view f 1755 0.0 = /usr/bin/ex
+/usr/ucb/vmstat f 2755 0.2
+/usr/ucb/w f 2755 0.2 = /usr/ucb/uptime
+/usr/ucb/wc f 755 0.0
+/usr/ucb/what f 755 0.0
+/usr/ucb/whatis f 755 0.10 = /usr/ucb/apropos
+/usr/ucb/which f 755 0.0
+/usr/ucb/whois f 755 0.0
+/usr/ucb/window f 755 0.0
+/usr/ucb/xstr f 755 0.0
+/usr/ucb/yes f 755 0.0
+/usr/ucb/zcat f 755 0.0 = /usr/ucb/compress
+/var d 755 0.0
+/var/db d 755 0.0
+/var/db/find.codes f 644 32767.0
+/var/log d 755 0.0
+/var/log/learn d 755 0.0
+/var/log/learn/C f 666 0.0
+/var/log/learn/editor f 666 0.0
+/var/log/learn/eqn f 666 0.0
+/var/log/learn/files f 666 0.0
+/var/log/learn/macros f 666 0.0
+/var/log/learn/morefiles f 666 0.0
+/var/log/learn/vi f 666 0.0
+/var/log/sendmail.st f 666 0.0
+/var/run d 755 0.0
+/var/run/utmp f 644 0.0

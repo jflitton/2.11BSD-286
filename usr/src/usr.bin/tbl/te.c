@@ -17,6 +17,7 @@ fprintf(stderr, "run terminated due to error condition detected by tbl preproces
 exit(0);
 # endif
 }
+char *
 gets1(s)
 	char *s;
 {
@@ -39,7 +40,7 @@ for(nbl=0; *s == '\\' && s>p; s--)
 if (linstart && nbl % 2) /* fold escaped nl if in table */
 	gets1(s+1);
 
-return((int)p);
+return(p);
 }
 # define BACKMAX 500
 char backup[BACKMAX];

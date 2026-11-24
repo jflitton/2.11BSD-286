@@ -1,6 +1,7 @@
 #! /bin/sh -
-#
-#   @(#)monthly  1.1   (2.11BSD) 2026/9/16
+# /usr/adm/monthly, which cron runs on the first of each month, mailing
+# root what it prints (/etc/crontab).  Upstream's, but that it moves
+# wtmp's older copies along only if they are there.
 #
 PATH=/usr/sbin:/usr/ucb:/bin:/usr/bin
 echo "Subject: monthly run output"
@@ -12,12 +13,10 @@ ac -p | sort -nr +1
 echo ""
 echo "Rotating wtmp file:"
 cd /usr/adm
-mv wtmp.5 wtmp.6
-mv wtmp.4 wtmp.5
-mv wtmp.3 wtmp.4
-mv wtmp.2 wtmp.3
-mv wtmp.1 wtmp.2
-mv wtmp.0 wtmp.1
+for i in 5 4 3 2 1 0
+do
+	test -f wtmp.$i && mv wtmp.$i wtmp.`expr $i + 1`
+done
 mv wtmp   wtmp.0
 cp /dev/null wtmp
 chmod 0644 wtmp

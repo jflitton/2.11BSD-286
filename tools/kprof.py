@@ -7,8 +7,9 @@ usage: kprof.py [-n LINES] [-b DIRECTORY] [-m MARKS] KERNEL PROFILE
 PROFILE is what tests/harness/runtest.py --profile wrote: where the
 emulated processor was every few milliseconds of emulated time, and the
 name of the program that was running.  KERNEL is the kernel that ran,
-with its symbol table (obj/PC/unix), and DIRECTORY, by default obj/bin
-beside it, has the programs with theirs.  For each sample the report
+with its symbol table (obj/PC/unix), and DIRECTORY has the programs
+with theirs: by default those of the same build beside it, obj/build/syms
+for obj/PC's kernel, obj/nbuild/syms for obj/nPC's (tools/build).  For each sample the report
 finds the function it fell in, and prints how the time divides between
 processes, the kernel and the idle loop, and the LINES functions (20 if
 not said) that had most of it.
@@ -229,7 +230,10 @@ def main():
         sys.exit(__doc__)
     kernel = Exe(args[0])
     if bindir is None:
-        bindir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(args[0]))), "bin")
+        kdir = os.path.dirname(os.path.abspath(args[0]))
+        bindir = os.path.join(os.path.dirname(kdir), "nbuild" if
+                              os.path.basename(kdir) == "nPC" else "build",
+                              "syms")
     cache = {}
 
     def programs(comm):

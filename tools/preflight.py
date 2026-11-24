@@ -7,8 +7,8 @@ usage: preflight.py [-v] [-n] [-j N] [-Dname[=val]] [-Uname] [-Idir]
 PROGRAM is a C file, for a program of one file; or several with commas
 between them; or a directory, for the sources its Makefile names (SRCS,
 or OBJS), or else every .c, .y and .l in it.  A grammar is run through
-the tree's own yacc or lex first (obj/host, which usr/src/i286's
-Makefile builds).  The flags are the compiler's, given to every file,
+the tree's own yacc or lex first (obj/host, which tools/build/host.mk
+builds).  The flags are the compiler's, given to every file,
 besides the -D, -U and -I that the directory's Makefile has.  A
 directory in which several files have a main is several programs, each
 linked with the files that have none.
@@ -69,7 +69,8 @@ C here (docs/userland.md), found four ways.
 
     -v      list the same-size and medium findings, and every line of
             each kind of error
-    -n      leave out programs that obj/bin already has
+    -n      leave out programs that the build already has
+            (obj/build/syms, tools/build)
     -j N    work on N programs at once (default: the number of CPUs)
 
 With more than one program a table follows, one line each.  What the
@@ -1081,7 +1082,8 @@ def main():
                 continue
         elif not a.endswith((".c", ".y", ".l")):
             continue
-        if opts.new and os.path.exists(os.path.join(TOP, "obj", "bin", name)):
+        if opts.new and os.path.exists(os.path.join(TOP, "obj", "build",
+                                                    "syms", name)):
             continue
         todo.append(a)
     lib = library(opts.jobs)

@@ -1,10 +1,9 @@
 # The preprocessor, /lib/cpp, where the system is built.
 #
-# ../Makefile is the PDP-11's.  On the 286 cpp is made by
-# usr/src/i286/Makefile, of the small model, keeping what it has in
-# memory (cpp_FLAGS there): the text of its macros and their names in
-# segments it asks the system for (segalloc(2)), and the rest in its own
-# data.  From the top of the repository:
+# On the 286 cpp is made by ../Makefile, of the small model, keeping
+# what it has in memory (LIBVMF=0): the text of its macros and their
+# names in segments it asks the system for (segalloc(2)), and the rest
+# in its own data.  From the top of the repository:
 #
 #	make -C usr/src/lib/cpp/i286 host
 #

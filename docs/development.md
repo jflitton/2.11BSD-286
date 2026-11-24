@@ -34,7 +34,7 @@ Where the 286 code goes, beside its PDP-11 counterpart in each case:
 | `usr/src/sys/conf/PC` | `conf/GENERIC` | the configuration of the kernel the system is built with, from which `config` writes `sys/PC` ([configuring the kernel](#configuring-the-kernel)) |
 | `usr/src/sys/PC/` | `GENERIC/` | what `config` wrote: the devices' counts, `param.c`, the Makefile the system makes the kernel with, and `GNUmakefile`, which makes it where the system is built: `make -C usr/src/sys/PC` builds `obj/nPC/unix` |
 | `usr/src/lib/libc/i286/` | `lib/libc/pdp/` | libc's machine-dependent part, with the Makefiles the system makes it with, and `GNUmakefile`, which builds the library from it and the tree's portable C where the system is built: `make -C usr/src/lib/libc/i286` makes `obj/nlib/s/libc.a` |
-| `usr/src/i286/` | the tree's own Makefiles | the list of programs built and the Makefile that builds them in `obj/bin`; the root file system's contents and `/etc` files, which `make -C usr/src/i286 root` makes into `obj/root/root.fs` ([the C library and programs](userland.md)) |
+| `usr/src/GNUmakefile`, `tools/build/` | `usr/src/Makefile` | what has the system's Makefiles make it where the system is built, as `make build` makes it on the system: the system's commands as this machine has them, a root of their own to install in, and `etc`'s `distribution`; `make -C usr/src root` makes the libraries, the programs, the manual and the root file system, `obj/root/root.fs` ([the C library and programs](userland.md)) |
 
 The kernel picks its machine through the link `usr/src/sys/machine`, which
 points at `pdp` upstream and at `i286` here, as does `usr/include/machine`.
@@ -110,19 +110,28 @@ negative numbers in them, and nothing fails to compile either way.
 . tools/env.sh
 make -C usr/src/sys/PC              # the kernel, obj/nPC/unix
 make -C usr/src/sys/i286stand       # the boot sectors and /boot, obj/nstand
-make -C usr/src/lib/libc/i286       # the C library, obj/nlib
-make -C usr/src/i286 all root       # the programs, obj/nbin, and the root
-                                    # file system, obj/root/root.fs
+make -C usr/src root                # the libraries, the programs and the
+                                    # manual, by their Makefiles, and the
+                                    # root file system, obj/root/root.fs
 python3 tools/mkdisk.py -p -g 977,5,17 -b obj/nstand/hdboot.bin \
     -m obj/nstand/mbr.bin disk.img a=obj/root/root.fs b=swap:4000
 ```
 
-That is the system's own tools' work. With `TOOLS=cross` each `make` has
-the cross compiler do the same, in `obj/PC`, `obj/stand`, `obj/lib`
-and `obj/bin`, and the root is made of those.
+That is the system's own tools' work. The third runs the Makefiles of
+`usr/src` as `make build` and `make installsrc` run them on the system,
+with this machine's make, in a copy of `usr/src` in `obj/nbuild`, where
+what they make is kept from one build to the next; what `make install`
+would put in the system's root it puts in `obj/nbuild/dest`, and each
+program with its symbols in `obj/nbuild/syms` (`tools/build/build.sh`
+says how). With `TOOLS=cross` each `make` has the cross compiler do the
+same, in `obj/PC`, `obj/stand` and `obj/build`, and the root is made of
+those: the cross compiler compiles the programs, which are linked with
+libraries of its objects that the libraries' own Makefiles make of
+them, and the root has the libraries and the compiler of the system's
+own tools, which make programs on it.
 
 The last makes a bootable image of a 40 MB IDE disk with the root and
-2 MB of swap. The root file system is 24 MB, with 15 MB in it;
+2 MB of swap. The root file system is 24 MB, with 16 MB in it;
 `make root ROOTSIZE=` makes it larger, and `ROOTDISK=sd0` makes it for a
 SCSI disk, whose image `mkdisk.py -t scsi` makes; `KERNEL=` and
 `STAND=` name another kernel, or directory of `/boot` and the boot
@@ -221,14 +230,15 @@ driver talks to.
 | `tools/cc` | compiles and links programs against the C library, as `cc` would; with `-ccom`, by the system's own compiler, assembler and linker ([toolchain](toolchain.md)) |
 | `tools/ncc` | compiles one file with the system's own preprocessor, compiler and assembler, as built for this machine |
 | `tools/ar.py` | makes a library of the system's objects with its table of contents, as `ar` and `ranlib` do |
-| `tools/ccproto.py` | lists `/usr/include` and the libraries for the root file system |
+| `tools/ccproto.py` | lists `/usr/include` for the root file system |
 | `tools/commonize.py` | gives an object's uninitialized variables common storage, as the tree's C expects |
 | `tools/mkerrlst.py` | makes `/etc/syserrlst`, the system's error messages |
 | `tools/strfile.py` | makes `fortune`'s table of fortunes, as `strfile -r` does |
 | `tools/initdeck.py` | packs `monop`'s cards, as `initdeck` does |
 | `tools/setfiles.py` | makes `phantasia`'s files of characters and of the grail, as its `setfiles` does when it is installed |
 | `tools/mkpasswd.py` | makes `/etc/passwd` and the password database from `master.passwd`, as `mkpasswd -p` does |
-| `tools/mkman.py` | formats the manual's pages for `/usr/man` with the host's build of `nroff` (and `eqn`, where a Makefile has it), with upstream's links among them and the `whatis` database |
+| `tools/mkaliases.py` | makes the database of `/etc/aliases`, as `newaliases` does |
+| `tools/build/` | has the system's Makefiles make it here: `build.sh`, which `make -C usr/src` runs, and the system's commands as this machine has them, the C compiler and the rest, each of which puts what `make install` installs in a root of its own and says how the system's would have it, its mode, owner and group (`proto.py` lists that root for `mkfs.py`) |
 | `tools/ne2aout.py` | turns the linker's output into the system's executable format; `--dump` prints one |
 | `tools/mkfd.py` | makes a bootable diskette image from an executable, with a file system image for the kernel's RAM disk if wanted |
 | `tools/mkfs.py` | makes a file system image from a list of files, with their modes, owners and groups |
@@ -294,8 +304,9 @@ tests/self/progs.sh     # the system making its compiler, libraries,
                         # and installing them: the root to be after it
                         # as it was before
 tests/make/run.sh       # those Makefiles run here, with no machine:
-                        # what `make install` puts in the root is to be
-                        # what the root file system has, and whose
+                        # the root they make is to have each file,
+                        # directory and device tests/make/list has,
+                        # with its mode, owner and group, and no more
 tests/self/changed.sh   # as much of that as a change calls for: the
                         # Makefiles run here with no machine, then one
                         # machine for what the changed files are part
@@ -315,9 +326,6 @@ tests/disk/run.sh       # the system making a disk, as upstream has one
                         # the boot block and its sources on a second
                         # drive, which must have what the system has,
                         # and start it
-tests/ccom/programs.sh  # the same compiler, assembler and linker on
-                        # the system's programs: tests/programs, with
-                        # all of them made that way
 tests/as/run.sh         # the system's assembler against NASM: 455
                         # files that both are to make the same of, the
                         # kernel's assembly and the boot blocks among
@@ -369,7 +377,7 @@ tests/ve/run.sh         # the editor ve, built for that machine too: 115
 
 The tests that boot the system as a machine has it, `tests/system`,
 `tests/network`, `tests/programs`, `tests/bench`, `tests/libc` and
-`tests/ccom` with `self.sh` and `programs.sh`, boot either build of it:
+`tests/ccom` with `self.sh`, boot either build of it:
 with `TOOLS=cross` the cross compiler's, and with `TOOLS=native` the system's
 own compiler's, assembler's and linker's throughout, the kernel, the
 libraries, every program on the disk and the boot programs
@@ -417,12 +425,9 @@ and so on).
   passes on a C file and `c2` on a file of assembly, each of which is
   to make there exactly what it made here.
   The library is in `obj/nlib`, where `make -C usr/src/lib/libc/i286
-  TOOLS=native` puts it and `tools/cc -ccom` looks for it.
-  `tests/ccom/programs.sh` has those tools make the system's programs,
-  and the libraries they use, and runs `tests/programs` on a root file
-  system of those; `obj/nbin/native` lists which they were, and
-  `obj/nbin/cross` any that only the cross compiler could make, which
-  is none.
+  TOOLS=native` puts it and `tools/cc -ccom` looks for it. The same
+  tools make every program of the root by default, with the
+  libraries their Makefiles make (`make -C usr/src`).
 - `tests/as` has the system's assembler and NASM assemble the same
   files: one with every instruction, the C library's assembly, `ve`'s
   and the system call stubs for each model, and what the compiler

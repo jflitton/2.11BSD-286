@@ -13,7 +13,10 @@ is built, which has the system's assembler and linker compiled for it
 and not ar and ranlib; on the system those two make the same.
 
 Every member's date is 0, and its owner, and its mode is 644: what is
-made of the same files is the same.
+made of the same files is the same.  A library of the cross compiler's
+objects (OMF), which the system's Makefiles make of them where the
+system is built with it (tools/build), has no table: its linker makes
+its own of them (tools/cc).
 
 -t lists a library's members, and the symbols its table has for each.
 """
@@ -74,21 +77,35 @@ def symbols(path, data):
     return names
 
 
+def ours(data):
+    """Whether DATA is one of the system's own objects."""
+    return len(data) >= 2 and struct.unpack_from("<H", data, 0)[0] == A_OBJECT
+
+
 def make(lib, files):
     write(lib, [(os.path.basename(f), open(f, "rb").read()) for f in files])
 
 
 def write(lib, contents):
     """LIB made anew of the members, each a name and its contents, in
-    their order, with the table first."""
+    their order, with the table first if they are the system's objects."""
     members = []            # (header, contents, names)
     seen = set()
+    table = all(ours(data) for _name, data in contents)
     for name, data in contents:
         if name in seen:
             fail("%s: two members of that name" % name)
         seen.add(name)
         h, extra = header(name, len(data))
-        members.append((h, extra + data, symbols(name, data)))
+        members.append((h, extra + data,
+                        symbols(name, data) if table else []))
+    if not table:
+        out = bytearray(ARMAG)
+        for h, data, _names in members:
+            out += h + data + (b"\n" if len(data) & 1 else b"")
+        with open(lib, "wb") as f:
+            f.write(out)
+        return
     nsym = sum(len(m[2]) for m in members)
     strlen = sum(len(n) + 1 for m in members for n in m[2])
     ransize = 4 + 8 * nsym + 4 + strlen

@@ -24,7 +24,7 @@
 # work of the system's own compiler, assembler and linker throughout,
 # and TOOLS_KERNEL, TOOLS_PROGRAMS or TOOLS_BOOT choose for the kernel
 # (usr/src/sys/PC), the programs, with the C library and the others
-# (usr/src/i286), or the boot programs, alone; without any it is the
+# (usr/src's Makefiles, tools/build), or the boot programs, alone; without any it is the
 # default build, the system's own tools'.  The profile is read with
 # the kernel and the programs that ran.  Each case has a directory of
 # its own, so that one may be compared with another: obj/tests/bench

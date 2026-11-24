@@ -29,8 +29,8 @@
 # atrun and wait for cron to run the user's table; and halt it.  The
 # kernel, /boot, the C library, the programs
 # and the root file system are all built as they would be for a real
-# machine (usr/src/sys/PC, usr/src/sys/i286stand, usr/src/lib/libc/i286,
-# usr/src/i286).
+# machine (usr/src/sys/PC, usr/src/sys/i286stand, and usr/src's Makefiles,
+# tools/build).
 #
 # The Ethernet card is 86Box's NETCARD, ne2k8 if it is not set: an NE2000
 # that is 8 bits wide, as the PicoMEM's is.  ne2k is one 16 bits wide,

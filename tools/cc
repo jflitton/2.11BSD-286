@@ -3,7 +3,7 @@
 
 usage: cc [-c|-E] [-o OUT] [-O] [-s] [-ms|-mm|-ml] [-Dname[=val]] [-Uname]
           [-Idir] [-Ldir] [-lname] [-stack N] [-packcode N] [-ccom]
-          FILE ...
+          [-sysroot DIR] FILE ...
 
 FILE is a C source (.c), assembly for NASM (.s, which may include the
 library's DEFS.inc), an object (.o) or a library (.lib, or with -ccom
@@ -57,15 +57,31 @@ variable defined twice with a value is an error.
                 are the system's own and not the cross compiler's,
                 linked by its linker with the libraries made the same
                 way, which are in obj/nlib and not obj/lib
+    -sysroot DIR the start-up code, the C library and the others are
+                those of the system's root DIR: /lib/crt0.o and
+                /lib/libc.a, -lname /lib/libname.a or /usr/lib/libname.a,
+                in m or l for those models, as the system's cc and ld
+                find them (tools/build/build.sh).  Without -ccom they are
+                the cross compiler's objects, and its libraries ar's
+                archives of them, as the system's Makefiles make them
+                with it
 
 Each file is compiled for the model, and linked with its library and
 start-up code, obj/lib/s, obj/lib/m or obj/lib/l.
+
+The cross compiler's linker reads its own libraries and not ar's.  A
+library that is an archive of its objects (.a), as the system's
+Makefiles make one with ar where the system is built with the cross
+compiler, is made one of its own when a program is linked with it: its
+members put in a library by wlib, which is kept in obj/lib/ar under a
+sum of the archive and made again only when that changes.
 
 These PDP-11 flags are accepted and ignored: -i and -n (separate
 instruction and data space, and shared text, which every program here
 has), -z, -V, -X and -x.  Anything else beginning with -f, -w or -z is
 passed to the compiler.  Needs `. tools/env.sh`.
 """
+import hashlib
 import os
 import struct
 import subprocess
@@ -155,6 +171,40 @@ def check_model(paths, model):
                   MODEL_NAMES[model]))
 
 
+def wlibrary(path):
+    """PATH, an archive of the cross compiler's objects, as its linker's
+    library, made once and kept; or PATH, if it is one already."""
+    data = open(path, "rb").read()
+    if data[:8] != b"!<arch>\n":
+        return path
+    cache = os.path.join(TOP, "obj", "lib", "ar")
+    lib = os.path.join(cache, hashlib.sha256(data).hexdigest()[:24] + ".lib")
+    if os.path.exists(lib):
+        return lib
+    import ar
+    os.makedirs(cache, exist_ok=True)
+    tmp = tempfile.mkdtemp(prefix="cc286.")
+    try:
+        names = []
+        for k, (name, member) in enumerate(ar.read(path)):
+            p = os.path.join(tmp, "%d-%s" % (k, name))
+            with open(p, "wb") as f:
+                f.write(member)
+            names.append("+" + p)
+        part = "%s.%d" % (lib, os.getpid())
+        r = subprocess.run(["wlib", "-q", "-n", "-b", part] + names,
+                           capture_output=True, text=True)
+        sys.stderr.write(r.stdout + r.stderr)
+        if r.returncode != 0 or not os.path.exists(part):
+            fail("%s: wlib could not make a library of it" % path)
+        os.rename(part, lib)
+    finally:
+        for f in os.listdir(tmp):
+            os.unlink(os.path.join(tmp, f))
+        os.rmdir(tmp)
+    return lib
+
+
 def compiler_flags(cflags):
     """What every C file is compiled with, around the caller's own flags."""
     return ["-I" + os.path.join(TOP, "usr", "include")] + cflags + \
@@ -226,6 +276,7 @@ def main():
     stack = 8192
     model = "s"
     packcode = None
+    sysroot = None
     cflags = []
     libdirs = []
     files = []          # (path, kind)
@@ -273,6 +324,11 @@ def main():
             model = a[2]
         elif a == "-ccom":
             ccom = True
+        elif a == "-sysroot":
+            if i >= len(args):
+                fail("-sysroot needs an argument")
+            sysroot = args[i]
+            i += 1
         elif a == "-local":
             cflags.append(a)
         elif a[:2] in ("-D", "-U", "-I"):
@@ -300,6 +356,10 @@ def main():
     # what the library's assembly is told of the model (crt/DEFS.inc)
     far = {"s": [], "m": ["-DFAR"], "l": ["-DFAR", "-DFARDATA"]}[model]
     lib = os.path.join(NLIBS if ccom else LIBS, model)
+    sub = {"s": "", "m": "m", "l": "l"}[model]
+    if sysroot:
+        lib = os.path.join(sysroot, "lib", sub)
+        libdirs = libdirs + [lib, os.path.join(sysroot, "usr", "lib", sub)]
     own = cflags
     cflags = compiler_flags(cflags)
     if preprocess_only:
@@ -347,7 +407,7 @@ def main():
         if compile_only:
             return
         libpaths = []
-        ext = ".a" if ccom else ".lib"
+        ext = ".a" if ccom or sysroot else ".lib"
         for name in libs:
             for d in libdirs + [lib]:
                 p = os.path.join(d, "lib%s%s" % (name, ext))
@@ -369,6 +429,9 @@ def main():
                 cmd += ["-packcode", str(packcode)]
             run(cmd + [os.path.join(lib, "crt0.o")] + objs + libpaths)
             return
+        libpaths = [wlibrary(p) for p in
+                    [o for o in objs if o.endswith(".a")] + libpaths]
+        objs = [o for o in objs if not o.endswith(".a")]
         check_model(objs + libpaths, model)
         ne = os.path.join(tmp, "a.ne")
         mapf = os.path.join(tmp, "a.map")

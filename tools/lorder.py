@@ -21,6 +21,9 @@ of "SYMBOL FILE" is sorted, and join prints for each symbol wanted
 and defined "WANTER DEFINER", for each line of the first list with
 it and each of the second, in their order.  A file named once is
 named twice, as the script has it.  Each file is named as it is given.
+An object of the cross compiler's (OMF), of which the system's Makefiles
+make a library where the system is built with it (tools/build), is
+named twice and nothing more: its linker reads a library in any order.
 """
 import re
 import struct
@@ -42,6 +45,8 @@ def nm(path):
     """The lines `nm -g` prints of an object after its name, or None
     where it says it has no name list."""
     data = open(path, "rb").read()
+    if data[:1] == b"\x80":        # OMF's THEADR: the cross compiler's
+        return []
     if len(data) < 24:
         fail("%s: not an object file" % path)
     (magic, _m, nseg, _es, _eo, _d, _s, _u,

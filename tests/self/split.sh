@@ -50,7 +50,6 @@ case $n in
 *)  echo "split: two machines or three, not $n" >&2; exit 2 ;;
 esac
 top=$(cd "$(dirname "$0")/../.." && pwd)
-src=$top/usr/src
 . "$top/tests/harness/system.sh"
 out=$top/obj/tests/self$case-split
 mkdir -p "$out"
@@ -59,7 +58,6 @@ mkdir -p "$out"
 # of them makes anything another is reading.
 if [ -z "$dry" ]; then
     buildsys
-    mk -C "$src/i286" syslibs
     cp "$top/obj/root/root.fs" "$out/root.fs"
 fi
 all="stand kernel"

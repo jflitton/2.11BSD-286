@@ -1,70 +1,29 @@
+#!/bin/sh
+# /etc/rc for the 286.  init runs it as the system goes multi-user, with
+# "autoboot" when the machine has come up by itself, or "fastboot" when
+# it comes from single user.  If it fails, init goes to single user.
 #
-#	@(#)rc	2.2 (2.11BSD) 2026/03/31
-#
+# Upstream's is the PDP-11's (its buses, its network
+# interfaces) and calls some things that are not built here yet: the
+# quota programs, savecore, named and lpd.  What this does of it, it
+# does as that does.  sendmail it starts as upstream's rc.local does.
+
 HOME=/; export HOME
-PATH=/bin:/sbin:/usr/sbin:/usr/ucb:/usr/bin; export PATH
+PATH=/bin:/sbin:/usr/sbin:/usr/bin; export PATH
 
-# If you have a ram disk configured into your system which is listed in
-# /etc/fstab, you'll have to do a mkfs on it here and probably change the
-# ownership and modes below after the standard file systems have been
-# mounted.
-#
-RAMSIZE=0
-RAMFS=/tmp
-RAMOWNER=root
-RAMGROUP=wheel
-RAMMODE=1777
-
-# Figure out if we are a qbus system
-qbus=YES
-model=`sysctl -n hw.model`
-if [ $model = 70 -o $model = 44 -o $model = 84 -o $model = 94 ]; then
-	qbus=NO
-fi
-
-# Provide defaults for configuration values
-rc_configured=NO
-hostname=pidp.example.com
-address=169.254.11.70
-netmask=255.255.0.0
-interface=de0
-if [ $qbus = YES ]; then
-	interface=qe0
-fi
-
-# Read in rc configuration
-if [ -s /etc/rc.conf ]
-then
-	. /etc/rc.conf
-fi
-
-# Setup ramdisk
-if [ ${RAMSIZE} != 0 ]
-then
-	mkfs /dev/ram ${RAMSIZE} 1 2
-fi
-
-if [ "$2" = powerfail ]
-then
-	echo REBOOTING AFTER POWER FAILURE >/dev/console 2>&1
-fi
 if [ "$1" = fastboot ]
 then
 	echo ''
 	echo Fast boot ... skipping disk checks		>/dev/console 2>&1
 elif [ "$1" = autoboot ]
 then
-	if [ ${rc_configured-NO} != YES ]; then
-		echo "/etc/rc.conf is not configured. Automatic multiuser boot aborted." >/dev/console 2>&1
-		exit 1
-	fi
-
-	echo Automatic reboot in progress... 		>/dev/console 2>&1
+	echo Automatic boot in progress...		>/dev/console 2>&1
 	date						>/dev/console 2>&1
-	# this will *only* work if fsck can do your root file system
-	# without a temporary file, and if the root file system is
-	# checked alone in a pass by itself -- be careful!  This can
-	# *seriously* mess you up.
+	# The file systems in /etc/fstab, the root alone first.  fsck
+	# leaves alone one that was unmounted cleanly; if it has to
+	# change the root, which is mounted, the system must start again
+	# without writing over what fsck wrote.  The scratch file is for a
+	# file system too big for fsck's memory, and so never the root's.
 	fsck -p -t /_FSCK_TMP_FILE			>/dev/console 2>&1
 	case $? in
 	0)
@@ -89,69 +48,45 @@ then
 		exit 1
 		;;
 	esac
-else
-	date >/dev/console 2>&1
 fi
 
 # attempt to rationally recover the passwd file if needed
 if [ -s /etc/ptmp ]
 then
- 	echo 'password file may be incorrect' > /dev/console
+	echo 'password file may be incorrect' > /dev/console
 fi
 
-#
-# First umount everything in case the system is going back into multiuser
-# mode.  If the system is being booted for the first time nothing is mounted
-# except the root filesystem and umount ignores attempts to unmount /.
-#
+# What /etc/fstab lists besides the root, which is mounted again with
+# the options it gives.
 umount -a
-#
-# Now mount everything mentioned in /etc/fstab *except* filesystems with the
-# 'na' (noauto) option.
-#
-mount -a						>/dev/console 2>&1
+mount -a					>/dev/console 2>&1
 
-if [ ${RAMSIZE} != 0 ]
-then
-	chown ${RAMOWNER}.${RAMGROUP} ${RAMFS}
-	chmod ${RAMMODE} ${RAMFS}
-fi
-
-	echo -n 'checking quotas:'	>/dev/console 2>&1
-	quotacheck -a 			>/dev/console 2>&1
-	echo ' done.'			>/dev/console 2>&1
-quotaon -a
-
+# The names of the devices, for devname(3), and the kernel's symbols
+# that ps needs, so that it need not read them from /unix each time.
 dev_mkdb
+ps -U						>/dev/console 2>&1
 
-ps -U					>/dev/console 2>&1
 rm -f /etc/nologin
-rm -f /usr/spool/uucp/LCK.*
-rm -f /usr/spool/uucp/STST/*
-chmod 666 /dev/tty[pqrs]*
 
-# set hostname and INET, turn on network
+# The network, as /etc/rc.conf describes it (/etc/netstart).
+if [ -s /etc/rc.conf ]
+then
+	. /etc/rc.conf
+fi
 . /etc/netstart
 
-if [ $INET = YES ]; then
-	echo 'starting system logger'	>/dev/console 2>&1
-	rm -f /dev/log
-	syslogd
-fi
+# The log, which programs write to through /dev/log and the kernel
+# through /dev/klog, and /etc/syslog.conf says where each kind goes.
+echo 'starting system logger'			>/dev/console 2>&1
+rm -f /dev/log
+syslogd
 
-# /etc/crash should be a symbolic link to the crash directory
-# if core dumps are to be saved.
-if [ -d /etc/crash ]; then
-	echo 'checking for core dump... '	>/dev/console 2>&1
-	savecore /etc/crash			>/dev/console 2>&1
-fi
-
-echo preserving editor files 	>/dev/console 2>&1
+echo preserving editor files			>/dev/console 2>&1
 (cd /tmp; /usr/sbin/expreserve -a)
-echo clearing /tmp 		>/dev/console 2>&1
+echo clearing /tmp				>/dev/console 2>&1
 (cd /tmp; find . ! -name . ! -name lost+found ! -name quotas -exec rm -r {} \; )
 
-echo -n standard daemons:	>/dev/console 2>&1
+echo -n standard daemons:			>/dev/console 2>&1
 update;		echo -n ' update'		>/dev/console 2>&1
 cron;		echo -n ' cron'			>/dev/console 2>&1
 
@@ -160,50 +95,34 @@ cron;		echo -n ' cron'			>/dev/console 2>&1
 rm -f /var/run/acctd.pid
 
 accton /usr/adm/acct;	echo -n ' accounting'	>/dev/console 2>&1
-echo '.'			>/dev/console 2>&1
+echo '.'					>/dev/console 2>&1
 
-if [ $INET = YES ]; then
-	if [ "${ntp-NO}" = YES ]; then
-		echo 'Setting date via ntp'	>/dev/console 2>&1
-		ntp -s -f pool.ntp.org		>/dev/console 2>&1
-	fi
-
-	echo -n starting network daemons:	>/dev/console 2>&1
-
-	if [ "${routedflags-NO}" = YES ]; then
-		routed $routedflags; echo -n ' routed' >/dev/console 2>&1
-	fi
-
-	if [ "${named-NO}" = YES ]; then
-		named;		echo -n ' named'>/dev/console 2>&1
-	fi
-
-	/usr/sbin/inetd;		echo -n ' inetd'>/dev/console 2>&1
-
-	if [ "${rwhod-NO}" = YES ]; then
-		rwhod;	echo -n ' rwhod'	>/dev/console 2>&1
-	fi
-
-	if [ "${timed-NO}" = YES ] -a -f /usr/sbin/timed ]; then
-		timed;	echo -n ' timed'	>/dev/console 2>&1
-	fi
-
-	if [ "${ntpd-NO}" = YES ]; then
-		ntpd;	echo -n ' ntpd'	>/dev/console 2>&1
-	fi
-
-	rm -f /dev/printer
-	/usr/sbin/lpd;		echo -n ' printer'	>/dev/console 2>&1
-
-	echo '.'		>/dev/console 2>&1
-
-else
-	# lpd will run even with out networking.
-	echo starting lpd			>/dev/console 2>&1
-	/usr/sbin/lpd
+# inetd, which answers telnet, ftp and the rest (/etc/inetd.conf), and
+# the daemons /etc/rc.conf asks for.
+echo -n starting network daemons:		>/dev/console 2>&1
+if [ "${routed-NO}" = YES ]
+then
+	routed $routedflags; echo -n ' routed'	>/dev/console 2>&1
 fi
+inetd;		echo -n ' inetd'		>/dev/console 2>&1
+if [ "${rwhod-NO}" = YES ]
+then
+	rwhod;	echo -n ' rwhod'		>/dev/console 2>&1
+fi
+if [ "${timed-NO}" = YES ]
+then
+	timed $timedflags; echo -n ' timed'	>/dev/console 2>&1
+fi
+if [ "${ntpd-NO}" = YES ]
+then
+	ntpd;	echo -n ' ntpd'			>/dev/console 2>&1
+fi
+if [ "${sendmail-NO}" = YES ]
+then
+	(cd /usr/spool/mqueue; rm -f lf*)
+	sendmail -bd -q1h; echo -n ' sendmail'	>/dev/console 2>&1
+fi
+echo '.'					>/dev/console 2>&1
 
-. /etc/rc.local
-
-date				>/dev/console 2>&1
+date						>/dev/console 2>&1
 exit 0

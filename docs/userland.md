@@ -58,10 +58,11 @@ and which knows the cursor keys in insert mode too.
 
 ```sh
 . tools/env.sh
-make -C usr/src/lib/libc/i286   # crt0.o and libc.a in obj/nlib/s, m and l
-make -C usr/src/i286            # the programs, each in obj/nbin
-make -C usr/src/i286 root       # obj/root/root.fs, a root file system
-make -C usr/src/i286 root STRIP=no   # the same, the programs with their symbols
+make -C usr/src                 # the libraries, the programs and the
+                                # manual, by their Makefiles
+make -C usr/src root            # the same, and obj/root/root.fs, a root
+                                # file system
+make -C usr/src root STRIP=no   # the same, the programs with their symbols
 ```
 
 The root file system needs the kernel and `/boot` made first
@@ -79,24 +80,29 @@ default, a small one ([memory model](memory-model.md)). The medium
 model's code is far, in as many segments as it takes, where the PDP-11
 would have overlays; its data is the small model's, near and in one
 segment. The large model's data is far too ([below](#the-large-model)).
-Each model has its own library, in `obj/lib/s`, `obj/lib/m` and
-`obj/lib/l`. The linker would take objects
+Each model has its own library, in `/lib`, `/lib/m` and `/lib/l` as
+the system has them, and `tools/cc` alone has them in `obj/lib/s`,
+`obj/lib/m` and `obj/lib/l`. The linker would take objects
 of different models together without complaint, and the program would
 fail as it ran, so `tools/cc` reads the model the compiler records in
 each object and library and refuses a mixture. The linker packs the code
 of a medium-model program into segments of nearly 64K; `-packcode N`
 makes them N bytes at most.
 
-The programs are listed in `usr/src/i286/Makefile` with their sources,
-and with `NAME_MODEL = m` for one that is medium-model, or `l` for
-large; each is compiled
-and linked in one run of `tools/cc`, and what the compiler says goes to
-`obj/bin/log`. `libutil`, `libtermcap`, `libm`, `libcurses`, `libwrap`,
-`libdbm` and `libln` are built for each model a program wants, in
-`obj/lib/s`, `obj/lib/m` or `obj/lib/l`. Upstream's own Makefiles are not used: they
-install as they go, with the PDP-11's tools. The build also needs a C
+The programs are made by their own Makefiles, upstream's, as the
+system makes them with `make build` ([the system makes
+itself](self-hosting.md)), with `-mm` in a Makefile's flags for one that
+is medium-model, or `-ml` for large. Where the system is built they are
+run by that machine's `make`, with the system's commands as that
+machine has them (`tools/build`), in a copy of `usr/src` in
+`obj/nbuild`; what the commands said is in `obj/nbuild/log`, and what
+each compiled, where and how, in `obj/nbuild/sources`. `usr.lib`'s
+Makefiles make `libutil`, `libtermcap`, `libm`, `libcurses`, `libdbm`,
+`libln` and the rest for each model, in `/usr/lib`, `/usr/lib/m` and
+`/usr/lib/l`, and `libwrap` for `tcpd`. The build also needs a C
 compiler for the machine it runs on, `cc` unless `HOSTCC` names another,
-for the tree's `yacc` and `lex` ([grammars](#grammars-yacc-and-lex)).
+for the system's compiler and the tree's `yacc`, `lex` and `nroff`
+([grammars](#grammars-yacc-and-lex)), which it runs there.
 
 Eight programs are medium-model so far: `csh`, `ex` and `tcsh`, here,
 `sendmail` ([mail](#mail)), and the games `hack`, `phantasia`, `rogue`
@@ -121,7 +127,7 @@ terminals moved to the front, as its Makefile has `ex` do;
 
 `vi` knows the arrow keys and Home from the termcap, and maps Home to
 `H`, the top of the screen; upstream's xterm entry did not give Home,
-and now does. Root's `.exrc` (`usr/src/i286/root`) maps End to `L`, the
+and now does. Root's `.exrc` (`usr/src/etc/root`) maps End to `L`, the
 bottom of the screen, Page Up and Page Down to ^B and ^F, Delete to `x`
 and Insert to `i`, with `vi`'s own `map`, as an xterm and the console's
 screens send them. Without such maps those keys' escape sequences are
@@ -402,7 +408,7 @@ library's. It does not look into subdirectories, so `sendmail`, `named`
 and the like are given by their own directories.
 
 Run over the 94 programs that were built then, each with the sources and
-flags `usr/src/i286/Makefile` gives it, it agreed with the build, in that all
+flags the port's own Makefile then gave it, it agreed with the build, in that all
 compile and link, and found what the build could not. `dd` called
 `gettimeofday` with one argument, so the kernel was given whatever lay
 above it on the stack as the place to put the time zone. `netstat`'s
@@ -426,8 +432,10 @@ by its name in `/unix` with `nlist` and reads it through `/dev/kmem`, and
 `ps` and `w` read a process's user structure and arguments through
 `/dev/mem` and the swap device. They run with group `kmem`, which those
 devices and the swap partitions belong to, as upstream installs them.
-`tools/mkfs.py` gives a file a group when its mode in `root.proto` is
-followed by one, as in `2755:2`.
+`install` gives them that group, which where the system is built is
+noted for the root (`tools/build/install.py`), and `tools/mkfs.py`
+gives a file a group when its mode in the list it is given is followed
+by one, as in `2755:2`.
 
 `nlist` is upstream's `gen/nlist.c`, reading this system's format
 ([executable format](executable-format.md)). `sys/exec.h` has a `struct
@@ -610,8 +618,8 @@ totals each user's time logged in with `ac -p` and keeps six months of
 `wtmp`. `bigram` and `code`, which `updatedb` runs, are in
 `/usr/libexec/find` with it.
 
-The scripts are the port's, in `usr/src/i286/etc`, made from
-upstream's (`usr/adm` in the tree, from the tape). Upstream's `daily`
+The scripts are the port's, made from upstream's, in `usr/adm` in the
+tree in place of those of the tape. Upstream's `daily`
 also cleans up after UUCP, and `weekly` too, which is not on the system
 ([what is not ported](unported.md)). And upstream's move each log's older copies
 along with a fixed list of `mv` commands, which on a new system mail
@@ -810,8 +818,7 @@ With them go what upstream installs beside them: the scripts `true`,
 the program of that name in `/usr/libexec`; the other names `e` for
 `ed`, `u` for `users`, `uncompress` and `zcat` for `compress`, `page`
 for `more` and `reset` for `tset`; and `units`, `eign` and `more.help`
-in `/usr/share/misc`. `install` is `xinstall` in the tree and in
-`obj/bin`.
+in `/usr/share/misc`. `install` is `xinstall` in the tree.
 
 What the compiler needed:
 
@@ -911,7 +918,7 @@ the largest, with 54K of code.
 | `/usr/libexec` | `fingerd`, `ftpd`, `ntalkd`, `rexecd`, `rlogind`, `rshd`, `tcpd`, `tftpd` |
 | `/usr/sbin`, `/sbin` | `nc`, `ntp`, `ntpd`, `ntpdc`, `rwhod`, `timed`, `timedc`, `traceroute`; `routed` |
 
-`ntalkd` is `talkd` in the tree and in `obj/bin`. `rcp`, `rlogin`, `rsh`
+`ntalkd` is `talkd` in the tree. `rcp`, `rlogin`, `rsh`
 and `traceroute` run as root, to bind a reserved port or open a raw
 socket, `timedc` too, and `talk` with the group `tty`, as upstream
 installs them.
@@ -1075,16 +1082,15 @@ system's own `newaliases` makes the same bytes, which `tests/network`
 checks. A user may forward mail with a `.forward`, which is how
 `vacation` is set to answer it.
 
-`sendmail` had three overlays on the PDP-11. Here its 70K of code is in
-two segments, and its data segment has 21K of data and 16K of stack,
-leaving about 27K for its heap. It takes the PDP-11's sizes for its
+`sendmail` had three overlays on the PDP-11. Here its 75K of code is in
+two segments, and its data segment has 15K of data and 16K of stack,
+leaving about 33K for its heap. It takes the PDP-11's sizes for its
 tables (`conf.h`): lines of 256 bytes, ten jobs to a run of the queue.
 On the PDP-11 it is linked with `libstubs`, which has `ctimed`, another
 process, do `localtime` and the like for it, to save room in its code;
-here it is linked without, and has the library's own. The PDP-11's
-build also takes its messages out into `/usr/share/misc/sendmail.sr`
-with `mkstr` and `xstr`, as `ex`'s are, which this one has the room not
-to do. What the compiler needed: `syserr`, `usrerr`, `message`,
+here it is linked without, and has the library's own. Its Makefile
+takes its messages out into `/usr/share/misc/sendmail.sr` with `mkstr`
+and `xstr`, as `ex`'s are, and so they are here too. What the compiler needed: `syserr`, `usrerr`, `message`,
 `nmessage`, `setproctitle` and `smtpmessage`, which took five arguments
 or three and passed them on, are variadic; and `daemon.c` has two
 `#else`s to one `#ifndef DAEMON`, which the PDP-11's preprocessor took
@@ -1231,8 +1237,9 @@ tree's `nroff` built for that machine, as `yacc` and `lex` are, in
 `obj/host`. That `nroff` is the system's but that it
 looks for its macros in `tmac/` where it is run, which is where it is,
 and the copies of the macros there say `tmac/` where the system's say
-`/usr/share/tmac/`. `tools/mkman.py` gives it each page, with what the
-page's `.so` lines name put in their places: another page beside it,
+`/usr/share/tmac/`. The Makefiles' `nroff` and `/usr/man/manroff`
+give it each page, with what the page's `.so` lines name put in their
+places (`tools/build/nroff.py`): another page beside it,
 as `errno.2` is `intro.2`, or a header from the tree's `usr/include`,
 as `utmp(5)` and others show one. The system's `nroff` makes of a page what the
 build's did, byte for byte, which `tests/programs` checks with three
@@ -1241,8 +1248,8 @@ footer says `Printed` and the date it was formatted, as upstream's do:
 here, the day it was built.
 
 The pages are those `usr/src/man`'s Makefiles format, and those the
-programs' Makefiles format with them, as on 2.11BSD; `usr/src/i286/man.list`
-names both for the other build. `man`'s lists are upstream's less what
+programs' Makefiles format with them, as on 2.11BSD, where the system
+is built too. `man`'s lists are upstream's less what
 the system has not: of sections 1 and 8, the pages of the programs on
 it, and the introductions; of 2, 3, 5 and 7, the kernel's calls, the
 libraries, the files and the rest, all of upstream's, with the pages of
@@ -1251,9 +1258,7 @@ the PDP-11's devices: `tty`, `pty`, `null`, `fl`, and the network's; of
 6, those of the games on it ([games](#games)); and no 3f, Fortran's
 library. That is 621 pages, with the 317 other names upstream's
 Makefiles give them by `ln`, `egrep` for `grep` and `fprintf` for
-`printf`, and 2.4 MB. A page its Makefile installs under another name,
-as `phantasia`'s `phant.nr` is `phantasia.0`, has that name after its
-source in `man.list`. `whatis` is
+`printf`, and 2.4 MB. `whatis` is
 made as `usr/src/man`'s Makefile makes it: its `makewhatis.sed` takes
 the name and the line under NAME of each page, and `sort -u` sorts
 them. The system's `makewhatis`, upstream's script, which does that with
@@ -1316,7 +1321,7 @@ are compiled as upstream has them. All are small-model programs.
 files, `neqn` compiled with `-DNEQN`; `eqn` writes for a typesetter.
 `style` runs three scanners made by the tree's `lex`, which include
 `diction`'s tables of words, and `diction` runs `dprog`. `refer`'s
-`hunt` is `refer.hunt` in `obj/bin`, beside the game.
+`hunt` is `/usr/libexec/refer/hunt`, apart from the game.
 
 `spell`'s lists are made as its Makefile makes them, by `spellin`,
 built for the machine the system is built on, as the games' tools are
@@ -1721,8 +1726,8 @@ pointer, or with the system's own compiler, which has no `__huge`,
 reached with `SEGADDR`. `tests/ccom` runs a program the system's
 compiler made of the model on the system, with 200K from `malloc`, and
 its 1781 checks of the code the compiler generates, as a second
-program of the model there; and `tests/ccom/programs.sh` has it make
-`window`.
+program of the model there; and the system's own compiler makes
+`window` of it, as it makes every program of the root by default.
 
 ## ve
 
@@ -1846,8 +1851,8 @@ scanner wants `yywrap` from lex's library, `libln`, which the Makefile
 builds now.
 
 Four are medium-model programs, as the PDP-11 overlaid them: `hack`,
-with 128K of code in three segments and 44K of data; `rogue`, 71K and
-25K; `phantasia`, 72K and 23K; and `warp`, 74K and 28K. The rest are
+with 141K of code in three segments and 43K of data; `rogue`, 71K and
+25K; `phantasia`, 74K and 24K; and `warp`, 74K and 28K. The rest are
 small; `sail`, with 51K of code, is the largest.
 
 What the Makefiles make as they build is made here on the machine the
@@ -1875,10 +1880,11 @@ written by a tool of this port's own, laid out as the 286 has it:
   them is the library's sequence from its start, which is the same here;
   what it did not set of a structure it wrote as its stack had it, and
   writes as 0 now.
-  Its help, `phant.help`, is formatted with `tbl` and `nroff -Ttn300`;
-  the build's machine has no `tbl`, which keeps pointers in `int`s, and
-  the host's `nroff` formats it alone, as the Makefile formats the manual
-  page: its two tables come out as text run together.
+  Its help, `phant.help`, is formatted with `tbl` and `nroff -Ttn300`.
+  `tbl` kept the pointers three of its functions return in `int`s,
+  which the machine the system is built on, whose pointers are longer,
+  could not run; they are declared now, and the help has its two
+  tables laid out there as on the 286.
 - `battlestar` keeps the descriptions of its places and things in
   `/usr/games/lib/battle_strings`, which its own `mkstr` makes of three
   of its files as it takes the strings out of them, leaving each
@@ -1894,17 +1900,17 @@ written by a tool of this port's own, laid out as the 286 has it:
   before and then the rest. It is the same, byte for byte, as upstream's.
 - `hack`'s Makefile has each file run through the preprocessor and then
   its `crypt`, which shortens words in its messages, "experienced" to
-  "xprncd", to save the PDP-11's room. The build does the same, with
-  `tools/cc -E` for the preprocessor, which is the system's own,
-  `/lib/cpp`, where the system's compiler makes the programs. The
+  "xprncd", to save the PDP-11's room. The build does the same, its
+  `cc -E` being the system's own preprocessor, `/lib/cpp`, where the
+  system's compiler makes the programs. The
   system's headers give the cross compiler its conventions in `#pragma`
   lines with instructions in strings, and `crypt` took the "and" of
   `alloca`'s for a word; with `-Di286` it leaves lines for the
   preprocessor alone. `hack.onames.h`,
   which `makedefs` writes, is in the tree as it writes it.
 - `hack` and `monop` also run their C through `xstr`, which gathers the
-  strings into one array so that one copy of each is kept: not done
-  here, where their data fits without it. `backgammon`'s Makefile has
+  strings into one array so that one copy of each is kept, as their
+  Makefiles have it. `backgammon`'s Makefile has
   `ex` put the day it is built in `message.c`, which is compiled as the
   tree has it, with the day of upstream's own build.
 
@@ -1916,7 +1922,7 @@ them from its own file as it plays; and installs that as
 `/usr/games/adventure`. The same `save` is how a player suspends a game,
 as a program that takes it up again. The build makes the first program,
 and the root has it as `/usr/games/lib/adventure/a.out`, with `glorkz`
-and a Makefile of this port's (`usr/src/i286/adventure`) that does the
+and a Makefile of this port's (`tools/build/adventure.mk`) that does the
 rest as upstream's does, `echo y | ./a.out` and `install -s`. So the
 game is there once root has said
 
@@ -2182,26 +2188,32 @@ with `ar`, and `man`'s have not upstream's.
 
 ## The root file system
 
-`usr/src/i286/root.proto` lists it: the kernel and `/boot`, `/etc/init`,
-`getty`, `login`, the shell and the programs, the devices, and `/etc`:
+It is what upstream's Makefiles install, as 2.11BSD's are made
+([the system makes itself](self-hosting.md)): first `etc`'s
+`distribution` (`usr/src/etc/Makefile`), which makes the root's
+directories as `usr/src/etc/dirs` lists them, with their modes, owners
+and groups, then `/etc`, and the devices with `MAKEDEV all`; then what
+`make build` and `make installsrc` in `/usr/src` install, and the
+kernel and `/boot` as their Makefiles install them. `/etc` has
 upstream's `gettytab`, `master.passwd`, `group` and `shells`; this
-port's own `rc`, `rc.conf`, `netstart`, `ttys`, `fstab` and `motd`
-(`usr/src/i286/etc`); root's `.profile`, `.cshrc` and `.login`, and the
-short `/.profile` for the single-user shell, which are upstream's
-(`usr/src/etc/root`), but for the erase character, which `.profile` and
-`.login` make ^H only on the console's screens ([the
-console](console.md)), and root's `.exrc`, this port's own
-(`usr/src/i286/root`); and what the Makefile makes: `syserrlst`, the
-terminal capabilities, and `passwd` with the password database. As
+port's own `rc`, `rc.conf`, `netstart`, `ttys`, `fstab` and `motd`,
+which are in `usr/src/etc` in place of upstream's; root's `.profile`,
+`.cshrc` and `.login`, and the short `/.profile` for the single-user
+shell, which are upstream's (`usr/src/etc/root`), but for the erase
+character, which `.profile` and `.login` make ^H only on the console's
+screens ([the console](console.md)), and root's `.exrc`, this port's
+own, which `etc/root`'s Makefile installs too; and what the Makefiles
+make: `syserrlst`, the terminal capabilities, and `passwd` with the
+password database. As
 upstream has them, the capabilities are in `/usr/share/misc/termcap`,
 and `/etc/termcap` is a symbolic link to that file. `fstab` names the
-disk the root is to be on: the Makefile makes it `wd0`, the first on the
-AT disk controller, unless `make root ROOTDISK=sd0` makes it the first
-SCSI disk. The database, `passwd.dir` and `passwd.pag`, is what
+disk the root is to be on: `wd0`, the first on the AT disk controller,
+unless `make root ROOTDISK=sd0` makes it the first SCSI disk. The database, `passwd.dir` and `passwd.pag`, is what
 `getpwnam` and the rest look users up in; without it they read
 `master.passwd`, which only root may, and nobody else can tell whose a
 file is. Upstream makes it and `passwd` with `mkpasswd -p
-master.passwd`; here `tools/mkpasswd.py` does, and writes the same bytes
+master.passwd`, as `distribution` does; where the system is built
+`tools/mkpasswd.py` does, and writes the same bytes
 as `mkpasswd` on the 286, which `tests/system` checks. `/var/run/utmp`
 is there from the start and readable by all, as upstream installs it:
 otherwise `init` makes it under the kernel's umask, 026, and only root
@@ -2209,7 +2221,8 @@ can run `who`. The root has a `lost+found`, as a file system `mkfs`
 makes does, a `/mnt`, and a `/home` for users. `/usr/skel` has a new
 user's `.profile`, `.cshrc` and `.login`, which `adduser` copies;
 upstream's `adduser(8)` names the directory but the tree has nothing in
-it, so these are this port's own (`usr/src/i286/skel`), root's without
+it, so these are this port's own, which `adduser`'s Makefile installs
+with it (`usr/src/local/adduser`), root's without
 root's prompt and paths, and with the same erase character on the
 console's screens.
 
@@ -2262,9 +2275,9 @@ the `bigram` and `code` it runs. `/usr/adm` has `daily`, `weekly` and
 runs](#the-log-and-what-the-clock-runs)). `/usr/local` has the port's
 own, `adduser`, `bench` and `ve`. For the network there are `ifconfig`, `ping` and `route` in
 `/sbin`, `inetd` and `arp` in `/usr/sbin`, `telnetd` in `/usr/libexec`,
-and `telnet` and `netstat` in `/usr/ucb`. `tools/mkfs.py` makes these
-other names as hard links, and also `[` and `halt`. It makes everything
-root's unless the list says otherwise, as it does for `at`, `atq`,
+and `telnet` and `netstat` in `/usr/ucb`. The Makefiles make these
+other names as links, and also `[` and `halt`, and install everything
+as root's unless they say otherwise, as they do for `at`, `atq`,
 `atrm` and their queue, which are `daemon`'s, and for the programs that
 run with the group `kmem`. The programs that work on text and files are
 listed [above](#programs-that-work-on-text-and-files), the
@@ -2274,33 +2287,31 @@ network's others [after them](#the-networks-programs), and mail's
 `/var/log/sendmail.st`, `/etc/Mail.rc`, the help of `sendmail` and
 `Mail` in `/usr/share/misc`, and the directories `/usr/spool/mail` and
 `/usr/msgs`. `nroff`'s macros, its printers' tables and the manual are
-[after those](#nroff-and-the-manual): `tools/mkman.py` writes a list of
-the manual's pages and their links, which `root.proto` takes in with a
-line `i ../../../obj/man/man.proto`; the Makefile lists the zone files
-of `/usr/share/zoneinfo` likewise ([time zones](#time-zones)). The programs for disks and file
+[after those](#nroff-and-the-manual), and the zone files of
+`/usr/share/zoneinfo` ([time zones](#time-zones)). The programs for disks and file
 systems are [after the manual](#disks-and-file-systems), those for
 backups and the rest of the administrator's [after
 those](#backups-and-the-rest-of-the-administrators), and the games
 [after those](#games).
 
 The programs are in it without their symbol tables, as upstream's
-`install -s` leaves them. `obj/bin` has each as it was linked, with its
-symbols, which is where to look up the address a program faulted at; the
-Makefile has `tools/strip.py` make of each the copy in `obj/root/bin`
-that `root.proto` names. The kernel loads neither the symbols nor their
+`install -s` leaves them. `obj/nbuild/syms`, or `obj/build/syms` for
+the cross compiler's, has each as it was linked, with its symbols, by
+the name it is installed by, which is where to look up the address a
+program faulted at: where the system is built `install -s` keeps that
+copy before it strips the root's (`tools/build/install.py`). The kernel loads neither the symbols nor their
 names (`kern_exec.c` reads the header, the table of segments and the
 segments), so a stripped program takes the same memory and starts the
-same; what it saves is an eighth of the file. `make root STRIP=no` copies
-the programs as they are, for when the symbols are wanted on the system
-itself, and making it either way after the other makes the copies and
-the file system again. `/unix` keeps its symbols always: `ps` and the
+same; what it saves is an eighth of the file. `make root STRIP=no`
+installs the programs as they are, for when the symbols are wanted on
+the system itself. `/unix` keeps its symbols always: `ps` and the
 rest look them up there ([programs that read the
 kernel](#programs-that-read-the-kernel)). The system's own `strip` makes
 of a file what `tools/strip.py` does, which `tests/programs` checks on
 the kernel.
 
-The file system is 24000 blocks of 1K, of which the system takes 15251.
-The 317 programs are 6.2 MB of that, and 7.1 MB with their symbols; the
+The file system is 24000 blocks of 1K, of which the system takes 16334.
+The programs are 6.3 MB of that, and 7.4 MB with their symbols; the
 manual's pages are 2.5 MB in about 2750 blocks; the games and their
 files take about 3300 blocks, 1600 of them `fortune`'s;
 `/usr/include` and the libraries take about 1080; `learn`'s lessons

@@ -111,7 +111,7 @@ The system is the one its own tools build unless it is said otherwise
 compiler's system's but where they say.
 `TOOLS_KERNEL=native` boots the kernel that the system's own compiler,
 assembler and linker make (`obj/nPC/unix`), `TOOLS_PROGRAMS=native` a
-root of the programs and libraries they make (`obj/nbin`, `obj/nlib`),
+root of the programs and libraries they make (`obj/nbuild`),
 and `TOOLS=native` both, and the boot programs; the profile is read with
 that kernel and those programs.
 
@@ -138,7 +138,8 @@ of the running program out of the kernel's memory (`u.u_comm`; the
 kernel has a variable, `ucomm`, that says where in a user structure
 that is, and nothing else for this). `tools/kprof.py` looks each place
 up: in the kernel's symbol table if the processor was in ring 0, and
-in the program's, from `obj/bin`, if it was in a process. The report
+in the program's, from the build's (`obj/build/syms`, or `obj/nbuild/syms`
+for the system's own tools'), if it was in a process. The report
 says how the time divides between processes, the kernel and the idle
 loop, and lists the functions that had most of it:
 

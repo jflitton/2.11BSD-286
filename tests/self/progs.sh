@@ -13,16 +13,16 @@
 # installed, makes the other libraries and installs them, and then
 # makes the rest, share first and the manual last, and installs it.
 # The root file system is then to be as it was before, which is what
-# the other build makes (usr/src/i286's Makefile): each file that was
-# installed with the contents, mode, owner and group the root had
-# there, a library with its members, and all else as it was, nothing
-# gone and nothing new (tests/self/progs.py); and each of the root's
-# programs, libraries and pages of the manual is to have been installed.
-# Nor is make to have said that anything failed, which a Makefile that
-# runs make in its directories may not stop for.  tests/make runs the
-# same Makefiles where the system is built, and booting nothing: this
-# says the system's make and shell read them as that machine's do, and
-# that the tools do on the 286 what they do there.
+# the same Makefiles made where the system is built (make -C usr/src,
+# tools/build/build.sh): each file that was installed with the
+# contents, mode, owner and group the root had there, a library with
+# its members, and all else as it was, nothing gone and nothing new
+# (tests/self/progs.py); and each file the Makefiles installed there is
+# to have been installed.  Nor is make to have said that anything
+# failed, which a Makefile that runs make in its directories may not
+# stop for.  This says the system's make and shell read the Makefiles
+# as that machine's do, and that the tools do on the 286 what they do
+# there.
 #
 #	sh tests/self/progs.sh [DIR ...]
 #
@@ -32,8 +32,8 @@
 #	make
 #	make install
 #
-# in each, in the order given, and of the root's programs, libraries
-# and pages those whose sources are in one are to have been installed.
+# in each, in the order given, and what those directories' Makefiles
+# installed where the system is built is to have been installed.
 # All of it is more than ten hours of the 286's time.  The machine
 # has the faster processor unless CPU=286 is in the environment, as
 # tests/self/changed.sh has it.  With ROOTFS set, that root file system
@@ -41,8 +41,8 @@
 # obj/tests has that after its name (tests/self/split.sh).
 #
 # A page of the manual is compared without the day it was formatted,
-# which it says; the contents of the files of tests/make/differs, which
-# the two builds do not make the same way, are not compared, nor is what
+# which it says; the contents of the files of tests/self/differs, which
+# are not made the same way each time, are not compared, nor is what
 # the system changes by running (tests/self/running).
 #
 # Run from the top of the repository after `. tools/env.sh`.

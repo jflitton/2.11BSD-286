@@ -12,9 +12,11 @@ copyright Jeff Flitton: README.md, docs/, tools/ and tests/, and what it
 adds to the tree:
 
     usr/src/sys/i286, i286at, i286if and i286stand, and usr/src/sys/PC
-    usr/src/lib/libc/i286
-    usr/src/i286
+    usr/src/lib/libc/i286, ccom/i286, c2/i286 and cpp/i286
+    usr/src/bin/as/i286 and ld/i286
     usr/src/usr.sbin/timed/i286
+    usr/src/local/adduser, bench and ve
+    usr/src/GNUmakefile and usr/src/etc/dirs
     usr/include/i286
 
 The port also changes upstream's files.  Those changes are under the

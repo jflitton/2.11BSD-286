@@ -1,34 +1,20 @@
 #!/bin/sh -
+# The network, as /etc/rc.conf describes it; /etc/rc runs this after
+# reading that.  From upstream's, without its
+# PDP-11 interfaces and SLIP.
 
-#	@(#)netstart	5.5 (2.11BSD) 2026/1/12
-
-INET=`testnet`
-
-if [ $INET = YES ]; then
-	echo Assuming NETWORKING system ...		>/dev/console 2>&1
-else
-	echo Assuming non-networking system ...		>/dev/console 2>&1
+if [ -n "$hostname" ]
+then
+	hostname $hostname				>/dev/console 2>&1
 fi
 
-hostname $hostname					>/dev/console 2>&1
-hostid $hostname					>/dev/console 2>&1
+ifconfig lo0 inet 127.0.0.1 up				>/dev/console 2>&1
 
-if [ $INET = YES ]; then
-	ifconfig $interface inet netmask $netmask $address up >/dev/console 2>&1
-
-	#
-	# SLIP (Serial Line Internet Protocol) (missing manpage)
-	# The first address is your local IP address, the second is the address
-	# at the far end of the connection
-	# ifconfig sl0 inet 192.254.254.2 192.254.254.1 -arp >/dev/console 2>&1
-	# slattach /dev/ttyS6 9600
-	#
-	# Loopback interface. Leave this line alone.
-	ifconfig lo0 inet localhost up >/dev/console 2>&1
-
-	# This is not routing, as explained in rc.conf. Leave these lines alone.
-	route add $address localhost 0		>/dev/console 2>&1
-	if [ ${gateway-NO} != NO ]; then
+if [ -n "$address" ]
+then
+	ifconfig $interface inet $address netmask $netmask up >/dev/console 2>&1
+	if [ -n "$gateway" ]
+	then
 		route add default $gateway 1		>/dev/console 2>&1
 	fi
 fi

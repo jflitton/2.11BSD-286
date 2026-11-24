@@ -1,0 +1,22 @@
+# What the root has of 2.11BSD's distribution that nothing of /usr/src
+# makes or installs, which tools/build/tape.py puts there before the
+# Makefiles run: the words that spell, boggle and refer read, which
+# their Makefiles make their own lists of, and refer's papers; /usr/pub's
+# tables; the scripts of /usr/adm that cron runs (/etc/crontab), which
+# are the 286's; and /sys, the kernel's sources.  A FILE is named from
+# the top of the repository, which has them where the system does.
+# mkfs.py's lines: a MODE with :GROUP or :OWNER.GROUP, as numbers.
+f /usr/dict/README 444:10 usr/dict/README
+f /usr/dict/connectives 644:10 usr/dict/connectives
+f /usr/dict/words 444:3.10 usr/dict/words
+f /usr/dict/papers/INDEX 664:20 usr/dict/papers/INDEX
+f /usr/dict/papers/Rbstjissue 444:20 usr/dict/papers/Rbstjissue
+f /usr/dict/papers/Rv7man 444:20 usr/dict/papers/Rv7man
+f /usr/dict/papers/runinv 555:20 usr/dict/papers/runinv
+f /usr/pub/ascii 444:10 usr/pub/ascii
+f /usr/pub/eqnchar 444:10 usr/pub/eqnchar
+f /usr/pub/greek 444:10 usr/pub/greek
+f /usr/adm/daily 755 usr/adm/daily
+f /usr/adm/weekly 755 usr/adm/weekly
+f /usr/adm/monthly 755 usr/adm/monthly
+l /sys usr/src/sys

@@ -12,9 +12,12 @@
 #   TOOLS_KERNEL=        native or cross: the kernel the one way
 #                        (usr/src/sys/PC, obj/nPC or obj/PC) whatever
 #                        TOOLS says
-#   TOOLS_PROGRAMS=      the programs and the libraries likewise
-#                        (usr/src/i286 and usr/src/lib/libc/i286, obj/nbin
-#                        and obj/nlib, or obj/bin and obj/lib)
+#   TOOLS_PROGRAMS=      the programs likewise (usr/src, which
+#                        tools/build/build.sh makes with upstream's
+#                        Makefiles in obj/nbuild or obj/build), and the
+#                        C library that tools/cc makes the tests' own
+#                        programs with (usr/src/lib/libc/i286, obj/nlib or
+#                        obj/lib)
 #   TOOLS_BOOT=          /boot and the boot blocks likewise
 #                        (usr/src/sys/i286stand, obj/nstand or
 #                        obj/stand)
@@ -23,12 +26,15 @@
 # last two are exported, for the programs and the diskette's boot
 # sector that tests/harness/runtest.py makes.
 # Without TOOLS it is DEFAULT, below, as it is native in the Makefiles.
-# The libraries on the disk, for cc there,
-# are the system's own tools' work whichever it is (usr/src/i286,
-# syslibs).  This says where the parts are:
+# The libraries on the disk, for cc there, and the compiler are the
+# system's own tools' work whichever it is, as make build makes them
+# (lib, usr.lib).  This says where the parts are:
 #
 #   kernel   the kernel that is /unix
-#   bin      the programs, each with its symbols
+#   bin      the programs, each with its symbols, by the names they are
+#            installed by
+#   made     usr/src as the build's Makefiles left it, with what they
+#            made there and did not install (ntp's ntest)
 #   ccflag   what tools/cc is given to make a program as those were made
 #   stand    the boot programs, the boot sectors and /boot
 #   case     what the name of a suite's directory in obj/tests has after
@@ -70,14 +76,16 @@ for v in "$TOOLS" "$TOOLS_KERNEL" "$TOOLS_PROGRAMS" "$TOOLS_BOOT"; do
     esac
 done
 kernel=$top/obj/PC/unix
-bin=$top/obj/bin
+bin=$top/obj/build/syms
+made=$top/obj/build/root/usr/src
 ccflag=
 stand=$top/obj/stand
 if [ "$TOOLS_KERNEL" = native ]; then
     kernel=$top/obj/nPC/unix
 fi
 if [ "$TOOLS_PROGRAMS" = native ]; then
-    bin=$top/obj/nbin
+    bin=$top/obj/nbuild/syms
+    made=$top/obj/nbuild/root/usr/src
     ccflag=-ccom
 fi
 if [ "$TOOLS_BOOT" = native ]; then
@@ -113,22 +121,10 @@ buildbase() {
     fi
 }
 
-# And the programs, and the root file system of them.  A program that
-# tests/ccom/programs.sh had the cross compiler make in obj/nbin, which
-# obj/nbin/cross lists, is made again by the system's own.  The root is
-# made with TOOLS=native for those, and not with O=obj/nbin alone, which
-# would
-# have the cross compiler make again there whatever it found out of date.
+# And the programs, and the root file system of them, made with
+# upstream's Makefiles (usr/src/GNUmakefile).
 buildsys() {
     buildbase
-    if [ "$TOOLS_PROGRAMS" = native ]; then
-        if [ -s "$bin/cross" ]; then
-            (cd "$bin" && rm -f $(cat cross)) && : > "$bin/cross"
-        fi
-        mk -C "$top/usr/src/i286" TOOLS=native all
-        mk -C "$top/usr/src/i286" TOOLS=native root KERNEL="$kernel" STAND="$stand"
-    else
-        mk -C "$top/usr/src/i286" TOOLS=cross all
-        mk -C "$top/usr/src/i286" TOOLS=cross root KERNEL="$kernel" STAND="$stand"
-    fi
+    mk -C "$top/usr/src" TOOLS="$TOOLS_PROGRAMS" root KERNEL="$kernel" \
+        STAND="$stand"
 }

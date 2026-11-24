@@ -368,12 +368,16 @@ The same sources are compiled for the machine the system is built on
 | `tools/cc -ccom` | `cc` with those in place of the cross compiler, `as` for assembly, and `ld` |
 | `tools/ar.py` | makes a library with its table of contents, as `ar` and `ranlib` do on the system |
 | `make -C usr/src/lib/libc/i286` | the C library that way, in `obj/nlib` |
-| `make -C usr/src/i286` | every program that way, in `obj/nbin` |
+| `make -C usr/src` | the libraries and every program that way, by their Makefiles, in `obj/nbuild` (`tools/build`) |
 | `make -C usr/src/sys/i286stand` | the boot blocks by `as -b` and `/boot` by `tools/ncc` and `ld -b`, in `obj/nstand` |
 
-The libraries on the root file system are those of `obj/nlib` whichever
-compiler made the programs, since the cross compiler's objects are of
-another format. `make root` makes them first.
+The libraries and the compiler on the root file system are those the
+system's own tools made whichever compiler made the programs, since
+the cross compiler's objects are of another format: with `TOOLS=cross`
+the libraries' Makefiles make them twice, once that way for the root
+and once of the cross compiler's objects for its programs to be linked
+with, an archive that `tools/cc` makes a library of its linker's of as
+it links.
 
 The headers the objects are written with have a `long` of 32 bits and a
 pointer of 16; the host's copies of them are made with the types put
@@ -396,7 +400,7 @@ again with what was installed, which keeps the first compiler as
 `tests/ccom/self.sh` boots the system from a disk that has, on a file
 system of their own, the sources of the twelve programs above that are
 C: `cc`, `cpp`, `c0`, `c1`, `c2`, `c2l`, `as`, `ld`, `ar`, `ranlib`, `nm`
-and `size` (`make -C usr/src/i286 ccprogs` lists what each is made of). The
+and `size` (`tests/ccom/self.sh` lists what each is made of). The
 system compiles, assembles and links each one, and each must be, to the
 byte, what `tools/cc -ccom` makes of it where the system is built. Then
 it puts them where the ones it booted with were, and does it again with

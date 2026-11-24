@@ -24,7 +24,7 @@ for (nlin=nslin=0; gets1(cstore); nlin++)
 		}
 	if (nlin>=MAXLIN)
 		{
-		leftover=(int)cstore;
+		leftover=cstore;
 		break;
 		}
 	fullbot[nlin]=0;

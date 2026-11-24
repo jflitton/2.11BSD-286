@@ -5,12 +5,12 @@
 #
 # The change is what differs from REF, main if it is not given: what is
 # committed since, what is not committed, and files git has not been
-# told of.  First the system's Makefiles are run here, with no machine
-# (HOST, tests/self/host.sh): all of them, in a couple of minutes.  Then
-# one machine is booted to make only what the changed files are part
-# of (tests/self/select.py says what, and why), or none if they are
-# part of nothing it makes.  With -n it says what it would do, and
-# does not.
+# told of.  First the system is made here, with no machine: the kernel
+# and /boot (HOST, tests/self/host.sh), and the rest with its Makefiles
+# (tests/make), which says what each compiles.  Then one machine is
+# booted to make only what the changed files are part of
+# (tests/self/select.py says what, and why), or none if they are part of
+# nothing it makes.  With -n it says what it would do, and does not.
 #
 # The machine has the faster processor (CPU=486, tests/harness/runtest.py)
 # unless CPU says the 286: what is made is the same, in less than half

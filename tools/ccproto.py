@@ -1,50 +1,32 @@
 #!/usr/bin/env python3
-"""List what a program is compiled with on the system, for tools/mkfs.py.
+"""List /usr/include, which a program is compiled with on the system,
+for tools/mkfs.py.
 
-usage: ccproto.py TOP LIBRARY ... > cc.proto
+usage: ccproto.py TOP > include.proto
 
-The lines are for the root file system's proto (usr/src/i286/root.proto
-takes them in): /usr/include, and the libraries.
-
-/usr/include is TOP/usr/include as the tree has it: its own files, and
-the kernel's headers that it reaches through links, sys (sys/h), i286
-with machine as another name for it (sys/i286), net, netimp, netinet
-and netns.  What is of the PDP-11 alone is left out (pdp, pdpif,
-pdpuba), and pascal's; netimp is not, netstat being compiled with it.
-A header that is a link in the tree is one there.  DEFS.inc is there
-too, the C library's conventions for a file of assembly
-(usr/src/lib/libc/i286/crt), where cc has the assembler look for it.
-
-The libraries are the system's own objects (a.out.h), as its own
-compiler, assembler and tools/ar.py made them in TOP/obj/nlib: for the
-small model /lib/crt0.o and /lib/libc.a, and /usr/lib/libNAME.a for
-each LIBRARY; for the medium model the same in /lib/m and /usr/lib/m,
-where the system's ld looks when it is given -mm, and for the large in
-/lib/l and /usr/lib/l.  Each is as upstream's Makefile installs it
-(usr/src/lib/libc, usr/src/usr.lib): 644, root's, and of its
-directory's group, but libutil.a, of staff's; lex's library, libln.a,
-is libl.a as well, a link, -ll; libtermcap.a is libtermlib.a likewise;
-and the library of mathematical functions, which the Makefile here
-calls m, is libom.a, and libm.a, -lm, the link.
+The lines are for the root file system's proto (tools/build/build.sh
+adds them): /usr/include as the tree has it, TOP/usr/include, as
+2.11BSD's distribution has it, which no Makefile installs.  Its own
+files, and the kernel's headers that it reaches through links, sys
+(sys/h), i286 with machine as another name for it (sys/i286), net,
+netimp, netinet and netns.  What is of the PDP-11 alone is left out
+(pdp, pdpif, pdpuba), and pascal's; netimp is not, netstat being
+compiled with it.  A header that is a link in the tree is one there.
+DEFS.inc is there too, the C library's conventions for a file of
+assembly (usr/src/lib/libc/i286/crt), where cc has the assembler look
+for it.
 """
 import os
 import sys
 
 LINKED = ["sys", "i286", "i286at", "net", "netimp", "netinet", "netns"]
 OWN = ["arpa", "protocols"]
-# The other name upstream installs a library with, a link; and the
-# name of one that is installed by another, which is then the link.
-OTHER = {"ln": "l", "termcap": "termlib"}
-NAMED = {"m": "om"}
-# Whose a library is, where it is not root's with the directory's group.
-OWNER = {"util": ":0.10"}
 
 
 def main():
-    if len(sys.argv) < 2:
+    if len(sys.argv) != 2:
         sys.exit(__doc__)
     top = sys.argv[1]
-    libs = sys.argv[2:]
     inc = os.path.join(top, "usr", "include")
     out = ["d /usr/include 755"]
 
@@ -68,20 +50,6 @@ def main():
     out.append("f /usr/include/DEFS.inc 444 %s" % os.path.join(
         top, "usr", "src", "lib", "libc", "i286", "crt", "DEFS.inc"))
 
-    nlib = os.path.join(top, "obj", "nlib")
-    out += ["d /lib 755", "d /lib/m 755", "d /lib/l 755", "d /usr/lib 755",
-            "d /usr/lib/m 755", "d /usr/lib/l 755"]
-    for m, sub in (("s", ""), ("m", "/m"), ("l", "/l")):
-        out.append("f /lib%s/crt0.o 644 %s" % (sub, os.path.join(nlib, m, "crt0.o")))
-        out.append("f /lib%s/libc.a 644 %s" % (sub, os.path.join(nlib, m, "libc.a")))
-        for l in libs:
-            name = NAMED.get(l, l)
-            out.append("f /usr/lib%s/lib%s.a 644%s %s" %
-                       (sub, name, OWNER.get(l, ""),
-                        os.path.join(nlib, m, "lib%s.a" % l)))
-            if l in OTHER or l in NAMED:
-                out.append("h /usr/lib%s/lib%s.a /usr/lib%s/lib%s.a" %
-                           (sub, OTHER.get(l, l), sub, name))
     print("\n".join(out))
 
 

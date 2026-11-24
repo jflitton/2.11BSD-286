@@ -40,8 +40,6 @@
 	FILE	*infp;
 
 extern	char	*__progname;
-extern	char	*sys_errlist[];
-extern	int	sys_nerr;
 
 main(argc,argv)
 	int	argc;

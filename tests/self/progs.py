@@ -12,18 +12,15 @@ mode, owner and group, and the names it is linked by, a directory with
 its mode, owner and group, a device the same and its numbers, a
 symbolic link with what it names.  Nothing of the root is to be gone,
 and nothing is to be there that the root did not have.  But for: the
-contents of the files of tests/make/differs, which the two builds do
-not make the same way; the day a page of the manual says it was
-formatted; what the system changes by running (running, beside this);
-and NAME.old or oNAME, where a Makefile keeps the NAME it installs
-over.  A library has the day it was made in it too, and whose its
-members were, and is compared by its members, each by its name and its
-contents, and their order, the table of contents among them.  And
-each of the root's programs whose sources are in a DIR
-(tests/make/programs.py) is to be among the files installed, and so is
-each of its libraries, where the DIR is lib/libc or lib, of /lib, or
-usr.lib, of /usr/lib, and each of its pages of the manual whose source
-is in a DIR (programs.pages).
+contents of the files of differs, beside this, which are not made the
+same way each time; the day a page of the manual says it was
+formatted; what the system changes by running (running); and NAME.old
+or oNAME, where a Makefile keeps the NAME it installs over.  A library
+has the day it was made in it too, and whose its members were, and is
+compared by its members, each by its name and its contents, and their
+order, the table of contents among them.  And each file that the
+Makefile of a DIR, or of one under it, installed where the system is
+built is to be among the files installed (built.py).
 """
 import os
 import re
@@ -31,10 +28,10 @@ import sys
 
 top, out, name = sys.argv[1:4]
 dirs = sys.argv[4:]
-sys.path.insert(0, os.path.join(top, "tests", "make"))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(top, "tools"))
+import built  # noqa: E402
 import fsck  # noqa: E402
-import programs  # noqa: E402
 
 
 def listing(path):
@@ -53,11 +50,10 @@ before = listing(out + "/before.list")
 after = listing(out + "/after.list")
 newer = set(p for p in open(out + "/newer.list").read().split()
             if p in after)
-differs = programs.Names(top + "/tests/make/differs")
-running = programs.Names(os.path.join(os.path.dirname(
-    os.path.abspath(__file__)), "running"))
-source = programs.sources()
-where = programs.installed(source)
+here = os.path.dirname(os.path.abspath(__file__))
+differs = built.Names(os.path.join(here, "differs"))
+running = built.Names(os.path.join(here, "running"))
+made = built.installed(built.build(top))
 
 
 images = {"self": fsck.Fs(fsck.partition(out + "/self.img", "a")),
@@ -117,7 +113,7 @@ for p in sorted(set(before) | set(after)):
     if a is None:
         bad.append("GONE %s" % p)
     elif b is None:
-        if p not in differs and not programs.kept(p, newer):
+        if p not in differs and not built.kept(p, newer):
             bad.append("NOT THE ROOT'S %s" % p)
     elif a[0] != b[0] or a[0] == "l" and a != b:
         bad.append("DIFFERS %s: %s, and the root's was %s" %
@@ -141,15 +137,8 @@ for p in sorted(set(before) | set(after)):
         same += 1
     else:
         kept += 1
-for p, prog in sorted(where.items()):
-    if programs.within(source[prog], dirs) and p not in newer and \
-            p not in differs:
-        bad.append("NOT INSTALLED %s" % p)
-bad += ["NOT INSTALLED %s" % p
-        for p in programs.libraries(sorted(before), dirs)
-        if before[p][0] == "f" and p not in newer]
-bad += ["NOT INSTALLED %s" % p for p, d in sorted(programs.pages().items())
-        if programs.within(d, dirs) and p not in newer]
+bad += ["NOT INSTALLED %s" % p for p, d in sorted(made.items())
+        if built.within(d, dirs) and p not in newer and p not in differs]
 for line in sorted(bad):
     print(line, file=sys.stderr)
 if bad:

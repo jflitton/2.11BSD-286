@@ -41,9 +41,9 @@ typedef long int TIMETYPE;
 #endif /* pdp11 */
 #ifdef i286
 /*
- * The Makefile of the system's programs, /usr/src/i286's, names some
- * 4000 files.  The table is the heap's (misc.c), make being a program
- * of the large model: 8191 pointers are 32K.
+ * A Makefile may name some thousands of files, as one that made all the
+ * system's programs once did.  The table is the heap's (misc.c), make
+ * being a program of the large model: 8191 pointers are 32K.
  */
 #undef HASHSIZE
 #define HASHSIZE 8191

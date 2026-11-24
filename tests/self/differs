@@ -1,0 +1,10 @@
+# What the system makes of the same Makefiles otherwise than where the
+# system is built (tools/build/build.sh): tests/self/progs.py does not
+# compare these.  The name the root has it by, and after # why.
+/usr/games/backgammon		# its Makefile puts the day in message.c
+/usr/games/lib/fortunes.dat	# strfile -r orders it by the time
+/usr/games/lib/phantasia/void	# setfiles places it by the time
+/usr/games/adventure		# its Makefile runs a.out, which writes the
+/usr/games/lib/adventure/*	# game; where the system is built, only the
+				# 286 can, and the root has a.out and what
+				# makes the game of it when first run

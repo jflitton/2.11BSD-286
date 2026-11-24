@@ -189,7 +189,7 @@ segment when the network calls it.
 
 `NLOOP` is 1 and `NPTY` 8 (`sys/conf/PC`). `/etc/rc` configures `lo0` as
 127.0.0.1 and starts `inetd`, which answers `telnet` and the echo
-service (`usr/src/i286/etc/inetd.conf`); `/etc/hosts` names only
+service (`usr/src/etc/inetd.conf`); `/etc/hosts` names only
 `localhost`. The pseudo-terminals are `/dev/ptyp0` to `ptyp7` and
 `/dev/ttyp0` to `ttyp7`, and `/etc/ttys` lists the second, off, so that
 `who` shows who logged in on one. The programs built for the network are

@@ -47,7 +47,7 @@ python3 -I "$top/tests/harness/checks.py" "$top/tests/programs/checks" checks
 # the same of /unix, which has its symbols for ps and the like.
 python3 -I "$top/tools/strip.py" "$kernel" checks/d/unix.stripped
 # The sources of three of the manual's pages, of which the system's nroff
-# must make what the build's made (tools/mkman.py).
+# must make what the build's made (tools/build/nroff.py).
 cp "$top/usr/src/man/man1/ls.1" "$top/usr/src/bin/mkdir/mkdir.1" \
     "$top/usr/src/man/man1/csh.1" checks/d
 # spell's words to stop at, of which the system's spellin must make the
