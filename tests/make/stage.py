@@ -20,7 +20,10 @@ and the others' in m and l.
 A Makefile is changed as it is copied where make itself is to find a
 file the system has: /usr/include, where a file depends on a header
 there, is OUT/root/usr/include; a directory of /usr/src in VPATH is the
-one of OUT/root; a library it names is OUT/root's, but in the Makefiles of the
+one of OUT/root, and an object it names ./NAME.o, which the system's make
+does not look for in VPATH and this machine's does, having taken the ./
+away, is named by its whole path (usr.bin/ranlib's misc.o, which is not
+ar's); a library it names is OUT/root's, but in the Makefiles of the
 libraries, which install them and name none they are made with; and
 anything else in the system's root that one depends on, a file or a
 directory that was installed, is the one in OUT/dest.  A command it names by where the system has it is seen to as
@@ -44,6 +47,7 @@ INC = re.compile(r"(?<![\w\"'=-])/usr/include(?=[/\s]|$)", re.M)
 
 
 VPATH = re.compile(r"^(VPATH\s*=.*)$", re.M)
+DOT = re.compile(r"(?<=[\s=])\./(?=[\w.+-]+\.o(?![\w.]))")
 RULE = re.compile(r"^([^\t#=\n]*[^\t#=\n:]:)([^=\n]*)$", re.M)
 SYS = re.compile(r"(?<=\s)/(?=(?:usr/(?!include|src|lib/lib)|etc/|var/|"
                  r"bin/|sbin/)\S)")
@@ -51,8 +55,9 @@ LIB = re.compile(r"(?<=[\s=])/(?=(?:usr/lib|lib)/(?:[ml]/)?(?:lib\S+\.a|"
                  r"crt0\.o)(?:\s|$))")
 
 
-def makefile(text, library):
+def makefile(text, library, here):
     text = INC.sub(root + "/usr/include", text)
+    text = DOT.sub(here + "/", text)
     text = VPATH.sub(lambda m: m.group(1).replace("/usr/src",
                                                   root + "/usr/src"), text)
     if not library:
@@ -75,7 +80,7 @@ for dp, dn, fn in os.walk(usrsrc):
         elif f in ("Makefile", "makefile") and not os.path.islink(t):
             text = open(t, errors="surrogateescape").read()
             open(t, "w", errors="surrogateescape").write(
-                makefile(text, library))
+                makefile(text, library, dp))
 
 if not os.path.lexists(os.path.join(root, "usr", "include")):
     os.symlink(os.path.join(top, "usr", "include"),

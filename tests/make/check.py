@@ -31,7 +31,8 @@ sys/i286stand's (STAND); those of `left`, beside this, are made with a
 program their
 Makefile makes and runs, and are the 286's to make.
 Those of `differs` are made, and are not yet what the other build makes
-of them.
+of them.  What a Makefile keeps of a file it installs over, NAME.old or
+oNAME, is not the root's, and is passed over (programs.kept).
 """
 import collections
 import hashlib
@@ -183,7 +184,7 @@ for dp, dn, fn in os.walk(dest):
         if os.path.islink(t):
             continue
         if p not in want:
-            if p not in differs:
+            if p not in differs and not programs.kept(p, want):
                 bad.append("NOT THE ROOT'S %s" % p)
             continue
         if hashlib.sha256(open(t, "rb").read()).hexdigest()[:16] != \

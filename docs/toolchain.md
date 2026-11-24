@@ -387,6 +387,11 @@ there (`lib/cpp/i286`), so that it writes what `/lib/cpp` writes.
 
 It makes all of itself ([the system makes itself](self-hosting.md));
 this is the part of that which was first, and which is done twice.
+`make build` in `/usr/src` does it twice as 2.11BSD's does, from
+upstream's Makefiles in `lib/ccom`, `lib/c2` and `lib/cpp`, which make
+the 286's: the C library and the compiler, installed, and then both
+again with what was installed, which keeps the first compiler as
+`/lib/oc0`, `oc1`, `oc2` and `oc2l`; the two are the same to the byte.
 
 `tests/ccom/self.sh` boots the system from a disk that has, on a file
 system of their own, the sources of the twelve programs above that are

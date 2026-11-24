@@ -328,7 +328,7 @@ make_SRCS=	$(addprefix bin/make/,ident.c main.c doname.c misc.c files.c \
 # make is of the large model: what it knows of a Makefile is then
 # in memory of its own, as much as there is, and not in what the 64K
 # of a data segment have left; the kernel's Makefile alone would fill
-# that (tools/srcmk.py).  Its stack has the lines it reads and the
+# that.  Its stack has the lines it reads and the
 # commands it runs, four buffers of 7000 bytes (bin/make/defs).
 make_MODEL=	l
 make_XSTR=	yes
@@ -891,24 +891,13 @@ ccprogs:
 	@$(foreach p,$(CCPROGS),echo $(p) $(if $($(p)_MODEL),-m$($(p)_MODEL)) \
 	    $(subst $(SRC)/,,$($(p)_FLAGS) $($(p)_SRCS));)
 
-# What the system's own Makefile for its programs is written from
-# (tools/srcmk.py): for each program its name and model, and after a
-# bar each, its flags, its sources and its libraries; what yacc and lex
-# make (YACCED, LEXED), and mkstr, and hack's crypt of its files as the
-# preprocessor leaves them; and the rules that are written here for the
-# system's make as they are (SYSGEN, SYSRULES).  What is in usr/src is
-# named from there, and what is made here, by its place in obj.
-# tests/make/programs.py reads it for where each program's sources are.
+# Each program's name and model, and after a bar each, its flags, its
+# sources and its libraries, what is in usr/src named from there and
+# what is made here by its place in obj: tests/make/programs.py reads it
+# for where each program's sources are.
 table:
 	@:$(foreach p,$(PROGS),$(info PROG $(p) $(call model,$(p)) | $(subst \
 	    $(SRC)/,,$($(p)_FLAGS)) | $(subst $(SRC)/,,$($(p)_SRCS)) | $($(p)_LIBS)))
-	@:$(foreach y,$(YACCED),$(info YACC $(subst $(colon), ,$(y))))
-	@:$(foreach l,$(LEXED),$(info LEX $(subst $(colon), ,$(l))))
-	@:$(info FILTERED games/nhack | hcrypt games/hack/crypt.c -Di286 | -mm \
-	    -Igames/hack | $(addprefix games/hack/,$(HACK)))
-	@:$(info SYSGEN $(SYSGEN))
-	@:$(info PROGDATA games/battlestar/battle_strings)
-	@:$(foreach r,$(SYSRULES),$(info RULES)$(info $(value $(r)))$(info END))
 
 .PHONY:	all list ccprogs table root syslibs clean FORCE
 
@@ -1039,8 +1028,7 @@ lex=	rm -rf $(2).d && mkdir -p $(2).d && cd $(2).d && \
 
 # What yacc and lex make: for each, the C, named from obj, a colon and
 # what it is made of, named from usr/src; and for yacc -d another colon
-# and the file of the tokens' numbers, named from obj.  The system makes
-# the same of them itself, in /usr/src/i286 (tools/srcmk.py).
+# and the file of the tokens' numbers, named from obj.
 YACCED=	gen/expr.c:bin/expr.y gen/lex.c:usr.bin/lex/parser.y \
 	gen/egrep.c:usr.bin/egrep.y gen/bc.c:usr.bin/bc.y \
 	gen/make.c:bin/make/gram.y gen/ftpcmd.c:libexec/ftpd/ftpcmd.y \
@@ -1096,23 +1084,6 @@ $(H)/awkproc: $(A)/proc.c $(AWKG)/token.c $(AWKG)/awk.h | $(H)
 $(AWKG)/proctab.c: $(H)/awkproc
 	@$(H)/awkproc > $@.new && mv $@.new $@
 $(O)/awk: $(A)/awk.def
-# The same for the system's own make, which makes awk in /usr/src/i286
-# (tools/srcmk.py).  SYSGEN is what such rules make, named from obj as
-# YACCED is, and SYSRULES names the rules: in them S is /usr/src, and
-# a file is named from /usr/src/i286, where what is in obj here is.
-SYSGEN+= gen/awk/token.c gen/awk/proctab.c
-define awk_SYSRULES
-$S/i286/gen/awk/token.c: $S/bin/awk/token.c $S/i286/gen/awk/awk.g.c
-	(sed '/= *{$$/q' $S/bin/awk/token.c; \
-	 sed -n 's/^# *define *\([^ ]*\) \(.*\)/"\1", \2,/p' gen/awk/awk.h; \
-	 sed -n '/^};$$/,$$p' $S/bin/awk/token.c) > gen/awk/token.c
-
-$S/i286/gen/awk/proctab.c: $S/bin/awk/proc.c $S/i286/gen/awk/token.c
-	cd o && rm -f *.o && cc -O -I$S/i286/gen/awk -o ../gen/awk/proc \
-	    $S/bin/awk/proc.c $S/i286/gen/awk/token.c && rm -f *.o
-	gen/awk/proc > gen/awk/proctab.c
-endef
-SYSRULES+= awk_SYSRULES
 $(O)/yacc: $(YSRC)/dextern $(YSRC)/files
 $(O)/lex: $(LSRC)/ldefs.c $(LSRC)/once.c
 
@@ -1140,23 +1111,6 @@ $(GO)/battlestar/battle_strings: $(addprefix $(BS)/,dayfile.c nightfile.c \
 	@cd $(BS) && rm -f $@ && for f in globals.c dayfile.c nightfile.c; do \
 	    $(H)/bmkstr - $@ $(GO)/battlestar/xx $$f || exit 1; done
 $(BSTR): $(GO)/battlestar/battle_strings ;
-# The same for the system's own make (SYSRULES, above).
-SYSGEN+= $(addprefix games/battlestar/xx,dayfile.c nightfile.c globals.c)
-define battlestar_SYSRULES
-bmkstr:	$S/games/battlestar/mkstr.c
-	cd o && rm -f *.o && cc -O -o ../bmkstr $S/games/battlestar/mkstr.c && rm -f *.o
-
-$S/i286/games/battlestar/battle_strings: bmkstr $S/games/battlestar/dayfile.c \
-		$S/games/battlestar/nightfile.c $S/games/battlestar/globals.c
-	rm -f games/battlestar/battle_strings
-	cd $S/games/battlestar && for f in globals.c dayfile.c nightfile.c; do \
-	    $S/i286/bmkstr - $S/i286/games/battlestar/battle_strings \
-	    $S/i286/games/battlestar/xx $$f || exit 1; done
-
-$S/i286/games/battlestar/xxdayfile.c $S/i286/games/battlestar/xxnightfile.c \
-$S/i286/games/battlestar/xxglobals.c: $S/i286/games/battlestar/battle_strings
-endef
-SYSRULES+= battlestar_SYSRULES
 
 # hack's sources as they are compiled, and crypt, which is built for this
 # machine and reads and writes C, with -Di286 for the system's compiler,
@@ -1319,23 +1273,6 @@ $(TCO)/tc.const.h: $(T)/tc.const.c | $(TCO)
 	grep '^Char STR' $< | \
 	    sed 's/Char \([a-zA-Z0-9_]*\).*/extern Char \1[];/' | sort > $@
 
-# The three headers for the system's own make (SYSRULES, above).
-SYSGEN+= tcsh/sh.err.h tcsh/ed.defns.h tcsh/tc.const.h
-define tcsh_SYSRULES
-$S/i286/tcsh/sh.err.h: $S/bin/tcsh/sh.err.c
-	(echo '#ifndef _h_sh_err'; echo '#define _h_sh_err'; \
-	 sed '/^#else/,/^#endif.*i286/d' $S/bin/tcsh/sh.err.c | grep '^#define.*ERR_'; \
-	 echo '#endif') > tcsh/sh.err.h
-
-$S/i286/tcsh/ed.defns.h: $S/bin/tcsh/ed.defns.c
-	(echo '#ifndef _h_ed_defns'; echo '#define _h_ed_defns'; \
-	 grep '^#define.*[FV]_' $S/bin/tcsh/ed.defns.c; echo '#endif') > tcsh/ed.defns.h
-
-$S/i286/tcsh/tc.const.h: $S/bin/tcsh/tc.const.c
-	grep '^Char STR' $S/bin/tcsh/tc.const.c | \
-	    sed 's/Char \([a-zA-Z0-9_]*\).*/extern Char \1[];/' | sort > tcsh/tc.const.h
-endef
-SYSRULES+= tcsh_SYSRULES
 
 define library
 $(LIB)/$(2)/lib$(1).$(LX): $(addprefix $(SRC)/,$($(1)_LIB)) $(HDRS) \

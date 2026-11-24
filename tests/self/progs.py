@@ -15,14 +15,15 @@ and nothing is to be there that the root did not have.  But for: the
 contents of the files of tests/make/differs, which the two builds do
 not make the same way; the day a page of the manual says it was
 formatted; what the system changes by running (running, beside this);
-and NAME.old, where a Makefile keeps the NAME it installs over.  A library
-has the day it was made in it too, and whose its members were, and is
-compared by its members, each by its name and its contents, and their
-order, the table of contents among them.  And each of the root's
-programs whose sources are in a DIR (tests/make/programs.py) is to be
-among the files installed, and so is each of its libraries, where the
-DIR is lib/libc, of /lib, or usr.lib, of /usr/lib, and each of its
-pages of the manual whose source is in a DIR (programs.pages).
+and NAME.old or oNAME, where a Makefile keeps the NAME it installs
+over.  A library has the day it was made in it too, and whose its
+members were, and is compared by its members, each by its name and its
+contents, and their order, the table of contents among them.  And
+each of the root's programs whose sources are in a DIR
+(tests/make/programs.py) is to be among the files installed, and so is
+each of its libraries, where the DIR is lib/libc or lib, of /lib, or
+usr.lib, of /usr/lib, and each of its pages of the manual whose source
+is in a DIR (programs.pages).
 """
 import os
 import re
@@ -116,8 +117,7 @@ for p in sorted(set(before) | set(after)):
     if a is None:
         bad.append("GONE %s" % p)
     elif b is None:
-        if p not in differs and not (p.endswith(".old") and
-                                     p[:-4] in newer):
+        if p not in differs and not programs.kept(p, newer):
             bad.append("NOT THE ROOT'S %s" % p)
     elif a[0] != b[0] or a[0] == "l" and a != b:
         bad.append("DIFFERS %s: %s, and the root's was %s" %

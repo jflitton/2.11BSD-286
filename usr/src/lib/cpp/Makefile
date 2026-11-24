@@ -1,20 +1,18 @@
 #	Makefile	2.3	(2.11BSD) 2025/11/25
 #
 
-# if machine has separate I/D
+# The 80286's keeps what it has in memory, LIBVMF being 0, and not in a
+# file of libvmf's: the text of its macros and their names in segments
+# it asks the system for (segalloc(2)), which tcsh's headers, and the
+# kernel's, need, and the rest in its own data.
 LDFLAGS=-i
-VMPGS = 12
-# else
-# LDFLAGS =
-# VMPGS = 4
-# endif
 
-CFLAGS=-O -DLIBVMF -I. -DNVMPGS=${VMPGS}
+CFLAGS=-O -DLIBVMF=0 -I.
 
 all : cpp cpp.0
 
 cpp :	cpp.o cpc.o token.o
-	$(CC) $(CFLAGS) $(LDFLAGS) -o cpp cpp.o cpc.o token.o -lvmf -lstubs
+	$(CC) $(CFLAGS) $(LDFLAGS) -o cpp cpp.o cpc.o token.o
 
 cpp.0 : cpp.1
 	/usr/man/manroff cpp.1 > cpp.0

@@ -30,8 +30,7 @@
 /usr/games/lib/warp/smap.7	# warp's sm
 /usr/share/term/tab*		# each table's C, compiled with mktab and run
 /usr/man/whatis			# of the pages there, those installed with the
-				# programs above among them, and cpp's, of lib,
-				# which is not made here
+				# programs above among them
 /usr/new/man/whatis		# makewhatis, with /usr/man/makewhatis.sed,
 /usr/local/man/whatis		# which the system has and man's Makefile
 				# installs here after them

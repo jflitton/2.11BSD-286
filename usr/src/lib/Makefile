@@ -9,8 +9,10 @@ CFLAGS=	-O
 TAGSFILE=tags
 
 # Programs that live in subdirectories, and have makefiles of their own.
+# The 80286's: not libkern, the PDP-11 kernel's; the 286's compiles
+# what it has of the C library with itself (sys/conf/Make.i286).
 #
-SUBDIR=	ccom c2 cpp libc libkern
+SUBDIR=	ccom c2 cpp libc
 
 all:	${SUBDIR}
 

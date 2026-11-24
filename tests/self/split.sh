@@ -1,7 +1,8 @@
 #!/bin/sh
-# All of tests/self/run.sh and tests/self/progs.sh, shared between two
-# or three machines booted at once, and never more: each is a processor
-# of this one's, kept busy for as long as it runs.
+# All of tests/self/run.sh, and all that tests/self/progs.sh has the
+# system make with make build, made a directory at a time, shared
+# between two or three machines booted at once, and never more: each
+# is a processor of this one's, kept busy for as long as it runs.
 #
 #	sh tests/self/split.sh [-n] [2|3]
 #
@@ -10,17 +11,20 @@
 #
 #	of three	1  /boot and the kernel (run.sh), and then
 #			   share and the manual (progs.sh)
-#			2  the libraries, and the programs of bin, sbin,
-#			   libexec and ucb
+#			2  the compiler and the libraries, and the programs
+#			   of bin, sbin, libexec and ucb
 #			3  those of usr.bin, usr.sbin, games, local and
 #			   new
 #	of two		1  as of three
-#			2  the libraries and the programs
+#			2  the compiler, the libraries and the programs
 #
-# Machine 2 links its programs with the libraries it made and
-# installed, and machine 3 with those the system came with, which are
-# those, member for member, when machine 2 passes.  With -n this says
-# each machine's share and boots none.
+# Machine 2 makes its programs with the compiler and the libraries it
+# made and installed, and machine 3 with those the system came with,
+# which are those, byte for byte and member for member, when machine 2
+# passes.  make build makes the compiler twice, the second time with
+# itself, and all in one machine, in the order of usr/src's Makefile:
+# progs.sh does that alone.  With -n this says each machine's share and
+# boots none.
 #
 # The machines have the faster processor (CPU=486,
 # tests/harness/runtest.py) unless CPU says the 286.
@@ -61,10 +65,10 @@ fi
 all="stand kernel"
 dirs1="share man"
 if [ $n = 3 ]; then
-    dirs2="lib/libc usr.lib bin sbin libexec ucb"
+    dirs2="lib usr.lib bin sbin libexec ucb"
     dirs3="usr.bin usr.sbin games local new"
 else
-    dirs2="lib/libc usr.lib bin sbin libexec ucb usr.bin usr.sbin"
+    dirs2="lib usr.lib bin sbin libexec ucb usr.bin usr.sbin"
     dirs2="$dirs2 games local new"
 fi
 pids=

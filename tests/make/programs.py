@@ -87,6 +87,15 @@ def libraries(names, dirs):
                    for d, r in LIBRARIES.items())]
 
 
+def kept(p, names):
+    """Whether P is what a Makefile keeps of one of NAMES as it installs
+    another over it: NAME.old, as tcsh's and init's do, or oNAME, as the
+    compiler's do (lib/ccom, lib/c2)."""
+    d, b = os.path.split(p)
+    return p.endswith(".old") and p[:-4] in names or \
+        b.startswith("o") and os.path.join(d, b[1:]) in names
+
+
 def within(directory, dirs):
     """Whether DIRECTORY is one of DIRS or under one."""
     return any(directory == d or directory.startswith(d + "/") for d in dirs)

@@ -17,3 +17,17 @@
 /var/cron		# cron, which makes its directories
 /var/cron/tabs
 /usr/spool/at/lasttimedone	# atrun, which cron runs
+/usr/adm/acct.*		# /usr/adm/daily, which cron runs each night
+/usr/adm/savacct	# (/etc/crontab), and which a run that lasts
+/usr/adm/usracct	# past it meets: the accounts that sa -s
+/usr/adm/daemonlog.*	# sums, the logs it moves along, msgs -c,
+/usr/adm/debuglog	# and the mail to root of what it says
+/usr/adm/debuglog.*
+/usr/spool/mqueue/syslog
+/usr/spool/mqueue/syslog.*
+/usr/msgs/bounds
+/usr/spool/mail/root
+/usr/adm/messages.*	# /usr/adm/weekly, each Sunday night: the logs
+/usr/adm/cron.*		# it moves along, and find's list of names
+/var/db/find.codes
+/usr/adm/wtmp.*		# /usr/adm/monthly, on the first of the month

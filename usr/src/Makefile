@@ -44,18 +44,14 @@ usr.lib ${SRCDIR}: FRC
 
 build: buildlib ${SRCDIR}
 
-# 'cpp' depends on libvmf so build libvmf after libc and before cpp
+# The 80286's: not libvmf, which its cpp keeps nothing in (lib/cpp), nor
+# libkern, the PDP-11 kernel's (lib).
 
 buildlib: FRC
 	@echo compiling libc.a
 	cd lib/libc; make
 	@echo installing /lib/libc.a
 	cd lib/libc; make install
-	@echo compiling usr.lib/libvmf.a
-	cd usr.lib/libvmf; make
-	@echo installing /usr/lib/libvmf.a
-	cd usr.lib/libvmf; make install
-	cd usr.lib/libvmf; make clean
 	@echo
 	@echo compiling C compiler
 	cd lib; make ccom cpp c2
@@ -76,8 +72,6 @@ buildlib: FRC
 	cd lib/ccom; make install
 	cd lib/cpp; make install
 	cd lib/c2; make install
-	@echo installing libkern
-	cd lib/libkern; make  install
 	@echo
 	cd lib; make clean
 	@echo compiling usr.lib

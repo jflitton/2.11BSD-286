@@ -26,13 +26,14 @@ the repository, 20 MB of them, and room for what is made of them, which
 is left beside them. The root file system has the directory, and `/sys`
 is a name for `/usr/src/sys`.
 
-The libraries, the programs, what is not a program and the manual are
-made from the Makefiles of their own directories, which are upstream's:
-`usr/src/lib/libc/Makefile`, `usr/src/usr.lib/Makefile`,
-`usr/src/bin/Makefile`, `usr/src/bin/sh/Makefile`,
-`usr/src/share/Makefile`, `usr/src/man/Makefile` and the rest, as
-2.11BSD has them, changed where the 286 is not the PDP-11
-([below](#upstreams-makefiles)). They are in the repository and on the
+The compiler, the libraries, the programs, what is not a program and the
+manual are made by upstream's Makefiles: `usr/src/Makefile`'s
+`make build`, and the Makefiles of the directories it names,
+`usr/src/lib/Makefile`, `usr/src/lib/libc/Makefile`,
+`usr/src/usr.lib/Makefile`, `usr/src/bin/Makefile`,
+`usr/src/bin/sh/Makefile`, `usr/src/share/Makefile`,
+`usr/src/man/Makefile` and the rest, as 2.11BSD has them, changed
+where the 286 is not the PDP-11 ([below](#upstreams-makefiles)). They are in the repository and on the
 system the same, and a change made to one there is a change to the
 system's sources.
 
@@ -51,26 +52,32 @@ On the system, as root:
 ```sh
 mount /dev/wd0d /usr/src
 
+cd /usr/src; make build; make installsrc         # all but the kernel
+
 cd /usr/src/sys/i286stand; make; make install    # /boot, the boot blocks
 cd /usr/src/sys/conf; ./config PC                # the kernel's directory
 cd /usr/src/sys/PC; make; make install           # the kernel
-cd /usr/src/lib/libc; make; make install         # the C library, three models
-cd /usr/src/usr.lib; make; make install          # the other libraries
-cd /usr/src/share; make; make install            # what is not a program
-
-cd /usr/src/bin; make; make install              # the programs, and so
-cd /usr/src/sbin; make; make install             # in libexec, ucb, usr.bin,
-                                                 # usr.sbin, games, local
-                                                 # and new
-
-cd /usr/src/man; make; make install              # the manual, and whatis
 ```
+
+`make build` is upstream's. It makes the C library and installs it;
+makes the compiler with that library and installs it, `cpp`, `c0`,
+`c1`, `c2` and `c2l`, keeping each that was as `/lib/oc0` and so on;
+makes the library and the compiler again, with what it installed, and
+installs them; and makes the other libraries and installs them. Then it
+makes `share`, `bin`, `sbin`, `etc`, `games`, `libexec`, `local`,
+`new`, `ucb`, `usr.bin`, `usr.sbin` and `man`, in that order, with
+those, and `make installsrc` installs them. The kernel and the programs
+that load it are made apart, as upstream's are. Each directory is
+made by itself the same way, `make; make install` in
+`/usr/src/lib/libc`, `/usr/src/bin` or `/usr/src/man`:
 
 | in | `make` makes | `make install` |
 |---|---|---|
 | `sys/i286stand` | `boot`, `hdboot.bin`, `flboot.bin`, `mbr.bin`, `fdboot.bin` | `/boot`; `/mdec/wduboot`, and `sduboot` another name of it; `/mdec/fluboot` |
 | `sys/conf`, `./config PC` | `sys/PC`: its Makefiles, the devices' counts, `param.c`; and `sys/h/localopts.h` | |
 | `sys/PC` | `unix`, and `unix.map` | `/unix`, root's and `kmem`'s, 744; the one that was is `/unix.old` |
+| `lib` | the compiler and the C library, as `lib/ccom`, `lib/c2`, `lib/cpp` and `lib/libc` make them | |
+| `lib/ccom`, `lib/c2`, `lib/cpp` | `c0` and `c1`; `c2` and `c2l`; `cpp`, and `cpp.0` | `/lib`, the one that was as `oc0`, `oc1`, `oc2` and `oc2l`; `/usr/man/cat1/cpp.0` |
 | `lib/libc` | `libc.a`, `libc_m.a`, `libc_l.a`, and `crt0.o` of each model in `i286/csu` | `/lib`, `/lib/m`, `/lib/l` |
 | `usr.lib` | each library, of each model, beside its sources | `/usr/lib`, `/usr/lib/m`, `/usr/lib/l` |
 | `share` | `termcap`; `zic` and `zdump` ([what is not a program](#what-is-not-a-program)) | `/usr/share`: `misc`, `tmac`, `me`, `ms`, `tabset`, `learn`, `zoneinfo`; `/etc/termcap`, a symbolic link; `zic` and `zdump` in `/usr/sbin` |
@@ -117,6 +124,13 @@ says another. What was changed in them for the 286:
 - `bin/as` and `bin/ld` make the 286's assembler and linker, which are
   in `i286` there; `timed`'s checksum is `i286/cksum.c`, as the compiler
   leaves it.
+- `lib/ccom` makes the 286's second pass, from `i286`, where the
+  PDP-11's was made with its tables (`optable`, through `cvopt`);
+  `lib/c2` the 286's `c2`, in `i286`, of the small model, and of the
+  large as `c2l`, its objects in `l`; `lib/cpp` a `cpp` that keeps what
+  it has in memory and in segments, and not in a file through
+  `libvmf`. `lib`'s list has not `libkern`, the PDP-11 kernel's, and
+  `make build` makes neither that nor `libvmf`.
 - A directory's list of programs has not the ones the port does not
   have: the PDP-11's debugger and tape formats, Fortran and Pascal,
   `uucp`, `lpr`, the quotas. `usr/src/local`'s list has the port's own
@@ -353,6 +367,11 @@ The compiler does some 20 lines a second ([performance](performance.md)).
 Of the programs, `tcsh`, `ex`, `hack`, `sendmail` and `window` are half
 an hour each or more.
 
+Those are of the directories made one at a time. `make build` makes the
+C library twice, and the compiler twice besides; with the faster
+processor ([below](#what-is-checked)) it and `make installsrc` took 4
+hours 37 minutes, 42 minutes of the host's.
+
 ## What is checked
 
 `tests/self/run.sh` boots the system with that file system, has it make
@@ -364,22 +383,23 @@ again: it must come up on that kernel, with `init`, `getty`, `login` and
 the shell that it made. `PARTS=stand` or `PARTS=kernel` makes one of
 the two.
 
-`tests/self/progs.sh` has the system make the libraries, the programs,
-what is not a program and the manual, from the Makefiles of their own
-directories: `make` and `make install` in each of `lib/libc`,
-`usr.lib`, `share`, `bin`, `sbin`, `libexec`, `ucb`, `usr.bin`,
-`usr.sbin`, `games`, `local`, `new` and `man`, in that order, or in the
-directories it is given (`sh tests/self/progs.sh lib/libc bin/sed
-usr.bin/yacc man`). The root is then to be as it was
-before, which is what the other build makes, name for name: each file
+`tests/self/progs.sh` has the system make the compiler, the libraries,
+the programs, what is not a program and the manual with `make build`
+and `make installsrc` in `/usr/src`, or `make` and `make install` in
+each of the directories it is given (`sh tests/self/progs.sh lib/libc
+bin/sed usr.bin/yacc man`). Nor is `make` to say that a command
+failed, which a Makefile that runs `make` in its directories goes on
+from. The root is then to be as it was before, which is what the other
+build makes, name for name: each file
 with its contents, mode, owner, group and other names, each directory
 with its mode, owner and group, each device and symbolic link. A
 library has the day it was made in it, and whose its members were, and
 is compared member for member, each by its name and contents and in
 their order, the table of contents among them. Nothing is to be
 gone and nothing new, but what a system that is running writes
-(`tests/self/running`) and the `NAME.old` that `tcsh`'s and `init`'s
-Makefiles keep of what they install over. Each of the root's programs
+(`tests/self/running`), the `NAME.old` that `tcsh`'s and `init`'s
+Makefiles keep of what they install over, and the compiler's `oc0`,
+`oc1`, `oc2` and `oc2l`. Each of the root's programs
 whose sources are in those directories is to have been installed, each
 library of `/lib` and `/usr/lib`, and each page of the manual whose
 source is in one of them. A page has at its foot the day it was
@@ -393,12 +413,13 @@ not for a change. A change is checked two ways, and
 - Booting nothing. The Makefiles are run where the system is built,
   by that machine's `make`, with the system's compiler, assembler and
   linker as they are compiled for it. `sh tests/make/run.sh` runs
-  upstream's, `make`, `make install` and `make clean` in each
-  directory, with that machine's `make` given the rules the system's
-  has and none of its own, and compares what was installed with the
-  root file system: 2112 files in seven minutes, each with the contents,
-  mode, owner and group the root has, and the root's 109 directories
-  still there with theirs. The directories are there before anything
+  upstream's, `make build`, `make installsrc` and `make clean` in
+  `usr/src`, and `make`, `make install` and `make clean` in `/boot`'s
+  and the kernel's directories, with that machine's `make` given the
+  rules the system's has and none of its own, and compares what was
+  installed with the root file system: 2119 files in nine minutes, each
+  with the contents, mode, owner and group the root has, and the root's
+  109 directories still there with theirs. The directories are there before anything
   is installed, and that machine's `make` takes them to be, as the
   system's does; `/boot`'s and the kernel's are among them, and their
   installs too. `HOST=1 sh tests/self/run.sh` runs those two the same
@@ -415,8 +436,12 @@ not for a change. A change is checked two ways, and
   which has their pages, and `/usr/new`'s and `/usr/local`'s, made with
   `/usr/man/makewhatis.sed`, which `man`'s Makefile installs after them
   and a system has already. `ex` for `termcap`, `zic` for the time zones
-  and `eqn` for `eqn(1)` are what the other build has for them. `tests/make/differs` lists what the two builds
-  do not make the same way, which neither test compares: `sendmail`,
+  and `eqn` for `eqn(1)` are what the other build has for them. That
+  machine's `make` takes the `./` from a name, and then looks for it
+  in `VPATH`, where the system's does not: such a name is given it
+  whole (`ranlib`'s `./misc.o`, which is not `ar`'s).
+  `tests/make/differs` lists what the two builds do not make the same
+  way, which neither test compares: `sendmail`,
   whose Makefile takes its messages out with a script of its own;
   `hack`, whose Makefile has `xstr` after its `crypt`; `phantasia`, one
   file of which its Makefile compiles without `-O`, and its help, which
@@ -430,14 +455,16 @@ not for a change. A change is checked two ways, and
   `backgammon`, `phantasia` and `adventure` in, but for `last`, which
   finds there the logins of the machine that made them.
 - One machine is then booted to make what the changed files are part
-  of and nothing else (`tests/self/select.py`): the programs a source
-  is in, the libraries, the kernel, the C library or the boot programs.
-  A change to the tools that do the making, or to a header of
-  `/usr/include`, has the system make its compiler (`tests/ccom/self.sh`),
-  the kernel and a program of each model, `cat`, `csh` and `make`. A
-  change to the Makefiles or to what writes them has it make the five
-  programs above. `changed.sh -n` says which, and why, and runs
-  nothing.
+  of and nothing else (`tests/self/select.py`): with `make` in the
+  directory whose Makefile makes a file, and in those of the programs
+  whose sources it is among, and the kernel or the boot programs. A
+  change to the tools that do the making, or to a header of
+  `/usr/include` or `sys/h`, has the system make its compiler
+  (`tests/ccom/self.sh`), the kernel and a program of each model,
+  `sed`, `csh` and `make`. A change to the other build, or to what
+  writes `/usr/src` for the system, has it make the five programs
+  above that the other test does not. `changed.sh -n` says which, and
+  why, and runs nothing.
 
 Both boot the machine with a faster processor unless `CPU=286` is in
 the environment: IBM's 486SLC3 at 100 MHz, an upgrade for this same
@@ -447,10 +474,10 @@ five of the largest programs in 304 seconds where the 286 takes 710.
 It says nothing of whether a 286 runs the system, which is for
 `run.sh` and the other suites, on the 286.
 
-`sh tests/self/split.sh` is all of it in two machines or three at
-once, each with a fixed share: three is the most, since each keeps a
-processor of the host busy for as long as it runs. With the faster
-processor that is a quarter of an hour.
+`sh tests/self/split.sh` is all of it, a directory at a time, in two
+machines or three at once, each with a fixed share: three is the most,
+since each keeps a processor of the host busy for as long as it runs.
+With the faster processor that is a quarter of an hour.
 
 `tests/disk/run.sh` has the system make a disk that way, of a second
 drive of 133 MB with nothing on it, not a label. `tools/fsck.py` must

@@ -9,10 +9,12 @@
 #	sh tests/make/run.sh [DIR ...]
 #
 # DIR is a directory of usr/src with a Makefile: lib/libc, bin,
-# usr.bin/spell, sys/PC.  Without one it is the libraries' directories,
-# share, every directory of programs, man, in the order of upstream's
-# Makefile there, and /boot's and the kernel's, which is the Makefile
-# config wrote (usr/src/sys/conf).  The Makefiles are run
+# usr.bin/spell, sys/PC, where make, make install and make clean are
+# run.  Without one it is usr/src's own, upstream's, with make build,
+# make installsrc and make clean, as tests/self/progs.sh has the system
+# do: the libraries, share, every directory of programs and man; and
+# then /boot's and the kernel's, which is the Makefile config wrote
+# (usr/src/sys/conf).  The Makefiles are run
 # by this machine's make in a copy of usr/src (obj/tests/make/root), with
 # the rules the system's make has and none of its own (rules.mk), and
 # with the system's commands as this machine has them (commands.sh): the
@@ -37,8 +39,7 @@ top=$(cd "$(dirname "$0")/../.." && pwd)
 buildsys
 here=$top/tests/make
 out=$top/obj/tests/make
-dirs=${*:-"lib/libc usr.lib share bin sbin libexec ucb usr.bin usr.sbin games
-    local new man sys/i286stand sys/PC"}
+dirs=${*:-". sys/i286stand sys/PC"}
 # The kernel says the day it was made, and is told the one the root's
 # says (usr/src/sys/conf/newvers.sh).
 DATE=$(sed -n 's/.*(\(.*\)).*/\1/p' "$top/obj/nPC/vers.c")
@@ -54,11 +55,20 @@ python3 -I "$here/stage.py" "$top" "$out"
 sh "$here/commands.sh" "$top" "$out"
 start=$(date +%s)
 for d in $dirs; do
-    log=$out/log/$(echo "$d" | tr / _)
+    if [ "$d" = . ]; then
+        log=$out/log/build targets="build installsrc clean"
+    else
+        log=$out/log/$(echo "$d" | tr / _) targets='"" install clean'
+    fi
     (cd "$out/root/usr/src/$d" && PATH="$out/bin:$PATH" &&
         MAKEFILES=$here/rules.mk && export PATH MAKEFILES &&
-        for t in "" install clean; do
-            make -r -k SHELL="$out/bin/sh" $t
-        done) > "$log" 2>&1 || true
+        eval "for t in $targets; do
+            make -r -k SHELL=\"$out/bin/sh\" \$t
+        done") > "$log" 2>&1 || true
 done
-python3 -I "$here/check.py" "$top" "$out" $(($(date +%s) - start)) $dirs
+# usr/src's Makefile makes each of the directories it names.
+python3 -I "$here/check.py" "$top" "$out" $(($(date +%s) - start)) \
+    $(for d in $dirs; do
+        [ "$d" = . ] || { echo "$d"; continue; }
+        sed -n 's/^[LS][IR][BC]DIR=//p' "$top/usr/src/Makefile"
+    done)

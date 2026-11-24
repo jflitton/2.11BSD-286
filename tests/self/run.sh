@@ -18,9 +18,9 @@
 #
 # PARTS is what is made, either or both of "stand kernel", and by
 # default both.  The libraries, the programs, what is not a program and
-# the manual are not made here: the system makes those from the
-# Makefiles of their own directories, upstream's, share's and man's
-# among them, and tests/self/progs.sh has it do that.
+# the manual are not made here: the system makes those with usr/src's
+# Makefile, upstream's (make build), and tests/self/progs.sh has it do
+# that, as upstream makes its kernel apart from them.
 #
 # TOOLS, TOOLS_KERNEL, TOOLS_PROGRAMS and TOOLS_BOOT are as in
 # tests/system (tests/harness/system.sh) and say whose work the system
