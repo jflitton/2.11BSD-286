@@ -325,7 +325,8 @@ tests/disk/run.sh       # the system making a disk, as upstream has one
                         # made: a label, a dump of its root restored,
                         # the boot block and its sources on a second
                         # drive, which must have what the system has,
-                        # and start it
+                        # and start it, alone and from the first
+                        # disk's /boot (wd(1))
 tests/as/run.sh         # the system's assembler against NASM: 455
                         # files that both are to make the same of, the
                         # kernel's assembly and the boot blocks among

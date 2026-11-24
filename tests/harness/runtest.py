@@ -3,7 +3,7 @@
 
 usage: runtest.py NAME SOURCE...
        runtest.py [--hd IMAGE,CYLINDERS,HEADS,SECTORS[,BUS]]
-                  [--hd2 IMAGE,CYLINDERS,HEADS,SECTORS]
+                  [--hd2 IMAGE,CYLINDERS,HEADS,SECTORS[,ID]]
                   [--fda IMAGE[,SIZE]] [--fdb IMAGE[,SIZE]] [--until TEXT]
                   [--resets N] [--net CARD[:PORT:IRQ]] [--term TYPE:COLSxROWS]
                   [--mark TEXT] [--profile KERNEL[:MS]]
@@ -29,8 +29,9 @@ I/O address (hexadecimal), interrupt request and DMA channel, the disk at
 that SCSI id, and the adapter's BIOS at that address (hexadecimal, such as
 DC000) or, with 0, off.  86Box only.  With --hd and no EXECUTABLE there
 is no diskette, and the machine boots from the hard disk as it would by
-itself.  --hd2 gives the AT disk controller a second drive, the slave,
-whose contents are IMAGE likewise; the first must be on that controller.
+itself.  --hd2 gives a second disk, whose contents are IMAGE likewise:
+on the AT disk controller, the slave, or on the Adaptec, at SCSI id ID,
+by default the one after the first disk's.
 
 --fda and --fdb put the diskette IMAGE in drive A or B, to be changed by
 whatever is written to it; the drive is 3.5 inch for an image of 1474560
@@ -616,17 +617,23 @@ def start_86box(box, img, out, com1, args=(), env=None):
                     % (HD[3], HD[2], HD[1], "scsi" if scsi else "ide",
                        os.path.abspath(HD[0])))
             if scsi:
-                f.write("hdd_01_scsi_location = 0:%02d\n\n"
-                        "[Adaptec AHA-154xCF #1]\nbase = %04X\nirq = %d\n"
-                        "dma = %d\nbios_addr = %05X\n"
-                        % (int(scsi[3]), int(scsi[0], 16), int(scsi[1]),
-                           int(scsi[2]), int(scsi[4], 16)))
+                f.write("hdd_01_scsi_location = 0:%02d\n" % int(scsi[3]))
             else:
                 f.write("hdd_01_ide_channel = 0:0\n")
             if HD2:
-                f.write("hdd_02_parameters = %d, %d, %d, 0, ide\n"
-                        "hdd_02_fn = %s\nhdd_02_ide_channel = 0:1\n"
-                        % (HD2[3], HD2[2], HD2[1], os.path.abspath(HD2[0])))
+                f.write("hdd_02_parameters = %d, %d, %d, 0, %s\n"
+                        "hdd_02_fn = %s\n"
+                        % (HD2[3], HD2[2], HD2[1], "scsi" if scsi else "ide",
+                           os.path.abspath(HD2[0])))
+                if scsi:
+                    f.write("hdd_02_scsi_location = 0:%02d\n" % HD2[4])
+                else:
+                    f.write("hdd_02_ide_channel = 0:1\n")
+            if scsi:
+                f.write("\n[Adaptec AHA-154xCF #1]\nbase = %04X\nirq = %d\n"
+                        "dma = %d\nbios_addr = %05X\n"
+                        % (int(scsi[0], 16), int(scsi[1]),
+                           int(scsi[2]), int(scsi[4], 16)))
         if NET:
             card, port, irq, hostport = NET
             f.write("\n[Network]\nnet_01_card = %s\nnet_01_net_type = slirp\n\n"
@@ -957,14 +964,22 @@ def main():
         del sys.argv[1:3]
     if len(sys.argv) > 2 and sys.argv[1] == "--hd2":
         try:
-            image, c, h, s = sys.argv[2].split(",")
-            HD2 = (image, int(c), int(h), int(s))
+            w = sys.argv[2].split(",")
+            if len(w) not in (4, 5):
+                raise ValueError
+            image, c, h, s = w[:4]
+            scsi = HD and HD[4].startswith("scsi")
+            sid = int(w[4]) if len(w) == 5 else \
+                int(HD[4].split(":")[4]) + 1 if scsi else None
+            HD2 = (image, int(c), int(h), int(s), sid)
         except ValueError:
             sys.exit(__doc__)
-        if not HD or HD[4] not in ("ide", "xtide") or \
+        if not HD or (sid is None) == bool(scsi) or scsi and (
+                not 0 <= sid <= 6 or sid == int(HD[4].split(":")[4])) or \
                 os.path.getsize(image) != HD2[1] * HD2[2] * HD2[3] * 512:
-            sys.exit("--hd2: needs --hd on the AT disk controller, and an "
-                     "image of the size its geometry gives")
+            sys.exit("--hd2: needs --hd on the AT disk controller or the "
+                     "Adaptec, an id only with the Adaptec, and an image of "
+                     "the size its geometry gives")
         del sys.argv[1:3]
     for i, opt in enumerate(("--fda", "--fdb")):
         if len(sys.argv) > 2 and sys.argv[1] == opt:

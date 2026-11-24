@@ -493,7 +493,11 @@ name, each file's contents, mode and owner, each other name, link and
 device, but for what a system that is running writes; and the sources
 what `/usr/src` has. Then the machine is started from that disk alone,
 and must come up and make `/boot` and the boot block from its sources,
-the same as the ones it started from.
+the same as the ones it started from. Last it is started from the first
+disk with both, and the second started from `/boot`'s prompt with
+`wd(1)` ([another system's disk](boot.md#another-systems-disk)): only
+the second has the kernel then loaded, which comes up on the first
+disk's root.
 
 `tests/floppy/run.sh` has it format a diskette of 1.44 MB that was
 never formatted, in the second drive, and make of it one that starts

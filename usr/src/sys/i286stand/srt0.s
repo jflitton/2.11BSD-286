@@ -20,7 +20,8 @@ STACK   equ     0xF000          ; 0100:F000 is 64K
         extern  _edata:wrt DGROUP, _end:wrt DGROUP
         global  _biosgeom, _biosread, _biosreset, _biosputc, _bioskey
         global  _biosmem, _biosext, _extmove, _inb, _outb, _fcopy, _fclear
-        global  _startkernel
+        global  _startkernel, _startboot
+        global  _swap13, _swapold, _swapdrv, _swapxor, _swapend
 
         segment _TEXT public align=2 class=CODE
         group   DGROUP _TEXT
@@ -246,3 +247,55 @@ _startkernel:
         pop     es
         mov     ds, ax
         retf
+
+; startboot(): start the sector chain() put at 0:7C00, as the BIOS
+; starts a disk's first: DL the first hard disk, 80h.
+_startboot:
+        cli
+        xor     ax, ax
+        mov     ds, ax
+        mov     es, ax
+        mov     ss, ax
+        mov     sp, 0x7C00
+        sti
+        mov     dx, 0x80
+        push    ax
+        mov     bx, 0x7C00
+        push    bx
+        retf
+
+; The handler of INT 13h that chain() leaves at the top of the memory
+; below 640K when it starts a disk other than the first: it swaps the
+; BIOS's numbers for the first hard disk, 80h, and that one, swapdrv,
+; so that the system started finds itself on the first, as a PC's
+; systems expect to.  It runs where it is copied to, with a CS that
+; gives it the offsets it has here.  DL is given back as it was, but
+; for the two calls that answer in it: 08h, a drive's shape and how
+; many there are, and 15h, its type and size.
+_swap13:
+        cmp     dl, 0x80
+        je      .ours
+        cmp     dl, [cs:_swapdrv]
+        je      .ours
+        jmp     far [cs:_swapold]
+.ours:  push    bp
+        mov     bp, sp
+        push    ax              ; [bp-1]: the call
+        push    dx              ; [bp-4]: the drive asked for
+        xor     dl, [cs:_swapxor]
+        pushf
+        call    far [cs:_swapold]
+        pushf
+        cmp     byte [bp-1], 0x08
+        je      .keep
+        cmp     byte [bp-1], 0x15
+        je      .keep
+        mov     dl, [bp-4]
+.keep:  popf
+        mov     sp, bp
+        pop     bp
+        retf    2
+_swapold: dd    0               ; the BIOS's handler
+_swapdrv: db    0
+_swapxor: db    0               ; 80h ^ swapdrv
+_swapend:

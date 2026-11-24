@@ -23,6 +23,9 @@
  * device the kernel will make of the BIOS's drive is a guess, shown in
  * the first line; docs/boot.md says how it is made and when it is wrong.
  *
+ * A device with only a drive, sd(1), is another disk to start as the
+ * BIOS would have, another system's: see chain().
+ *
  * The console is the display and keyboard, through the BIOS, and the
  * first serial port as well if there is one, as the kernel sets it.
  *
@@ -70,6 +73,10 @@ daddr_t	indbn[2];		/*   which are these of the file system */
 
 struct	bootinfo bi;
 int	quiet;			/* fopen is not to say what it did not find */
+
+extern	char swap13[], swapend[];	/* srt0.s: INT 13h for chain(), */
+extern	u_int swapold[2];		/*   the BIOS's handler, */
+extern	char swapdrv, swapxor;		/*   the drive swapped with 80h */
 
 int	printf(char *, ...);
 
@@ -614,6 +621,60 @@ load(root)
 }
 
 /*
+ * Start another disk as the BIOS would have: its first sector at 0:7C00,
+ * entered with DL 80h, the first hard disk.  A PC's systems expect to be
+ * started from that disk, so for another the BIOS's numbers for the two
+ * are swapped from then on, by swap13 (srt0.s), which is left in the
+ * last 1K of the memory below 640K and that 1K taken from what the BIOS
+ * says there is.  The drive is the BIOS's number less 80h, whatever the
+ * device; nothing is read from it but its first sector.
+ */
+chain(dn, unit)
+	struct devname *dn;
+	int unit;
+{
+	register int to = 0x80 + unit;
+	u_int __far *mem = (u_int __far *)FAR(0x40, 0x13);
+	u_int __far *vec = (u_int __far *)FAR(0, 0x13 * 4);
+	u_int seg;
+	int heads, sects, tries, error;
+
+	if (unit > 0x7F || biosgeom(to, &heads, &sects) < 0) {
+		printf("the BIOS has no drive %d\n", unit);
+		return;
+	}
+	for (tries = 3; tries; tries--) {
+		if ((error = biosread(to, 0, 0, 1, 1, blk)) == 0)
+			break;
+		biosreset(to);
+	}
+	if (error) {
+		printf("drive %d: the BIOS reports error %x\n", unit, error);
+		return;
+	}
+	if ((blk[510] & 0xFF) != 0x55 || (blk[511] & 0xFF) != 0xAA) {
+		printf("drive %d has nothing to start\n", unit);
+		return;
+	}
+	printf("%s(%d) is drive %x", dn->dn_name, unit, to);
+	if (to != 0x80) {
+		printf(", swapped with 80");
+		swapold[0] = vec[0];
+		swapold[1] = vec[1];
+		swapdrv = to;
+		swapxor = to ^ 0x80;
+		*mem -= 1;
+		seg = *mem * 64 - ((u_int)swap13 >> 4);
+		fcopy(FAR(seg, swap13), swap13, swapend - swap13);
+		vec[0] = (u_int)swap13;
+		vec[1] = seg;
+	}
+	printf("\n");
+	fcopy(FAR(0, 0x7C00), blk, SECTOR);
+	startboot();
+}
+
+/*
  * A number in what was typed, which must end with the character given.
  */
 char *
@@ -671,11 +732,16 @@ main(bootdrive)
 			for (dn = devname; dn->dn_name; dn++)
 				if (strcmp(dn->dn_name, name) == 0)
 					break;
+			if (dn->dn_name && (name = number(cp, &unit, ')')) &&
+			    *name == 0) {
+				chain(dn, unit);
+				continue;
+			}
 			if (dn->dn_name == 0 ||
 			    (cp = number(cp, &unit, ',')) == 0 ||
 			    (cp = number(cp, &part, ')')) == 0 ||
 			    unit > 31 || part >= MAXPARTITIONS) {
-				printf("the device is wd or sd, then (drive,partition)\n");
+				printf("the device is wd or sd, then (drive,partition), or (drive) to start that disk\n");
 				continue;
 			}
 			name = cp;

@@ -19,7 +19,12 @@
 # running writes; and its sources what tools/srcmk.py lists.  Then the
 # machine is started from that disk alone: it must come up, and make
 # /boot and the boot block from the sources it was given, the same as
-# the ones it started from.
+# the ones it started from, and give the disk a second kernel, unix2.
+# Last it is started from the first disk with both, and the second
+# started from /boot's prompt as another system's disk is (wd(1),
+# docs/boot.md): the second's boot block and /boot must read it as the
+# BIOS's first disk, which only it has unix2 on, and that kernel must
+# come up on the first disk's root.
 #
 # TOOLS, TOOLS_KERNEL, TOOLS_PROGRAMS and TOOLS_BOOT are as in
 # tests/system (tests/harness/system.sh).
@@ -137,7 +142,7 @@ done
 TIMEOUT=${TIMEOUT:-1800} python3 -I "$top/tests/harness/runtest.py" \
     --hd "$out/new.img",$shape,xtide --until halting \
     --type "login: " "root" \
-    --type "# " 'mount /dev/wd0d /usr/src; cd /usr/src/sys/i286stand && make && cmp boot /boot && cmp hdboot.bin /mdec/wduboot && echo "disk: ma""kes"; df' \
+    --type "# " 'mount /dev/wd0d /usr/src; cd /usr/src/sys/i286stand && make && cmp boot /boot && cmp hdboot.bin /mdec/wduboot && cp /unix /unix2 && echo "disk: ma""kes"; df' \
     --type "# " 'cd /; umount /usr/src; echo "@ex""it 00"; shutdown -h now going down' \
     --boot $name-2
 if ! grep -q "^disk: makes" "$top/obj/tests/$name-2/serial.txt"; then
@@ -147,6 +152,23 @@ if ! grep -q "^disk: makes" "$top/obj/tests/$name-2/serial.txt"; then
 fi
 python3 -I "$top/tools/fsck.py" new.img
 python3 -I "$top/tools/fsck.py" -p d new.img
+
+# From the first disk, the second started from /boot's prompt.
+TIMEOUT=${TIMEOUT:-1800} python3 -I "$top/tests/harness/runtest.py" \
+    --hd disk.img,$geometry,xtide --hd2 new.img,$shape --until halting \
+    --type ": " "wd(1)" --type ": " "unix2" \
+    --type "login: " "root" \
+    --type "# " 'echo "@ex""it 00"; shutdown -h now going down' \
+    --boot $name-3
+serial=$top/obj/tests/$name-3/serial.txt
+if ! grep -q "^wd(1) is drive 81, swapped with 80" "$serial" ||
+    ! grep -q "^wd(0,0)unix2: " "$serial"; then
+    echo "$name: /boot did not start the second disk as the first, or" \
+        "that disk's /boot did not load its kernel ($serial)" >&2
+    exit 1
+fi
+python3 -I "$top/tools/fsck.py" disk.img
 echo "$name: the system made a disk, with $(wc -l < root.want | tr -d ' ')" \
     "names in its root and $(wc -l < src.want | tr -d ' ') in its sources," \
-    "each what it has itself, started from it and made /boot there"
+    "each what it has itself, started from it and made /boot there, and" \
+    "started it from the first disk's /boot"

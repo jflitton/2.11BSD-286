@@ -174,6 +174,35 @@ Limits:
 - Nothing is passed to the kernel but the device: no single-user or
   other flags.
 
+### Another system's disk
+
+A device with a drive and no partition, `sd(1)`, is a disk to start as
+the BIOS would have started it, which is how another system on a
+second disk, DOS for one, is started:
+
+```
+Boot from sd(0,0)
+: sd(1)
+sd(1) is drive 81, swapped with 80
+```
+
+`/boot` reads the disk's first sector to 0:7C00 and enters it with DL
+80h. A PC's systems expect to have been started from the BIOS's first
+hard disk, 80h, so for another `/boot` first takes the last 1K of the
+memory below 640K from what the BIOS says there is (the word at 40:13h,
+which INT 12h answers with) and leaves there a handler of INT 13h
+(`swap13` in `srt0.s`) that swaps the two drives' numbers from then on:
+the disk started is 80h and the first is the other's number. Nothing
+else of `/boot` is kept. The drive is the BIOS's number less 80h, as in
+the first line, whichever driver is named; a sector without 55h AAh at
+its end is not started.
+
+A system that reads its disks through the BIOS sees them as swapped
+throughout, as DOS does. One that drives them itself once it has
+started, as Xenix and this system do, numbers them in its own order,
+which is the SCSI ids' and not the BIOS's: its kernel must be told, or
+find, that its root is on its second disk.
+
 ## The kernel's start (`sys/i286/mch_start.s`)
 
 1. Copy the boot program's table into the kernel's data. From here on
