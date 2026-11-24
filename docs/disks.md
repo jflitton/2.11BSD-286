@@ -262,6 +262,12 @@ boot block `/mdec/fluboot` in its first sector, starts the system
 then a hard disk's: a diskette has no room for a root and a swap area,
 as upstream's document says of its own.
 
+On a real machine the system has formatted diskettes of 1.44 MB and
+720K, made file systems on them and copied files to them, and started
+from the 1.44 MB one with `/boot` and the kernel it was given; the
+diskettes were then as `tools/fsck.py` wants them. A diskette of 1.2 MB
+has been made in the emulator only.
+
 ## Tools
 
 `tools/mkdisk.py` makes a disk image: a geometry, a partition table or
@@ -331,8 +337,8 @@ Not done, or not tested:
   waited for with the processor, for some seconds, and an interrupt
   that never comes is waited for for ever.
 - A second IDE drive, the slave, is the one `tests/programs` writes
-  labels and file systems on. A second SCSI disk has only been found
-  absent.
+  labels and file systems on. A second SCSI disk is found and given a
+  drive, but nothing has read it or written it.
 - A SCSI disk that is not spinning is not started, and one that takes
   its time after a reset is not waited for beyond the four tries.
 - SCSI devices that are not disks are named when the bus is looked over
@@ -350,4 +356,4 @@ Not done, or not tested:
   has it make a partition one and be refused one that runs past the
   system's part. That has been tried on an IDE disk only.
 - Most of it has run in the emulator only. The system has also booted
-  on a real machine from a SCSI disk.
+  on a real machine from a SCSI disk, and from a diskette it made there.

@@ -289,8 +289,11 @@ code resumes with.
 
 - 287 errors, which reach an AT-compatible machine as interrupt request 13
   and not as exception 16.
-- None of this has run on a real machine. The emulator's BIOS is the PS/2
-  Model 30 286's own, but its disk drive is not a real one: the kernel's
-  reads of the RAM disk image retry three times and have never had to.
-  The same goes for the hard disk boot programs' retries, and the
-  adapter's BIOS they read through was a 1542CF's.
+- On a real machine the system has started from a SCSI disk, through a
+  1542CF's BIOS, and from a diskette of 1.44 MB that it made, and
+  `/boot` has started DOS on a second SCSI disk (`sd(1)`). A diskette
+  of 1.2 MB, a RAM disk image and a `miniroot` have started it in the
+  emulator only, whose BIOS is the PS/2 Model 30 286's own but whose
+  drives are not real ones: the kernel's reads of a RAM disk image retry
+  three times, and the boot programs' reads three times, and in the
+  emulator neither has ever had to.

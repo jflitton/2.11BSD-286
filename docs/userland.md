@@ -2595,4 +2595,5 @@ Not done, or not tested:
 - With every call printed (`sctrace=2`), the kernel's printing can stall
   the serial port's interrupt-driven output, and the terminal stops.
 - Most of it has run in the emulator only. The system has also booted
-  on a real machine and been logged in to over the network.
+  on a real machine and been logged in to over the network, and made
+  diskettes there (`flformat`, `newfs -T`, `fsck`).
