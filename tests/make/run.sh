@@ -50,10 +50,18 @@ mkdir -p "$out/dest" "$out/log"
 : > "$out/dest.meta"
 python3 -I "$top/tools/fsck.py" -l "$top/obj/root/root.fs" > "$out/root.list"
 # The root's directories are there before anything is installed.
-python3 -I "$here/dest.py" "$out"
+python3 -I "$here/dest.py" "$top" "$out"
 python3 -I "$here/stage.py" "$top" "$out"
 sh "$here/commands.sh" "$top" "$out"
 start=$(date +%s)
+# The scripts local's and new's Makefiles run, makewhatis and what it
+# reads, which usr.sbin's and man's install after them, as a system has
+# them already.
+(cd "$out/root/usr/src" && PATH="$out/bin:$PATH" &&
+    MAKEFILES=$here/rules.mk && export PATH MAKEFILES &&
+    (cd man && make -r SHELL="$out/bin/sh" scriptinstall) &&
+    (cd usr.sbin/makewhatis && make -r SHELL="$out/bin/sh" install)) \
+    > "$out/log/scripts" 2>&1
 for d in $dirs; do
     if [ "$d" = . ]; then
         log=$out/log/build targets="build installsrc clean"

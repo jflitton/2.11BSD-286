@@ -315,9 +315,16 @@ def main():
 
     tmp = tempfile.mkdtemp(prefix="cc286.")
     objs = []
+    # An object named again is linked once, as the system's cc has it
+    # (nodup in usr/src/bin/cc.c): hack's Makefile names one in two of
+    # the PDP-11's overlays.
+    named = set()
     try:
         for f in files:
             if not f.endswith((".c", ".s")):
+                if f.endswith(".o") and f in named:
+                    continue
+                named.add(f)
                 objs.append(f)
                 continue
             base = os.path.splitext(os.path.basename(f))[0] + ".o"

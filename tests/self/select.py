@@ -18,8 +18,8 @@ A file that the tools which do the making are made of, or a header
 every program reads, calls for the sample: the compiler made by itself,
 with its directories, the kernel, and a program of each model, sed, csh
 and make.  The other build, and what writes the system's /usr/src,
-call for the programs the host cannot check (tests/make/left), since
-they are made with programs their Makefiles make and run.  Any other
+call for programs made with programs their Makefiles make and run,
+which tests/make runs its own builds of, and only the 286 its own.  Any other
 file of usr/src calls for what is made of it: of a directory that
 make is run in when usr/src's Makefile runs it (tools/srcmk.py), the
 deepest it is in, and the directory of each program whose sources it

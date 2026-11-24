@@ -417,29 +417,35 @@ not for a change. A change is checked two ways, and
   `usr/src`, and `make`, `make install` and `make clean` in `/boot`'s
   and the kernel's directories, with that machine's `make` given the
   rules the system's has and none of its own, and compares what was
-  installed with the root file system: 2119 files in nine minutes, each
+  installed with the root file system: 2205 files in ten minutes, each
   with the contents, mode, owner and group the root has, and the root's
-  109 directories still there with theirs. The directories are there before anything
-  is installed, and that machine's `make` takes them to be, as the
-  system's does; `/boot`'s and the kernel's are among them, and their
-  installs too. `HOST=1 sh tests/self/run.sh` runs those two the same
-  way and compares what they make, each object
-  (`tests/self/host.sh`). That says the Makefiles name
-  the right files, flags and order, and install each where the system
-  has it. It does not say the system's `make` reads them so, nor that
-  the tools do on the 286 what they do there. A program a Makefile
-  makes and then runs is the 286's and does not run there: a line that
-  does no more than run one, as `phantasia`'s `setfiles` and `ntp`'s
-  `ntest`, is passed over, and `tests/make/left` lists what is made
-  with one, `awk`, `tcsh`, `hack`, `battlestar` and five more programs,
-  and the tables and games' files such programs write, and `whatis`,
-  which has their pages, and `/usr/new`'s and `/usr/local`'s, made with
-  `/usr/man/makewhatis.sed`, which `man`'s Makefile installs after them
-  and a system has already. `ex` for `termcap`, `zic` for the time zones
-  and `eqn` for `eqn(1)` are what the other build has for them. That
+  109 directories still there with theirs. The directories are there
+  before anything is installed, and that machine's `make` takes them
+  to be, as the system's does; so is what a system has already that
+  the Makefiles read and none installs, `/usr/dict`, and the scripts
+  `local`'s and `new`'s run, `makewhatis` and what it reads, which
+  `usr.sbin`'s and `man`'s install after them. `/boot`'s and the
+  kernel's directories are among them, and their installs too.
+  `HOST=1 sh tests/self/run.sh` runs those two the same way and
+  compares what they make, each object (`tests/self/host.sh`). That
+  says the Makefiles name the right files, flags and order, and install
+  each where the system has it. It does not say the system's `make`
+  reads them so, nor that the tools do on the 286 what they do there.
+  A program a Makefile makes and then runs is the 286's, and is run
+  there as that machine has it: compiled for it of the same C, as
+  `awk`'s `proc`, `tcsh`'s `mkprstr`, `hack`'s `crypt` and `makedefs`,
+  `warp`'s `sm`, `boggle`'s `comp` and `nroff`'s tables; or, where it
+  writes what the 286 lays out, by a script of the other build,
+  `strfile`, `initdeck`, `setfiles`, `mkerrlst` and `refer`'s
+  `runinv`; `ex` for `termcap` and `awk`'s `tokenscript`, `zic`,
+  `spellin`, `tbl` and `eqn` are the tree's for that machine. A line
+  that does no more than run one with nothing to stand for it, as
+  `ntp`'s `ntest`, is passed over, and `tests/make/left` lists what is
+  made with one: `adventure`'s game, which only a 286 can write. That
   machine's `make` takes the `./` from a name, and then looks for it
   in `VPATH`, where the system's does not: such a name is given it
-  whole (`ranlib`'s `./misc.o`, which is not `ar`'s).
+  whole (`ranlib`'s `./misc.o`, which is not `ar`'s); and its `cc`
+  links an object named twice once, as the system's does (`hack`'s).
   `tests/make/differs` lists what the two builds do not make the same
   way, which neither test compares: `sendmail`,
   whose Makefile takes its messages out with a script of its own;
