@@ -78,7 +78,10 @@ sum of the archive and made again only when that changes.
 
 These PDP-11 flags are accepted and ignored: -i and -n (separate
 instruction and data space, and shared text, which every program here
-has), -z, -V, -X and -x.  Anything else beginning with -f, -w or -z is
+has), -z and -V.  -x and -X, which leave out of the program's symbols
+those that are not global, or those of the compiler's labels, are the
+system's linker's, as the system's cc gives them to it, with -ccom, and
+are ignored without it.  Anything else beginning with -f, -w or -z is
 passed to the compiler.  Needs `. tools/env.sh`.
 """
 import hashlib
@@ -97,7 +100,7 @@ LIBS = os.path.join(TOP, "obj", "lib")
 NLIBS = os.path.join(TOP, "obj", "nlib")        # -ccom
 HOST = os.path.join(TOP, "obj", "host", "ccom") # and its as and ld
 CRT = os.path.join(TOP, "usr", "src", "lib", "libc", "i286", "crt")
-IGNORED = {"-i", "-n", "-z", "-V", "-X", "-x", "-g"}
+IGNORED = {"-i", "-n", "-z", "-V", "-g"}
 # Names old programs use that the compiler takes for its own: cat has a
 # variable inline, which is a keyword, and getty a function interrupt,
 # which the compiler predefines as a macro for __interrupt, as it does
@@ -273,6 +276,7 @@ def main():
     preprocess_only = False
     out = None
     strip = False
+    ldflags = []        # -x and -X
     stack = 8192
     model = "s"
     packcode = None
@@ -310,6 +314,8 @@ def main():
             pass
         elif a == "-s":
             strip = True
+        elif a in ("-x", "-X"):
+            ldflags.append(a)
         elif a == "-stack":
             if i >= len(args):
                 fail("-stack needs an argument")
@@ -425,6 +431,7 @@ def main():
                    "-stack", str(stack)]
             if strip:
                 cmd.append("-s")
+            cmd += ldflags
             if packcode is not None:
                 cmd += ["-packcode", str(packcode)]
             run(cmd + [os.path.join(lib, "crt0.o")] + objs + libpaths)
