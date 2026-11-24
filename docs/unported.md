@@ -34,7 +34,6 @@ upstream's goes with them is ported. What is left:
 
 | what | why |
 |---|---|
-| Compiling the kernel on the system | the tools make the kernel where the system is built ([the kernel](toolchain.md#the-kernel)); on the 286, its `make` and `cc` are not given the kernel's Makefile and flags |
 | Profiling: `cc -p`, `mcrt0.o`, `prof` | the second pass does not do it for the 286, and the start-up code for it is not written |
 | `ld -r`, and so objects joined into one | not written |
 
@@ -205,11 +204,11 @@ out.
 
 ## Libraries
 
-Built: `libc`, `libm`, `libutil`, `libtermcap`, `libcurses`, `libdbm`,
-`libwrap`, `libln` and `liby`; `liberrlst`'s messages are made into
-`/etc/syserrlst` at build time, by `tools/mkerrlst.py` in the place of
-`mkerrlst`. Not built, besides those above: `libmp` (numbers of any
-size) and `libvmf` (virtual memory in a file).
+Built: `libc`, `libom`, which `usr.lib`'s Makefile links to `libm` as
+upstream's does, `libutil`, `libtermcap`, `libcurses`, `libdbm`,
+`libwrap`, `libln`, `liby` and `liberrlst`, whose messages `mkerrlst`
+makes into `/etc/syserrlst`. Not built, besides those above: `libmp`
+(numbers of any size) and `libvmf` (virtual memory in a file).
 
 ## Not to be ported
 
@@ -226,5 +225,5 @@ These are the PDP-11's, or are for what the PDP-11 needed:
 | `ctimed` | does `ctime` for programs that had no room for it |
 | `mkovmake`, `libstubs`, `strcompact`, `symcompact`, `symdump`, `symorder` | overlays, and the PDP-11's kernel's symbols |
 | `m11`, `l11` | the Macro-11 assembler, written in Macro-11, and its linker |
-| `libom` | older mathematics, which `libm` replaces |
+| `libkern` | the PDP-11 kernel's part of the C library; the 286's kernel compiles its own (`sys/conf/Make.i286`) |
 | `games/pdp` | PDP-11 assembly |
