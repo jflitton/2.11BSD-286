@@ -107,8 +107,8 @@ builds the system, so what one's system writes the other's is to read:
   chosen by `__WATCOMC__`, which `tools/ncc` does not define.
 
 `tools/layouts.py` has both compile every structure and union of
-`usr/include` and of the kernel's headers, in each model, 225 of them,
-and of the programs' own sources, in each one's model, 516, and
+`usr/include` and of the kernel's headers, in each model, 338 of them,
+and of the programs' own sources, in each one's model, 569, and
 compares their sizes, their members' offsets and their bit fields'
 bits. What differed and is in a file or passes between the kernel and
 a program is the same to both now:

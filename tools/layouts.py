@@ -249,9 +249,15 @@ def records(ifile, keep):
         walk(n, True)
 
     def mine(n):
+        """Whether keep() takes the file n is in: one of the tree's,
+        which tools/ncc names as the system does, /usr/include/... for
+        TOP/usr/include/..., or one named from where ifile is."""
         f = n.get("_file") or ""
         if not f:
             return False
+        if f.startswith("/"):
+            p = TOP + f
+            return keep(os.path.realpath(p if os.path.exists(p) else f))
         for d in (TOP, os.path.dirname(os.path.abspath(ifile))):
             if os.path.exists(os.path.join(d, f)):
                 return keep(os.path.realpath(os.path.join(d, f)))
@@ -409,6 +415,18 @@ def headers(outdir, only):
     report(outdir, results, notes)
 
 
+def made_of(src_root, f):
+    """F, of usr/src, or when the Makefile has removed it, the file it
+    made it of with mkstr, which defines what it does: x$*.c of ex's
+    and tcsh's, xx$*.c of battlestar's.  What xstr writes, x.c and xs.c,
+    is of a file that is compiled by its own name first (cc -E)."""
+    d, b = os.path.split(f)
+    if os.path.exists(os.path.join(src_root, f)) or b in ("x.c", "xs.c"):
+        return f
+    o = os.path.join(d, b.lstrip("x"))
+    return o if os.path.exists(os.path.join(src_root, o)) else f
+
+
 def report(outdir, results, notes):
     json.dump(results, open(os.path.join(outdir, "results.json"), "w"),
               indent=0)
@@ -429,14 +447,15 @@ def programs(outdir, only):
     has a line for each C file the build compiled: the directory of
     usr/src, the file, the model and the flags (tools/build/cc.py); the
     file is the one in OUT/root/usr/src, which has what the build made
-    there."""
+    there, or, for one the Makefile made and removed, what it was made
+    of (made_of)."""
     os.makedirs(outdir, exist_ok=True)
     out = os.path.join(TOP, "obj", "nbuild")
     src_root = os.path.join(out, "root", "usr", "src")
     compiled = {}
     for line in open(os.path.join(out, "sources")):
         w = shlex.split(line)
-        compiled[w[0], w[1]] = w[2:]
+        compiled[w[0], made_of(src_root, w[1])] = w[2:]
     system = [os.path.realpath(d) for d in
               (INC, os.path.join(SYS, "h"), os.path.join(SYS, "i286"),
                os.path.join(SYS, "net"), os.path.join(SYS, "netinet"),
@@ -444,10 +463,13 @@ def programs(outdir, only):
 
     def theirs(f):
         return not any(f.startswith(d + "/") for d in system)
-    jobs, seen = [], set()
+    jobs, seen, gone = [], set(), []
     for k, ((d, f), w) in enumerate(sorted(compiled.items())):
         if only and not any(d == o or d.startswith(o + "/") for o in only):
             continue
+        if f not in seen and not os.path.exists(os.path.join(src_root, f)):
+            seen.add(f)
+            gone.append("%s %s: removed by its Makefile" % (d, f))
         if f not in seen:
             seen.add(f)
             jobs.append((d, w[0], w[1:], os.path.join(src_root, f),
@@ -465,7 +487,7 @@ def programs(outdir, only):
         prog, model, fl, src, base, recs = job
         items, what = items_of(recs)
         return what, both(base, '#include "%s"\n' % src, items, model, fl)
-    results, notes, done, todo = [], [], set(), []
+    results, notes, done, todo = [], gone, set(), []
     with concurrent.futures.ThreadPoolExecutor(8) as pool:
         for job, recs in zip(jobs, pool.map(read, jobs)):
             if recs is None:
