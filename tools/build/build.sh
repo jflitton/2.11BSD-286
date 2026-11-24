@@ -134,18 +134,20 @@ else
 fi
 
 # 2.  What every program is made with: if it has changed, all is made
-# anew.
+# anew.  The cross compiler's own tools are what a cross build's
+# programs are made with, not a native build's.
 sum() {
-    python3 -I - "$top" <<'END'
+    python3 -I - "$top" "$TOOLS" <<'END'
 import hashlib, os, sys
-top = sys.argv[1]
+top, tools = sys.argv[1:3]
 h = hashlib.sha256()
 names = [os.path.join(top, "obj/host/ccom", n)
          for n in sorted(os.listdir(os.path.join(top, "obj/host/ccom")))]
 names += [os.path.join(top, n) for n in ("tools/cc", "tools/ncc",
-          "tools/cc286", "tools/cc286.h", "tools/commonize.py",
-          "tools/build/cc.py", "tools/build/as.py", "tools/build/sh.py",
-          "tools/build/rules.mk")]
+          "tools/build/cc.py", "tools/build/sh.py", "tools/build/rules.mk")]
+if tools == "cross":
+    names += [os.path.join(top, n) for n in ("tools/cc286",
+              "tools/cc286.h", "tools/commonize.py", "tools/build/as.py")]
 for dp, dn, fn in os.walk(os.path.join(top, "usr/include"), followlinks=True):
     dn.sort()
     names += [os.path.join(dp, n) for n in sorted(fn)]
@@ -167,8 +169,8 @@ done
 # What was compiled is kept with what it was compiled to, but for the
 # directories cleaned.
 touch "$out/sources"
-awk 'NR == FNR { r[$1]; next } !($1 in r)' "$out/remade" "$out/sources" \
-    > "$out/sources.new"
+awk 'FILENAME == ARGV[1] { r[$1]; next } !($1 in r)' \
+    "$out/remade" "$out/sources" > "$out/sources.new"
 mv "$out/sources.new" "$out/sources"
 awk -v d="$out/dest" '{ print $1; print d $1 }' "$top/usr/src/etc/dirs" \
     > "$out/dirs"
