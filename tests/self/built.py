@@ -12,6 +12,7 @@ each C file compiled, the directory it was compiled in and the file,
 named from usr/src, and how (cc.py).
 """
 import os
+import stat
 
 
 def build(top):
@@ -25,13 +26,25 @@ def build(top):
 
 
 def installed(out):
-    """Each name a Makefile installed in the root, and the directory of
-    usr/src whose Makefile it was."""
-    made = {}
+    """Each name of the root, OUT/dest, of a file a Makefile installed,
+    and the directory of usr/src whose Makefile it was.  The name is the
+    one the file has when the build is done, which may be another than
+    it was installed by: a Makefile may move it (bin's strip, me's
+    tmac.e) or link it, which keeps its inode, and the inode is in
+    OUT/meta."""
+    whose = {}
     for line in open(os.path.join(out, "meta")):
         w = line.split()
         if len(w) == 6 and w[5] != "-":
-            made[os.path.normpath(w[0])] = w[5]
+            whose[int(w[4])] = w[5]
+    made = {}
+    dest = os.path.join(out, "dest")
+    for d, _, files in os.walk(dest):
+        for f in files:
+            p = os.path.join(d, f)
+            st = os.lstat(p)
+            if stat.S_ISREG(st.st_mode) and st.st_ino in whose:
+                made["/" + os.path.relpath(p, dest)] = whose[st.st_ino]
     return made
 
 

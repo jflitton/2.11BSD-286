@@ -101,6 +101,7 @@ do
 done
 find /bin /sbin /lib /etc /usr/bin /usr/ucb /usr/sbin /usr/libexec \\
     /usr/games /usr/local /usr/new /usr/share /usr/lib /usr/man /var/db \\
+    /usr/dict /usr/libdata /usr/skel /var/log \\
     -newer /usr/src/made -type f -print > /newer.list
 sync
 date
