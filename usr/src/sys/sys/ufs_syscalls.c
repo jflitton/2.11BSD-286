@@ -135,7 +135,7 @@ copen(mode, arg, fname)
 	flags = FFLAGS(mode);	/* convert from open to kernel flags */
 	fp->f_flag = flags & FMASK;
 	fp->f_type = DTYPE_INODE;
-	cmode = (arg & 077777) & ~ISVTX;
+	cmode = (arg & 07777) & ~ISVTX;	/* a plain file: not IFMT's bits */
 	indx = u.u_r.r_val1;
 	u.u_dupfd = -indx - 1;
 	NDINIT(ndp, LOOKUP, FOLLOW, UIO_USERSPACE, fname);

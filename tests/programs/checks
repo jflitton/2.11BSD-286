@@ -2469,3 +2469,11 @@ new
 betA
 same
      ve - screen editor in the manner of vim
+== open
+cat > m.c <<'END'
+#include <fcntl.h>
+main() { close(open("f", O_WRONLY|O_CREAT, 020644)); }
+END
+cc -o m m.c && ./m && ls -l f | awk '{print $1}'
+--
+-rw-r--r--
