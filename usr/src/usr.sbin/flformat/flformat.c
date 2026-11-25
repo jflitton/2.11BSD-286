@@ -9,7 +9,7 @@ char copyright[] =
 "@(#) Copyright (c) 1980 Regents of the University of California.\n\
  All rights reserved.\n";
 
-static char sccsid[] = "@(#)flformat.c	1.0 (2.11BSD) 2026/11/22";
+static char sccsid[] = "@(#)flformat.c	1.1 (2.11BSD) 2026/11/25";
 #endif
 
 #include <stdio.h>
@@ -21,19 +21,32 @@ static char sccsid[] = "@(#)flformat.c	1.0 (2.11BSD) 2026/11/22";
 char *devname;
 
 /*
- * Format a PC's diskettes.
+ * Format a PC's diskettes: as the drive's largest, or with -f, as the
+ * size of diskette given in kilobytes.
  */
 
 main(argc, argv)
 	int argc;
 	char *argv[];
 {
-	int fd, filarg = 1;
+	extern char *optarg;
+	extern int optind;
+	int fd, kb = 0;
 	int i, c;
 
-	if (argc != 2)
+	while ((c = getopt(argc, argv, "f:")) != EOF)
+		switch (c) {
+		case 'f':
+			kb = atoi(optarg);
+			if (kb != 720 && kb != 1200 && kb != 1440)
+				usage();
+			break;
+		default:
+			usage();
+		}
+	if (argc - optind != 1)
 		usage();
-	devname = argv[1];
+	devname = argv[optind];
 	if ((fd = open(devname, O_RDWR)) < 0) {
 		perror(devname);
 		exit(1);
@@ -47,7 +60,7 @@ main(argc, argv)
 			exit(0);
 	} else
 		printf("Formatting %s\n", devname);
-	if (ioctl(fd, FLIOC_FORMAT) == 0)
+	if (ioctl(fd, FLIOC_FORMAT, &kb) == 0)
 		exit(0);
 	else {
 		perror(devname);
@@ -57,6 +70,6 @@ main(argc, argv)
 
 usage()
 {
-	fprintf(stderr, "usage: flformat /dev/rfl??\n");
+	fprintf(stderr, "usage: flformat [-f 720|1200|1440] /dev/rfl?\n");
 	exit(1);
 }

@@ -1,6 +1,6 @@
 #!/bin/sh -
 #
-#	@(#)MAKEDEV	1.0 (2.11BSD) 2026/11/22
+#	@(#)MAKEDEV	1.1 (2.11BSD) 2026/11/25
 #
 # Device "make" file for the 286: upstream's, with this machine's
 # devices in place of the PDP-11's.  Valid arguments:
@@ -94,17 +94,15 @@ wd*|sd*)
 	;;
 
 fl*)
-	# As with the RX driver, 'a' is double density and 'b' is high.
+	# One for each drive: the driver finds what the diskette is.
 	umask 2
 	unit=`expr $i : '..\(.*\)'`
 	case $unit in
 	0|1)
-		mknod fl${unit}a b 3 `expr $unit '*' 8 + 0`
-		mknod fl${unit}b b 3 `expr $unit '*' 8 + 1`
-		mknod rfl${unit}a c 11 `expr $unit '*' 8 + 0`
-		mknod rfl${unit}b c 11 `expr $unit '*' 8 + 1`
-		chgrp operator fl${unit}[ab] rfl${unit}[ab]
-		chmod 640 fl${unit}[ab] rfl${unit}[ab]
+		mknod fl${unit} b 3 ${unit}
+		mknod rfl${unit} c 11 ${unit}
+		chgrp operator fl${unit} rfl${unit}
+		chmod 640 fl${unit} rfl${unit}
 		;;
 	*)
 		echo bad unit for diskette in: $i

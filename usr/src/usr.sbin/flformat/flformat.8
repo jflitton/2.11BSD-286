@@ -2,14 +2,18 @@
 .\" All rights reserved.  The Berkeley software License Agreement
 .\" specifies the terms and conditions for redistribution.
 .\"
-.\"	@(#)flformat.8	1.0 (2.11BSD) 2026/11/22
+.\"	@(#)flformat.8	1.1 (2.11BSD) 2026/11/25
 .\"
-.TH FLFORMAT 8 "November 22, 2026"
+.TH FLFORMAT 8 "November 25, 2026"
 .UC 2
 .SH NAME
 flformat \- format diskettes (2.11BSD)
 .SH SYNOPSIS
 .B flformat
+[
+.B \-f
+.I size
+]
 special
 .SH DESCRIPTION
 The
@@ -18,13 +22,18 @@ program formats a diskette in the specified drive
 associated with the special device
 .IR special .
 .I Special
-is normally /dev/rfl0?, for drive 0, or /dev/rfl1?,
-for drive 1,
-where ``?'' is either "a" or "b" to indicate double or high density
-access.  The ``raw'' device must be used.
-A double density diskette has 9 sectors on a track (720 kilobytes),
-and a high density one 18 in a 3.5-inch drive (1.44 megabytes) or
-15 in a 5.25-inch drive (1.2 megabytes).
+is normally /dev/rfl0, for drive 0, or /dev/rfl1,
+for drive 1.  The ``raw'' device must be used.
+.PP
+The diskette is formatted as the largest the drive takes:
+1.44 megabytes (18 sectors on a track) in a 3.5-inch drive and
+1.2 megabytes (15) in a 5.25-inch one.
+With
+.B \-f
+it is formatted as the
+.I size
+given in kilobytes: 720, a double density diskette in a 3.5-inch
+drive (9 sectors on a track), 1440 or 1200.
 .PP
 Before formatting a diskette
 .I flformat
@@ -35,12 +44,13 @@ formatting a diskette will destroy any existing data).
 Formatting is done by the driver, a track at a time.
 .SH DIAGNOSTICS
 `No such device' means that the drive is not ready,
-usually because no diskette is in the drive, or that the
-drive has not the density asked for.
+usually because no diskette is in the drive.
+`Invalid argument' means that the drive does not take
+diskettes of the size asked for.
 `Read-only file system' means that the diskette is protected.
 Other error messages are selfexplanatory.
 .SH FILES
-/dev/rfl??
+/dev/rfl?
 .SH SEE ALSO
 fl(4), rxformat(8)
 .SH BUGS

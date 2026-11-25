@@ -5,8 +5,9 @@
 # second drive, a 3.5 inch one, and have it, with its own programs,
 #
 #	format it (flformat);
-#	make a file system (newfs -T), copy /boot and /unix to it, and
-#	    check it (fsck);
+#	make a file system (newfs, which the driver's label tells what
+#	    the diskette is), copy /boot and /unix to it, and check it
+#	    (fsck);
 #	give it the boot block (dd).
 #
 # The diskette must have nothing wrong with its file system
@@ -17,8 +18,9 @@
 # there make the same of a diskette of 1.2 MB in a 5.25 inch drive.
 # Started from that one, it formats a double density diskette of 720K
 # in a 3.5 inch drive, writes the kernel and the boot programs to it
-# with tar and reads them back the same, then makes a file system on it
-# and puts a file there.
+# with tar and reads them back the same, the driver having found the
+# diskette is not one of 1.44 MB, then makes a file system on it and
+# puts a file there.
 #
 # TOOLS, TOOLS_KERNEL, TOOLS_PROGRAMS and TOOLS_BOOT are as in
 # tests/system (tests/harness/system.sh).
@@ -42,10 +44,10 @@ rm -rf fs
 mkdir fs
 
 # What the system is to do with a diskette it is to start from, in the
-# second drive: make.sh, which is told what disktab calls it, and when
-# it was itself started from one, compares that one's kernel with its
-# own.  more.sh is for the diskette of 720K.  flformat asks before it
-# formats when it is run from a terminal.
+# second drive: make.sh, which is told the kilobytes newfs is to find
+# it has, and when the system was itself started from one, compares
+# that one's kernel with its own.  more.sh is for the diskette of 720K.
+# flformat asks before it formats when it is run from a terminal.
 cat > fs/make.sh <<'EOF'
 PATH=/bin:/sbin:/usr/sbin:/usr/ucb:/usr/bin
 export PATH
@@ -56,33 +58,37 @@ then
 	cmp /unix /tmp/f/unix || exit 1
 	umount /tmp/f || exit 1
 fi
-flformat /dev/rfl1b < /dev/null || exit 1
-newfs -T $1 /dev/rfl1b || exit 1
-mount /dev/fl1b /tmp/f || exit 1
+flformat /dev/rfl1 < /dev/null || exit 1
+newfs /dev/rfl1 > /tmp/newfs || exit 1
+cat /tmp/newfs
+grep " -s $1 /dev/rfl1" /tmp/newfs > /dev/null || exit 1
+mount /dev/fl1 /tmp/f || exit 1
 cp /boot /unix /tmp/f || exit 1
 umount /tmp/f || exit 1
-dd if=/mdec/fluboot of=/dev/rfl1b count=1 || exit 1
-fsck -y /dev/rfl1b
+dd if=/mdec/fluboot of=/dev/rfl1 count=1 || exit 1
+fsck -y /dev/rfl1
 EOF
 cat > fs/more.sh <<'EOF'
 PATH=/bin:/sbin:/usr/sbin:/usr/ucb:/usr/bin
 export PATH
 mkdir /tmp/f /tmp/x
-mount /dev/fl0b /tmp/f || exit 1
+mount /dev/fl0 /tmp/f || exit 1
 cmp /unix /tmp/f/unix || exit 1
 umount /tmp/f || exit 1
-flformat /dev/rfl1a < /dev/null || exit 1
-(cd / && tar cf /dev/rfl1a unix boot mdec) || exit 1
-(cd /tmp/x && tar xpf /dev/rfl1a) || exit 1
+flformat -f 720 /dev/rfl1 < /dev/null || exit 1
+(cd / && tar cf /dev/rfl1 unix boot mdec) || exit 1
+(cd /tmp/x && tar xpf /dev/rfl1) || exit 1
 for f in unix boot mdec/wduboot mdec/fluboot
 do
 	cmp /$f /tmp/x/$f || exit 1
 done
-newfs -T fl720 /dev/rfl1a || exit 1
-mount /dev/fl1a /tmp/f || exit 1
+newfs /dev/rfl1 > /tmp/newfs || exit 1
+cat /tmp/newfs
+grep " -s 720 /dev/rfl1" /tmp/newfs > /dev/null || exit 1
+mount /dev/fl1 /tmp/f || exit 1
 cp /etc/services /tmp/f || exit 1
 umount /tmp/f || exit 1
-fsck -y /dev/rfl1a
+fsck -y /dev/rfl1
 EOF
 {
     echo "f /make.sh 644 fs/make.sh"
@@ -107,7 +113,7 @@ blank double.img 737280
 TIMEOUT=${TIMEOUT:-3600} python3 -I "$top/tests/harness/runtest.py" \
     --hd disk.img,$geometry,xtide --fdb high.img --until halting \
     --type "login: " "root" \
-    --type "# " 'mount /dev/wd0e /mnt; sh /mnt/make.sh fl1440 > /tmp/out 2>&1; echo "floppy: ma""de $?"' \
+    --type "# " 'mount /dev/wd0e /mnt; sh /mnt/make.sh 1440 > /tmp/out 2>&1; echo "floppy: ma""de $?"' \
     --type "floppy: made" 'sed "s/^#/:/" /tmp/out; umount /mnt; echo "@ex""it 00"; shutdown -h now going down' \
     --boot $name
 
@@ -154,7 +160,7 @@ TIMEOUT=${TIMEOUT:-3600} python3 -I "$top/tests/harness/runtest.py" \
     --hd "$out/disk.img",$geometry,xtide --fda "$out/high.img" \
     --fdb "$out/five.img" --until halting \
     --type "login: " "root" \
-    --type "# " 'mount /dev/wd0e /mnt; sh /mnt/make.sh fl1200 fl0b > /tmp/out 2>&1; echo "floppy: fi""ve $?"' \
+    --type "# " 'mount /dev/wd0e /mnt; sh /mnt/make.sh 1200 fl0 > /tmp/out 2>&1; echo "floppy: fi""ve $?"' \
     --type "floppy: five" 'sed "s/^#/:/" /tmp/out; umount /mnt; echo "@ex""it 00"; shutdown -h now going down' \
     --boot $name-2
 if ! grep -q "^floppy: five 0" "$top/obj/tests/$name-2/serial.txt"; then

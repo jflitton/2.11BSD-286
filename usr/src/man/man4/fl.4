@@ -1,8 +1,8 @@
 .\" Public Domain.  After rx.4, for the diskettes of a PC.
 .\"
-.\"	@(#)fl.4	1.0 (2.11BSD) 2026/11/22
+.\"	@(#)fl.4	1.1 (2.11BSD) 2026/11/25
 .\"
-.TH FL 4 "November 22, 2026"
+.TH FL 4 "November 25, 2026"
 .UC 2
 .SH NAME
 fl \- PC diskettes
@@ -13,8 +13,7 @@ major device number(s):
 	raw: 11
 	block: 3
 minor device encoding:
-	bits 0070 specify drive: <fl_drive>
-	bit 01 specifies density: double: 0, high: 1
+	the drive: <fl_drive>
 .fi
 .ft R
 .SH DESCRIPTION
@@ -28,9 +27,8 @@ recorded it in the clock chip's memory.
 Diskettes are double-sided with 80 cylinders and sectors of 512 bytes.
 .PP
 The standard device names begin with ``fl'' followed by
-the drive number and then a letter a-b for double and high density
-access to the drive respectively.
-The character ? stands here for a drive number in the range 0-1.
+the drive number, 0 or 1.
+The character ? stands here for a drive number.
 .PP
 The block files access the diskette via the system's normal
 buffering mechanism and may be read and written without regard to
@@ -44,42 +42,49 @@ In raw I/O counts and
 offsets must be a multiple of 512 bytes.
 .PP
 In addition to normal (`block' and `raw') i/o, the driver supports
-formatting of diskettes for either density.
+formatting of diskettes.
 .SH "DISK SUPPORT"
 The
 .I fl
 driver does not support pseudo-disks (partitions) and a diskette has
-no label.  Each file
-.I fl?[ab]
+no label of its own.  Each file
+.I fl?
 refers to the entire diskette as a single sequentially addressed
 file.
 .PP
-The size and density of the diskettes are specified as follows:
+A drive takes these diskettes:
 .PP
 .nf
-.ta .5i +\w'fl0b  'u +\w'3.5-inch high density  'u +\w'sectors/track  'u +\w'sectors  'u
-	disk	in a drive that is	sectors/track	sectors	disktab
-	fl?a	3.5-inch, either density	9	1440	fl720
-	fl?b	3.5-inch high density	18	2880	fl1440
-	fl?b	5.25-inch high density	15	2400	fl1200
+.ta .5i +\w'3.5-inch high density  'u +\w'sectors/track  'u +\w'sectors  'u
+	in a drive that is	sectors/track	sectors	disktab
+	3.5-inch, either density	9	1440	fl720
+	3.5-inch high density	18	2880	fl1440
+	5.25-inch high density	15	2400	fl1200
 .DT
 .fi
 .PP
-A 5.25-inch drive has no
-.I fl?a
-and a 3.5-inch double density drive no
-.IR fl?b .
 Diskettes of 360 kilobytes are not supported.
+What the diskette in a drive is, the driver finds when the drive is
+first read or written after it was last closed, by reading the header
+of a sector at the rate of each kind the drive takes in turn, the
+largest first.
+.I Ioctl
+DIOCGDINFO is answered with a label for the kind found, of one
+partition, the whole diskette, so that
+.IR newfs (8)
+needs no disk type.
 .PP
 The commands
 .nf
 .RS
-% flformat /dev/rfl0b
-% newfs \-T fl1440 /dev/rfl0b
+% flformat /dev/rfl0
+% newfs /dev/rfl0
 .RE
 .fi
-format and make a file system on the high density diskette in a
-3.5-inch drive 0.
+format and make a file system on the diskette in drive 0, of 1.44
+megabytes in a 3.5-inch drive;
+.B "flformat \-f 720"
+formats a double density one.
 .IR Tar (1)
 and
 .IR dump (8)
@@ -91,7 +96,7 @@ and a kernel in its root directory, and the boot block in its first
 sector, starts the system:
 .nf
 .RS
-% dd if=/mdec/fluboot of=/dev/rfl0b count=1
+% dd if=/mdec/fluboot of=/dev/rfl0 count=1
 .RE
 .fi
 The kernel so loaded takes its root file system from a hard disk, a
@@ -104,16 +109,19 @@ call is available to format a diskette:
 .nf
 .ft B
 #include <i286at/flreg.h>
-ioctl(fildes, FLIOC_FORMAT)
+int kb;
+ioctl(fildes, FLIOC_FORMAT, &kb)
 .ft R
 .fi
 .RE
-The density is determined by the device opened.
+The diskette is formatted as the kind the drive takes of
+.I kb
+kilobytes, or with 0, as the largest.
 .SH FILES
-.ta \w'/dev/rfl[01][ab]  'u
-/dev/fl[01][ab]	block files
+.ta \w'/dev/rfl[01]  'u
+/dev/fl[01]	block files
 .br
-/dev/rfl[01][ab]	raw files
+/dev/rfl[01]	raw files
 .br
 /mdec/fluboot	boot block
 .DT
@@ -123,15 +131,20 @@ disktab(5),
 flformat(8),
 newfs(8)
 .SH DIAGNOSTICS
-\fBfl%d%c: hard error sn%d (sector %d) st0=%b st1=%b\fR.  An unrecoverable
+\fBfl%d: hard error sn%d (sector %d) st0=%b st1=%b\fR.  An unrecoverable
 error occurred during transfer of the specified sector of the specified
 diskette.  The contents of the controller's first two status registers
 are also printed symbolically with bits decoded.
 The transfer was tried five times.
+.PP
+\fBfl%d: format unknown st0=%b st1=%b\fR.  No sector's header could be
+read at the rate of any kind of diskette the drive takes: the diskette
+is not formatted, or is of another kind.
 .PP
 \fBfl%d: not ready\fR.  The controller did not answer within three
 seconds, usually because no diskette is in the drive.
 .SH BUGS
 Formatting does not read back what it wrote.
 .PP
-A diskette changed while its file system is mounted is not noticed.
+A diskette changed while its file system is mounted, or while the drive
+is otherwise open, is not noticed.

@@ -1,16 +1,17 @@
 /*
  * Diskettes on the PC/AT's diskette controller: an NEC 765 at 0x3F0,
  * with interrupt request 6 and DMA channel 2, and its two drives.  As
- * rx(4) has the RX02's, a diskette has no label and no partitions, and
- * the letter of the device says the density:
+ * rx(4) has the RX02's, a diskette has no partitions; the minor device
+ * number is the drive.  What a drive is, the machine's setup program
+ * wrote in the clock chip's memory: a 3.5 inch drive takes diskettes of
+ * 1.44 MB and 720K, and a 5.25 inch one those of 1.2 MB.
  *
- *	fl0a	drive 0, double density: 720K, in a 3.5 inch drive
- *	fl0b	drive 0, high density: 1.44 MB in a 3.5 inch drive and
- *		1.2 MB in a 5.25 inch one
- *
- * A minor device number is the drive in bits 3 and up and the density
- * in the low three.  What a drive is, the machine's setup program wrote
- * in the clock chip's memory.
+ * What the diskette in a drive is, the driver finds when the drive is
+ * first used after it was last closed: it reads the header of a sector
+ * at the rate of each kind the drive takes, the one of most sectors
+ * first, until one is read.  A diskette that is formatted is said to be
+ * of one kind or the other, and a request for a label (DIOCGDINFO) is
+ * answered with one for the kind found.
  */
 #include "fl.h"
 #if NFL > 0
@@ -20,7 +21,9 @@
 #include "buf.h"
 #include "conf.h"
 #include "file.h"
+#include "stat.h"
 #include "ioctl.h"
+#include "disklabel.h"
 #include "disk.h"
 #include "kernel.h"
 #include "flreg.h"
@@ -48,6 +51,7 @@
 #define	FLC_SEEK	0x0F
 #define	FLC_WRITE	0x45
 #define	FLC_READ	0x46
+#define	FLC_READID	0x4A	/* the header of whatever sector comes */
 #define	FLC_FORMAT	0x4D	/* a track */
 
 #define	ST0_BAD		0xC0	/* the command did not end well */
@@ -89,13 +93,28 @@ struct fltype {
 	char	ft_gap;		/* between sectors: read and written, */
 	char	ft_fgap;	/*   and as a track is formatted */
 	char	*ft_name;
+	char	*ft_type;	/* what disktab calls it */
 } fltypes[] = {
-	{ 1440, 9, 2, 0x2A, 0x50, "720K" },
-	{ 2400, 15, 0, 0x1B, 0x54, "1.2 MB" },
-	{ 2880, 18, 0, 0x1B, 0x6C, "1.44 MB" },
+	{ 1440, 9, 2, 0x2A, 0x50, "720K", "fl720" },
+	{ 2400, 15, 0, 0x1B, 0x54, "1.2 MB", "fl1200" },
+	{ 2880, 18, 0, 0x1B, 0x6C, "1.44 MB", "fl1440" },
 };
 
-static char fldrive[NFL];	/* what each drive is: RTCD_... */
+/*
+ * The kinds of diskette each kind of drive takes, as fltypes[] has them,
+ * the one of most sectors first: RTCD_1200, RTCD_720 and RTCD_1440.
+ */
+static int flkinds[3][2] = { { 1, -1 }, { 0, -1 }, { 2, 0 } };
+
+#define	flunit(dev)	minor(dev)
+
+static char fldrive[NFL];	/* what each drive is: RTCD_..., */
+static struct fltype *flfound[NFL];	/* what its diskette was found
+					   to be, or NULL, */
+static char flopens[NFL];	/* and how it is open: */
+#define	FLO_BLK		1	/*   as a block device, */
+#define	FLO_CHR		2	/*   a character one */
+static struct fltype *flftype;	/* what flfbuf formats a diskette as */
 static int flcyl[NFL];		/* where its head is; -1 if not known */
 static int flmotor = -1;	/* the drive whose motor is on */
 static int flidle;		/* seconds since there was anything to do */
@@ -121,6 +140,8 @@ static struct {
 	u_int	x_left;		/* sectors still to move, */
 	u_int	x_now;		/*   and of them, by this command */
 	long	x_addr;		/* where the data is, a physical address */
+	struct fltype *x_kind;	/* what a sector's header is read as; NULL
+				   if it is not a header that is read */
 } flx;
 #define	FL_IDLE		0	/* x_state: nothing is under way */
 #define	FL_WAIT		1	/* a motor is starting, or a head settling */
@@ -215,26 +236,31 @@ fldma(mode, addr, count)
 }
 
 /*
- * What the device is on the drive it names, or NULL if the drive is not
- * there or has no such density.
+ * The i'th kind of diskette the drive takes, or NULL if it takes no
+ * more, or is not there.
  */
 static struct fltype *
-flwhat(dev)
-	dev_t dev;
+fltry(unit, i)
+	int unit, i;
 {
-	register int unit = dkunit(dev), high = dkpart(dev);
+	register int d = fldrive[unit] - RTCD_1200;
 
-	if (unit >= NFL || high > 1)
+	if (d < 0 || i > 1 || flkinds[d][i] < 0)
 		return (NULL);
-	switch (fldrive[unit]) {
-	case RTCD_1200:
-		return (high ? &fltypes[1] : NULL);
-	case RTCD_720:
-		return (high ? NULL : &fltypes[0]);
-	case RTCD_1440:
-		return (&fltypes[high ? 2 : 0]);
-	}
-	return (NULL);
+	return (&fltypes[flkinds[d][i]]);
+}
+
+/*
+ * What the diskette in the drive is, or until that is found, the most
+ * it may be; NULL if there is no such drive.
+ */
+static struct fltype *
+flkind(unit)
+	register int unit;
+{
+	if (unit >= NFL)
+		return (NULL);
+	return (flfound[unit] ? flfound[unit] : fltry(unit, 0));
 }
 
 flopen(dev, flag, mode)
@@ -242,7 +268,7 @@ flopen(dev, flag, mode)
 	int flag, mode;
 {
 	static char looked;
-	register int unit, t;
+	register int unit = flunit(dev), i, t;
 
 	if (!looked) {
 		looked = 1;
@@ -252,14 +278,14 @@ flopen(dev, flag, mode)
 		t = inb(RTC_DATA);
 		fldrive[0] = t >> 4 & 15;
 		fldrive[1] = t & 15;
-		for (unit = 0; unit < NFL; unit++) {
-			if (fldrive[unit] > RTCD_1440)	/* 2.88 MB */
-				fldrive[unit] = RTCD_1440;
-			flcyl[unit] = -1;
-			if (fldrive[unit] >= RTCD_1200)
-				printf("fl%d: %s\n", unit,
-				    fltypes[fldrive[unit] == RTCD_720 ? 0 :
-				    fldrive[unit] == RTCD_1200 ? 1 : 2].ft_name);
+		for (i = 0; i < NFL; i++) {
+			if (fldrive[i] > RTCD_1440)	/* 2.88 MB */
+				fldrive[i] = RTCD_1440;
+			flcyl[i] = -1;
+			if (fldrive[i] >= RTCD_1200)
+				printf("fl%d: %s\n", i,
+				    fltypes[fldrive[i] == RTCD_720 ? 0 :
+				    fldrive[i] == RTCD_1200 ? 1 : 2].ft_name);
 		}
 		flbpa = kdbase + (u_int)flbuf;
 		flbp = flbuf;
@@ -270,8 +296,28 @@ flopen(dev, flag, mode)
 		flx.x_reset = 1;
 		setirq(FL_IRQ, IPL_BIO, flintr, 0);
 	}
-	if (flwhat(dev) == NULL)
+	if (flkind(unit) == NULL)
 		return (ENXIO);
+	flopens[unit] |= mode == S_IFBLK ? FLO_BLK : FLO_CHR;
+	return (0);
+}
+
+/*
+ * The last of the drive's opens as one or the other is closed.  Open as
+ * neither, the next diskette in it may be of another kind.  A transfer
+ * still to be done finds again what this one is.
+ */
+flclose(dev, flag, mode)
+	dev_t dev;
+	int flag, mode;
+{
+	register int unit = flunit(dev), s;
+
+	s = splbio();
+	flopens[unit] &= ~(mode == S_IFBLK ? FLO_BLK : FLO_CHR);
+	if (flopens[unit] == 0)
+		flfound[unit] = NULL;
+	splx(s);
 	return (0);
 }
 
@@ -279,7 +325,7 @@ daddr_t
 flsize(dev)
 	dev_t dev;
 {
-	register struct fltype *tp = flwhat(dev);
+	register struct fltype *tp = flkind(flunit(dev));
 
 	return (tp ? (daddr_t)tp->ft_size : -1);
 }
@@ -301,43 +347,67 @@ fldone(bp)
 /*
  * Do the next thing the transfer at the head of the queue wants, which
  * an interrupt or a clock will say is done: reset the controller, start
- * the motor, find cylinder 0, move the head, or move sectors, as many
- * as are left on the track and before a multiple of 64K in memory.
- * When it has been tried FLTRIES times with nothing moved, report it
- * and go on to the next.  Called at splbio.
+ * the motor, find cylinder 0, move the head, read a sector's header to
+ * find what the diskette is, or move sectors, as many as are left on
+ * the track and before a multiple of 64K in memory.  When it has been
+ * tried FLTRIES times with nothing moved, report it and go on to the
+ * next.  Called at splbio.
  */
 static
 flgo()
 {
 	register struct buf *bp;
 	register struct fltype *tp;
-	int unit, head, s, n, i;
+	int unit, head, s, n, i, finding;
 	long room;
 	u_char c[9];
 
 	while ((bp = fltab.b_actf) != NULL) {
-		unit = dkunit(bp->b_dev);
-		tp = flwhat(bp->b_dev);
+		unit = flunit(bp->b_dev);
 		if (fltab.b_active == 0) {
 			fltab.b_active = 1;
 			flx.x_sect = bp->b_blkno;
 			flx.x_addr = bfpaddr(bp);
-			flx.x_left = bp->b_bcount >> 9;
-			if (flx.x_left > tp->ft_size - flx.x_sect)
-				flx.x_left = tp->ft_size - flx.x_sect;
-			if (bp == &flfbuf)
-				flx.x_left = 1;
+			flx.x_left = bp == &flfbuf ? 1 : bp->b_bcount >> 9;
 			flx.x_tries = 0;
 			flx.x_late = 0;
+		}
+		/*
+		 * Until what the diskette is is found, each kind the drive
+		 * takes is tried in turn.  Found, it may be less than the
+		 * transfer was let have.
+		 */
+		finding = 0;
+		if (bp == &flfbuf)
+			tp = flftype;
+		else if ((tp = flfound[unit]) == NULL) {
+			finding = 1;
+			if ((tp = fltry(unit, flx.x_tries & 1)) == NULL)
+				tp = fltry(unit, 0);
+		} else if (flx.x_sect + flx.x_left > tp->ft_size) {
+			if (flx.x_sect >= tp->ft_size) {
+				if (flx.x_sect > tp->ft_size) {
+					bp->b_error = EINVAL;
+					bp->b_flags |= B_ERROR;
+				}
+				fldone(bp);		/* at the end */
+				continue;
+			}
+			flx.x_left = tp->ft_size - flx.x_sect;
 		}
 		if (flx.x_tries >= FLTRIES) {
 			if (flx.x_late) {
 				printf("fl%d: not ready\n", unit);
 				bp->b_error = ENXIO;
+			} else if (finding) {
+				printf("fl%d: format unknown st0=%b st1=%b\n",
+				    unit, flst[0], ST0_BITS, flst[1], ST1_BITS);
+				bp->b_error = EIO;
 			} else {
-				harderr(bp, "fl");
-				printf("(sector %d) st0=%b st1=%b\n", flx.x_sect,
-				    flst[0], ST0_BITS, flst[1], ST1_BITS);
+				printf("fl%d: hard error sn%D (sector %d) "
+				    "st0=%b st1=%b\n", unit, bp->b_blkno,
+				    flx.x_sect, flst[0], ST0_BITS,
+				    flst[1], ST1_BITS);
 				bp->b_error = flst[1] & ST1_PROTECTED ?
 				    EROFS : EIO;
 			}
@@ -371,7 +441,7 @@ flgo()
 		}
 		outb(FL_RATE, tp->ft_rate);
 		n = tp->ft_sects * FL_HEADS;
-		flx.x_cyl = flx.x_sect / n;
+		flx.x_cyl = finding ? flcyl[unit] : flx.x_sect / n;
 		if (flcyl[unit] < 0) {
 			flx.x_cyl = 0;
 			c[0] = FLC_RECAL;
@@ -395,7 +465,14 @@ flgo()
 		s = flx.x_sect % n;
 		head = s / tp->ft_sects;
 		s %= tp->ft_sects;
-		if (bp == &flfbuf) {
+		flx.x_kind = NULL;
+		if (finding) {
+			/* Whatever the cylinder, on the first side. */
+			flx.x_kind = tp;
+			c[0] = FLC_READID;
+			c[1] = unit;
+			n = 2;
+		} else if (bp == &flfbuf) {
 			/* What each sector of the track is to call itself. */
 			for (i = 0; i < tp->ft_sects; i++) {
 				flbp[i * 4] = flx.x_cyl;
@@ -452,7 +529,7 @@ flgo()
 flstrategy(bp)
 	register struct buf *bp;
 {
-	register struct fltype *tp = flwhat(bp->b_dev);
+	register struct fltype *tp = flkind(flunit(bp->b_dev));
 	register int s;
 
 	if (tp == NULL) {
@@ -483,7 +560,64 @@ done:
 }
 
 /*
- * Format the diskette: each track in turn, through the queue.
+ * A label for what the diskette is, which it has not of its own: one
+ * partition, all of it, as pcdisk.c makes for a disk with none.  What
+ * the diskette is is found first, if it is not known, by reading it.
+ */
+static
+fllabel(dev, lp)
+	dev_t dev;
+	register struct disklabel *lp;
+{
+	register struct fltype *tp;
+	register struct buf *bp;
+	struct partition *pi = &lp->d_partitions[0];
+	int unit = flunit(dev), i, error;
+
+	if (flfound[unit] == NULL) {
+		bp = geteblk();
+		bp->b_dev = dev;
+		bp->b_blkno = 0;
+		bp->b_bcount = 512;
+		bp->b_flags = B_READ;
+		flstrategy(bp);
+		iowait(bp);
+		error = geterror(bp);
+		brelse(bp);
+		if (error)
+			return (error);
+	}
+	if ((tp = flfound[unit]) == NULL)
+		return (EIO);
+	bzero(lp, sizeof (*lp));
+	lp->d_magic = DISKMAGIC;
+	lp->d_type = DTYPE_FLOPPY;
+	for (i = 0; tp->ft_type[i]; i++)
+		lp->d_typename[i] = tp->ft_type[i];
+	lp->d_secsize = 512;
+	lp->d_nsectors = tp->ft_sects;
+	lp->d_ntracks = FL_HEADS;
+	lp->d_ncylinders = FL_CYLS;
+	lp->d_secpercyl = tp->ft_sects * FL_HEADS;
+	lp->d_secperunit = tp->ft_size;
+	lp->d_rpm = 300;
+	lp->d_interleave = 1;
+	lp->d_magic2 = DISKMAGIC;
+	lp->d_bbsize = 512;
+	lp->d_sbsize = 1024;
+	lp->d_npartitions = 1;
+	pi->p_size = tp->ft_size;
+	pi->p_fstype = FS_V71K;
+	pi->p_frag = 1;
+	pi->p_fsize = 1024;
+	lp->d_checksum = dkcksum(lp);
+	return (0);
+}
+
+/*
+ * Format the diskette as the kind the drive takes that has the
+ * kilobytes asked for, or if none are, the one of most sectors: each
+ * track in turn, through the queue.  It is then that kind.
  */
 flioctl(dev, cmd, data, flag)
 	dev_t dev;
@@ -492,19 +626,27 @@ flioctl(dev, cmd, data, flag)
 	int flag;
 {
 	register struct buf *bp = &flfbuf;
-	register struct fltype *tp = flwhat(dev);
-	int track, s, error = 0;
+	register struct fltype *tp;
+	int unit = flunit(dev), track, s, i, error = 0;
 
-	if (cmd != FLIOC_FORMAT || tp == NULL)
+	if (cmd == DIOCGDINFO)
+		return (fllabel(dev, (struct disklabel *)data));
+	if (cmd != FLIOC_FORMAT)
 		return (ENXIO);
 	if ((flag & FWRITE) == 0)
 		return (EBADF);
+	for (i = 0; (tp = fltry(unit, i)) != NULL; i++)
+		if (*(int *)data == 0 || *(int *)data * 2 == tp->ft_size)
+			break;
+	if (tp == NULL)
+		return (EINVAL);
 	s = splbio();
 	while (bp->b_flags & B_BUSY) {
 		bp->b_flags |= B_WANTED;
 		sleep((caddr_t)bp, PRIBIO);
 	}
 	bp->b_flags = B_BUSY;
+	flftype = tp;
 	splx(s);
 	for (track = 0; track < FL_CYLS * FL_HEADS && error == 0; track++) {
 		bp->b_flags &= ~(B_DONE | B_ERROR);
@@ -521,6 +663,9 @@ flioctl(dev, cmd, data, flag)
 		iowait(bp);
 		error = geterror(bp);
 	}
+	s = splbio();
+	flfound[unit] = error ? NULL : tp;
+	splx(s);
 	if (bp->b_flags & B_WANTED)
 		wakeup((caddr_t)bp);
 	bp->b_flags = 0;
@@ -541,7 +686,7 @@ flintr(arg, tf)
 	u_char c[3];
 
 	if (bp)
-		unit = dkunit(bp->b_dev);
+		unit = flunit(bp->b_dev);
 	switch (flx.x_state) {
 	case FL_RESET:
 		/* It has one to say of each drive it might have had. */
@@ -589,6 +734,11 @@ flintr(arg, tf)
 				flx.x_tries = FLTRIES;
 			else if ((++flx.x_tries & 1) == 0)
 				flcyl[unit] = -1;	/* is it where it says? */
+			break;
+		}
+		if (flx.x_kind) {
+			flfound[unit] = flx.x_kind;	/* what it is */
+			flx.x_tries = 0;
 			break;
 		}
 		if (bp == &flfbuf)

@@ -15,7 +15,8 @@ from the disk itself ([booting](boot.md)).
 | 3 | 11 | diskettes on the AT diskette controller | `sys/i286at/fl.c` |
 
 A hard disk's minor number is the drive in bits 3 and up and the
-partition, `a` to `h`, in the low three: `wd0a` is 0, `wd1c` is 10.
+partition, `a` to `h`, in the low three: `wd0a` is 0, `wd1c` is 10. A
+diskette drive's is the drive: `fl1` is 1.
 Through the character device a disk moves whole sectors only: a count
 that is not a multiple of 512 is refused (`EINVAL`). Upstream's programs
 that read a file system directly read its superblock as the size of its
@@ -227,24 +228,35 @@ adapter and `sd.c` the disks on it.
 The controller of the PC/AT is an NEC 765 at 0x3F0, with interrupt
 request 6 and DMA channel 2, and two drives. The driver is upstream's
 for the RX02 in what it gives ([rx(4)](../usr/src/man/man4/rx.4),
-[fl(4)](../usr/src/man/man4/fl.4)): a diskette has no label and no
-partitions, and the letter of the device is the density.
+[fl(4)](../usr/src/man/man4/fl.4)): a diskette has no label of its own
+and no partitions. There is one device for each drive, `fl0` and
+`fl1`, and the driver finds what the diskette in it is, where upstream's
+RX02 had a device for each density.
 
-| | in a drive that is | sectors on a track | sectors | `disktab` |
-|---|---|---|---|---|
-| `fl0a` | 3.5 inch | 9 | 1440 (720K) | `fl720` |
-| `fl0b` | 3.5 inch, high density | 18 | 2880 (1.44 MB) | `fl1440` |
-| `fl0b` | 5.25 inch, high density | 15 | 2400 (1.2 MB) | `fl1200` |
+| in a drive that is | sectors on a track | sectors | `disktab` |
+|---|---|---|---|
+| 3.5 inch, either density | 9 | 1440 (720K) | `fl720` |
+| 3.5 inch, high density | 18 | 2880 (1.44 MB) | `fl1440` |
+| 5.25 inch, high density | 15 | 2400 (1.2 MB) | `fl1200` |
 
 - What a drive is comes from the clock chip's memory, where the
   machine's setup program wrote it, when a diskette device is first
-  opened. A 5.25 inch drive has no `fl0a`: diskettes of 360K are not
-  supported.
-- `flformat /dev/rfl0b` formats one, as `rxformat` does an RX02, with
-  the same request of the driver (`FLIOC_FORMAT`, `i286at/flreg.h`). It
-  does not read back what it wrote.
-- With no label, `newfs` is told what the diskette is: `newfs -T fl1440
-  /dev/rfl0b`. `tar` and `dump` write to the raw device.
+  opened. Diskettes of 360K are not supported.
+- What the diskette is, the driver finds when the drive is first read or
+  written after it was last closed: it reads the header of whatever
+  sector comes under the head (the 765's READ ID), at the rate of each
+  kind the drive takes in turn, the largest first. A diskette of 720K
+  read at the rate of 1.44 MB has no header that can be read, and the
+  next rate is tried. One that is not formatted has none at either:
+  `fl0: format unknown`, and the transfer fails.
+- `flformat /dev/rfl0` formats one as the largest the drive takes, and
+  `flformat -f 720 /dev/rfl0` as one of 720K, as `rxformat` does an
+  RX02, with the same request of the driver (`FLIOC_FORMAT`,
+  `i286at/flreg.h`), which is given the size. It does not read back
+  what it wrote.
+- Asked for a label (`DIOCGDINFO`), the driver gives one for what it
+  found, of one partition, the whole diskette, so `newfs /dev/rfl0`
+  needs no disk type. `tar` and `dump` write to the raw device.
 - DMA does not count past a multiple of 64K in memory. A transfer is
   cut there, and a sector with one inside it goes by way of 512 bytes
   of the kernel's own that have none.
@@ -253,7 +265,8 @@ partitions, and the letter of the device is the density.
   seconds will not, as when there is no diskette: the controller is
   reset and the transfer fails (`fl0: not ready`). The motor is stopped
   three seconds after the last transfer.
-- A diskette changed while its file system is mounted is not noticed.
+- A diskette changed while its file system is mounted, or while the
+  drive is otherwise open, is not noticed.
 
 A diskette with a file system, `/boot` and a kernel in it, and the
 boot block `/mdec/fluboot` in its first sector, starts the system

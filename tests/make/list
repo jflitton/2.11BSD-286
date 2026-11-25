@@ -75,10 +75,8 @@
 /dev/acctlog c 600 0.0 3 2
 /dev/console c 622 0.0 0 0
 /dev/errlog c 600 0.0 3 1
-/dev/fl0a b 640 0.5 3 0
-/dev/fl0b b 640 0.5 3 1
-/dev/fl1a b 640 0.5 3 8
-/dev/fl1b b 640 0.5 3 9
+/dev/fl0 b 640 0.5 3 0
+/dev/fl1 b 640 0.5 3 1
 /dev/klog c 600 0.0 3 0
 /dev/kmem c 640 0.2 1 1
 /dev/mem c 640 0.2 1 0
@@ -93,10 +91,8 @@
 /dev/ptyp7 c 666 0.0 5 7
 /dev/rd0 b 600 0.0 0 0
 /dev/rd1 b 600 0.0 0 1
-/dev/rfl0a c 640 0.5 11 0
-/dev/rfl0b c 640 0.5 11 1
-/dev/rfl1a c 640 0.5 11 8
-/dev/rfl1b c 640 0.5 11 9
+/dev/rfl0 c 640 0.5 11 0
+/dev/rfl1 c 640 0.5 11 1
 /dev/rsd0a c 640 0.5 9 0
 /dev/rsd0b c 640 0.5 9 1
 /dev/rsd0c c 640 0.5 9 2

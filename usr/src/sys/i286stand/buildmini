@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-#	@(#)buildmini	1.0 (2.11BSD) 2026/11/22
+#	@(#)buildmini	1.1 (2.11BSD) 2026/11/25
 #
 # Make the diskette that a machine with nothing on its disk is started
 # from, after 4.3BSD's /sys/dist/buildmini and get.  It has /boot, the
@@ -8,22 +8,21 @@
 # into memory with the kernel, which has what it takes to label a disk,
 # make a file system there and restore a dump of a root to it.
 #
-#	buildmini [ device [ disktype ] ]
+#	buildmini [ device ]
 #
-# device is the diskette's, fl0b if not given, and disktype is what
-# /etc/disktab calls it, fl1440 if not given.  The diskette must be a
-# formatted one (flformat).  The miniroot is made on the diskette
-# itself, and kept in /tmp while the diskette is made over.
+# device is the diskette's, fl0 if not given.  The diskette must be a
+# formatted one (flformat) of 1.2 MB or 1.44 MB; the driver says which
+# to newfs.  The miniroot is made on the diskette itself, and kept in
+# /tmp while the diskette is made over.
 #
-miniroot=${1-fl0b}
-minitype=${2-fl1440}
+miniroot=${1-fl0}
 minisize=800
 PATH=/bin:/sbin:/usr/sbin:/usr/ucb:/usr/bin:/etc
 export PATH
 
 date
 umount /dev/${miniroot} 2> /dev/null
-newfs -s `expr $minisize '*' 2` -T ${minitype} /dev/r${miniroot} || exit 1
+newfs -s `expr $minisize '*' 2` /dev/r${miniroot} || exit 1
 mount /dev/${miniroot} /mnt || exit 1
 cd /mnt || exit 1
 mkdir bin sbin etc dev mdec mnt tmp || exit 1
@@ -57,7 +56,7 @@ umount /dev/${miniroot} || exit 1
 fsck -y /dev/r${miniroot}
 dd if=/dev/r${miniroot} of=/tmp/miniroot bs=1k count=${minisize} || exit 1
 
-newfs -T ${minitype} /dev/r${miniroot} || exit 1
+newfs /dev/r${miniroot} || exit 1
 mount /dev/${miniroot} /mnt || exit 1
 cp /boot /unix /tmp/miniroot /mnt || exit 1
 umount /dev/${miniroot} || exit 1

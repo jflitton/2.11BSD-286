@@ -1,4 +1,4 @@
-#	@(#)disktab	2.1 (2.11BSD) 2025/12/15
+#	@(#)disktab	2.2 (2.11BSD) 2026/11/25
 #
 # Disk geometry and partition layout tables. 
 # Key:
@@ -495,8 +495,8 @@ rx02|RX02|DEC RX02:\
 	:b0=/mdec/rx02uboot:\
 	:pb#1001:bb#1024:fb#1024:
 
-# A PC's diskettes (fl(4)).  As with the RX driver, partition 'a' is
-# double density and 'b' is high density.
+# A PC's diskettes (fl(4)), each the whole of partition 'a'.  The driver
+# finds which one is in the drive and gives newfs a label for it.
 
 fl720|FL720|3.5in double density diskette:\
 	:ty=floppy:ns#9:nt#2:nc#80:\
@@ -505,12 +505,12 @@ fl720|FL720|3.5in double density diskette:\
 fl1200|FL1200|5.25in high density diskette:\
 	:ty=floppy:ns#15:nt#2:nc#80:\
 	:b0=/mdec/fluboot:\
-	:pb#2400:ob#0:bb#1024:fb#1024:tb=2.11BSD:
+	:pa#2400:oa#0:ba#1024:fa#1024:ta=2.11BSD:
 
 fl1440|FL1440|3.5in high density diskette:\
 	:ty=floppy:ns#18:nt#2:nc#80:\
 	:b0=/mdec/fluboot:\
-	:pb#2880:ob#0:bb#1024:fb#1024:tb=2.11BSD:
+	:pa#2880:oa#0:ba#1024:fa#1024:ta=2.11BSD:
 
 #
 # RAM disk

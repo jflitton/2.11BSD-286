@@ -47,8 +47,8 @@ mkdir fs
 cat > fs/make.sh <<'EOF'
 PATH=/bin:/sbin:/usr/sbin:/usr/ucb:/usr/bin
 export PATH
-flformat /dev/rfl1b < /dev/null || exit 1
-sh /tmp/w/buildmini fl1b fl1440 || exit 1
+flformat /dev/rfl1 < /dev/null || exit 1
+sh /tmp/w/buildmini fl1 || exit 1
 sync
 disklabel -W wd1 || exit 1
 dump 0f /dev/rwd1a /dev/rwd0a || exit 1

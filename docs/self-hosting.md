@@ -291,17 +291,18 @@ root stays on the hard disk
 inch drive, with a diskette of 1.44 MB:
 
 ```
-flformat /dev/rfl0b
-newfs -T fl1440 /dev/rfl0b
-mount /dev/fl0b /mnt
+flformat /dev/rfl0
+newfs /dev/rfl0
+mount /dev/fl0 /mnt
 cp /boot /unix /mnt
 umount /mnt
-dd if=/mdec/fluboot of=/dev/rfl0b count=1
+dd if=/mdec/fluboot of=/dev/rfl0 count=1
 ```
 
-In a 5.25 inch drive it is `fl1200`, a diskette of 1.2 MB. A diskette
-of 720K is `fl0a` and `fl720`, and is for files: `newfs` and `mount`,
-or `tar cf /dev/rfl0a`.
+In a 5.25 inch drive the same makes a diskette of 1.2 MB: the driver
+finds what the diskette is, and tells `newfs`. A diskette of 720K,
+formatted with `flformat -f 720 /dev/rfl0`, is for files: `newfs` and
+`mount`, or `tar cf /dev/rfl0`.
 
 ## A machine with nothing on its disk
 
@@ -316,9 +317,9 @@ miniroot. The diskette is made after 4.3BSD's `buildmini`, on a
 formatted diskette, and the root goes with it as a dump:
 
 ```
-flformat /dev/rfl0b
-sh /usr/src/sys/i286stand/buildmini fl0b fl1440
-dump 0Bf 1440 /dev/rfl0b /dev/rwd0a
+flformat /dev/rfl0
+sh /usr/src/sys/i286stand/buildmini fl0
+dump 0Bf 1440 /dev/rfl0 /dev/rwd0a
 ```
 
 `dump` asks for the next diskette as each is full, 1440 blocks to
@@ -333,7 +334,7 @@ disklabel -W wd0
 disklabel -R -r wd0 label
 disklabel -N wd0
 newfs -i 8192 wd0a
-restor rf /dev/rfl0b /dev/rwd0a
+restor rf /dev/rfl0 /dev/rwd0a
 fsck /dev/rwd0a
 disklabel -B wd0
 reboot

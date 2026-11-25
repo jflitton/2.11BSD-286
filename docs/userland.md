@@ -2749,4 +2749,4 @@ Not done, or not tested:
   the serial port's interrupt-driven output, and the terminal stops.
 - Most of it has run in the emulator only. The system has also booted
   on a real machine and been logged in to over the network, and made
-  diskettes there (`flformat`, `newfs -T`, `fsck`).
+  diskettes there (`flformat`, `newfs`, `fsck`).

@@ -55,10 +55,11 @@ daddr_t	sdsize();
 
 #include "fl.h"
 #if NFL > 0
-int	flopen(), flstrategy(), flioctl();
+int	flopen(), flclose(), flstrategy(), flioctl();
 daddr_t	flsize();
 #else
 #define	flopen		nodev
+#define	flclose		nodev
 #define	flstrategy	nodev
 #define	flioctl		nodev
 #define	flsize		NULL
@@ -81,7 +82,7 @@ struct bdevsw	bdevsw[] = {
 	sdopen,		sdclose,	sdstrategy,	nulldev,	sdsize,
 	D_RUNS,
 /* fl = 3 */
-	flopen,		nulldev,	flstrategy,	nulldev,	flsize,
+	flopen,		flclose,	flstrategy,	nulldev,	flsize,
 	0,
 };
 int	nblkdev = sizeof(bdevsw) / sizeof(bdevsw[0]);
@@ -179,7 +180,7 @@ struct cdevsw	cdevsw[] = {
 	comioctl,	nulldev,	com_tty,	ttselect,
 	nulldev,
 /* rfl = 11 */
-	flopen,		nulldev,	rawrw,		rawrw,
+	flopen,		flclose,	rawrw,		rawrw,
 	flioctl,	nulldev,	0,		seltrue,
 	flstrategy,
 };
