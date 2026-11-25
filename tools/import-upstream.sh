@@ -6,11 +6,12 @@
 # Needs reference/upstream/PL500/PL500.tap.bz2 (tools/fetch-reference.py
 # PL500).  Splits the tape under reference/upstream/PL500/tape and commits
 # to BRANCH, which must not exist yet, without touching the working tree:
-# first the source trees, and then, on top of them, what of /usr has no
-# source in the tree.  The two have the same trees as the first two
-# commits of `upstream`; compare with
-#     git diff --stat upstream-check~1 <first upstream commit>
-#     git diff --stat upstream-check <second upstream commit>
+# first the source trees, then, on top of them, what of /usr has no
+# source in the tree, and then troff's fonts.  The three have the same
+# trees as the first three commits of `upstream`; compare with
+#     git diff --stat upstream-check~2 <first upstream commit>
+#     git diff --stat upstream-check~1 <second upstream commit>
+#     git diff --stat upstream-check <third upstream commit>
 # See docs/upstream.md.
 set -e
 top=$(cd "$(dirname "$0")/.." && pwd)
@@ -48,19 +49,28 @@ import
 # /dev/null; not refer's indexes, Ind.*, which its indxbib, or runinv,
 # makes of the references beside them; of /usr/adm, only cron's scripts,
 # not the logs.
+usr() {
+    import --parent "refs/heads/$branch^0" \
+        --exclude usr/dict/hlista --exclude usr/dict/hlistb \
+        --exclude usr/dict/hstop --exclude usr/dict/spellhist \
+        --exclude usr/dict/papers/Ind.ia --exclude usr/dict/papers/Ind.ib \
+        --exclude usr/dict/papers/Ind.ic --exclude usr/doc/run/Ind.ia \
+        --exclude usr/doc/run/Ind.ib --exclude usr/doc/run/Ind.ic \
+        --exclude usr/ingres/bin --exclude usr/ingres/lib \
+        usr/dict="$tape/file6:dict" \
+        usr/doc="$tape/file6:doc" \
+        usr/ingres="$tape/file6:ingres" \
+        usr/pub="$tape/file6:pub" \
+        usr/adm/daily="$tape/file6:adm/daily" \
+        usr/adm/weekly="$tape/file6:adm/weekly" \
+        usr/adm/monthly="$tape/file6:adm/monthly" "$@"
+}
 echo "Import from 2.11BSD's /usr what has no source in usr/src" > "$msg"
-import --parent "refs/heads/$branch^0" \
-    --exclude usr/dict/hlista --exclude usr/dict/hlistb \
-    --exclude usr/dict/hstop --exclude usr/dict/spellhist \
-    --exclude usr/dict/papers/Ind.ia --exclude usr/dict/papers/Ind.ib \
-    --exclude usr/dict/papers/Ind.ic --exclude usr/doc/run/Ind.ia \
-    --exclude usr/doc/run/Ind.ib --exclude usr/doc/run/Ind.ic \
-    --exclude usr/ingres/bin --exclude usr/ingres/lib \
-    usr/dict="$tape/file6:dict" \
-    usr/doc="$tape/file6:doc" \
-    usr/ingres="$tape/file6:ingres" \
-    usr/pub="$tape/file6:pub" \
-    usr/adm/daily="$tape/file6:adm/daily" \
-    usr/adm/weekly="$tape/file6:adm/weekly" \
-    usr/adm/monthly="$tape/file6:adm/monthly"
-git log --oneline -2 "$branch"
+usr
+
+# troff's fonts, /usr/share/font: the width tables of the C/A/T's
+# fonts, of which the tree has the sources of five
+# (usr.bin/roff/troff_font).
+echo "Import troff's fonts from 2.11BSD's /usr/share/font" > "$msg"
+usr usr/share/font="$tape/file6:share/font"
+git log --oneline -3 "$branch"

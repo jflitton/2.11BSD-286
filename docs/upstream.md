@@ -18,7 +18,7 @@ The tape is a SimH `.tap` image of nine tape files:
 | 0 | boot blocks | no |
 | 1–4 | standalone `disklabel`, `mkfs`, `restor`, `icheck` (PDP-11 binaries) | no |
 | 5 | the root file system, as a `dump` | no |
-| 6 | tar of `/usr`: binaries, manual pages, `/usr/doc`, `/usr/include`, Ingres | what has no source in `usr/src`: `include/`, `dict/`, `doc/`, `ingres/`, `pub/` and `adm/`'s scripts |
+| 6 | tar of `/usr`: binaries, manual pages, `/usr/doc`, `/usr/include`, Ingres | what has no source in `usr/src`: `include/`, `dict/`, `doc/`, `ingres/`, `pub/`, `adm/`'s scripts and `share/font/` |
 | 7 | tar of `/usr/src/sys` | yes, as `usr/src/sys` |
 | 8 | tar of the rest of `/usr/src` | yes, as `usr/src` |
 
@@ -39,9 +39,15 @@ The first commit of `upstream` has the source trees: files 7 and 8, and
 | `usr/pub` | `ascii`, `eqnchar` and `greek` |
 | `usr/adm` | `daily`, `weekly` and `monthly`, the scripts `cron` runs |
 
+The third has `troff`'s fonts, `usr/share/font`, from file 6: the
+width tables of the phototypesetter's fonts, each a PDP-11 `a.out`
+whose 224 bytes of data `troff` reads past its 16-byte header. The tree
+has the sources of five of them (`usr.bin/roff/troff_font`), and
+nothing makes the others.
+
 Left on the tape: the PDP-11's programs and libraries, INGRES's `bin/` and
 `lib/` among them; what is made from `usr/src` or from what is imported,
-the manual's formatted pages, the games' files, `/usr/share`, `spell`'s
+the manual's formatted pages, the games' files, the rest of `/usr/share`, `spell`'s
 hashed lists in `/usr/dict` and `refer`'s indexes (`Ind.*`);
 `/usr/dict/spellhist`, a link to `/dev/null`; the logs in `/usr/adm`; and
 everything in the root dump (`/etc`, `/dev`, `/VERSION`, the `GENERIC`
@@ -59,12 +65,13 @@ create the `profiled/` directories.
 ```sh
 tools/fetch-reference.py PL500
 tools/import-upstream.sh                  # builds the branch upstream-check
-git diff --stat upstream-check~1 "$(git rev-list --reverse upstream | sed -n 1p)"
-git diff --stat upstream-check "$(git rev-list --reverse upstream | sed -n 2p)"
+git diff --stat upstream-check~2 "$(git rev-list --reverse upstream | sed -n 1p)"
+git diff --stat upstream-check~1 "$(git rev-list --reverse upstream | sed -n 2p)"
+git diff --stat upstream-check "$(git rev-list --reverse upstream | sed -n 3p)"
 git branch -D upstream-check
 ```
 
-No output from either diff means the two import commits match the tape.
+No output from the diffs means the three import commits match the tape.
 
 ## Taking a new patch
 
