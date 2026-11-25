@@ -31,7 +31,8 @@ the system has it is seen to as it is run (sh.py), and where `make
 install` puts a file is left as it is: the commands that are given such
 a name put it in OUT/dest (commands.sh).  The directories whose
 Makefiles are not what they were, or which have a file that is not, or
-are the nearest above it with a Makefile, are listed in OUT/remade, a
+are the nearest above it with a Makefile (or that one's parent, when
+the parent's own rules run make in it), are listed in OUT/remade, a
 line each, for build.sh to clean them first: a Makefile need not say
 what a program is made of (bin's has `${STD}:' and no more, and upstream
 made clean before it made all), and usr/src's own is not one to clean
@@ -97,10 +98,16 @@ def makefile(text, rel, here):
 
 def maker(rel):
     """REL, or the nearest directory above it, that has a Makefile, but
-    for usr/src itself: None."""
+    for usr/src itself: None.  One whose Makefile its parent's runs from
+    a rule of its own is the parent's, whose rules make what it is for:
+    identd's src, whose daemon identd's `identd:' moves up and makes no
+    more once it is there, or tip's aculib."""
     while rel:
-        if any(os.path.isfile(os.path.join(src, rel, m))
-               for m in ("Makefile", "makefile")):
+        if srcmk.makefile(rel):
+            up = os.path.dirname(rel)
+            while up and os.path.basename(rel) in srcmk.entered(
+                    srcmk.text(up)):
+                rel, up = up, os.path.dirname(up)
             return rel
         rel = os.path.dirname(rel)
     return None

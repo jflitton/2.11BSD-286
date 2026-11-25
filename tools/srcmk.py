@@ -57,19 +57,39 @@ def models(d):
     return []
 
 
+def makefile(d):
+    """D's Makefile, makefile as make reads it first, or None."""
+    for m in ("makefile", "Makefile"):
+        p = os.path.join(SRC, d, m)
+        if os.path.isfile(p):
+            return p
+    return None
+
+
+def text(d):
+    """D's Makefile, its lines continued joined."""
+    return open(makefile(d), encoding="latin-1").read().replace("\\\n", " ")
+
+
+def entered(t):
+    """The names of the directories that the Makefile T, as text() has
+    it, goes into from a rule of its own to run make, as identd's does
+    in @(cd src ; make ...)."""
+    return set(re.findall(r"^\t@?\(?\s*cd ([\w.+-]+)\s*[;&].*\bmake\b",
+                          t, re.M))
+
+
 def subdirs(d):
     """The names of the directories D's Makefile has make run in: those
     it names in SUBDIR, or in DIRS as man's does, or in LIBDIR and SRCDIR
-    as usr/src's does, or goes into to run make; and the text of the
+    as usr/src's does, or those it enters; and the text of the
     Makefile."""
-    text = open(os.path.join(SRC, d, "Makefile"),
-                encoding="latin-1").read().replace("\\\n", " ")
+    t = text(d)
     names = set()
-    for m in re.finditer(r"^(?:SUBDIRS?|DIRS|LIBDIR|SRCDIR)\s*=(.*)$", text,
+    for m in re.finditer(r"^(?:SUBDIRS?|DIRS|LIBDIR|SRCDIR)\s*=(.*)$", t,
                          re.M):
         names.update(m.group(1).split())
-    names.update(re.findall(r"^\tcd ([\w.+-]+)\s*[;&].*\bmake\b", text, re.M))
-    return names, text
+    return names | entered(t), t
 
 
 def walked(d, entered=None):
@@ -86,12 +106,12 @@ def walked(d, entered=None):
         sub = d + "/" + name
         if not os.path.isdir(os.path.join(SRC, sub)):
             continue
-        if os.path.isfile(os.path.join(SRC, sub, "Makefile")):
+        if makefile(sub):
             if name in names:
                 out += walked(sub, entered)
             elif re.search(r"(?<![\w.+/-])%s/" % re.escape(name), text):
                 out.append(sub)
-        elif not os.path.isfile(os.path.join(SRC, sub, "makefile")):
+        else:
             out += [os.path.relpath(dp, SRC)
                     for dp, _, _ in os.walk(os.path.join(SRC, sub))]
     return out

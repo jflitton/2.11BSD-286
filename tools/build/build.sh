@@ -55,7 +55,8 @@
 #     first, which make build's own replaces.  make build does it all
 #     twice, to have the compiler it has just made make the library and
 #     itself, which here is this machine's build of it either way.
-#     When a library is not what it was, the programs are made again.
+#     When a library is not what it was, the programs are made again,
+#     and the compiler when the C library is not.
 #  5. The rest is made, make in each of usr/src's SRCDIR, and make
 #     installsrc installs it, after the scripts the manual's Makefiles
 #     run, which a system has before it makes anything.  A command that
@@ -164,13 +165,17 @@ fi
 step stage python3 -I "$here/stage.py" "$top" "$out"
 echo "$new" > "$out/made-with"
 for d in $(cat "$out/remade"); do
-    mk "$d" clean > "$log/clean" 2>&1 || true
-done
+    mk "$d" clean || true
+done > "$log/clean" 2>&1
 # What was compiled is kept with what it was compiled to, but for the
-# directories cleaned.
+# directories cleaned and those in them, which their clean cleans.
 touch "$out/sources"
-awk 'FILENAME == ARGV[1] { r[$1]; next } !($1 in r)' \
-    "$out/remade" "$out/sources" > "$out/sources.new"
+awk 'FILENAME == ARGV[1] { r[$1]; next }
+    { for (d = $1; ; sub("/[^/]*$", "", d)) {
+          if (d in r || "." in r) next
+          if (d !~ "/") break
+      }
+      print }' "$out/remade" "$out/sources" > "$out/sources.new"
 mv "$out/sources.new" "$out/sources"
 awk -v d="$out/dest" '{ print $1; print d $1 }' "$top/usr/src/etc/dirs" \
     > "$out/dirs"
@@ -196,8 +201,8 @@ if [ "$TOOLS" = cross ]; then
     done
     o=$xout
     for d in $(cat "$xout/remade"); do
-        mk "$d" clean > "$xout/log/clean" 2>&1 || true
-    done
+        mk "$d" clean || true
+    done > "$xout/log/clean" 2>&1
     {
         mk lib/libc "" install
         mk usr.lib "" install
@@ -223,20 +228,15 @@ for m in s m l; do
     mkdir -p "$d"
     cp "$top/obj/nlib/$m/crt0.o" "$top/obj/nlib/$m/libc.a" "$d"
 done
-{
-    mk lib/libc "" install
-    mk lib "ccom cpp c2"
-    mk lib/ccom install
-    mk lib/cpp install
-    mk lib/c2 install
-    mk usr.lib "" install
-} > "$log/lib" 2>&1
-libs=$(python3 -I - "$top" "$out/dest" <<'END'
+# libsum DIR...: a sum of the libraries and objects in DIRs of OUT/dest,
+# a library by its members, which is what a program is linked with.
+libsum() {
+    python3 -I - "$top" "$out/dest" "$@" <<'END'
 import hashlib, os, sys
 sys.path.insert(0, os.path.join(sys.argv[1], "tools"))
 import ar
 h = hashlib.sha256()
-for d in ("lib", "usr/lib"):
+for d in sys.argv[3:]:
     for dp, dn, fn in os.walk(os.path.join(sys.argv[2], d)):
         dn.sort()
         for n in sorted(fn):
@@ -249,7 +249,25 @@ for d in ("lib", "usr/lib"):
                 h.update(open(p, "rb").read())
 print(h.hexdigest())
 END
-)
+}
+mk lib/libc "" install > "$log/lib" 2>&1
+# The compiler is linked with the C library, and with nothing else that
+# is made here: when that is not what it was, so is the compiler.
+libc=$(libsum lib)
+if [ -s "$out/libc" ] && [ "$libc" != "$(cat "$out/libc")" ]; then
+    for d in lib/ccom lib/cpp lib/c2; do
+        mk "$d" clean
+    done >> "$log/clean" 2>&1 || true
+fi
+echo "$libc" > "$out/libc"
+{
+    mk lib "ccom cpp c2"
+    mk lib/ccom install
+    mk lib/cpp install
+    mk lib/c2 install
+    mk usr.lib "" install
+} >> "$log/lib" 2>&1
+libs=$(libsum lib usr/lib)
 if [ -s "$out/libraries" ] && [ "$libs" != "$(cat "$out/libraries")" ]; then
     for d in $(sed -n 's/^SRCDIR=//p' "$top/usr/src/Makefile"); do
         mk "$d" clean

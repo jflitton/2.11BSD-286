@@ -7,8 +7,8 @@ usage: sh.py HOSTBIN OUT -c COMMAND
 
 A command that the Makefile names by where the system has it,
 /usr/ucb/xstr or /lib/cpp, is the one of that name here (commands.sh):
-at the start of COMMAND, or after ; | & ( or `, the directory is taken
-off.  Any other name of the system's root that COMMAND has after a
+at the start of COMMAND, or after ; | & ( or ` outside single quotes,
+the directory is taken off.  Any other name of the system's root that COMMAND has after a
 space, < > or (, such as the place `make install` puts a file, a
 directory it goes into, one a redirection writes or a pattern of names,
 or that a shell variable is given,
@@ -49,7 +49,8 @@ MADE = re.compile(r"(^\s*|[;|&(`]\s*)\./([A-Za-z0-9_.+-]+)(?=[\s;|&)<>`]|$)",
                   re.M)
 # What each is compiled of here, in the directory of usr/src it is made
 # in, with the flags it needs where this machine's int and pointer are
-# not the 286's: the C the Makefile compiles it of, as it is when the
+# not the 286's, or its headers declare what the program does (jove's
+# getline): the C the Makefile compiles it of, as it is when the
 # program is run (awk's token.c, which the Makefile writes first).  STEM
 # is what * matched.
 HOST = {
@@ -61,6 +62,7 @@ HOST = {
     "games/hack/makedefs": "makedefs.c",
     "games/warp/sm": "sm.c",
     "lib/libc/i286/sys/mkstubs": "mkstubs.c",
+    "new/jove/setmaps": "-D_POSIX_C_SOURCE=200112L setmaps.c",
     "usr.bin/roff/nroff_term/*.tab.tmp": "-I../common_source mktab.c "
                                          "{stem}.c",
 }
@@ -128,6 +130,25 @@ def host(name):
     return p if os.path.isfile(p) else None
 
 
+def quoted(text, at):
+    """Whether AT in TEXT is between single quotes, where ; and the
+    rest are not the shell's: jove's sed -e 's;SHELL;/bin/csh;'.  A
+    command there is a shell's that is given it, which is this one."""
+    q = False
+    for c in text[:at]:
+        if c == "'":
+            q = not q
+        elif c == "\n":
+            q = False
+    return q
+
+
+def command(text):
+    """TEXT with the directory taken off each command of the system's."""
+    return CMD.sub(lambda m: m.group(0) if quoted(text, m.start())
+                   else m.group(1) + m.group(2), text)
+
+
 def here(m):
     """./NAME, or the one of this machine."""
     if theirs("./" + m.group(2)) or not os.path.exists("./" + m.group(2)):
@@ -148,7 +169,7 @@ if args and os.path.basename(args[0]) == "runinv" and \
 if args and not args[0].startswith("-") and os.path.isfile(args[0]):
     with open(args[0], errors="surrogateescape") as f:
         text = f.read()
-    text = CMD.sub(lambda m: m.group(1) + m.group(2), text)
+    text = command(text)
     text = PATH.sub("PATH=" + out + "/bin:", NAME.sub(root, text))
     args = ["-c", text, args[0]] + args[1:]
 elif len(args) >= 2 and args[0] == "-c":
@@ -161,7 +182,7 @@ elif len(args) >= 2 and args[0] == "-c":
         print("sh: %s is the 286's, and is not run here" % alone.group(1),
               file=sys.stderr)
         sys.exit(0)
-    args[1] = CMD.sub(lambda m: m.group(1) + m.group(2), args[1])
+    args[1] = command(args[1])
     args[1] = NAME.sub(root, args[1])
     args[1] = PATH.sub("PATH=" + out + "/bin:", ASSIGN.sub(
         lambda m: m.group(1) + rooted(m.group(2)), args[1]))

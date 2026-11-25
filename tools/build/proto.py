@@ -20,6 +20,10 @@ is another name for it, a link.
 Owners and groups are named as usr/src/etc's master.passwd and group
 name them, or by number.  A file goes in the root without its symbol
 table if install -s was given it, which install.py has seen to.
+
+/usr/include is the tree's, which tools/ccproto.py lists.  A header that
+a Makefile installs there too, libident's ident.h, is left out here, and
+must be the same as the tree's, or the build fails.
 """
 import os
 import re
@@ -105,6 +109,12 @@ def mode(p):
     return "%o" % m + ("" if (o, g) == ("0", "0") else ":%s.%s" % (o, g))
 
 
+def same(a, b):
+    """Whether files A and B have the same contents."""
+    with open(a, "rb") as f, open(b, "rb") as g:
+        return f.read() == g.read()
+
+
 names = {}
 lines = []
 for dp, dn, fn in os.walk(dest):
@@ -113,6 +123,13 @@ for dp, dn, fn in os.walk(dest):
         t = os.path.join(dp, n)
         p = t[len(dest):]
         st = os.lstat(t)
+        if p == "/usr/include" or p.startswith("/usr/include/"):
+            tree = top + p
+            if not os.path.isdir(t) and not (os.path.isfile(tree) and
+                                             same(t, tree)):
+                sys.exit("proto.py: %s is installed otherwise than the "
+                         "tree has it, %s" % (p, tree))
+            continue
         if os.path.islink(t):
             lines.append("l %s %s" % (p, os.readlink(t)))
         elif os.path.isdir(t):
