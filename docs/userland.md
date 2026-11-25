@@ -543,6 +543,18 @@ any machine and are put right:
 - It passed the table of processes to its own `readat` as the wrong
   type of pointer, and its comparison to `qsort` likewise.
 
+`top` draws with `libcurses`, which keeps two copies of the screen and
+gave each line of a copy room for as many pointers as it has
+characters, where it holds characters, a byte each. In a window that
+`telnet` logs in from, 200 columns by 80 lines, those were more than
+`top`'s data segment, and the first thing to find no room failed with
+a message about something else (`/var/run/dev: Cannot allocate
+memory`). At a byte a character that window fits, with little to
+spare. `top` cannot be of the large model, as `window` is
+([below](#the-large-model)): it reads the kernel's table of processes
+into its own `struct proc`, whose pointers are two bytes in the kernel
+and would be four there.
+
 `sysctl` knows the PDP-11's names under `machdep` for its tape and disk
 controllers, which are now there only where the machine's `cpu.h`
 defines them. Given several names it printed the first one once for
@@ -944,7 +956,8 @@ What the compiler needed:
   and none elsewhere, and no caller looked. Casts, of a null pointer in
   `ntpd` and of an address in `routed`.
 - `libcurses` declared `tgoto` at the end of a list of static
-  variables, and so as static.
+  variables, and so as static. (It also gave each line of a window
+  twice the room it needs: [`top`](#programs-that-read-the-kernel).)
 
 What the machine needed:
 
@@ -2533,7 +2546,9 @@ Not done, or not tested:
 
 - `window` is the only large-model program. A program moved to it
   wants looking over first (`tools/lmlint.py`), and so does each
-  library it uses but the C library, which has been.
+  library it uses but the C library, which has been. One that reads
+  the kernel's structures with pointers in them, as `top`, `ps` and
+  `w` do, cannot be moved: the kernel's pointers are two bytes.
 - `csh`, `ex`, `tcsh`, `sendmail`, `hack`, `phantasia`, `rogue` and
   `warp` are the medium-model programs so far. The others that the
   PDP-11 overlays (`named`, `uucp`, `jove`, `kermit` and the rest

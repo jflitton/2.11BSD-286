@@ -60,7 +60,7 @@ int	num_lines, num_cols, begy, begx;
 		win->_lastch[i] = _NOCHANGE;
 	}
 	for (i = 0; i < nl; i++)
-		if ((win->_y[i] = malloc(nc * sizeof win->_y[0])) == NULL) {
+		if ((win->_y[i] = malloc(nc * sizeof win->_y[0][0])) == NULL) {
 			for (j = 0; j < i; j++)
 				free(win->_y[j]);
 			free(win->_firstch);

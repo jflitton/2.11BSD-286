@@ -233,7 +233,10 @@ $services$services$services${CTRLD}" \
     --telnet "dd-done" "echo \"era\"\"x${DEL}se-ok\"; vi /tmp/bs" \
     --telnet "[New file]" "ione${CR}twoX${DEL}${CR}three${ESC}${KHOME}dd${KEND}${KDELETE}:wq" \
     --telnet "# " 'cat /tmp/bs; echo "vi""-done"' \
-    --telnet "vi-done" "${CTRLD}" \
+    --telnet "vi-done" 'top -s 1' \
+    --telnet "COMMAND" 'q' \
+    --telnet "# " 'echo "top""-done"' \
+    --telnet "top-done" "${CTRLD}" \
     --type "flushed" 'cd /usr/spool/at; mv 2* 1999.001.0000.aa; /usr/libexec/atrun; cd /; while test ! -f /tmp/gcron; do sleep 5; done; echo "wai""ted"' \
     --type "waited" 'ls -l /tmp/gat /tmp/gcron; atq; echo cronlog-`grep -c "(guest) CMD (date" /usr/adm/cron`; echo tabs-`ls /var/cron/tabs`; echo "cr""on-done"' \
     --type "cron-done" 'sleep 5; who; cat /tmp/k; echo "@ex""it 00"; sync; reboot -h' \
@@ -318,16 +321,20 @@ fi
 # newlines, and its tabs expanded if it was set to; and vi, which in a
 # window of 200 by 80 has its last line on the window's last, takes DEL
 # for erase too, and has Home from the termcap (to the top of the
-# screen), and End and Delete from root's .exrc.
+# screen), and End and Delete from root's .exrc; and top in that window,
+# whose two copies in curses take most of top's data segment.
 python3 -I - "$out/telnet.txt" "$top/obj/root/termcap" <<'EOF'
 import re, sys
 text = open(sys.argv[1], encoding="latin-1").read().replace("\r\n", "\n")
 termcap = open(sys.argv[2], encoding="latin-1").read()[:20480]
 bad = [w for w in ("erase DEL, kill ^U, intr ^C", "over-ne0 xterm\n",
                    "same-in", "dd-done", "\nerase-ok\n", "\033[80;1H",
-                   "\ntwo\nhree\nvi-done") if w not in text]
+                   "\ntwo\nhree\nvi-done", "COMMAND", "Mem  :",
+                   "\ntop-done") if w not in text]
 if "Screen too large" in text:
     bad.append("vi's window")
+if "Cannot allocate" in text or "too large" in text:
+    bad.append("top's window")
 if not re.search(r"root\s+ttyp\d.*\(10\.0\.2\.2\)", text):
     bad.append("who on a pseudo-terminal")
 lines = termcap.split("\n")
