@@ -545,6 +545,43 @@ and so on).
   `check.py` works out from what `ve` wrote as a terminal would. That
   it runs on the system is `tests/programs`'s to say.
 
+### Which test a change wants
+
+The smallest that covers it; all of them are for a release. The times
+are from single runs with an 86Box that has the automation socket.
+
+| Change | Test | Time |
+|---|---|---|
+| one program | its own disk, below | 1 minute |
+| the C library | `tests/libc`, with a check of what changed | 1 minute |
+| the C library, as each program is linked with it | `tests/programs`: the build links every program again, then its checks run | 10 minutes, 7 of them the build |
+| `login`, the shells, `telnetd`, `vi`, `top` | `tests/system` | 1¼ minutes, 7 when the build makes every program again |
+| a header, or the tools every program is made with | the build that `tests/programs` or `tests/system` starts with, which makes everything again | 7 minutes and more |
+| a Makefile, a large source, the compiler or the other tools | `tests/self/changed.sh` | |
+
+The build here makes what the system makes of the same Makefiles, to
+the byte but for the few files `tests/self/differs` names, which are
+made with the time in them. What only the system itself can show is
+what its tools cannot do in their 64K segments, and what its `sh` and
+`make` do otherwise; `tests/self/changed.sh` is for that.
+
+One program can be tried on a disk of its own: compiled with the cross
+compiler as its Makefile would have it, put in the place it has in the
+cross build's root (`make -C usr/src root TOOLS=cross` writes
+`obj/build/root.proto`), and booted. A disk made this way is clean, so
+`/etc/rc` does not check it.
+
+```sh
+. tools/env.sh
+tools/cc -O -Dunix=1 -DBSD2_11=1 -D__BSD2_11__=1 -o prog usr/src/ucb/prog.c
+sed "s|^\(f /usr/ucb/prog [^ ]*\) .*|\1 $PWD/prog|" obj/build/root.proto > root.proto
+python3 tools/mkfs.py -s 24000 root.proto root.fs
+python3 tools/mkdisk.py -p -g 977,5,17 -b obj/nstand/hdboot.bin \
+    -m obj/nstand/mbr.bin sys.img a=root.fs b=swap:4000
+tests/harness/runtest.py --hd sys.img,977,5,17,xtide \
+    --type "login: " root --type "# " 'prog; echo "@ex""it 00"' --boot prog
+```
+
 The emulator is [86Box](https://github.com/86Box/86Box), as an
 AT-compatible 286 with a 287 and one wait state
 (`tests/harness/86box.cfg`): a real 286, which faults on anything a 286
