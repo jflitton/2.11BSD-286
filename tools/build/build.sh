@@ -41,8 +41,9 @@
 #     obj/lib's C library (usr/src/lib/libc/i286 TOOLS=cross) first.
 #  2. usr/src is copied to OUT/root/usr/src, where what was made before
 #     is kept (stage.py), and each directory whose Makefile or sources
-#     have changed is cleaned.  When what every program is made with has changed, the
-#     compiler, its tools or the headers, all is made anew.
+#     have changed is cleaned.  When what every program is made with has
+#     changed, the compiler, its tools or the headers (usr/include's .h
+#     files, not the kernel's sources its links reach), all is made anew.
 #  3. The root is made anew, OUT/dest, by etc's distribution, which makes
 #     its directories, /etc and /dev (usr/src/etc/Makefile), and with what
 #     it has of 2.11BSD's distribution that /usr/src makes nothing of
@@ -145,13 +146,17 @@ h = hashlib.sha256()
 names = [os.path.join(top, "obj/host/ccom", n)
          for n in sorted(os.listdir(os.path.join(top, "obj/host/ccom")))]
 names += [os.path.join(top, n) for n in ("tools/cc", "tools/ncc",
-          "tools/build/cc.py", "tools/build/sh.py", "tools/build/rules.mk")]
+          "tools/build/cc.py", "tools/build/ld.py", "tools/build/sh.py",
+          "tools/build/rules.mk")]
 if tools == "cross":
     names += [os.path.join(top, n) for n in ("tools/cc286",
               "tools/cc286.h", "tools/commonize.py", "tools/build/as.py")]
+# The headers alone: usr/include's links into the kernel's directories
+# (i286, i286at, net, ...) find its sources there too, which no program
+# includes.
 for dp, dn, fn in os.walk(os.path.join(top, "usr/include"), followlinks=True):
     dn.sort()
-    names += [os.path.join(dp, n) for n in sorted(fn)]
+    names += [os.path.join(dp, n) for n in sorted(fn) if n.endswith(".h")]
 for n in names:
     if os.path.isfile(n):
         h.update(n.encode() + b"\0" + open(n, "rb").read())
