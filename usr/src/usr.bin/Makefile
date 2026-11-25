@@ -6,9 +6,9 @@ LDFLAGS= -i
 # Programs that live in subdirectories, and have makefiles of their own.  eqn
 # must be built before neqn.
 
-SUBDIR=	at calendar dc diction diff3 eqn fstat find id learn \
+SUBDIR=	at calendar dc diction diff3 eqn fstat find graph id learn \
 	lex \
-	m4 neqn printf ranlib refer roff spell tbl \
+	m4 neqn plot printf ranlib refer roff spell tbl \
 	mkerrlst patch \
 	renice shar tip touch uname whereis yacc xargs xinstall
 
@@ -27,7 +27,7 @@ SRCS=	basename.c cal.c cb.c checkeq.c col.c comm.c crypt.c deroff.c \
 # explicit make lines.
 #
 STD=	basename cal cb checkeq col comm crypt deroff fgrep file join look \
-	mesg ptx rev sleep sort spline split sum tabs tr \
+	mesg ptx rev sleep sort spline split sum tabs tc tk tr \
 	tsort tty uniq units
 
 # C programs that live in the current directory and need explicit make lines.

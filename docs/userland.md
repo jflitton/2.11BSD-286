@@ -2013,6 +2013,79 @@ the same printer by way of the network (`rm=localhost`, which
 adds up the pages; `rmail` and `sendbug` mail a user; and `trpt` shows
 the trace of an `rsh -d`.
 
+## troff, graph and plot
+
+`troff` is `nroff`'s twin for the C/A/T phototypesetter, made from the
+same sources (`usr.bin/roff`). It reads the width tables of its fonts
+from `/usr/share/font`, which come from the distribution tape
+([the upstream branch](upstream.md)) as the tape has them: each is a
+PDP-11 `a.out` whose 224 bytes of widths `troff` reads past the 16-byte
+header, by `8 * sizeof (int)`, which the 286's `int` keeps.
+`tools/build/tape.proto` puts them in the root. `troff -t` writes the
+phototypesetter's codes to the standard output, and `troff -a` an
+approximation in ASCII; without either it opens `/dev/cat`, which the
+286 has not, and says "Typesetter busy." `tc` shows what `troff -t` wrote on a Tektronix 4015,
+and `tk` pages `nroff`'s output on a 4014, waiting for a Return at the
+end of each page and at the end. `vgrind` sets programs in type for
+`troff`; `vgrind -f` writes what it would give `troff`. `mkfont`, which
+makes a width table from a font's widths (`troff_font`), is made and,
+as upstream's, not installed.
+
+`graph` draws a graph of pairs of numbers as `plot(5)`'s commands, and
+`plot` gives them to the filter for a terminal or plotter: `tek`,
+`t4013`, `t300`, `t300s`, `t450`, `bgplot`, `gigiplot`, `aedplot`,
+`hp7221plot`, `hpplot`, `implot`, `crtplot`, which draws with `curses`,
+and `dumbplot`, which draws with characters on any terminal; `plottoa`
+and `atoplot` turn `plot(5)` into text and back. `libplot` has
+`plot(3)`'s routines for each device, `-lplot` for `plot(5)` itself, in
+the three models, as `libmp` (`mp(3)`, integers of any size) and
+`libvmf` (`vmf(3)`, virtual memory kept in a file, as 2.11BSD's `ld`
+had it) are.
+
+`tn3270` is a `telnet` that is a 3270 terminal to an IBM host, and
+`mset` prints the keyboard's map for `MAP3270`. It is made with
+`genbsubs.c`, the C that its Makefile has beside the PDP-11's assembly.
+Its notice asks that the documentation say that copying and
+distribution are by permission of the University of California and of
+Gregory Glenn Minshall ([COPYRIGHT](../COPYRIGHT)). `ansitape` and
+`vmsbackup` are not made: they wait on a tape driver
+([what is not ported](unported.md)).
+
+What the 16-bit `int` broke ([what the PDP-11 let programs
+assume](#what-the-pdp-11-let-programs-assume)): `dumbplot` scaled by
+`LINES * y`, more than an `int` holds once `y` is past 1365, and
+`aedplot` by its screen's pixels shifted up 12 bits; both are done in
+`long`s. `libmp` adds into a `long` and takes its two halves through a
+structure, `struct half` in `mp.h`, whose high word came first, as the
+PDP-11 keeps a `long`: the 286 keeps the low word first, and `mp.h`
+says so for it.
+
+Bugs that are any machine's, which showed on the 286:
+`hpplot`'s macro that scales a point cast the difference alone to `int`,
+and passed a `double` to a function that takes an `int` and two
+pointers, which it then wrote through; `dumbplot`, `bgplot`, `gigiplot`
+and `hp7221plot` declared `closepl` as a variable (`sig_t closepl;`),
+and handed whatever was on the stack to `signal` for an interrupt;
+`libvmf` called `calloc` undeclared, which in the large model lost the
+segment of the pointer it returned. `t300`, `t300s` and `t450`, the
+filters for DASI's terminals, fall off the end of `main`, so their
+status is whatever was left, as upstream's is.
+
+For the cross compiler ([what this compiler
+needed](#what-this-compiler-needed)): `tn3270`'s `call` and
+`printoption` are made as `telnet`'s are, its own `KS` and `KE` are named
+apart from `curses.h`'s, and `count - = n` is `count -= n`; `tk`'s `ex`
+is `void`, as `tc`'s is; `plottoa` casts the pattern it passes `dot`.
+
+`tests/programs` has `libmp` work out 2 to the 100th and the rest in
+each model, `libvmf` keep 40 segments in 4 buffers in each model, and a
+program draw with `libplot` in each model, which `plottoa` and `atoplot`
+turn into text and back; it links that program with each device's
+library in each model. `graph` draws the squares, `dumbplot` shows the
+graph, and each filter draws it; `troff -a` and `troff -t` set a line,
+which `tc` shows; `vgrind` sets a program; `mset` prints a map; and at
+the terminal `tk` pages a file and waits for the Return.
+
 ## ve
 
 `ve` is a screen editor with the modes and the most used commands of

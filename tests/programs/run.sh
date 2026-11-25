@@ -9,7 +9,7 @@
 # they must write, to the byte.  Then use what needs a terminal: tty
 # and mesg, more, man, script, lock, tset and clear, the games
 # battlestar, hack, backgammon, rogue, robots and hangman, window and
-# ve, less, jove, tip and qterm; and stop the system with shutdown.
+# ve, less, jove, tip, qterm and tk; and stop the system with shutdown.
 # The file mtools left on the diskette is read from its image here, as
 # MS-DOS would read it.
 # The kernel, /boot, the C library, the programs and the root file system
@@ -101,14 +101,15 @@ python3 -I -c 'open("dos.img", "wb").write(bytes(1474560))'
 # Return ends, and the Return after the command that leaves it is the
 # shell's.  tip takes the second serial port, which nothing is on, and
 # its escape ends that.  qterm asks the terminal what it is, which this
-# one does not answer, and takes its word from TERM.
+# one does not answer, and takes its word from TERM.  tk, which pages for
+# a Tektronix 4014, waits at the end for a Return from the terminal.
 CTRLD=$(printf '\004')
 CTRLC=$(printf '\003')
 CTRLP=$(printf '\020')
 CTRLW=$(printf '\027')
 CTRLX=$(printf '\030')
 ESC=$(printf '\033')
-TIMEOUT=${TIMEOUT:-1800} python3 -I "$top/tests/harness/runtest.py" \
+TIMEOUT=${TIMEOUT:-2400} python3 -I "$top/tests/harness/runtest.py" \
     --hd programs.img,$geometry,xtide --hd2 spare.img,$spare --fdb dos.img \
     --until halting \
     --type "login: " "root" \
@@ -172,6 +173,8 @@ TIMEOUT=${TIMEOUT:-1800} python3 -I "$top/tests/harness/runtest.py" \
     --type "connected" '~.' \
     --type "EOT]" 'echo "ti""p-done"' \
     --type "# " '/usr/local/qterm; echo "qte""rm-$?"' \
+    --type "# " 'echo "tk""-go"; tk /etc/motd > /tmp/tk.out; echo "tk-$? `wc -c < /tmp/tk.out`"' \
+    --type "tk-go" '' \
     --type "# " 'echo "@ex""it 00"; shutdown -h now going down' \
     --boot programs$case
 
@@ -198,6 +201,7 @@ for want in "^/dev/tty00" "^is y" "^is n" "--More--(.*%)" \
     "/etc/services ([0-9]*%)" "525/udp" "End of help" "^jove-jove-text" \
     "^.connected" "EOT]" "^tip-done" \
     'Terminal NOT recognized - defaults to "vt100"' "^qterm-0" \
+    "^tk-0  *[1-9]" \
     "System going down IMMEDIATELY" "going down" \
     "System shutdown time has arrived" "halting"; do
     if ! grep -q -- "$want" "$serial"; then
@@ -230,4 +234,4 @@ sys.exit("programs: the diskette has not WORDS.TXT as mtools wrote it")
 EOF2
 python3 -I "$top/tools/fsck.py" -p a spare.img
 python3 -I "$top/tools/fsck.py" -p e spare.img
-echo "programs: $n checks of the programs that work on text and files, of nroff and man, of tbl, eqn, refer, spell and the rest documents go through, of zic and /usr/adm's scripts, of disklabel, the file system checkers, dump, restor and the rest of the administrator's, and fstat, of the games, and of lptest, crc, cxref, error, afio, ddd, welcome and mtools, and tty, mesg, more, man, script, lock, tset, clear, six games, window, ve, less, jove, tip, qterm and shutdown at a terminal"
+echo "programs: $n checks of the programs that work on text and files, of nroff and man, of tbl, eqn, refer, spell and the rest documents go through, of zic and /usr/adm's scripts, of disklabel, the file system checkers, dump, restor and the rest of the administrator's, and fstat, of the games, and of lptest, crc, cxref, error, afio, ddd, welcome and mtools, of libmp, libvmf and libplot in each model, graph, plot and its filters, troff, tc, vgrind, mset and tn3270, and tty, mesg, more, man, script, lock, tset, clear, six games, window, ve, less, jove, tip, qterm, tk and shutdown at a terminal"

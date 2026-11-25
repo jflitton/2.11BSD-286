@@ -28,7 +28,7 @@ int x, y, r;
     putc('Q', stdout);
     outxy20(x, y);
     putc('O', stdout);
-    chex((r*scale)>>12, buf, 2);
+    chex((int)((r*scale)>>12), buf, 2);
     fputs(buf, stdout);
     (void) fflush(stdout);
 }

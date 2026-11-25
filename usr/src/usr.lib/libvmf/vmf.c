@@ -16,6 +16,7 @@
 #include <vmf.h>
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>	/* calloc's far pointer, in the large model */
 #include <sys/file.h>
 
 /*

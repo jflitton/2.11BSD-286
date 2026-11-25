@@ -12,7 +12,7 @@ LDFLAGS= -i
 #
 SUBDIR=	Mail compress error ex finger ftp indent lock man mkstr \
 	more msgs netstat rdist rlogin sendbug talk tftp \
-	top tset window
+	tn3270 top tset vgrind window
 
 # Shell scripts that need only be installed and are never removed.
 #

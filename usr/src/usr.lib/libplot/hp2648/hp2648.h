@@ -34,8 +34,9 @@
 #define TRUE  1
 #define FALSE 0
 
-#define xsc(xi) ((int) (xi - lowx) * scalex + 0.5)
-#define ysc(yi) ((int) (yi - lowy) * scaley + 0.5)
+/* ints: the cast was of xi - lowx alone, and itoa was passed a double */
+#define xsc(xi) ((int) ((xi - lowx) * scalex + 0.5))
+#define ysc(yi) ((int) ((yi - lowy) * scaley + 0.5))
 
 extern int shakehands;
 

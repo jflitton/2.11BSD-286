@@ -25,15 +25,16 @@ static char sccsid[] = "@(#)space.c     5.3 (2.11BSD) 2026/5/11";
 space(x0, y0, x1, y1)
 int x0, y0, x1, y1;
 {
-    int xscale, yscale, xsize, ysize;
-    xscale = (GRXMAX<<12)/(x1-x0);
-    yscale = (GRYMAX<<12)/(y1-y0);
+    long xscale, yscale;	/* longs: a 16-bit int is too small */
+    int xsize, ysize;
+    xscale = ((long)GRXMAX<<12)/(x1-x0);
+    yscale = ((long)GRYMAX<<12)/(y1-y0);
     if (xscale > yscale) scale = yscale;
     else scale = xscale;
     scale = (scale*9)/10 - 1;
     if (scale<1) scale = 1;
-    xsize = (2048*GRXMAX)/scale + 1;
+    xsize = (2048L*GRXMAX)/scale + 1;
     xbot = (x1+x0)/2 - xsize;
-    ysize = (2048*GRYMAX)/scale + 1;
+    ysize = (2048L*GRYMAX)/scale + 1;
     ybot = (y1+y0)/2 - ysize;
 }

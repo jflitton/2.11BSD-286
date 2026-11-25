@@ -58,6 +58,77 @@ main()
 {
 	foo(1);
 }
+=file mp.c
+#include <stdio.h>
+#include <mp.h>
+
+main()
+{
+	MINT *two = itom(2), *p = itom(0), *s = itom(0), *r = itom(0);
+	MINT *t = itom(0), *x = itom(0), *g = itom(0), *m = itom(0);
+
+	rpow(two, 100, p); mout(p);
+	msqrt(p, s, r); mout(s); mout(r);
+	rpow(two, 64, t); msub(t, itom(1), x); mout(x);
+	gcd(x, itom(255), g); mout(g);
+	mdiv(p, x, s, r); mout(s); mout(r);
+	mult(x, x, m); mout(m);
+	omout(p);
+	exit(0);
+}
+=file vmf.c
+#include <stdio.h>
+#include <vmf.h>
+
+/* 40 segments of 1K through 4 buffers: each written, then read back. */
+main()
+{
+	struct vspace sp;
+	struct vseg *s;
+	int i, bad = 0;
+	long sum = 0;
+
+	if (vminit(4) < 0 || vmopen(&sp, (char *)NULL) < 0) {
+		printf("vmf: cannot open\n");
+		exit(1);
+	}
+	for (i = 0; i < 40; i++) {
+		s = vmmapseg(&sp, i);
+		s->s_winfo[0] = i * 7;
+		s->s_winfo[WORDSPERSEG - 1] = -i;
+		vmmodify(s);
+	}
+	for (i = 39; i >= 0; i--) {
+		s = vmmapseg(&sp, i);
+		if (s->s_winfo[0] != i * 7 || s->s_winfo[WORDSPERSEG - 1] != -i)
+			bad++;
+		sum += s->s_winfo[0];
+	}
+	vmclose(&sp);
+	printf("vmf: %d bad, sum %ld\n", bad, sum);
+	exit(0);
+}
+=file pl.c
+/* A square, a line, a circle and a label, by libplot. */
+main()
+{
+	openpl();
+	space(0, 0, 4096, 4096);
+	erase();
+	move(512, 512); cont(3584, 512); cont(3584, 3584);
+	cont(512, 3584); cont(512, 512);
+	line(512, 512, 3584, 3584);
+	circle(2048, 2048, 1024);
+	move(600, 3800); label("plot");
+	closepl();
+	exit(0);
+}
+=file sq
+0 0
+1 1
+2 4
+3 9
+4 16
 == apply
 apply 'echo %1 %1' a b
 apply -2 echo a b c d
@@ -2600,3 +2671,203 @@ same
 
 WORDS    TXT          39
        1 File(s)     1457152 bytes free
+== mp
+for m in -ms -mm -ml; do cc $m -o mp /mnt/d/mp.c -lmp && ./mp; done
+--
+1 2676506002 2822940149 6703205376
+112589 9906842624
+0
+1844674407 3709551615
+255
+6 8719476736
+6 8719476736
+340282366 9209384634 2648111928 4349108225
+2000 0000000000 0000000000 0000000000
+1 2676506002 2822940149 6703205376
+112589 9906842624
+0
+1844674407 3709551615
+255
+6 8719476736
+6 8719476736
+340282366 9209384634 2648111928 4349108225
+2000 0000000000 0000000000 0000000000
+1 2676506002 2822940149 6703205376
+112589 9906842624
+0
+1844674407 3709551615
+255
+6 8719476736
+6 8719476736
+340282366 9209384634 2648111928 4349108225
+2000 0000000000 0000000000 0000000000
+== vmf
+for m in -ms -mm -ml; do cc $m -o vmf /mnt/d/vmf.c -lvmf && ./vmf; done
+--
+vmf: 0 bad, sum 5460
+vmf: 0 bad, sum 5460
+vmf: 0 bad, sum 5460
+== libplot
+for m in -ms -mm -ml; do cc $m -o pl /mnt/d/pl.c -lplot && ./pl > pl$m; done
+cmp pl-ms pl-mm && cmp pl-ms pl-ml && echo same
+plottoa pl-ms
+plottoa pl-ms | atoplot | cmp - pl-ms && echo "round trip"
+for l in 4014 4013 300 300s 450 vt0 plotaed plotbg plotdumb plotgigi \
+    plot2648 plot7221 plotimagen
+do
+	for m in -ms -mm -ml
+	do
+		cc $m -o p /mnt/d/pl.c -l$l -ltermcap -lm || echo "lib$l$m"
+	done
+done
+echo linked
+--
+same
+s 0 0 4096 4096
+e
+m 512 512
+n 3584 512
+n 3584 3584
+n 512 3584
+n 512 512
+l 512 512 3584 3584
+c 2048 2048 1024
+m 600 3800
+tplot
+
+round trip
+linked
+== graph
+graph < /mnt/d/sq | plottoa | expand
+--
+s 0 0 4096 4096
+e
+l 200 200 4000 200
+n 4000 4000
+n 200 4000
+n 200 200
+l 1150 200 1150 4000
+l 2100 200 2100 4000
+l 3050 200 3050 4000
+l 200 1150 4000 1150
+l 200 2100 4000 2100
+l 200 3050 4000 3050
+m 200 140
+t0 -x- 4
+
+t  
+
+t0 -y- 20
+
+fsolid
+
+m 200 200
+n 1150 390
+n 2100 960
+n 3050 1910
+n 4000 3240
+fsolid
+
+m 1 1
+== plot
+graph < /mnt/d/sq > g
+TERM=dumb plot -Tdumb < g
+for t in 4014 4013 300 300s 450 bg gigi aed hp7221 hp imagen
+do
+	plot -T$t < g > f; echo "$t `sum f`"
+done
+TERM=vt100 crtplot < g > f; echo "crt `sum f`"
+--
+   *************************************************************************** 
+   *                  *                 *                 *                  * 
+   *                  *                 *                 *                  * 
+   *                  *                 *                 *                  * 
+   *                  *                 *                 *                 ** 
+   *************************************************************************** 
+   *                  *                 *                 *           ***    * 
+   *                  *                 *                 *       ****       * 
+   *                  *                 *                 *    ***           * 
+   *************************************************************************** 
+   *                  *                 *                ***                 * 
+   *                  *                 *            **** *                  * 
+   *                  *                 *        ****     *                  * 
+   *                  *                 *     ***         *                  * 
+   *************************************************************************** 
+   *                  *              *****                *                  * 
+   *                  *        ******   *                 *                  * 
+   *                  *  ******         *                 *                  * 
+   *         ************               *                 *                  * 
+   0********* -y- 20********************************************************** 
+4014 26232     1
+4013 43682     1
+300 04416     8
+300s 30960     3
+450 34686     8
+bg 31296     1
+gigi 05322     1
+aed 18721     1
+hp7221 61851     1
+hp 05085     1
+imagen 06894     1
+crt 49920     2
+== troff
+printf 'Hello, troff.\n.br\nSecond line.\n' > t
+troff -a t | cat -v
+troff -t t > c; sum c
+tc -t c > k; sum k
+ls /usr/share/font | sed -n '$='
+--
+Hello, troff.
+Second line.
+
+51405     1
+49560     1
+87
+== vgrind
+cp /mnt/d/prog.c .
+vgrind -f prog.c | sed '1,/^.lg 0$/d' | expand
+/usr/libexec/vfontedpr prog.c | sed '/^.ds =M/d' | expand
+vgrind -t prog.c > v && test -s v && echo typeset
+--
+'-F
+foo(a)
+int a;
+{
+        return a;
+}
+main()
+{
+        foo(1);
+}
+'-F
+.()
+.bp
+'-F
+.ds =F prog.c
+'wh 0 vH
+'wh -1i vF
+'FN foo
+foo(a)
+\*(+Kint\*(-K a;
+\*(+K{\*(-K
+\h'|11n'\*(+Kreturn\*(-K a;
+\*(+K}\*(-K\c\c
+'-F
+
+'FN main
+main()
+\*(+K{\*(-K
+\h'|11n'foo(1);
+\*(+K}\*(-K\c\c
+'-F
+
+typeset
+== mset
+TERM=vt100 mset
+--
+vt100{ENTER='^M';CLEAR='^Z';CLEAR='^[OM';LEFT='^[OD';RIGHT='^[OC';UP='^[OA';DOWN='^[OB';HOME='^[On';PFK1='^[Oq';PFK2='^[Or';PFK3='^[Os';PFK4='^[Ot';PFK5='^[Ou';PFK6='^[Ov';PFK7='^[Ow';PFK8='^[Ox';PFK9='^[Oy';PFK10='^[OP^[Op';PFK11='^[OP^[Oq';PFK12='^[OP^[Or';PFK13='^[OP^[Os';PFK14='^[OP^[Ot';PFK15='^[OP^[Ou';PFK16='^[OP^[Ov';PFK17='^[OP^[Ow';PFK18='^[OP^[Ox';PFK19='^[OP^[Oy';PFK20='^[OQ^[Op';PFK21='^[OQ^[Oq';LEFT='^[[D';RIGHT='^[[C';UP='^[[A';DOWN='^[[B';PFK1='^[1';PFK2='^[2';PFK3='^[3';PFK4='^[4';PFK5='^[5';PFK6='^[6';PFK7='^[7';PFK8='^[8';PFK9='^[9';PFK10='^[0';PFK11='^[-';PFK12='^[=';PA1='^[^[OP';PA2='^[^[OQ';COLTAB='^[^[OB';COLBAK='^[^[OA';INDENT='^[^[OC';UNDENT='^[^[OD';COLTAB='^[^[[B';COLBAK='^[^[[A';INDENT='^[^[[C';UNDENT='^[^[[D';SETTAB='^[;';DELTAB='^[\'';CLRTAB='^[:';SETMRG='^[,';SETHOM='^[.';NL='^?';TAB='^I';BTAB='^B';LEFT='^H';RIGHT='^L';UP='^K';DOWN='^J';DELETE='^D';EEOF='^E';EINP='^W';INSRT='^@';PFK13='^F13';PFK14='^F14';PFK15='^F15';PFK16='^F16';PFK17='^F17';PFK18='^F18';PFK19='^F19';PFK20='^F20';PFK21='^F21';PA1='^P1';PA2='^P2';RESET='^T';FLINP='^X';RESHOW='^V';ESCAPE='^C';MASTER_RESET='^G';}
+== tn3270
+echo quit | tn3270 nosuchhost; echo
+--
+nosuchhost: unknown host
+tn3270> 

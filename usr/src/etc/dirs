@@ -65,6 +65,7 @@
 /usr/pub 755 root wheel
 /usr/sbin 755 root wheel
 /usr/share 755 root wheel
+/usr/share/font 755 root wheel
 /usr/share/learn 755 root staff
 /usr/share/learn/C 755 root wheel
 /usr/share/learn/bin 755 root staff

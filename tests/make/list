@@ -287,11 +287,14 @@
 /usr/adm/wtmp f 644 0.0
 /usr/bin d 755 0.0
 /usr/bin/addbib f 755 0.0
+/usr/bin/aedplot f 755 0.0
 /usr/bin/at f 4755 1.0
+/usr/bin/atoplot f 755 0.0
 /usr/bin/atq f 4755 1.0
 /usr/bin/atrm f 4755 1.0
 /usr/bin/basename f 755 0.10
 /usr/bin/bc f 755 0.10
+/usr/bin/bgplot f 755 0.0
 /usr/bin/cal f 755 0.10
 /usr/bin/calendar f 755 0.0
 /usr/bin/cb f 755 0.10
@@ -299,12 +302,14 @@
 /usr/bin/col f 755 0.10
 /usr/bin/comm f 755 0.10
 /usr/bin/crontab f 4111 0.0
+/usr/bin/crtplot f 755 0.0
 /usr/bin/crypt f 755 0.10
 /usr/bin/cu f 4755 66.1 = /usr/bin/cu
 /usr/bin/dc f 755 0.0
 /usr/bin/deroff f 755 0.10
 /usr/bin/diction f 755 0.0
 /usr/bin/diff3 f 755 0.0
+/usr/bin/dumbplot f 755 0.0
 /usr/bin/egrep f 755 0.10
 /usr/bin/eqn f 755 0.0
 /usr/bin/ex f 1755 0.0 = /usr/bin/ex
@@ -313,8 +318,13 @@
 /usr/bin/file f 755 0.10
 /usr/bin/find f 755 0.0
 /usr/bin/fstat f 2755 0.2
+/usr/bin/gigiplot f 755 0.0
+/usr/bin/graph f 755 0.0
 /usr/bin/groups f 755 0.10
+/usr/bin/hp7221plot f 755 0.0
+/usr/bin/hpplot f 755 0.0
 /usr/bin/id f 755 0.10
+/usr/bin/implot f 755 0.0
 /usr/bin/indxbib f 755 0.0
 /usr/bin/install f 755 0.10
 /usr/bin/iostat f 2755 0.2
@@ -341,6 +351,8 @@
 /usr/bin/nsquery f 555 0.0
 /usr/bin/nstest f 555 0.0
 /usr/bin/patch f 755 0.0
+/usr/bin/plot f 755 0.0
+/usr/bin/plottoa f 755 0.0
 /usr/bin/printf f 755 0.10
 /usr/bin/ptx f 755 0.10
 /usr/bin/ranlib f 755 0.10
@@ -359,12 +371,20 @@
 /usr/bin/split f 755 0.10
 /usr/bin/style f 755 0.0
 /usr/bin/sum f 755 0.10
+/usr/bin/t300 f 755 0.0
+/usr/bin/t300s f 755 0.0
+/usr/bin/t4013 f 755 0.0
+/usr/bin/t450 f 755 0.0
 /usr/bin/tabs f 755 0.10
 /usr/bin/tbl f 755 0.0
+/usr/bin/tc f 755 0.10
+/usr/bin/tek f 755 0.0
 /usr/bin/tip f 4755 66.1 = /usr/bin/cu
+/usr/bin/tk f 755 0.10
 /usr/bin/touch f 755 0.10
 /usr/bin/tr f 755 0.10
 /usr/bin/traverse f 755 0.0
+/usr/bin/troff f 755 0.10
 /usr/bin/tsort f 755 0.10
 /usr/bin/tty f 755 0.10
 /usr/bin/uname f 755 0.10
@@ -721,42 +741,93 @@
 /usr/include/vmf.h f 444 0.0
 /usr/lib d 755 0.0
 /usr/lib/l d 755 0.0
+/usr/lib/l/lib300.a f 644 0.0
+/usr/lib/l/lib300s.a f 644 0.0
+/usr/lib/l/lib4013.a f 644 0.0
+/usr/lib/l/lib4014.a f 644 0.0
+/usr/lib/l/lib450.a f 644 0.0
 /usr/lib/l/libcurses.a f 644 0.0
 /usr/lib/l/libdbm.a f 644 0.0
 /usr/lib/l/liberrlst.a f 644 0.0
+/usr/lib/l/libf77plot.a f 644 0.0
 /usr/lib/l/libident.a f 644 0.0
 /usr/lib/l/libl.a f 644 0.0 = /usr/lib/l/libl.a
 /usr/lib/l/libln.a f 644 0.0 = /usr/lib/l/libl.a
 /usr/lib/l/libm.a f 644 0.0 = /usr/lib/l/libm.a
+/usr/lib/l/libmp.a f 644 0.0
 /usr/lib/l/libom.a f 644 0.0 = /usr/lib/l/libm.a
+/usr/lib/l/libplot.a f 644 0.0
+/usr/lib/l/libplot2648.a f 644 0.0
+/usr/lib/l/libplot7221.a f 644 0.0
+/usr/lib/l/libplotaed.a f 644 0.0
+/usr/lib/l/libplotbg.a f 644 0.0
+/usr/lib/l/libplotdumb.a f 644 0.0
+/usr/lib/l/libplotgigi.a f 644 0.0
+/usr/lib/l/libplotimagen.a f 644 0.0
 /usr/lib/l/libtermcap.a f 644 0.0 = /usr/lib/l/libtermcap.a
 /usr/lib/l/libtermlib.a f 644 0.0 = /usr/lib/l/libtermcap.a
 /usr/lib/l/libutil.a f 644 0.10
+/usr/lib/l/libvmf.a f 644 0.0
+/usr/lib/l/libvt0.a f 644 0.0
 /usr/lib/l/liby.a f 644 0.0
+/usr/lib/lib300.a f 644 0.0
+/usr/lib/lib300s.a f 644 0.0
+/usr/lib/lib4013.a f 644 0.0
+/usr/lib/lib4014.a f 644 0.0
+/usr/lib/lib450.a f 644 0.0
 /usr/lib/libcurses.a f 644 0.0
 /usr/lib/libdbm.a f 644 0.0
 /usr/lib/liberrlst.a f 644 0.0
+/usr/lib/libf77plot.a f 644 0.0
 /usr/lib/libident.a f 644 0.0
 /usr/lib/libl.a f 644 0.0 = /usr/lib/libl.a
 /usr/lib/libln.a f 644 0.0 = /usr/lib/libl.a
 /usr/lib/libm.a f 644 0.0 = /usr/lib/libm.a
+/usr/lib/libmp.a f 644 0.0
 /usr/lib/libom.a f 644 0.0 = /usr/lib/libm.a
+/usr/lib/libplot.a f 644 0.0
+/usr/lib/libplot2648.a f 644 0.0
+/usr/lib/libplot7221.a f 644 0.0
+/usr/lib/libplotaed.a f 644 0.0
+/usr/lib/libplotbg.a f 644 0.0
+/usr/lib/libplotdumb.a f 644 0.0
+/usr/lib/libplotgigi.a f 644 0.0
+/usr/lib/libplotimagen.a f 644 0.0
 /usr/lib/libtermcap.a f 644 0.0 = /usr/lib/libtermcap.a
 /usr/lib/libtermlib.a f 644 0.0 = /usr/lib/libtermcap.a
 /usr/lib/libutil.a f 644 0.10
+/usr/lib/libvmf.a f 644 0.0
+/usr/lib/libvt0.a f 644 0.0
 /usr/lib/liby.a f 644 0.0
 /usr/lib/m d 755 0.0
+/usr/lib/m/lib300.a f 644 0.0
+/usr/lib/m/lib300s.a f 644 0.0
+/usr/lib/m/lib4013.a f 644 0.0
+/usr/lib/m/lib4014.a f 644 0.0
+/usr/lib/m/lib450.a f 644 0.0
 /usr/lib/m/libcurses.a f 644 0.0
 /usr/lib/m/libdbm.a f 644 0.0
 /usr/lib/m/liberrlst.a f 644 0.0
+/usr/lib/m/libf77plot.a f 644 0.0
 /usr/lib/m/libident.a f 644 0.0
 /usr/lib/m/libl.a f 644 0.0 = /usr/lib/m/libl.a
 /usr/lib/m/libln.a f 644 0.0 = /usr/lib/m/libl.a
 /usr/lib/m/libm.a f 644 0.0 = /usr/lib/m/libm.a
+/usr/lib/m/libmp.a f 644 0.0
 /usr/lib/m/libom.a f 644 0.0 = /usr/lib/m/libm.a
+/usr/lib/m/libplot.a f 644 0.0
+/usr/lib/m/libplot2648.a f 644 0.0
+/usr/lib/m/libplot7221.a f 644 0.0
+/usr/lib/m/libplotaed.a f 644 0.0
+/usr/lib/m/libplotbg.a f 644 0.0
+/usr/lib/m/libplotdumb.a f 644 0.0
+/usr/lib/m/libplotgigi.a f 644 0.0
+/usr/lib/m/libplotimagen.a f 644 0.0
 /usr/lib/m/libtermcap.a f 644 0.0 = /usr/lib/m/libtermcap.a
 /usr/lib/m/libtermlib.a f 644 0.0 = /usr/lib/m/libtermcap.a
 /usr/lib/m/libutil.a f 644 0.10
+/usr/lib/m/libvmf.a f 644 0.0
+/usr/lib/m/libvt0.a f 644 0.0
 /usr/lib/m/liby.a f 644 0.0
 /usr/libdata d 755 0.0
 /usr/libdata/lex d 755 0.0
@@ -802,6 +873,7 @@
 /usr/libexec/telnetd f 755 0.10
 /usr/libexec/tftpd f 755 0.10
 /usr/libexec/unixtomh f 755 0.0
+/usr/libexec/vfontedpr f 755 0.0
 /usr/local d 755 0.0
 /usr/local/adduser f 755 0.0
 /usr/local/afio f 751 0.0
@@ -946,6 +1018,7 @@
 /usr/man/cat1/from.0 f 444 0.10
 /usr/man/cat1/ftp.0 f 444 0.10
 /usr/man/cat1/gcore.0 f 444 0.10
+/usr/man/cat1/graph.0 f 444 0.10
 /usr/man/cat1/grep.0 f 444 0.10 = /usr/man/cat1/egrep.0
 /usr/man/cat1/groups.0 f 444 0.10
 /usr/man/cat1/head.0 f 444 0.10
@@ -988,6 +1061,7 @@
 /usr/man/cat1/mkerrlst.0 f 444 0.10
 /usr/man/cat1/mkstr.0 f 444 0.10
 /usr/man/cat1/more.0 f 444 0.10 = /usr/man/cat1/more.0
+/usr/man/cat1/mset.0 f 444 0.10
 /usr/man/cat1/msgs.0 f 444 0.10
 /usr/man/cat1/mv.0 f 444 0.10
 /usr/man/cat1/neqn.0 f 444 0.10 = /usr/man/cat1/checkeq.0
@@ -1003,6 +1077,7 @@
 /usr/man/cat1/pagesize.0 f 444 0.10
 /usr/man/cat1/passwd.0 f 444 0.10
 /usr/man/cat1/patch.0 f 444 0.10
+/usr/man/cat1/plot.0 f 444 0.10
 /usr/man/cat1/pr.0 f 444 0.10
 /usr/man/cat1/printenv.0 f 444 0.10
 /usr/man/cat1/printf.0 f 444 0.10
@@ -1049,6 +1124,7 @@
 /usr/man/cat1/talk.0 f 444 0.10
 /usr/man/cat1/tar.0 f 444 0.10
 /usr/man/cat1/tbl.0 f 444 0.10
+/usr/man/cat1/tc.0 f 444 0.10
 /usr/man/cat1/tcsh.0 f 444 0.10
 /usr/man/cat1/tee.0 f 444 0.10
 /usr/man/cat1/telnet.0 f 444 0.10
@@ -1056,11 +1132,14 @@
 /usr/man/cat1/tftp.0 f 444 0.10
 /usr/man/cat1/time.0 f 444 0.10
 /usr/man/cat1/tip.0 f 444 0.10 = /usr/man/cat1/cu.0
+/usr/man/cat1/tk.0 f 444 0.10
+/usr/man/cat1/tn3270.0 f 444 0.10
 /usr/man/cat1/top.0 f 444 0.10
 /usr/man/cat1/touch.0 f 444 0.10
 /usr/man/cat1/tr.0 f 444 0.10
 /usr/man/cat1/tracebuf.0 f 444 0.10
 /usr/man/cat1/traverse.0 f 444 0.10
+/usr/man/cat1/troff.0 f 444 0.10
 /usr/man/cat1/true.0 f 444 0.10
 /usr/man/cat1/tset.0 f 444 0.10 = /usr/man/cat1/reset.0
 /usr/man/cat1/tsort.0 f 444 0.10
@@ -1075,6 +1154,7 @@
 /usr/man/cat1/uptime.0 f 444 0.10
 /usr/man/cat1/users.0 f 444 0.10
 /usr/man/cat1/vacation.0 f 444 0.10
+/usr/man/cat1/vgrind.0 f 444 0.10
 /usr/man/cat1/vi.0 f 444 0.10
 /usr/man/cat1/vmstat.0 f 444 0.10
 /usr/man/cat1/w.0 f 444 0.10
@@ -1629,6 +1709,7 @@
 /usr/man/cat3/verrx.0 f 444 0.10 = /usr/man/cat3/err.0
 /usr/man/cat3/vfprintf.0 f 444 0.10 = /usr/man/cat3/fprintf.0
 /usr/man/cat3/vfscanf.0 f 444 0.10 = /usr/man/cat3/fscanf.0
+/usr/man/cat3/vmf.0 f 444 0.10
 /usr/man/cat3/vprintf.0 f 444 0.10 = /usr/man/cat3/fprintf.0
 /usr/man/cat3/vscanf.0 f 444 0.10 = /usr/man/cat3/fscanf.0
 /usr/man/cat3/vsnprintf.0 f 444 0.10 = /usr/man/cat3/fprintf.0
@@ -1919,6 +2000,94 @@
 /usr/sbin/zdump f 755 0.10
 /usr/sbin/zic f 755 0.10
 /usr/share d 755 0.0
+/usr/share/font d 755 0.0
+/usr/share/font/fontlist f 444 0.0
+/usr/share/font/ftB f 444 0.0
+/usr/share/font/ftBC f 444 0.0
+/usr/share/font/ftC f 444 0.0
+/usr/share/font/ftCE f 444 0.0
+/usr/share/font/ftCI f 444 0.0
+/usr/share/font/ftCK f 444 0.0
+/usr/share/font/ftCW f 444 0.0
+/usr/share/font/ftFD f 444 0.0
+/usr/share/font/ftG f 444 0.0
+/usr/share/font/ftGI f 444 0.0
+/usr/share/font/ftGM f 444 0.0
+/usr/share/font/ftGR f 444 0.0
+/usr/share/font/ftH f 444 0.0
+/usr/share/font/ftHI f 444 0.0
+/usr/share/font/ftHM f 444 0.0
+/usr/share/font/ftI f 444 0.0
+/usr/share/font/ftL f 444 0.0
+/usr/share/font/ftLI f 444 0.0
+/usr/share/font/ftPA f 444 0.0
+/usr/share/font/ftPB f 444 0.0
+/usr/share/font/ftPI f 444 0.0
+/usr/share/font/ftR f 444 0.0
+/usr/share/font/ftS f 444 0.0
+/usr/share/font/ftSB f 444 0.0
+/usr/share/font/ftSI f 444 0.0
+/usr/share/font/ftSM f 444 0.0
+/usr/share/font/ftTB f 444 0.0
+/usr/share/font/ftTI f 444 0.0
+/usr/share/font/ftTR f 444 0.0
+/usr/share/font/ftTS f 444 0.0
+/usr/share/font/ftUD f 444 0.0
+/usr/share/font/ftap f 444 0.0
+/usr/share/font/ftbb f 444 0.0
+/usr/share/font/ftbi f 444 0.0
+/usr/share/font/ftbk f 444 0.0
+/usr/share/font/ftbr f 444 0.0
+/usr/share/font/ftcb f 444 0.0
+/usr/share/font/ftch f 444 0.0
+/usr/share/font/ftci f 444 0.0
+/usr/share/font/ftcl f 444 0.0
+/usr/share/font/ftco f 444 0.0
+/usr/share/font/ftcr f 444 0.0
+/usr/share/font/ftct f 444 0.0
+/usr/share/font/ftcy f 444 0.0
+/usr/share/font/ftdb f 444 0.0
+/usr/share/font/ftdi f 444 0.0
+/usr/share/font/ftdr f 444 0.0
+/usr/share/font/ftfx f 444 0.0
+/usr/share/font/ftgb f 444 0.0
+/usr/share/font/ftgf f 444 0.0
+/usr/share/font/ftgi f 444 0.0
+/usr/share/font/ftgk f 444 0.0
+/usr/share/font/ftgr f 444 0.0
+/usr/share/font/fthb f 444 0.0
+/usr/share/font/fthn f 444 0.0
+/usr/share/font/ftm f 444 0.0
+/usr/share/font/ftmb f 444 0.0
+/usr/share/font/ftmi f 444 0.0
+/usr/share/font/ftmn f 444 0.0
+/usr/share/font/ftmr f 444 0.0
+/usr/share/font/ftnb f 444 0.0
+/usr/share/font/ftni f 444 0.0
+/usr/share/font/ftnr f 444 0.0
+/usr/share/font/ftob f 444 0.0
+/usr/share/font/ftoe f 444 0.0
+/usr/share/font/ftoi f 444 0.0
+/usr/share/font/ftor f 444 0.0
+/usr/share/font/ftpb f 444 0.0
+/usr/share/font/ftpp f 444 0.0
+/usr/share/font/ftsb f 444 0.0
+/usr/share/font/ftsc f 444 0.0
+/usr/share/font/ftsg f 444 0.0
+/usr/share/font/ftsh f 444 0.0
+/usr/share/font/ftsi f 444 0.0
+/usr/share/font/ftsl f 444 0.0
+/usr/share/font/ftsr f 444 0.0
+/usr/share/font/fttB f 444 0.0
+/usr/share/font/fttI f 444 0.0
+/usr/share/font/fttR f 444 0.0
+/usr/share/font/fttS f 444 0.0
+/usr/share/font/fttb f 444 0.0
+/usr/share/font/ftti f 444 0.0
+/usr/share/font/fttr f 444 0.0
+/usr/share/font/ftts f 444 0.0
+/usr/share/font/ftwp f 444 0.0
+/usr/share/font/ftxx f 444 0.0
 /usr/share/learn d 755 0.10
 /usr/share/learn/C d 755 0.0
 /usr/share/learn/C/L0 f 644 0.0
@@ -2520,6 +2689,7 @@
 /usr/share/misc/sendmail.sr f 644 0.0
 /usr/share/misc/termcap f 444 0.0
 /usr/share/misc/units f 444 0.0
+/usr/share/misc/vgrindefs f 444 0.0
 /usr/share/misc/vlpmacs f 444 0.0
 /usr/share/misc/yaccpar f 755 0.0
 /usr/share/ms d 755 0.0
@@ -2610,6 +2780,7 @@
 /usr/share/tmac/tmac.skeep f 444 0.0
 /usr/share/tmac/tmac.srefs f 444 0.0
 /usr/share/tmac/tmac.vcat f 444 0.0
+/usr/share/tmac/tmac.vgrind f 444 0.0
 /usr/share/zoneinfo d 755 0.0
 /usr/share/zoneinfo/Australia d 755 0.0
 /usr/share/zoneinfo/Australia/NSW f 644 0.0 = /usr/share/zoneinfo/Australia/NSW
@@ -2748,6 +2919,7 @@
 /usr/ucb/man f 755 0.10
 /usr/ucb/mkstr f 755 0.10
 /usr/ucb/more f 755 0.10 = /usr/ucb/more
+/usr/ucb/mset f 755 0.0
 /usr/ucb/msgs f 755 0.0
 /usr/ucb/netstat f 2755 0.2
 /usr/ucb/page f 755 0.10 = /usr/ucb/more
@@ -2769,6 +2941,7 @@
 /usr/ucb/tcpdmatch f 755 0.10
 /usr/ucb/telnet f 755 0.0
 /usr/ucb/tftp f 755 0.0
+/usr/ucb/tn3270 f 755 0.0
 /usr/ucb/top f 2755 0.2
 /usr/ucb/try-from f 755 0.10
 /usr/ucb/tset f 755 0.0 = /usr/ucb/reset
@@ -2780,6 +2953,7 @@
 /usr/ucb/uptime f 2755 0.2 = /usr/ucb/uptime
 /usr/ucb/users f 755 0.0 = /usr/ucb/u
 /usr/ucb/vacation f 755 0.0
+/usr/ucb/vgrind f 755 0.0
 /usr/ucb/vi f 1755 0.0 = /usr/bin/ex
 /usr/ucb/view f 1755 0.0 = /usr/bin/ex
 /usr/ucb/vmstat f 2755 0.2

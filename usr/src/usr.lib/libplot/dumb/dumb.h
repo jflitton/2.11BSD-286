@@ -15,7 +15,8 @@
 
 #include <math.h>
 
-#define scale(x,y) y = LINES-1-(LINES*y/rangeY +minY); x = COLS*x/rangeX + minX
+/* In longs: LINES*y and COLS*x are more than a 16-bit int holds. */
+#define scale(x,y) y = LINES-1-((long)LINES*y/rangeY +minY); x = (long)COLS*x/rangeX + minX
 
 extern int minX, rangeX;	/* min and range of x */
 extern int minY, rangeY;	/* min and range of y */

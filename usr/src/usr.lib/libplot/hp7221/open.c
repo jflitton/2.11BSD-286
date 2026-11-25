@@ -27,10 +27,10 @@ double scale = 1.0;
 
 openpl()
 {
-	sig_t closepl;
+	int closepl();	/* the function: "sig_t closepl" made a variable */
 
 	/* catch interupts */
-	signal(SIGINT, closepl);
+	signal(SIGINT, (sig_t)closepl);
 	currentx = 0;
 	currenty = 0;
 	printf( "~VR~W" );

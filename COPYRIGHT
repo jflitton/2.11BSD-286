@@ -68,6 +68,10 @@ Of the programs this port builds:
     usr/src/usr.sbin/cron      may be distributed freely, and sold with
                                its source, with its author's name kept
                                and changes marked
+    usr/src/ucb/tn3270         its documentation is to say that copying
+                               and distribution are by permission of the
+                               University of California and of Gregory
+                               Glenn Minshall, as this does
     usr/src/local/zmodem       may be used freely for non-commercial and
                                educational purposes; commercial or
                                administrative use asks a licence fee for

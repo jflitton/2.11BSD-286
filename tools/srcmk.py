@@ -51,8 +51,8 @@ MODELS = re.compile(r"^\t.*(?:\bcd [ml];|[\s(][ml]/)", re.M)
 
 def models(d):
     """The directories D's Makefile puts each model's objects in."""
-    p = os.path.join(SRC, d, "Makefile")
-    if os.path.isfile(p) and MODELS.search(open(p, encoding="latin-1").read()):
+    p = makefile(d)
+    if p and MODELS.search(open(p, encoding="latin-1").read()):
         return [d + "/m", d + "/l"]
     return []
 

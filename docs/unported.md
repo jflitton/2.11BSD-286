@@ -21,7 +21,7 @@ Some programs wait on more than themselves:
 | Quotas (`sys/sys/quota_*.c` are in the tree, and not built) | `quota`, `quotacheck`, `quotaon`, `edquota`, `repquota` |
 | SLIP (`sys/net/if_sl.c`; `NSL` is 0) | `slattach` |
 | A driver for the parallel port | a printer on it; `lpr` and the rest are ported, for a printer on a serial port or across the network |
-| A tape driver | `mt`, `tcopy`, `ansitape`, and `dump` and `restor` to a tape |
+| A tape driver | `mt`, `tcopy`, `ansitape`, `vmsbackup`, and `dump` and `restor` to a tape |
 | Crash dumps written to the swap area | `savecore` |
 
 ## The compiler and object files
@@ -134,16 +134,9 @@ it out as both compilers do (`tests/layouts`).
 
 ## Typesetting and text
 
-`nroff` is ported, with `tbl`, `eqn`, `neqn`, `refer`, `spell`, `style`,
-`diction` and `indent` ([the C library and programs](userland.md)).
-These are the rest of the writer's tools.
-
-| program | where | notes |
-|---|---|---|
-| `vgrind`, `vfontedpr` | `ucb/vgrind` | its output is for `troff` |
-| `troff`, and `tc`, which shows its output on a Tektronix 4015 | `usr.bin/roff/troff`, `usr.bin` | `troff` drives a C/A/T phototypesetter |
-| `tk` | `usr.bin` | pages `nroff`'s output on a Tektronix 4014 |
-| `graph`, `plot` and its filters, `libplot` | `usr.bin`, `usr.lib/libplot` | for plotters and graphics terminals |
+All are ported: `nroff` and `troff`, with `tbl`, `eqn`, `neqn`, `refer`,
+`spell`, `style`, `diction`, `indent`, `vgrind`, `tc` and `tk`, and
+`graph`, `plot` and `libplot` ([the C library and programs](userland.md)).
 
 ## The network
 
@@ -152,7 +145,6 @@ These are the rest of the writer's tools.
 | `sendmail.MX` (*medium*) | `usr.sbin/sendmail.MX` | a `sendmail` that looks up MX records with `named` |
 | `mkhosts` | `usr.sbin/mkhosts` | `/etc/hosts` as a database. Its Makefile is run, as upstream's is, and installs nothing: `mkhosts` needs `gethostent`, which the C library has only when it reads the table of hosts itself, and it asks `named`, as upstream's does (`HOSTLOOKUP` in `lib/libc/Makefile`) |
 | `uucp` (*medium*) | `usr.bin/uucp` | `rmail`, which hands mail from it to `sendmail`, is ported |
-| `tn3270` | `ucb/tn3270` | |
 | `slattach` | `sbin/slattach` | waits on SLIP |
 | `testnet` | `sbin/testnet` | upstream's `netstart` asks it whether the kernel has a network; the port's does not |
 
@@ -163,12 +155,15 @@ These are the rest of the writer's tools.
 | `savecore` | `sbin` | waits on crash dumps |
 | `quota`, `quotacheck`, `quotaon`, `edquota`, `repquota` | `ucb`, `sbin`, `usr.sbin` | wait on quotas |
 
-## Printers and tapes
+## Tapes
+
+Each waits on a tape driver: it moves the tape, or reads and writes its
+files between the marks that end them, which a file on a disk has not.
 
 | program | where | notes |
 |---|---|---|
 | `mt`, `tcopy` | `bin`, `ucb` | |
-| `ansitape` | `new/ansi` | |
+| `ansitape` | `new/ansi` | ANSI labelled tapes |
 | `vmsbackup` | `new/vmsbackup` | reads VMS's backup tapes |
 
 ## Games
@@ -190,10 +185,11 @@ out.
 
 Built: `libc`, `libom`, which `usr.lib`'s Makefile links to `libm` as
 upstream's does, `libutil`, `libtermcap`, `libcurses`, `libdbm`,
-`libwrap`, `libln`, `liby`, `libident` and `liberrlst`, whose messages
-`mkerrlst` makes into `/etc/syserrlst`. Not built, besides those above:
-`libmp`
-(numbers of any size) and `libvmf` (virtual memory in a file).
+`libwrap`, `libln`, `liby`, `libident`, `liberrlst`, whose messages
+`mkerrlst` makes into `/etc/syserrlst`, `libmp` (numbers of any size),
+`libplot`'s fifteen, one for each device, and `libvmf` (virtual memory
+in a file). The rest are above: the Fortran libraries, which wait on
+`f77`, and those not to be ported.
 
 ## Not to be ported
 

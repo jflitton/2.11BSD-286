@@ -116,7 +116,7 @@ FILE *fin;
 			dx = getsi(fin);
 			n = getsi(fin);
 			for(i=0; i<n; i++)pat[i] = getsi(fin);
-			dot(xi,yi,dx,n,pat);
+			dot(xi,yi,dx,n,(char *)pat);
 			break;
 		}
 	}

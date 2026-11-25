@@ -170,6 +170,7 @@ init()
 	sendpt(0);
 }
 
+void
 ex()
 {
 	yy = MAXY;

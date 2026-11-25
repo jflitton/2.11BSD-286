@@ -3,8 +3,10 @@
 # Makefiles run: the words that spell, boggle and refer read, which
 # their Makefiles make their own lists of, and refer's papers; /usr/pub's
 # tables; the scripts of /usr/adm that cron runs (/etc/crontab), which
-# are the 286's; and /sys, the kernel's sources.  A FILE is named from
-# the top of the repository, which has them where the system does.
+# are the 286's; troff's fonts, its width tables, each a PDP-11 a.out
+# whose data troff reads past the header; and /sys, the kernel's
+# sources.  A FILE is named from the top of the repository, which has
+# them where the system does.
 # mkfs.py's lines: a MODE with :GROUP or :OWNER.GROUP, as numbers.
 f /usr/dict/README 444:10 usr/dict/README
 f /usr/dict/connectives 644:10 usr/dict/connectives
@@ -19,4 +21,91 @@ f /usr/pub/greek 444:10 usr/pub/greek
 f /usr/adm/daily 755 usr/adm/daily
 f /usr/adm/weekly 755 usr/adm/weekly
 f /usr/adm/monthly 755 usr/adm/monthly
+f /usr/share/font/fontlist 444 usr/share/font/fontlist
+f /usr/share/font/ftB 444 usr/share/font/ftB
+f /usr/share/font/ftBC 444 usr/share/font/ftBC
+f /usr/share/font/ftC 444 usr/share/font/ftC
+f /usr/share/font/ftCE 444 usr/share/font/ftCE
+f /usr/share/font/ftCI 444 usr/share/font/ftCI
+f /usr/share/font/ftCK 444 usr/share/font/ftCK
+f /usr/share/font/ftCW 444 usr/share/font/ftCW
+f /usr/share/font/ftFD 444 usr/share/font/ftFD
+f /usr/share/font/ftG 444 usr/share/font/ftG
+f /usr/share/font/ftGI 444 usr/share/font/ftGI
+f /usr/share/font/ftGM 444 usr/share/font/ftGM
+f /usr/share/font/ftGR 444 usr/share/font/ftGR
+f /usr/share/font/ftH 444 usr/share/font/ftH
+f /usr/share/font/ftHI 444 usr/share/font/ftHI
+f /usr/share/font/ftHM 444 usr/share/font/ftHM
+f /usr/share/font/ftI 444 usr/share/font/ftI
+f /usr/share/font/ftL 444 usr/share/font/ftL
+f /usr/share/font/ftLI 444 usr/share/font/ftLI
+f /usr/share/font/ftPA 444 usr/share/font/ftPA
+f /usr/share/font/ftPB 444 usr/share/font/ftPB
+f /usr/share/font/ftPI 444 usr/share/font/ftPI
+f /usr/share/font/ftR 444 usr/share/font/ftR
+f /usr/share/font/ftS 444 usr/share/font/ftS
+f /usr/share/font/ftSB 444 usr/share/font/ftSB
+f /usr/share/font/ftSI 444 usr/share/font/ftSI
+f /usr/share/font/ftSM 444 usr/share/font/ftSM
+f /usr/share/font/ftTB 444 usr/share/font/ftTB
+f /usr/share/font/ftTI 444 usr/share/font/ftTI
+f /usr/share/font/ftTR 444 usr/share/font/ftTR
+f /usr/share/font/ftTS 444 usr/share/font/ftTS
+f /usr/share/font/ftUD 444 usr/share/font/ftUD
+f /usr/share/font/ftap 444 usr/share/font/ftap
+f /usr/share/font/ftbb 444 usr/share/font/ftbb
+f /usr/share/font/ftbi 444 usr/share/font/ftbi
+f /usr/share/font/ftbk 444 usr/share/font/ftbk
+f /usr/share/font/ftbr 444 usr/share/font/ftbr
+f /usr/share/font/ftcb 444 usr/share/font/ftcb
+f /usr/share/font/ftch 444 usr/share/font/ftch
+f /usr/share/font/ftci 444 usr/share/font/ftci
+f /usr/share/font/ftcl 444 usr/share/font/ftcl
+f /usr/share/font/ftco 444 usr/share/font/ftco
+f /usr/share/font/ftcr 444 usr/share/font/ftcr
+f /usr/share/font/ftct 444 usr/share/font/ftct
+f /usr/share/font/ftcy 444 usr/share/font/ftcy
+f /usr/share/font/ftdb 444 usr/share/font/ftdb
+f /usr/share/font/ftdi 444 usr/share/font/ftdi
+f /usr/share/font/ftdr 444 usr/share/font/ftdr
+f /usr/share/font/ftfx 444 usr/share/font/ftfx
+f /usr/share/font/ftgb 444 usr/share/font/ftgb
+f /usr/share/font/ftgf 444 usr/share/font/ftgf
+f /usr/share/font/ftgi 444 usr/share/font/ftgi
+f /usr/share/font/ftgk 444 usr/share/font/ftgk
+f /usr/share/font/ftgr 444 usr/share/font/ftgr
+f /usr/share/font/fthb 444 usr/share/font/fthb
+f /usr/share/font/fthn 444 usr/share/font/fthn
+f /usr/share/font/ftm 444 usr/share/font/ftm
+f /usr/share/font/ftmb 444 usr/share/font/ftmb
+f /usr/share/font/ftmi 444 usr/share/font/ftmi
+f /usr/share/font/ftmn 444 usr/share/font/ftmn
+f /usr/share/font/ftmr 444 usr/share/font/ftmr
+f /usr/share/font/ftnb 444 usr/share/font/ftnb
+f /usr/share/font/ftni 444 usr/share/font/ftni
+f /usr/share/font/ftnr 444 usr/share/font/ftnr
+f /usr/share/font/ftob 444 usr/share/font/ftob
+f /usr/share/font/ftoe 444 usr/share/font/ftoe
+f /usr/share/font/ftoi 444 usr/share/font/ftoi
+f /usr/share/font/ftor 444 usr/share/font/ftor
+f /usr/share/font/ftpb 444 usr/share/font/ftpb
+f /usr/share/font/ftpp 444 usr/share/font/ftpp
+f /usr/share/font/ftsb 444 usr/share/font/ftsb
+f /usr/share/font/ftsc 444 usr/share/font/ftsc
+f /usr/share/font/ftsg 444 usr/share/font/ftsg
+f /usr/share/font/ftsh 444 usr/share/font/ftsh
+f /usr/share/font/ftsi 444 usr/share/font/ftsi
+f /usr/share/font/ftsl 444 usr/share/font/ftsl
+f /usr/share/font/ftsr 444 usr/share/font/ftsr
+f /usr/share/font/fttB 444 usr/share/font/fttB
+f /usr/share/font/fttI 444 usr/share/font/fttI
+f /usr/share/font/fttR 444 usr/share/font/fttR
+f /usr/share/font/fttS 444 usr/share/font/fttS
+f /usr/share/font/fttb 444 usr/share/font/fttb
+f /usr/share/font/ftti 444 usr/share/font/ftti
+f /usr/share/font/fttr 444 usr/share/font/fttr
+f /usr/share/font/ftts 444 usr/share/font/ftts
+f /usr/share/font/ftwp 444 usr/share/font/ftwp
+f /usr/share/font/ftxx 444 usr/share/font/ftxx
 l /sys usr/src/sys

@@ -11,10 +11,17 @@ MINT
 #define	shfree(u)	{ if(dbg) fprintf(stderr, "free %o\n", u); free((char *)u);}
 extern	int	dbg;
 #endif
+/* The halves of a long: the 286's has its low word first, the PDP-11's its high. */
 struct	half
+#ifdef i286
+{	short	low;
+	short	high;
+};
+#else
 {	short	high;
 	short	low;
 };
+#endif
 extern	MINT	*itom();
 extern	short	*xalloc();
 

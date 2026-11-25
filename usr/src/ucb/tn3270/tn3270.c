@@ -107,6 +107,7 @@ int	quit(), suspend();
 static int	tn(), bye(), help();
 static int	setescape(), status(), toggle(), setoptions();
 static int	setcrmod(), setdebug(), SetPrintNet();
+static int	call(int (*)(), char *, ...);
 
 #define HELPINDENT (sizeof ("connect"))
 
@@ -398,11 +399,9 @@ help(argc, argv)
  * VARARGS2
  */
 static
-call(routine, args)
-	int (*routine)();
-	int args;
+call(int (*routine)(), char *args, ...)
 {
-	register int *argp;
+	register char **argp;
 	register int argc;
 
 	for (argc = 0, argp = &args; *argp++ != 0; argc++)
@@ -881,7 +880,7 @@ telrcv()
 				}
 				sprintf(nfrontp, wont, c);
 				nfrontp += sizeof (wont) - 2;
-				printoption("SENT", wont, c);
+				printoption("SENT", wont, c, 0);
 			}
 			state = TS_DATA;
 			continue;
@@ -912,7 +911,7 @@ telrcv()
 			    bcopy(sb_terminal, nfrontp, sizeof sb_terminal);
 			    nfrontp += sizeof sb_terminal;
 			    printoption("SENT", sb_terminal,
-					TELOPT_TTYPE);
+					TELOPT_TTYPE, 0);
 			}
 			state = TS_DATA;
 		    }
@@ -953,7 +952,7 @@ willoption(option)
 	}
 	sprintf(nfrontp, fmt, option);
 	nfrontp += sizeof (dont) - 2;
-	printoption("SENT", fmt, option);
+	printoption("SENT", fmt, option, 0);
 }
 
 static
@@ -983,7 +982,7 @@ wontoption(option)
 	}
 	sprintf(nfrontp, fmt, option);
 	nfrontp += sizeof (doopt) - 2;
-	printoption("SENT", fmt, option);
+	printoption("SENT", fmt, option, 0);
 }
 
 static
@@ -1022,7 +1021,7 @@ dooption(option)
 	}
 	sprintf(nfrontp, fmt, option);
 	nfrontp += (sizeof dont)-2;
-	printoption("SENT", fmt, option);
+	printoption("SENT", fmt, option, 0);
 }
 
 static

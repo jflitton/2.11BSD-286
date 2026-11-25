@@ -60,6 +60,8 @@ static int needToRing = 0;		/* need to ring terinal bell */
 static char *bellSequence = "\07";	/* bell sequence (may be replaced by
 					 * VB during initialization)
 					 */
+#define	KS	tnKS			/* its own, not curses.h's */
+#define	KE	tnKE
 static char *KS, *KE;			/* Turn on and off keyboard */
 
 static char Blanks[sizeof Terminal];	/* lots of blanks */
@@ -559,7 +561,7 @@ int	control;			/* this buffer terminated block */
 	Initialized = 1;
 	OutputClock = 1;
 	TransparentClock = -1;
-	signal(SIGHUP, abort);
+	signal(SIGHUP, (sig_t)abort);
     }
 
     origCount = count;
@@ -754,7 +756,7 @@ int	control;			/* this buffer terminated block */
 			return(origCount-(count+1));	/* come here again */
 		    } else {
 			buffer += 1 + i;
-			count - = (1 + i);
+			count -= (1 + i);
 		    }
 		}
 		break;

@@ -21,7 +21,7 @@ TAGSDIR=libcurses libdbm libln libmp libtermlib libutil liberrlst
 # /usr/lib/m and the large's in /usr/lib/l, where cc -mm and -ml look.
 
 SUBDIR=	libcurses libdbm libln \
-	libom libtermlib liby libutil \
+	libom libmp libplot libtermlib liby libutil libvmf \
 	liberrlst libident
 
 all:	${SUBDIR}

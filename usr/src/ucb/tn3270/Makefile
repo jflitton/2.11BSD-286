@@ -32,11 +32,13 @@ MSMAIN = mset.c
 #	us a fair amount of increased performance.  We have provided
 #	genbsubs.c, which perform (more or less) the same function.
 
-#SUBS = genbsubs.c
-SUBS = pdpbsubs.s
+#	The 80286 uses genbsubs.c: pdpbsubs.s is the PDP-11's.
 
-#SUBSO = genbsubs.o
-SUBSO = pdpbsubs.o
+SUBS = genbsubs.c
+#SUBS = pdpbsubs.s
+
+SUBSO = genbsubs.o
+#SUBSO = pdpbsubs.o
 
 # PDP-11 assembly rules:
 .s.o:

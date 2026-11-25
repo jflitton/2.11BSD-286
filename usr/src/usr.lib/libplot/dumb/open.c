@@ -30,7 +30,7 @@ char screenmat[MAXCOLS][MAXLINES];
 
 openpl()
 {
-	sig_t closepl;
+	int closepl();	/* the function: "sig_t closepl" made a variable */
 	int i, j;
 	char *term;
 	char bp[1024];
@@ -55,6 +55,6 @@ openpl()
 		for(j=0; j<LINES; j++)
 			screenmat[i][j] = ' ';
 
-	signal(SIGINT, closepl);
+	signal(SIGINT, (sig_t)closepl);
 	currentx = currenty = 0;
 }

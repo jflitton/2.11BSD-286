@@ -178,8 +178,9 @@ where the cross compiler has the same as `#pragma aux`.
 
 `ld -mm` looks in the `m` directories for `-l`, and `ld -ml` in the
 `l` ones. The libraries on the system are `libc`, `libm`,
-`libtermcap`, `libcurses`, `libutil`, `libdbm`, `libln`, `liby` and
-`libwrap`, for each model.
+`libtermcap`, `libcurses`, `libutil`, `libdbm`, `libln`, `liby`,
+`libwrap`, `libident`, `liberrlst`, `libmp`, `libvmf` and `libplot`'s,
+for each model.
 
 ## The assembler
 
