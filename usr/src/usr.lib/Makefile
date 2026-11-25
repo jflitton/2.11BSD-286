@@ -22,7 +22,7 @@ TAGSDIR=libcurses libdbm libln libmp libtermlib libutil liberrlst
 
 SUBDIR=	libcurses libdbm libln \
 	libom libtermlib liby libutil \
-	liberrlst
+	liberrlst libident
 
 all:	${SUBDIR}
 

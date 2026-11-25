@@ -457,9 +457,8 @@ makenl(name)
  * Make a sub command for lists of variables, commands, etc.
  */
 struct subcmd *
-makesubcmd(type, name)
+makesubcmd(type)
 	int type;
-	register char *name;
 {
 	register char *cp;
 	register struct subcmd *sc;

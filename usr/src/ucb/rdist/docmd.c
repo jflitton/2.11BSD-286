@@ -144,7 +144,7 @@ done:
 	}
 	for (sc = cmds; sc != NULL; sc = sc->sc_next)
 		if (sc->sc_type == NOTIFY)
-			notify(tempfile, rhost, sc->sc_args, 0);
+			notify(tempfile, rhost, sc->sc_args, (time_t)0);
 	if (!nflag) {
 		(void) unlink(tempfile);
 		for (; ihead != NULL; ihead = ihead->nextp) {
@@ -349,7 +349,7 @@ dodcolon(filev, files, stamp, cmds)
 		(void) fclose(tfp);
 	for (sc = cmds; sc != NULL; sc = sc->sc_next)
 		if (sc->sc_type == NOTIFY)
-			notify(tempfile, NULL, sc->sc_args, lastmod);
+			notify(tempfile, (char *)NULL, sc->sc_args, lastmod);
 	if (!nflag && !(options & VERIFY))
 		(void) unlink(tempfile);
 }

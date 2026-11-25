@@ -24,7 +24,11 @@ LIBDIR = /usr/new/lib/jove
 BINDIR = /usr/new
 MANDIR = /usr/new/man/cat1
 MANEXT = 0
-SHELL = /bin/csh
+# The 80286: the shell jove runs is JSHELL, which upstream's has in
+# SHELL; the system's make runs commands with /bin/sh whatever SHELL is,
+# but the make where the system is built runs them with SHELL, which
+# the build gives it (tools/build/build.sh).
+JSHELL = /bin/csh
 
 # These should all just be right if the above ones are.
 JOVE = $(BINDIR)/jove
@@ -39,8 +43,14 @@ TEACHJOVEM = $(MANDIR)/teachjove.$(MANEXT)
 
 LIBS = -ltermcap
 
-LDFLAGS = -i
-CFLAGS = -O 
+# The 80286: jove is of the medium model, its code being more than a
+# segment of 64K, where the PDP-11 had it in six overlays; and so are
+# recover and the others, which have its objects, and setmaps, which is
+# compiled as they are.
+MODEL = -mm
+MEMFLAGS = ${MODEL}
+LDFLAGS = -i ${MODEL}
+CFLAGS = -O ${MODEL}
 
 BASESEG = keymaps.o ask.o buf.o ctype.o \
 	  disp.o insert.o io.o jove.o misc.o re.o \
@@ -77,15 +87,15 @@ SUPPORT = teachjove.c recover.c setmaps.c portsrv.c keymaps.txt \
 all:	xjove recover teachjove portsrv macvert
 
 xjove:	$(OBJECTS)
-	ld $(LDFLAGS) -X /lib/crt0.o \
-			-Z $(OVLAY1) \
-			-Z $(OVLAY2) \
-			-Z $(OVLAY3) \
-			-Z $(OVLAY4) \
-			-Z $(OVLAY5) \
-			-Z $(OVLAY6) \
-			-Y $(BASESEG) \
-			-o xjove $(LIBS) -lc
+	$(CC) $(LDFLAGS) -X \
+			$(OVLAY1) \
+			$(OVLAY2) \
+			$(OVLAY3) \
+			$(OVLAY4) \
+			$(OVLAY5) \
+			$(OVLAY6) \
+			$(BASESEG) \
+			-o xjove $(LIBS)
 	@-size xjove
 
 portsrv:	portsrv.o
@@ -122,7 +132,7 @@ tune.c: Makefile tune.template
 	@sed -e 's;TMPDIR;$(TMPDIR);' \
 	     -e 's;LIBDIR;$(LIBDIR);' \
 	     -e 's;BINDIR;$(BINDIR);' \
-	     -e 's;SHELL;$(SHELL);' tune.template >> tune.c
+	     -e 's;SHELL;$(JSHELL);' tune.template >> tune.c
 
 iproc.o: iproc.c
 	$(CC) -c $(CFLAGS) iproc.c
@@ -163,7 +173,7 @@ TEACHJOVE: teachjove
 JOVEM: doc/jove.nr
 	@sed -e 's;TMPDIR;$(TMPDIR);' \
 	     -e 's;LIBDIR;$(LIBDIR);' \
-	     -e 's;SHELL;$(SHELL);' doc/jove.nr \
+	     -e 's;SHELL;$(JSHELL);' doc/jove.nr \
 	| /usr/man/manroff \
 	> $(JOVEM)
 	chmod 444 $(JOVEM)
@@ -172,7 +182,7 @@ JOVEM: doc/jove.nr
 TEACHJOVEM: doc/teachjove.nr
 	@sed -e 's;TMPDIR;$(TMPDIR);' \
 	     -e 's;LIBDIR;$(LIBDIR);' \
-	     -e 's;SHELL;$(SHELL);' doc/teachjove.nr \
+	     -e 's;SHELL;$(JSHELL);' doc/teachjove.nr \
 	| /usr/man/manroff \
 	> $(TEACHJOVEM)
 	chmod 444 $(TEACHJOVEM)

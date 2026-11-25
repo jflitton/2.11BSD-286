@@ -15,7 +15,7 @@
 #ifdef MAC
 #	include "mac.h"
 #else
-#	include <varargs.h>
+#	include <stdarg.h>
 #	ifdef F_COMPLETION
 #   	include <sys/stat.h>
 #	endif
@@ -261,16 +261,13 @@ cleanup:
 /* VARARGS2 */
 
 char *
-ask(def, fmt, va_alist)
-char	*def,
-	*fmt;
-va_dcl
+ask(char *def, char *fmt, ...)
 {
 	char	prompt[128];
 	char	*ans;
 	va_list	ap;
 
-	va_start(ap);
+	va_start(ap, fmt);
 	format(prompt, sizeof prompt, fmt, ap);
 	va_end(ap);
 	ans = real_ask("\r\n", (int (*)()) 0, def, prompt);
@@ -285,17 +282,12 @@ va_dcl
 /* VARARGS1 */
 
 char *
-do_ask(delim, d_proc, def, fmt, va_alist)
-char	*delim,
-	*def,
-	*fmt;
-int	(*d_proc)();
-va_dcl
+do_ask(char *delim, int (*d_proc)(), char *def, char *fmt, ...)
 {
 	char	prompt[128];
 	va_list	ap;
 
-	va_start(ap);
+	va_start(ap, fmt);
 	format(prompt, sizeof prompt, fmt, ap);
 	va_end(ap);
 	return real_ask(delim, d_proc, def, prompt);
@@ -304,15 +296,13 @@ va_dcl
 /* VARARGS1 */
 
 int
-yes_or_no_p(fmt, va_alist)
-char	*fmt;
-va_dcl
+yes_or_no_p(char *fmt, ...)
 {
 	char	prompt[128];
 	int	c;
 	va_list	ap;
 
-	va_start(ap);
+	va_start(ap, fmt);
 	format(prompt, sizeof prompt, fmt, ap);
 	va_end(ap);
 	for (;;) {

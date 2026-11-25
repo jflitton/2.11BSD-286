@@ -19,8 +19,10 @@ CFLAGS= -O
 	mv -f x.o $*.o
 	rm -f x.c
 
+# The 80286: without the PDP-11's libstubs, whose ctime and the rest
+# asked ctimed for them; the C library's own are linked in.
 rdist:	${OBJS} strings.o
-	${CC} ${LDFLAGS} -o rdist ${OBJS} strings.o -lstubs
+	${CC} ${LDFLAGS} -o rdist ${OBJS} strings.o
 
 ${OBJS}:  defs.h
 

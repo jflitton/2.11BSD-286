@@ -17,7 +17,7 @@ static char *sccsid = "@(#)jove.c 2.0 (2.11BSD) 2026/7/27";
 #include "io.h"
 #include "termcap.h"
 
-#include <varargs.h>
+#include <stdarg.h>
 #include <sys/stat.h>
 #include <signal.h>
 #include <errno.h>
@@ -546,14 +546,12 @@ char	*argv[];
 }
 
 void
-error(fmt, va_alist)
-char	*fmt;
-va_dcl
+error(char *fmt, ...)
 {
 	va_list	ap;
 
 	if (fmt) {
-		va_start(ap);
+		va_start(ap, fmt);
 		format(mesgbuf, sizeof mesgbuf, fmt, ap);
 		va_end(ap);
 		UpdMesg = YES;
@@ -563,14 +561,12 @@ va_dcl
 }
 
 void
-complain(fmt, va_alist)
-char	*fmt;
-va_dcl
+complain(char *fmt, ...)
 {
 	va_list	ap;
 
 	if (fmt) {
-		va_start(ap);
+		va_start(ap, fmt);
 		format(mesgbuf, sizeof mesgbuf, fmt, ap);
 		va_end(ap);
 		UpdMesg = YES;
@@ -580,14 +576,12 @@ va_dcl
 }
 
 void
-confirm(fmt, va_alist)
-char	*fmt;
-va_dcl
+confirm(char *fmt, ...)
 {
 	char	*yorn;
 	va_list	ap;
 
-	va_start(ap);
+	va_start(ap, fmt);
 	format(mesgbuf, sizeof mesgbuf, fmt, ap);
 	va_end(ap);
 	yorn = ask((char *) 0, mesgbuf);

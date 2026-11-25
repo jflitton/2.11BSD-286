@@ -2,7 +2,7 @@ The checks of tests/network: each is run by the system, as root, in an
 empty directory, once it has a user guest with the password Gu3st-pw and
 a user ftp, and must write what follows its "--", to the byte
 (tests/harness/checks.py).  The first names the machine, brings its
-Ethernet interface up and has inetd start the three daemons that
+Ethernet interface up and has inetd start the four daemons that
 /etc/inetd.conf has commented out; the rest rely on it.  It starts
 sendmail's daemon too, which /etc/rc.conf leaves off, for its SMTP
 server: once the machine has its name, which sendmail takes as it
@@ -26,6 +26,7 @@ cat >> /etc/inetd.conf <<END
 exec stream tcp nowait root /usr/libexec/rexecd rexecd
 tftp dgram udp wait nobody /usr/libexec/tcpd tftpd
 ntalk dgram udp wait root /usr/libexec/ntalkd ntalkd
+ident stream tcp wait sys /usr/libexec/identd identd -l -w -t120
 END
 kill -1 `ps ax | grep "[i]netd" | awk '{print $1}'`
 sleep 2
@@ -84,8 +85,8 @@ rsh localhost -l guest try-from
 --
 client address  (%a): 127.0.0.1
 client hostname (%n): localhost
-client username (%u): unknown
-client info     (%c): localhost
+client username (%u): root
+client info     (%c): root@localhost
 server address  (%A): 127.0.0.1
 server hostname (%N): localhost
 server process  (%d): try-from
@@ -354,6 +355,61 @@ action dst 10.0.2.0, router 10.0.2.15, metric 0
 /usr/games/hunt -q; echo $?
 --
 1
+== named
+cat > boot <<END
+directory /tmp/w
+primary test test.zone
+primary 0.0.127.in-addr.arpa local.zone
+END
+cat > test.zone <<END
+@	IN SOA pc286.test. root.pc286.test. ( 1 3600 300 3600000 3600 )
+	IN NS pc286.test.
+pc286	IN A 10.0.2.15
+www	IN CNAME pc286
+END
+cat > local.zone <<END
+@	IN SOA pc286.test. root.pc286.test. ( 1 3600 300 3600000 3600 )
+	IN NS pc286.test.
+1	IN PTR localhost.
+END
+named -b /tmp/w/boot; sleep 3
+nslookup www.test 127.0.0.1 | grep -v '^$' | tr -s ' \011' '  '
+nslookup nosuch.test 127.0.0.1 2>&1 >/dev/null
+finger @www.test
+kill `cat /var/run/named.pid`
+--
+Server: localhost
+Address: 127.0.0.1
+Name: pc286.test
+Address: 10.0.2.15
+Aliases: www.test
+*** localhost can't find nosuch.test: Non-existent domain
+[pc286.test]
+must provide username
+
+== identd
+echo "5555 , 113" | nc -w 5 -p 5555 localhost 113 | tr -d '\015'
+su guest -c 'echo "5556 , 113" | nc -w 5 -p 5556 localhost 113' | tr -d '\015'
+echo "5557 , 113" | nc -w 5 localhost 113 | tr -d '\015'
+--
+5555 , 113 : USERID : UNIX :root
+5556 , 113 : USERID : UNIX :guest
+5557 , 113 : ERROR : NO-USER
+== rdist
+su guest -c 'cd /home/guest; mkdir rd; echo one > rd/a; echo two > rd/b
+echo "rd -> localhost install /tmp/rdd;" > Distfile
+rdist -q -f Distfile; echo "status $?"'
+cat /tmp/rdd/a /tmp/rdd/b; ls -l /tmp/rdd | awk 'NR > 1 { print $3 }'
+su guest -c 'cd /home/guest; sleep 1; echo three > rd/b; rdist -q -f Distfile'
+cat /tmp/rdd/b
+rm -r /tmp/rdd /home/guest/rd /home/guest/Distfile
+--
+status 0
+one
+two
+guest
+guest
+three
 =file wait
 # sh /mnt/d/wait FILE N: wait up to a minute for FILE to hold N letters.
 n=0

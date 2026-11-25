@@ -239,9 +239,7 @@ register Mark	*mp;
 /* VARARGS2 */
 
 private
-proc_strt(bufname, clobber, va_alist)
-char	*bufname;
-va_dcl
+proc_strt(char *bufname, int clobber, ...)
 {
 	va_list	ap;
 	char	*argv[32],
@@ -372,7 +370,7 @@ out:	if (s == 0 && t == 0)
 		i = getpid();
 		(void) ioctl(0, TIOCSPGRP, (struct sgttyb *) &i);
 		(void) setpgrp(0, i);
-		va_start(ap);
+		va_start(ap, clobber);
 		make_argv(argv, ap);
 		va_end(ap);
 		execv(argv[0], &argv[1]);
@@ -398,7 +396,7 @@ out:	if (s == 0 && t == 0)
 		LineInsert(1);
 
 	cmdbuf[0] = '\0';
-	va_start(ap);
+	va_start(ap, clobber);
 	while (cp = va_arg(ap, char *))
 		sprintf(&cmdbuf[strlen(cmdbuf)], "%s ", cp++);
 	va_end(ap);

@@ -203,9 +203,11 @@
 /etc/passwd f 644 0.0
 /etc/passwd.dir f 644 0.0
 /etc/passwd.pag f 644 0.0
+/etc/phones f 440 66.1
 /etc/protocols f 644 0.0
 /etc/rc f 644 0.0
 /etc/rc.conf f 644 0.0
+/etc/remote f 644 0.0
 /etc/sendmail.cf f 644 0.0
 /etc/sendmail.fc f 644 0.0
 /etc/services f 644 0.0
@@ -272,6 +274,7 @@
 /usr d 755 0.0
 /usr/adm d 755 0.0
 /usr/adm/acct f 644 0.0
+/usr/adm/aculog f 600 66.1
 /usr/adm/cron f 644 0.0
 /usr/adm/daemonlog f 644 0.0
 /usr/adm/daily f 755 0.0
@@ -299,6 +302,7 @@
 /usr/bin/comm f 755 0.10
 /usr/bin/crontab f 4111 0.0
 /usr/bin/crypt f 755 0.10
+/usr/bin/cu f 4755 66.1 = /usr/bin/cu
 /usr/bin/dc f 755 0.0
 /usr/bin/deroff f 755 0.10
 /usr/bin/diction f 755 0.0
@@ -332,6 +336,9 @@
 /usr/bin/newaliases l ../sbin/sendmail
 /usr/bin/nohup f 555 0.10
 /usr/bin/nroff f 755 0.10
+/usr/bin/nslookup f 755 0.10
+/usr/bin/nsquery f 555 0.0
+/usr/bin/nstest f 555 0.0
 /usr/bin/patch f 755 0.0
 /usr/bin/printf f 755 0.10
 /usr/bin/ptx f 755 0.10
@@ -353,6 +360,7 @@
 /usr/bin/sum f 755 0.10
 /usr/bin/tabs f 755 0.10
 /usr/bin/tbl f 755 0.0
+/usr/bin/tip f 4755 66.1 = /usr/bin/cu
 /usr/bin/touch f 755 0.10
 /usr/bin/tr f 755 0.10
 /usr/bin/traverse f 755 0.0
@@ -715,6 +723,7 @@
 /usr/lib/l/libcurses.a f 644 0.0
 /usr/lib/l/libdbm.a f 644 0.0
 /usr/lib/l/liberrlst.a f 644 0.0
+/usr/lib/l/libident.a f 644 0.0
 /usr/lib/l/libl.a f 644 0.0 = /usr/lib/l/libl.a
 /usr/lib/l/libln.a f 644 0.0 = /usr/lib/l/libl.a
 /usr/lib/l/libm.a f 644 0.0 = /usr/lib/l/libm.a
@@ -726,6 +735,7 @@
 /usr/lib/libcurses.a f 644 0.0
 /usr/lib/libdbm.a f 644 0.0
 /usr/lib/liberrlst.a f 644 0.0
+/usr/lib/libident.a f 644 0.0
 /usr/lib/libl.a f 644 0.0 = /usr/lib/libl.a
 /usr/lib/libln.a f 644 0.0 = /usr/lib/libl.a
 /usr/lib/libm.a f 644 0.0 = /usr/lib/libm.a
@@ -738,6 +748,7 @@
 /usr/lib/m/libcurses.a f 644 0.0
 /usr/lib/m/libdbm.a f 644 0.0
 /usr/lib/m/liberrlst.a f 644 0.0
+/usr/lib/m/libident.a f 644 0.0
 /usr/lib/m/libl.a f 644 0.0 = /usr/lib/m/libl.a
 /usr/lib/m/libln.a f 644 0.0 = /usr/lib/m/libl.a
 /usr/lib/m/libm.a f 644 0.0 = /usr/lib/m/libm.a
@@ -769,6 +780,7 @@
 /usr/libexec/fingerd f 755 0.10
 /usr/libexec/ftpd f 755 0.10
 /usr/libexec/getty f 555 0.10
+/usr/libexec/identd f 755 0.0
 /usr/libexec/makekey f 755 0.10
 /usr/libexec/ntalkd f 755 0.10
 /usr/libexec/popper f 700 0.10
@@ -787,8 +799,12 @@
 /usr/local d 755 0.0
 /usr/local/adduser f 755 0.0
 /usr/local/bench f 755 0.0
+/usr/local/less f 751 0.0
+/usr/local/lib d 755 0.10
+/usr/local/lib/less.help f 444 0.10
 /usr/local/man d 755 0.0
 /usr/local/man/cat1 d 755 0.0
+/usr/local/man/cat1/less.0 f 444 3.20
 /usr/local/man/cat1/ve.0 f 444 0.10
 /usr/local/man/whatis f 664 0.0
 /usr/local/ve f 755 0.0
@@ -834,6 +850,7 @@
 /usr/man/cat1/crontab.0 f 444 3.20
 /usr/man/cat1/csh.0 f 444 0.10
 /usr/man/cat1/ctags.0 f 444 0.10
+/usr/man/cat1/cu.0 f 444 0.10 = /usr/man/cat1/cu.0
 /usr/man/cat1/date.0 f 444 0.10
 /usr/man/cat1/dc.0 f 444 0.10
 /usr/man/cat1/dd.0 f 444 0.10
@@ -911,6 +928,7 @@
 /usr/man/cat1/nm.0 f 444 0.10
 /usr/man/cat1/nohup.0 f 444 0.10 = /usr/man/cat1/nice.0
 /usr/man/cat1/nroff.0 f 444 0.10
+/usr/man/cat1/nslookup.0 f 444 0.10
 /usr/man/cat1/od.0 f 444 0.10
 /usr/man/cat1/page.0 f 444 0.10 = /usr/man/cat1/more.0
 /usr/man/cat1/pagesize.0 f 444 0.10
@@ -924,6 +942,7 @@
 /usr/man/cat1/pwd.0 f 444 0.10
 /usr/man/cat1/ranlib.0 f 444 0.10
 /usr/man/cat1/rcp.0 f 444 0.10
+/usr/man/cat1/rdist.0 f 444 0.10
 /usr/man/cat1/refer.0 f 444 0.10
 /usr/man/cat1/reset.0 f 444 0.10 = /usr/man/cat1/reset.0
 /usr/man/cat1/rev.0 f 444 0.10
@@ -965,6 +984,7 @@
 /usr/man/cat1/test.0 f 444 0.10
 /usr/man/cat1/tftp.0 f 444 0.10
 /usr/man/cat1/time.0 f 444 0.10
+/usr/man/cat1/tip.0 f 444 0.10 = /usr/man/cat1/cu.0
 /usr/man/cat1/top.0 f 444 0.10
 /usr/man/cat1/touch.0 f 444 0.10
 /usr/man/cat1/tr.0 f 444 0.10
@@ -1319,6 +1339,7 @@
 /usr/man/cat3/htonl.0 f 444 0.10 = /usr/man/cat3/byteorder.0
 /usr/man/cat3/htons.0 f 444 0.10 = /usr/man/cat3/byteorder.0
 /usr/man/cat3/hypot.0 f 444 0.10 = /usr/man/cat3/cabs.0
+/usr/man/cat3/ident.0 f 444 0.10
 /usr/man/cat3/index.0 f 444 0.10 = /usr/man/cat3/index.0
 /usr/man/cat3/inet.0 f 444 0.10 = /usr/man/cat3/addr.0
 /usr/man/cat3/inet_addr.0 f 444 0.10 = /usr/man/cat3/addr.0
@@ -1689,6 +1710,8 @@
 /usr/man/cat8/getty.0 f 444 0.10
 /usr/man/cat8/halt.0 f 444 0.10 = /usr/man/cat8/fastboot.0
 /usr/man/cat8/icheck.0 f 444 0.10
+/usr/man/cat8/idecrypt.0 f 444 0.10
+/usr/man/cat8/identd.0 f 444 0.10
 /usr/man/cat8/ifconfig.0 f 444 0.10
 /usr/man/cat8/inetd.0 f 444 0.10
 /usr/man/cat8/init.0 f 444 0.10
@@ -1699,6 +1722,7 @@
 /usr/man/cat8/mknod.0 f 444 0.10
 /usr/man/cat8/mkpasswd.0 f 444 0.10
 /usr/man/cat8/mount.0 f 444 0.10
+/usr/man/cat8/named.0 f 444 0.10
 /usr/man/cat8/nc.0 f 444 0.10
 /usr/man/cat8/ncheck.0 f 444 0.10
 /usr/man/cat8/newfs.0 f 444 0.10
@@ -1747,10 +1771,20 @@
 /usr/man/whatis f 444 0.10
 /usr/msgs d 777 0.0
 /usr/new d 755 0.0
+/usr/new/jove f 755 0.0
 /usr/new/la f 755 0.0
+/usr/new/lib d 755 0.10
+/usr/new/lib/jove d 755 0.10
+/usr/new/lib/jove/.joverc f 644 0.10
+/usr/new/lib/jove/cmds.doc f 644 0.10
+/usr/new/lib/jove/portsrv f 755 0.10
+/usr/new/lib/jove/recover f 755 0.10
+/usr/new/lib/jove/teach-jove f 644 0.10
 /usr/new/man d 755 0.0
 /usr/new/man/cat1 d 755 0.0
+/usr/new/man/cat1/jove.0 f 444 3.20
 /usr/new/man/cat1/la.0 f 444 0.10
+/usr/new/man/cat1/teachjove.0 f 444 3.20
 /usr/new/man/cat2 d 755 0.0
 /usr/new/man/cat3 d 755 0.0
 /usr/new/man/cat4 d 755 0.0
@@ -1759,6 +1793,7 @@
 /usr/new/man/cat7 d 755 0.0
 /usr/new/man/cat8 d 755 0.0
 /usr/new/man/whatis f 664 0.0
+/usr/new/teachjove f 755 0.0
 /usr/preserve d 755 0.0
 /usr/pub d 755 0.0
 /usr/pub/ascii f 444 0.10
@@ -1775,8 +1810,12 @@
 /usr/sbin/expreserve f 4755 0.0
 /usr/sbin/exrecover f 4755 0.0
 /usr/sbin/flformat f 755 0.10
+/usr/sbin/idecrypt f 755 0.0
+/usr/sbin/identconn f 755 0.0
 /usr/sbin/inetd f 755 0.10
+/usr/sbin/itest f 2555 0.2
 /usr/sbin/makewhatis f 755 0.10
+/usr/sbin/named f 755 0.10
 /usr/sbin/nc f 755 0.10
 /usr/sbin/ntp f 755 0.0
 /usr/sbin/ntpd f 755 0.0
@@ -2392,6 +2431,7 @@
 /usr/share/misc/lib.b f 444 0.0
 /usr/share/misc/map3270 f 444 0.0
 /usr/share/misc/more.help f 444 0.0
+/usr/share/misc/nslookup.help f 444 0.10
 /usr/share/misc/sendmail.hf f 444 0.0
 /usr/share/misc/sendmail.sr f 644 0.0
 /usr/share/misc/termcap f 444 0.0
@@ -2588,6 +2628,7 @@
 /usr/spool/mqueue d 755 0.0
 /usr/spool/mqueue/syslog f 644 0.0
 /usr/spool/rwho d 755 0.0
+/usr/spool/uucp d 755 66.1
 /usr/src d 755 0.0
 /usr/tmp d 1777 0.0
 /usr/ucb d 755 0.0
@@ -2625,6 +2666,7 @@
 /usr/ucb/netstat f 2755 0.2
 /usr/ucb/page f 755 0.10 = /usr/ucb/more
 /usr/ucb/printenv f 755 0.0
+/usr/ucb/rdist f 4751 0.0
 /usr/ucb/reset f 755 0.0 = /usr/ucb/reset
 /usr/ucb/rlogin f 4755 0.10
 /usr/ucb/rsh f 4755 0.0

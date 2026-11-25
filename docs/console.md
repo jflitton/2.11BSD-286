@@ -14,7 +14,8 @@ The screens are minors of the console's driver, as on the PDP-11 the
 console's driver also has the extra DL-11s (`ttyl1` to `ttyl7` in
 upstream's `MAKEDEV`). `/etc/ttys` runs `getty` on the four screens and
 on `tty00`, with `TERM` `pccons` on the screens and `vt100` on the port;
-`tty01` is off.
+`tty01` is off, and is the line `tip` takes (`/etc/remote`'s `com2`, and
+its modem's).
 
 The kernel prints its messages on the first screen and on COM1, without
 interrupts, so that they get out whatever state the kernel is in. A

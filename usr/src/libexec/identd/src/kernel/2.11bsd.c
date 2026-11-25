@@ -13,6 +13,7 @@
 #include <nlist.h>
 #include <syslog.h>
 #include <unistd.h>
+#include <stdarg.h>
 
 #include "kvm.h"
 
@@ -40,6 +41,36 @@
 #include "identd.h"
 #include "error.h"
 
+#ifdef i286
+/*
+ * The 80286's kernel is one file, /unix.  Its network has a data segment
+ * of its own, which /dev/kmem reaches by the segment's number in the
+ * high 16 bits of the offset, and the network's pointers are offsets in
+ * that segment: netoff is the number the symbols give _tcb.  A user
+ * structure is in one of the kernel's slots, in its data segment, while
+ * its process is the one in the slot, which slotproc says, and in memory
+ * at p_addr otherwise, whether or not the process is swapped out.
+ */
+	struct nlist nl[] =
+		{
+#define	N_TCB		0
+		{ "_tcb" },
+#define	N_SLOTPROC	1
+		{ "_slotproc" },
+#define	N_USLOT		2
+		{ "_uslot" },
+		{ "" }
+		};
+#define	snl	nl
+#define	SN_TCB	N_TCB
+
+	static	int	kmemfd;
+	static	int	getu();
+
+#ifndef	_PATH_KMEM
+#define	_PATH_KMEM	"/dev/kmem"
+#endif
+#else
 	struct nlist nl[] =
 		{
 #define N_NETDATA 0
@@ -54,9 +85,15 @@
 		{ "" }
 		};
 
+#define	kmemfd	memfd
+#endif
+
 	static	off_t	netoff;
 	static struct inpcb tcb;
 	static	int	memfd, swapfd;
+
+/* Where the network's address A is, through kmemfd. */
+#define	NETADDR(a)	((off_t)(u_short)(a) + netoff)
 
 #ifndef	_PATH_MEM
 #define	_PATH_MEM	"/dev/mem"
@@ -81,6 +118,34 @@
 	static	struct	file	*sockp2fp();
 	static	void	error(), error1();
 
+#ifdef i286
+int
+k_open()
+	{
+	char	*p;
+
+	if	(path_kmem)
+		p = path_kmem;
+	else
+		p = _PATH_KMEM;
+	kmemfd = open(p, O_RDONLY);
+	if	(kmemfd < 0)
+		error1(Msg_open, p);
+	memfd = open(_PATH_MEM, O_RDONLY);
+	if	(memfd < 0)
+		error1(Msg_open, _PATH_MEM);
+
+	if	(path_unix)
+		p = path_unix;
+	else
+		p = _PATH_UNIX;
+	if	(nlist(p, nl) != 0)
+		error1(Msg_nlist, p);
+
+	netoff = (off_t)nl[N_TCB].n_ovly << 16;
+	return(0);
+	}
+#else
 int
 k_open()
 	{
@@ -109,33 +174,35 @@ k_open()
 
 	if	(nlist(Netnix, snl) != 0)
 		error1(Msg_nlist, Netnix);
-	if	(getbuf((off_t)nl[N_NETDATA].n_value, &netdata, sizeof (int),
-			"netdata") == 0)
+	if	(getbuf(memfd, (off_t)nl[N_NETDATA].n_value, &netdata,
+			sizeof (int), "netdata") == 0)
 		exit(1);
 
 	netoff = (off_t)ctob((long)netdata);
 	return(0);
 	}
+#endif
 
 /*
  * Get a piece of kernel memory with error handling.
  * Returns 1 if call succeeded, else 0 (zero).
 */
 static int
-getbuf(addr, buf, len, what)
+getbuf(fd, addr, buf, len, what)
+	int fd;
 	off_t addr;
-	char *buf;
+	void *buf;
 	int len;
 	char *what;
 	{
 
-	if	(lseek(memfd, addr, L_SET) == -1)
+	if	(lseek(fd, addr, L_SET) == -1)
 		{
 		if	(syslog_flag)
 			syslog(LOG_ERR, "getbuf: lseek %ld - %s: %m",what,addr);
 		return(0);
 		}
-	if	(read(memfd, buf, len) != len)
+	if	(read(fd, buf, len) != len)
 		{
 		if	(syslog_flag)
 			syslog(LOG_ERR, "getbuf: read %d bytes - %s : %m",
@@ -170,7 +237,7 @@ getlist(pcbp, faddr, fport, laddr, lport)
 			 pcbp->inp_lport        == lport )
 			return(pcbp->inp_socket);
 		} while (pcbp->inp_next != head &&
-			getbuf((off_t)pcbp->inp_next + netoff,
+			getbuf(kmemfd, NETADDR(pcbp->inp_next),
 				pcbp, sizeof(struct inpcb), "tcblist"));
 	return(NULL);
 	}
@@ -212,7 +279,7 @@ k_getuid(faddr, fport, laddr, lport, uid)
 	endfile = &xfile[size / sizeof (struct kinfo_file)];
 
   /* -------------------- TCP PCB LIST -------------------- */
-	if	(!getbuf((off_t)snl[SN_TCB].n_value + netoff, &tcb, 
+	if	(!getbuf(kmemfd, NETADDR(snl[SN_TCB].n_value), &tcb, 
 			sizeof(tcb), "tcb"))
 		{
 		free(xfile);
@@ -255,9 +322,13 @@ k_getuid(faddr, fport, laddr, lport, uid)
 			continue;
 
     /* ------------------- GET U_AREA FOR PROCESS ----------------- */
+#ifdef i286
+		if	(getu(kpp, &uarea) == 0)
+			error1(Msg_readu, pp->p_pid);
+#else
 		if	(pp->p_flag & SLOAD)
 			{
-			if	(getbuf(ctob((off_t)pp->p_addr),&uarea, 
+			if	(getbuf(memfd, ctob((off_t)pp->p_addr),&uarea, 
 					sizeof (uarea), "u") == 0)
 				error1(Msg_readu, pp->p_pid);
 			}
@@ -268,6 +339,7 @@ k_getuid(faddr, fport, laddr, lport, uid)
 			if	(i != sizeof (uarea))
 				error1(Msg_readu, pp->p_pid);
 			}
+#endif
 		up = &uarea;
 
     /* ----------------- SCAN PROCESS's FILE TABLE ------------------- */
@@ -286,6 +358,32 @@ k_getuid(faddr, fport, laddr, lport, uid)
 	free(xfile);
 	return -1;
 	}
+
+#ifdef i286
+/*
+ * Read the user structure of KPP's process into UP: from its slot, if
+ * the process is the one there, else from memory at p_addr.
+ * Returns 1 if it could be read, else 0.
+ */
+static int
+getu(kpp, up)
+	register struct kinfo_proc *kpp;
+	struct user *up;
+	{
+	struct	proc	*inslot;
+	int	slot = kpp->kp_proc.p_slot;
+
+	if	(getbuf(kmemfd, (off_t)nl[N_SLOTPROC].n_value +
+			slot * sizeof (inslot), &inslot, sizeof (inslot),
+			"slotproc") == 0)
+		return(0);
+	if	(inslot == kpp->kp_eproc.e_paddr)
+		return(getbuf(kmemfd, (off_t)nl[N_USLOT].n_value +
+			(off_t)slot * UBYTES, up, sizeof (*up), "u"));
+	return(getbuf(memfd, ctob((off_t)kpp->kp_proc.p_addr), up,
+		sizeof (*up), "u"));
+	}
+#endif
 
 static struct file *
 sockp2fp(xfile, endfile, sockp)
@@ -326,10 +424,14 @@ error(msg)
 
 /* ARGSUSED1 */
 static void
-error1(msg, arg2)
-	char	*msg;
-	int	arg2;
+error1(char *msg, ...)
 	{
+	va_list	ap;
+	int	arg2;
+
+	va_start(ap, msg);
+	arg2 = va_arg(ap, int);
+	va_end(ap);
 	ERROR1(msg, arg2);
 	/* NOTREACHED */
 	}

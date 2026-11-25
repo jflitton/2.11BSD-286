@@ -15,7 +15,7 @@ static char *sccsid = "@(#)proc.c 2.0 (2.11BSD) 2026/9/17";
 #include "termcap.h"
 
 #include <signal.h>
-#include <varargs.h>
+#include <stdarg.h>
 #include <sys/wait.h>
 
 private void
@@ -488,9 +488,7 @@ int	pid,
    fix up.) */
 
 int
-UnixToBuf(bufname, disp, wsize, clobber, va_alist)
-char	*bufname;
-va_dcl
+UnixToBuf(char *bufname, int disp, int wsize, int clobber, ...)
 {
 	int	p[2],
 		pid,
@@ -502,7 +500,7 @@ va_dcl
 	File	*fp;
 	int	(*old_int)();
 
-	va_start(ap);
+	va_start(ap, clobber);
 	make_argv(argv, ap);
 	va_end(ap);
 	if (bufname != 0 && clobber == YES)

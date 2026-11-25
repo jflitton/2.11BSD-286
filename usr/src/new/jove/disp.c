@@ -13,7 +13,7 @@
 #ifdef MAC
 #	include "mac.h"
 #else
-#	include <varargs.h>
+#	include <stdarg.h>
 #	include <sys/stat.h>
 #endif
 
@@ -1356,9 +1356,7 @@ char	*name;
 /* VARARGS1 */
 
 void
-Typeout(fmt, va_alist)
-char	*fmt;
-va_dcl
+Typeout(char *fmt, ...)
 {
 	if (TOabort)
 		return;
@@ -1384,7 +1382,7 @@ va_dcl
 		char	string[132];
 		va_list	ap;
 
-		va_start(ap);
+		va_start(ap, fmt);
 		format(string, sizeof string, fmt, ap);
 		va_end(ap);
 		if (UseBuffers)

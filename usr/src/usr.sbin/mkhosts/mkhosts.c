@@ -21,6 +21,7 @@ static char sccsid[] = "@(#)mkhosts.c	1.2 (2.11BSD) 1995/08/17";
 #include <ndbm.h>
 
 void	keylower();
+static	struct	hostent	*fetchhost();
 char	buf[BUFSIZ];
 
 main(argc, argv)

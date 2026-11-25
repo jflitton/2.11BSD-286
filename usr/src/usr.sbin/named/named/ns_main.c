@@ -876,6 +876,7 @@ usage()
 ** structure at the time.
 */
 
+void
 onhup()
 {
 #if defined(SYSV)
@@ -890,6 +891,7 @@ onhup()
 ** structure at the time.
 */
 
+void
 maint_alarm()
 {
 #if defined(SYSV)
@@ -916,7 +918,7 @@ onintr()
  * (due to updates), and to avoid long disk I/O delays at signal-handler
  * level
  */
-int setdumpflg()
+void setdumpflg()
 {
 #if defined(SYSV)
 	(void)signal(SIGINT, setdumpflg);
@@ -935,6 +937,7 @@ read_alarm()
 	read_interrupted = 1;
 }
 
+void
 reapchild()
 {
 #if defined(SYSV)
@@ -991,6 +994,7 @@ int code;
 ** Handy for looking in on long running name servers.
 */
 
+void
 setIncrDbgFlg()
 {
 #if defined(SYSV)
@@ -1012,6 +1016,7 @@ setIncrDbgFlg()
 ** Catch a special signal to turn off debugging
 */
 
+void
 setNoDbgFlg()
 {
 #if defined(SYSV)
@@ -1023,6 +1028,7 @@ setNoDbgFlg()
 /*
 ** Set flag for statistics dump
 */
+void
 setstatsflg()
 {
 #if defined(SYSV)

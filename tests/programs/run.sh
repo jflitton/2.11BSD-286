@@ -8,7 +8,7 @@
 # what they must write, to the byte.  Then use what needs a terminal: tty
 # and mesg, more, man, script, lock, tset and clear, the games
 # battlestar, hack, backgammon, rogue, robots and hangman, window and
-# ve; and stop the system with shutdown.
+# ve, less, jove and tip; and stop the system with shutdown.
 # The kernel, /boot, the C library, the programs and the root file system
 # are built as they would be for a real machine, as tests/system has
 # them.
@@ -88,10 +88,19 @@ spare=$(python3 -I "$top/tools/mkdisk.py" -p -g 100,4,17 spare.img a=fs:2000 \
 # quit [yn]?" on the screen only if the y was not there yet: what is
 # waited for is the shell's prompt after it.  ve, on the same terminal,
 # is given a line to add at the end of a file, and says what it read
-# and wrote.
+# and wrote.  less, whose prompt says how far into the file it is, finds
+# a line and shows its help, which is another less that the shell finds
+# in /usr/local; the Return after the q that ends the help answers the
+# first less's "End of help".  jove, for which a Return would be a new
+# line, is given its text and then the name to write it to, which a
+# Return ends, and the Return after the command that leaves it is the
+# shell's.  tip takes the second serial port, which nothing is on, and
+# its escape ends that.
 CTRLD=$(printf '\004')
 CTRLC=$(printf '\003')
 CTRLP=$(printf '\020')
+CTRLW=$(printf '\027')
+CTRLX=$(printf '\030')
 ESC=$(printf '\033')
 TIMEOUT=${TIMEOUT:-1800} python3 -I "$top/tests/harness/runtest.py" \
     --hd programs.img,$geometry,xtide --hd2 spare.img,$spare --until halting \
@@ -143,6 +152,18 @@ TIMEOUT=${TIMEOUT:-1800} python3 -I "$top/tests/harness/runtest.py" \
     --type "changed, line" ':w' \
     --type "lines, " ':q' \
     --type "# " 'echo "ve""-"`tail -1 /tmp/sv`' \
+    --type "# " 'PATH=$PATH:/usr/local; less -m /etc/services' \
+    --type "/etc/services (" '/^timed' \
+    --type "525/udp" 'h' \
+    --type "q when done" 'q' \
+    --type "End of help" 'q' \
+    --type "# " '/usr/new/jove /tmp/j' \
+    --type "JOVE" "jove-text${CTRLX}${CTRLW}/tmp/j" \
+    --type "characters." "${CTRLX}${CTRLC}" \
+    --type "# " 'echo "jo""ve-"`cat /tmp/j`' \
+    --type "# " 'tip com2' \
+    --type "connected" '~.' \
+    --type "EOT]" 'echo "ti""p-done"' \
     --type "# " 'echo "@ex""it 00"; shutdown -h now going down' \
     --boot programs$case
 
@@ -166,6 +187,8 @@ for want in "^/dev/tty00" "^is y" "^is n" "--More--(.*%)" \
     "Do you need instructions for this program?" "play both:" \
     "Rogueists" "Directions:" \
     "Word #:" "in-window" "/dev/ttyp[0-9]" "changed, line" "^ve-total" \
+    "/etc/services ([0-9]*%)" "525/udp" "End of help" "^jove-jove-text" \
+    "^.connected" "EOT]" "^tip-done" \
     "System going down IMMEDIATELY" "going down" \
     "System shutdown time has arrived" "halting"; do
     if ! grep -q -- "$want" "$serial"; then
@@ -176,4 +199,4 @@ done
 python3 -I "$top/tools/fsck.py" programs.img
 python3 -I "$top/tools/fsck.py" -p a spare.img
 python3 -I "$top/tools/fsck.py" -p e spare.img
-echo "programs: $n checks of the programs that work on text and files, of nroff and man, of tbl, eqn, refer, spell and the rest documents go through, of zic and /usr/adm's scripts, of disklabel, the file system checkers, dump, restor and the rest of the administrator's, and fstat, and of the games, and tty, mesg, more, man, script, lock, tset, clear, six games, window, ve and shutdown at a terminal"
+echo "programs: $n checks of the programs that work on text and files, of nroff and man, of tbl, eqn, refer, spell and the rest documents go through, of zic and /usr/adm's scripts, of disklabel, the file system checkers, dump, restor and the rest of the administrator's, and fstat, and of the games, and tty, mesg, more, man, script, lock, tset, clear, six games, window, ve, less, jove, tip and shutdown at a terminal"

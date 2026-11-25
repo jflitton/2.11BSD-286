@@ -12,7 +12,7 @@ static char *sccsid = "@(#)iproc.c 2.0 (2.11BSD) 2026/9/17";
 #include <stdlib.h>
 #include "jove.h"
 #include "re.h"
-#include <varargs.h>
+#include <stdarg.h>
 
 int	proc_child();
 

@@ -11,7 +11,7 @@ LDFLAGS= -i
 # Programs that live in subdirectories, and have makefiles of their own.
 #
 SUBDIR=	Mail compress ex finger ftp indent lock man mkstr \
-	more msgs netstat rlogin talk tftp \
+	more msgs netstat rdist rlogin talk tftp \
 	top tset window
 
 # Shell scripts that need only be installed and are never removed.

@@ -235,7 +235,7 @@ sendfile(cc)
 		printf("%s: cannot open\r\n", fname);
 		return;
 	}
-	transmit(fd, value(EOFWRITE), NULL);
+	transmit(fd, value(EOFWRITE), (char *)NULL);
 	if (!boolean(value(ECHOCHECK))) {
 		struct sgttyb buf;
 

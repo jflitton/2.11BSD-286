@@ -16,7 +16,7 @@ static char *sccsid = "@(#)extend.c 2.0 (2.11BSD) 2026/7/27";
 #include "ctype.h"
 #include <signal.h>
 #include <strings.h>
-#include <varargs.h>
+#include <stdarg.h>
 
 private	void
 	fb_aux(),

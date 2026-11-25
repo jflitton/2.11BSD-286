@@ -359,6 +359,13 @@ kill `ps ax | awk '/[l]eave \+/ { print $1 }'`
 --
 Alarm set for
 1
+== less
+/usr/local/less /etc/services | cmp - /etc/services && echo same
+cat /etc/motd /etc/shells > c
+/usr/local/less /etc/motd /etc/shells | cmp - c && echo both
+--
+same
+both
 == look
 sort /mnt/d/words | uniq >a
 look ch a

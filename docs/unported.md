@@ -150,12 +150,8 @@ These are the rest of the writer's tools.
 
 | program | where | notes |
 |---|---|---|
-| `named` and its tools (*medium*) | `usr.sbin/named` | |
 | `sendmail.MX` (*medium*) | `usr.sbin/sendmail.MX` | a `sendmail` that looks up MX records with `named` |
-| `identd`, `libident` | `libexec/identd`, `usr.lib/libident` | |
-| `mkhosts` | `usr.sbin/mkhosts` | `/etc/hosts` as a database |
-| `rdist` | `ucb/rdist` | has a grammar |
-| `tip` | `usr.bin/tip` | |
+| `mkhosts` | `usr.sbin/mkhosts` | `/etc/hosts` as a database. Its Makefile is run, as upstream's is, and installs nothing: `mkhosts` needs `gethostent`, which the C library has only when it reads the table of hosts itself, and it asks `named`, as upstream's does (`HOSTLOOKUP` in `lib/libc/Makefile`) |
 | `uucp` (*medium*), `rmail` | `usr.bin/uucp`, `bin/rmail` | |
 | `tn3270` | `ucb/tn3270` | |
 | `slattach` | `sbin/slattach` | waits on SLIP |
@@ -189,11 +185,9 @@ out.
 
 | program | where | notes |
 |---|---|---|
-| `jove` (*medium*) | `new/jove` | |
 | `rn` (*medium*), `nntp` | `new/rn`, `new/nntp` | |
 | `afio`, `cxref` | `local` | may not be sold |
 | `qterm`, `welcome` | `local` | |
-| `less` | `local/less` | may not be sold for profit without its author's consent |
 | `kermit` (*medium*) | `new/kermit5.188` | may not be sold or go with a commercial product |
 | `zmodem` | `local/zmodem` | for non-commercial use |
 | `ddd` | `local/ddd` | for non-commercial use |
@@ -206,8 +200,9 @@ out.
 
 Built: `libc`, `libom`, which `usr.lib`'s Makefile links to `libm` as
 upstream's does, `libutil`, `libtermcap`, `libcurses`, `libdbm`,
-`libwrap`, `libln`, `liby` and `liberrlst`, whose messages `mkerrlst`
-makes into `/etc/syserrlst`. Not built, besides those above: `libmp`
+`libwrap`, `libln`, `liby`, `libident` and `liberrlst`, whose messages
+`mkerrlst` makes into `/etc/syserrlst`. Not built, besides those above:
+`libmp`
 (numbers of any size) and `libvmf` (virtual memory in a file).
 
 ## Not to be ported

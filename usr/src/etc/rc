@@ -5,8 +5,8 @@
 #
 # Upstream's is the PDP-11's (its buses, its network
 # interfaces) and calls some things that are not built here yet: the
-# quota programs, savecore, named and lpd.  What this does of it, it
-# does as that does.  sendmail it starts as upstream's rc.local does.
+# quota programs, savecore and lpd.  What this does of it, it does as
+# that does.  sendmail it starts as upstream's rc.local does.
 
 HOME=/; export HOME
 PATH=/bin:/sbin:/usr/sbin:/usr/bin; export PATH
@@ -67,6 +67,8 @@ dev_mkdb
 ps -U						>/dev/console 2>&1
 
 rm -f /etc/nologin
+# The locks tip leaves on a serial line while it has it (uucplock.c).
+rm -f /usr/spool/uucp/LCK.*
 
 # The network, as /etc/rc.conf describes it (/etc/netstart).
 if [ -s /etc/rc.conf ]
@@ -103,6 +105,10 @@ echo -n starting network daemons:		>/dev/console 2>&1
 if [ "${routed-NO}" = YES ]
 then
 	routed $routedflags; echo -n ' routed'	>/dev/console 2>&1
+fi
+if [ "${named-NO}" = YES ]
+then
+	named;	echo -n ' named'			>/dev/console 2>&1
 fi
 inetd;		echo -n ' inetd'		>/dev/console 2>&1
 if [ "${rwhod-NO}" = YES ]

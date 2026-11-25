@@ -32,16 +32,16 @@ SRCS=	addbib.1 apply.1 apropos.1 at.1 atq.1 atrm.1 \
 	look.1 lookbib.1 lorder.1 ls.1 \
 	m4.1 mail.1 make.1 man.1 mesg.1 mkdep.1 \
 	more.1 msgs.1 mv.1 netstat.1 newaliases.1 nice.1 nm.1
-SRCS1=	nroff.1 od.1 pagesize.1 \
+SRCS1=	nroff.1 nslookup.1 od.1 pagesize.1 \
 	pr.1 printenv.1 ps.1 ptx.1 pwd.1 \
-	rcp.1 refer.1 rev.1 \
+	rcp.1 rdist.1 refer.1 rev.1 \
 	rm.1 rmdir.1 roffbib.1 rsh.1 ruptime.1 rwho.1 \
 	script.1 sed.1 sh.1 size.1 sleep.1 soelim.1 \
 	sort.1 sortbib.1 spell.1 spline.1 split.1 strings.1 \
 	strip.1 style.1 su.1 sum.1 \
 	tabs.1 tail.1 talk.1 \
 	tar.1 tbl.1 tee.1 telnet.1 time.1 \
-	tr.1 true.1 \
+	tip.1 tr.1 true.1 \
 	tsort.1 tty.1 ul.1 unifdef.1 uniq.1 units.1 uptime.1 users.1 \
 	vacation.1 vi.1 vmstat.1 w.1 wait.1 wall.1 wc.1 \
 	what.1 whatis.1 which.1 who.1 whois.1 window.1 \
@@ -59,16 +59,16 @@ OBJS1=	addbib.0 apply.0 apropos.0 at.0 atq.0 atrm.0 \
 	look.0 lookbib.0 lorder.0 ls.0 \
 	m4.0 mail.0 make.0 man.0 mesg.0 mkdep.0 \
 	more.0 msgs.0 mv.0 netstat.0 newaliases.0 nice.0 nm.0
-OBJS2=	nroff.0 od.0 pagesize.0 \
+OBJS2=	nroff.0 nslookup.0 od.0 pagesize.0 \
 	pr.0 printenv.0 ps.0 ptx.0 pwd.0 \
-	rcp.0 refer.0 rev.0 \
+	rcp.0 rdist.0 refer.0 rev.0 \
 	rm.0 rmdir.0 roffbib.0 rsh.0 ruptime.0 rwho.0 \
 	script.0 sed.0 sh.0 size.0 sleep.0 soelim.0 \
 	sort.0 sortbib.0 spell.0 spline.0 split.0 strings.0 \
 	strip.0 style.0 su.0 sum.0 \
 	tabs.0 tail.0 talk.0 \
 	tar.0 tbl.0 tee.0 telnet.0 time.0 \
-	tr.0 true.0 \
+	tip.0 tr.0 true.0 \
 	tsort.0 tty.0 ul.0 unifdef.0 uniq.0 units.0 uptime.0 users.0 \
 	vacation.0 vi.0 vmstat.0 w.0 wait.0 wall.0 wc.0 \
 	what.0 whatis.0 which.0 who.0 whois.0 window.0 \
@@ -99,6 +99,8 @@ install: _make_01 _make_02
 	ln ${MDIR}/sh.0 ${MDIR}/case.0
 	rm -f ${MDIR}/checkeq.0
 	ln ${MDIR}/eqn.0 ${MDIR}/checkeq.0
+	rm -f ${MDIR}/cu.0
+	ln ${MDIR}/tip.0 ${MDIR}/cu.0
 	rm -f ${MDIR}/diffh.0
 	ln ${MDIR}/diff.0 ${MDIR}/diffh.0
 	rm -f ${MDIR}/edit.0

@@ -104,10 +104,11 @@ compiler for the machine it runs on, `cc` unless `HOSTCC` names another,
 for the system's compiler and the tree's `yacc`, `lex` and `nroff`
 ([grammars](#grammars-yacc-and-lex)), which it runs there.
 
-Eight programs are medium-model so far: `csh`, `ex` and `tcsh`, here,
-`sendmail` ([mail](#mail)), and the games `hack`, `phantasia`, `rogue`
-and `warp` ([games](#games)). `csh` was linked with two
-overlays on the PDP-11; here its 67K of code is in two segments, and its
+Nine programs are medium-model so far: `csh`, `ex` and `tcsh`, here,
+`sendmail` ([mail](#mail)), `jove` ([below](#less-jove-and-tip)), and
+the games `hack`, `phantasia`, `rogue` and `warp` ([games](#games)).
+`csh` was linked with two overlays on the PDP-11; here its 67K of code
+is in two segments, and its
 data segment has 11K of data and 8K of stack, leaving about 45K for its
 heap. `ex`, which is also `vi`, had two overlays as well. Its 82K of
 code is in two segments, and its data segment has 35K of data and 8K of
@@ -284,7 +285,9 @@ on to `error` now, as the other callers do.
 The compiler also takes any macro named `va_start` to be the variadic
 one, and refuses it in a function not declared with `...`. So a function
 written with `varargs.h`, whose `va_alist` is an ordinary parameter, is
-rewritten with `stdarg.h`; `ex`'s `printf` was the first.
+rewritten with `stdarg.h`; `ex`'s `printf` was the first, and `jove`'s
+sixteen, for its messages, its prompts and the commands it runs, are
+so too.
 
 **Prototypes.** Code written for both kinds of compiler, as `tcsh` is,
 declares its functions with `__P((...))`, which keeps the prototype
@@ -1039,8 +1042,9 @@ left as it is:
 - `nc -r`, for ports in a random order, asks for 64K, which comes to
   none. `safe_finger` stops reading after 100000 bytes, counted in an
   `int`; its minute's limit is what stops it.
-- `tcpd` knows a client's user only if the client runs `identd`, which
-  nothing here does yet.
+- `tcpd` knows a client's user only if the client runs `identd`
+  ([below](#named-identd-and-rdist)), which `inetd.conf` leaves off, as
+  upstream's does.
 - Anonymous `ftp` is confined to the home directory of the user `ftp`,
   and what is not under it is not there: `/bin/ls` for `dir`, and
   `/etc/syserrlst`, without which an error is `Unknown error: 2`.
@@ -1059,19 +1063,84 @@ everyone, as before there was a `tcpd`, and says how to narrow that.
 `timed` and `ntpd` if `/etc/rc.conf` says to, as upstream's does; none
 is on as shipped.
 
-Left out: `identd`, which reads the kernel's tables to find whose a
-connection is, with the others that read the kernel; `comsat`, `biff`
-and `popper`, which came with [mail](#mail); `named` and its tools,
-though the library's resolver is there to ask another machine's;
-`mkhosts`, for a table of hosts the library here does not read;
-`slattach`, since the kernel has no serial line interface; `trpt` and
-`trsp`, since it does not keep the traces they print; `rmt`, for
-tapes; and `rdist`, `tn3270`, `tip` and `uucp`.
+Left out of these: `comsat`, `biff` and `popper`, which came with
+[mail](#mail); `rmt`, which came with [the administrator's
+programs](#backups-and-the-rest-of-the-administrators); `named`,
+`identd` and `rdist`, which came later ([below](#named-identd-and-rdist)),
+and `tip` ([below](#less-jove-and-tip)). Not ported: `mkhosts`, for a
+table of hosts that the library here does not read; `slattach`, since
+the kernel has no serial line interface; `trpt` and `trsp`, since it
+does not keep the traces they print; and `tn3270` and `uucp`
+([what is not ported](unported.md)).
 
 `tests/network` has the system run these, on the loopback interface
 and, for the daemons that speak to the whole network, on the Ethernet
-card: 21 checks in `tests/network/checks`, and `rlogin` and `talk` at
-terminals.
+card: 24 checks in `tests/network/checks`, with those of `named`,
+`identd` and `rdist` below, and `rlogin` and `talk` at terminals.
+
+## named, identd and rdist
+
+`named`, the name server, is upstream's BIND 4.8 as it stands, with
+`nslookup`, `nsquery` and `nstest`. Upstream's Makefile links it without
+overlays, which it says it wants only when compiled with `DEBUG` and
+`STATS`, and here it is a small-model program too: 58K of code and 21K
+of data, which with its 8K of stack leaves about 35K for the zones it
+loads and the answers it keeps. `nslookup`, of 47K, has its commands'
+scanner made by `lex`. `nstest` prints nothing unless the library's
+resolver is compiled with `DEBUG`, as its Makefile says.
+
+`/etc/rc` starts `named` before `inetd` when `rc.conf` says
+`named=YES`, as upstream's does, and it reads `/etc/named.boot`, of
+which upstream has examples in `usr/src/usr.sbin/named/master` and
+installs none. The C library asks it: `HOSTLOOKUP` is `named` in
+`lib/libc/Makefile`, as upstream has it, so `gethostbyname` asks the
+server `/etc/resolv.conf` names, or this machine's when there is no such
+file, and reads `/etc/hosts` when none answers. `tests/network` has
+`named` serve a zone of its own and the zone of 127.0.0.1's name, asks
+it with `nslookup`, and has `finger` find a host by an alias in that
+zone.
+
+`identd` tells another machine whose a connection to it is, for that
+machine's `tcpd` or its logs. It finds the connection among the kernel's
+TCP connections, the open file that is that socket, and the process that
+has the file open, as `fstat` does. Upstream's reads the PDP-11's
+kernel: the network's memory from `/dev/mem` at the click `netdata`
+gives, the network's symbols in `/netnix`, and a user structure in
+memory or on the swap device. The 286's
+(`libexec/identd/src/kernel/2.11bsd.c`) reads the network's data segment
+through `/dev/kmem` by its number, which `/unix`'s symbol `tcb` has, and
+a user structure in the kernel's slot or in memory, as `ps` does
+([programs that read the kernel](#programs-that-read-the-kernel)).
+`inetd` runs it as the user `sys`, whose group is `kmem`, and
+`inetd.conf` has it commented out, as upstream's does. `itest`, which
+shows what it finds of the kernel, `idecrypt` and the script `identconn`
+are installed with it, and `libident`, with which a client asks an
+`identd`, is built for the three models as the other libraries are.
+Its Makefile's `GDEFS`, with which it logs each question and its answer
+(`STRONG_LOG`), followed a commented-out line that ended in a `\`, and
+2.11BSD's `make`, which goes on past an empty line after one, read it
+as comment too; that line ends now, and both `make`s read `GDEFS`.
+`tests/network` asks it whose two connections are, one root's and one a
+user's, and about one that is nobody's, and has `tcpd`'s `try-from` name
+the user at the other end of an `rsh`.
+
+`rdist` brings files on other machines up to date with this one's: it
+has `rdist -Server` run on each through `rsh`'s daemon, whose port it
+binds as root. Upstream links it with `libstubs`, whose `ctime` and the
+rest asked `ctimed` for what the PDP-11's program had no room for; the
+library's own are linked here. `tests/network` has a user install a
+directory with it on the same machine, and bring a file there up to
+date.
+
+What the cross compiler needed of these ([what this compiler
+needed](#what-this-compiler-needed)): `named`'s signal handlers are
+defined `void`, as its `main` declares them. `identd`'s `error1`, whose
+second argument is one word, an `int` or a string, is variadic, and its
+`getbuf` takes a `void *`. `rdist` casts the null it passes for a
+`char *`, and the 0 it passed `notify` for a `time_t`, a bug on any
+16-bit machine; its `makesubcmd` has lost the parameter that no call
+gave it. `mkhosts`, which compiles though it does not link ([what is
+not ported](unported.md)), declares `fetchhost` before it uses it.
 
 ## Mail
 
@@ -1757,6 +1826,55 @@ its 1781 checks of the code the compiler generates, as a second
 program of the model there; and the system's own compiler makes
 `window` of it, as it makes every program of the root by default.
 
+## less, jove and tip
+
+Three more of upstream's that are used at a terminal. `less` is from
+upstream's `local`, and so in `/usr/local`, as the port's own programs
+are ([upstream's programs, and newer
+ones](#upstreams-programs-and-newer-ones)); its help is
+`/usr/local/lib/less.help`, which its `h` shows by running another
+`less` by name, which root's `.profile` does not have on its path. It
+is version 61, of 1986, configured by its Makefile as upstream's is,
+for BSD's terminal and regular expressions; a small-model program of
+24K of code. Its notice (`version.c`) lets it be used and changed
+freely, but not sold for profit without its author's written consent.
+
+`jove`, from upstream's `new`, is in `/usr/new`, with its help, the
+system's `.joverc`, `recover`, which finds what it was editing when the
+system went down, and `portsrv` in `/usr/new/lib/jove`, and `teachjove`
+beside it. It is of the medium model, where the PDP-11 had it in six
+overlays: 88K of code in two segments, and 27K of data, which with its
+8K of stack leaves about 29K for what it allocates. As it builds, its
+Makefile compiles and runs `setmaps`, which makes the table of its keys
+from `keymaps.txt`; where the system is built that is compiled for the
+machine it is built on (`tools/build/sh.py`), with `getline` hidden from
+that machine's `stdio.h`, which declares one where `jove` has its own.
+Its Makefile named the shell `jove` runs as `SHELL`, `/bin/csh`; the
+make where the system is built runs commands with `SHELL`, which the
+build gives it, so the Makefile names that shell `JSHELL`.
+
+`tip` and `cu`, one program by two names, are from `usr.bin`, set-user
+`uucp`, which owns their locks in `/usr/spool/uucp`, as upstream
+installs them. `/etc/remote` is this port's: `com2` is the second
+serial port, `tty01`, which `/etc/ttys` leaves for it, at 9600 baud,
+`com1` the first, and `tip -9600 number` dials with a Hayes modem on
+the second ([the console](console.md)). `/etc/phones` is upstream's,
+and `/usr/adm/aculog` is where the dialing is logged. `/etc/rc` takes
+away the locks that a system that went down left.
+
+For the cross compiler ([what this compiler
+needed](#what-this-compiler-needed)), `less`'s `signal.c` undefines the
+`off_t` that the Makefile defines as `long` before it includes
+`signal.h`, whose `sys/types.h` declares the type; `jove`'s `TermError`,
+called with an argument or without, is variadic, as its functions
+written with `varargs.h` are; and `tip` casts the null it passes for a
+`char *`.
+
+`tests/programs` has `less` copy files through, as it does when it is
+not at a terminal, and at the terminal find a line and show its help;
+gives `jove` a line and has it write the file; and has `tip` take the
+second serial port and let it go.
+
 ## ve
 
 `ve` is a screen editor with the modes and the most used commands of
@@ -2256,7 +2374,7 @@ console's screens.
 
 Upstream's `rc` is the PDP-11's, with its buses and network interfaces,
 and calls some things that are not built yet: the quota programs,
-`savecore` and the network's other daemons. This port's checks the file
+`savecore` and `lpd`. This port's checks the file
 systems as upstream's does. At an automatic boot `fsck -p` checks each
 in `fstab` that was not unmounted cleanly, the root first and alone; if
 it had to change the root, which is mounted, `rc` starts the system
@@ -2265,7 +2383,9 @@ written over what `fsck` wrote. From single user `rc` checks nothing,
 that having been done by hand. `mount -a` mounts the rest of `fstab`,
 and `dev_mkdb` and `ps -U` make the databases of devices and of the
 kernel's symbols that `ps` reads ([programs that read the
-kernel](#programs-that-read-the-kernel)). Then `rc` reads `/etc/rc.conf`, which names the machine and gives the
+kernel](#programs-that-read-the-kernel)), and the locks that `tip`
+leaves in `/usr/spool/uucp` are taken away. Then `rc` reads
+`/etc/rc.conf`, which names the machine and gives the
 Ethernet interface's address, netmask and gateway, and runs
 `/etc/netstart`, which sets up the loopback interface and, if `rc.conf`
 gives an address, the Ethernet interface and the default route, as
@@ -2277,8 +2397,9 @@ which has the kernel write what it holds for the disks every 30
 seconds, and `cron`; turns accounting on ([the log, and what the clock
 runs](#the-log-and-what-the-clock-runs)); and starts `inetd`, and the
 daemons `rc.conf` asks for ([the network's
-programs](#the-networks-programs)), among them `sendmail`'s, which is
-off as shipped ([mail](#mail)). `inetd.conf`, `hosts.allow` and
+programs](#the-networks-programs)), among them `named`, which it starts
+before `inetd` as upstream's does, and `sendmail`'s ([mail](#mail)),
+both off as shipped. `inetd.conf`, `hosts.allow` and
 `hosts.equiv` are this port's own, as is a `hosts` that names only
 `localhost`; `services`, `protocols`, `hosts.deny`, `ftpusers` and
 `ntp.conf` are upstream's ([the network](network.md)).
@@ -2516,16 +2637,17 @@ message, which must be shown before the system halts. Afterwards
 `tools/fsck.py` must find nothing wrong with the root.
 
 `tests/network` boots it with the Ethernet card, logs in as root on
-the serial port, adds the users `guest` and `ftp`, and runs the 34
+the serial port, adds the users `guest` and `ftp`, and runs the 37
 checks of `tests/network/checks` in the same way. The first names the
 machine, brings its interface up at the address the emulator's network
-expects, and has `inetd` read its table again with `rexecd`, `tftpd`
-and `ntalkd` turned on. The rest use each program against its daemon on
-the machine itself: `finger` through `fingerd`; `tcpdmatch` and
-`tcpdchk` on the rules, `try-from` run by `rsh` to say what `tcpd` knows
-of a client, and an `ftp` that `tcpd` refuses and logs once the rules
-leave `ftpd` out; `rsh` with a command's output, its errors, its input,
-and a user who has no `.rhosts`; `rcp` each way and of a directory;
+expects, and has `inetd` read its table again with `rexecd`, `tftpd`,
+`ntalkd` and `identd` turned on. The rest use each program against its
+daemon on the machine itself: `finger` through `fingerd`; `tcpdmatch`
+and `tcpdchk` on the rules, `try-from` run by `rsh` to say what `tcpd`
+knows of a client, its user among it, which `identd` tells, and an
+`ftp` that `tcpd` refuses and logs once the rules leave `ftpd` out;
+`rsh` with a command's output, its errors, its input, and a user who
+has no `.rhosts`; `rcp` each way and of a directory;
 `rexecd`; `tftp` with a file each way, the 146K termcap, and one it may
 not read; `ftp` as a user, with files each way in both modes, a
 directory made and removed, a file renamed, appended to and deleted,
@@ -2537,7 +2659,8 @@ to the gateway; `rwhod` with `rwho` and `ruptime`; `timed`, which makes
 itself the network's master, with `timedc`; `ntpd` with `ntpdc` and
 `ntp`, and `ntest`, in which `ntp` checks its arithmetic; `routed`
 with its trace; `hunt -q`, which must find no game, having broadcast
-for one on the Ethernet and waited ([games](#games)); and the 12 of
+for one on the Ethernet and waited ([games](#games)); `named`,
+`identd` and `rdist` ([above](#named-identd-and-rdist)); and the 12 of
 mail ([mail](#mail)). Then root uses
 `rlogin` to the user, with `.rhosts` and then with a password; from
 there `rsh` and a second `rlogin`, which `hosts.equiv` lets through;
@@ -2564,10 +2687,10 @@ Not done, or not tested:
   library it uses but the C library, which has been. One that reads
   the kernel's structures with pointers in them, as `top`, `ps` and
   `w` do, cannot be moved: the kernel's pointers are two bytes.
-- `csh`, `ex`, `tcsh`, `sendmail`, `hack`, `phantasia`, `rogue` and
-  `warp` are the medium-model programs so far. The others that the
-  PDP-11 overlays (`named`, `uucp`, `jove`, `kermit` and the rest
-  [not ported](unported.md)) are the ones meant for it. `csh`'s file name
+- `csh`, `ex`, `tcsh`, `sendmail`, `jove`, `hack`, `phantasia`,
+  `rogue` and `warp` are the medium-model programs so far. The others
+  that the PDP-11 overlays (`uucp`, `kermit`, `rn` and the rest [not
+  ported](unported.md)) are the ones meant for it. `csh`'s file name
   completion, and `tcsh` as a login shell, have not been tried.
 - `ex`'s saving of what it was editing when its terminal hangs up has
   not been tried, only its `preserve` command, which runs the same

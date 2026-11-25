@@ -19,7 +19,7 @@ static char *sccsid = "@(#)util.c 2.0 (2.11BSD) 2026/7/27";
 #include "termcap.h"
 #include <signal.h>
 #include <strings.h>
-#include <varargs.h>
+#include <stdarg.h>
 
 struct cmd *
 FindCmd(proc)

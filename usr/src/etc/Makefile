@@ -14,13 +14,12 @@
 # each), as 4.4BSD's distribution makes them first, so that what the
 # Makefiles of /usr/src install has where to go; and after the files,
 # the devices, by MAKEDEV, which makes what the machine has (all), as
-# 4.4BSD's runs it.  Not the files of tip, lpr, autoconfig, savecore and
-# uucp, which the 286 has not: dtab, printcap, remote, phones,
-# shutdownlog, aculog and uucp's (SUBDIR); nor rc.local, whose work its
-# rc does.  /usr/adm, /var/run and /var/db are 755, where the owner may
-# search them, and not 655.  cron's log is made, and the database of
-# the aliases, as newaliases makes it, without which each sendmail waits
-# for someone to make it.
+# 4.4BSD's runs it.  Not the files of lpr, autoconfig, savecore and
+# uucp, which the 286 has not: dtab, printcap, shutdownlog and uucp's
+# (SUBDIR); nor rc.local, whose work its rc does.  /usr/adm, /var/run
+# and /var/db are 755, where the owner may search them, and not 655.
+# cron's log is made, and the database of the aliases, as newaliases
+# makes it, without which each sendmail waits for someone to make it.
 
 DESTDIR=/foobar
 OWN=root
@@ -31,7 +30,13 @@ SUBDIR= root
 FILES=	acctd.cf aliases crontab disktab fstab ftpusers gettytab group \
 	hosts hosts.allow hosts.deny inetd.conf inetd.conf.nowrappers \
 	motd netstart networks ntp.conf protocols rc rc.conf \
-	sendmail.cf services shells syslog.conf ttys
+	remote sendmail.cf services shells syslog.conf ttys
+
+# The phones file can contain sensitive information (see phones(5)) so is
+# installed readable only by uucp/tip and group daemon.  A local site can use 
+# less restrictive permissions.
+
+PHONES= phones
 
 # NOP targets
 all install depend lint clean tags:
@@ -51,6 +56,8 @@ distribution:
 
 	install -c -o ${OWN} -g ${GRP} -m 644 ${FILES} ${DESTDIR}/etc
 	newaliases -oA${DESTDIR}/etc/aliases
+
+	install -c -m 440 -o uucp -g daemon ${PHONES} ${DESTDIR}/etc
 
 	mkpasswd -p master.passwd
 	install -c -o root -g wheel -m 600 master.passwd ${DESTDIR}/etc
@@ -94,6 +101,8 @@ distribution:
 	    ${DESTDIR}/usr/adm/usracct
 	install -c -o ${OWN} -g ${GRP} -m 644 /dev/null \
 	    ${DESTDIR}/usr/adm/savacct
+	install -c -o uucp -g daemon -m 600 /dev/null \
+	    ${DESTDIR}/usr/adm/aculog
 	install -c -o ${OWN} -g ${GRP} -m 644 /dev/null \
 	    ${DESTDIR}/usr/adm/cron
 	-for i in ${SUBDIR}; do \

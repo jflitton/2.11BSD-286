@@ -10,7 +10,7 @@ SUBDIR=	at calendar dc diction diff3 eqn fstat find id learn \
 	lex \
 	m4 neqn printf ranlib refer roff spell tbl \
 	mkerrlst patch \
-	renice shar touch uname whereis yacc xargs xinstall
+	renice shar tip touch uname whereis yacc xargs xinstall
 
 # Shell scripts that need only be installed and are never removed.
 #

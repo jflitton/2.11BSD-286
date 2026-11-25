@@ -22,7 +22,10 @@ MANDIR=/usr/man/cat8
 # ftp.funet.fi in pub/crypt/libdes.
 #
 # GDEFS=-DINCLUDE_EXTENSIONS -DINCLUDE_PROXY -DINCLUDE_CRYPT \
-#	-DSTRONG_LOG -DALLOW_FORMAT \
+#	-DSTRONG_LOG -DALLOW_FORMAT
+#
+# Above, a \ that ended the second line had 2.11BSD's make, which goes
+# on past an empty line after one, take the GDEFS below as comment too.
 
 GDEFS=-DSTRONG_LOG -DDPATH_CONFIG='\"$(CONFDIR)/identd.conf\"' \
 	-DPATH_DESKEY='\"$(CONFDIR)/identd.key\"'

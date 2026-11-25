@@ -244,7 +244,7 @@ expsh(s)
 		cp++, pathp++;
 	*pathp = '\0';
 	if (*oldcp == '{') {
-		execbrc(cp, NULL);
+		execbrc(cp, (char *)NULL);
 		return;
 	}
 	matchdir(cp);

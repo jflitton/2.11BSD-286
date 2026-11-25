@@ -16,6 +16,7 @@ static char *sccsid = "@(#)signal.c 1.2 (2.11BSD) 2026/9/21";
 #endif
 
 #include "less.h"
+#undef off_t		/* <signal.h> has <sys/types.h>, which typedefs it */
 #include <signal.h>
 #include <setjmp.h>
 

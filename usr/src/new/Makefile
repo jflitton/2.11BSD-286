@@ -7,8 +7,8 @@ CFLAGS=	-O
 #
 # Default programs that are installed
 #
-STDINST= la
-SUBDIR= la
+STDINST= jove la
+SUBDIR= jove la
 
 #
 # Special purpose software that requires custom installation or may not

@@ -28,6 +28,7 @@ static char *sccsid = "@(#)term.c 2.0 (2.11BSD) 2026/9/17";
 
 #define _TERM
 #include "termcap.h"
+#include <stdarg.h>
 
 /* Termcap definitions */
 
@@ -120,9 +121,14 @@ char	*buf;
 /* VARARGS1 */
 
 static void
-TermError(fmt, a)
-char	*fmt;
+TermError(char *fmt, ...)
 {
+	va_list	ap;
+	char	*a;
+
+	va_start(ap, fmt);
+	a = va_arg(ap, char *);
+	va_end(ap);
 	printf(fmt, a);
 	flusho();
 	_exit(1);

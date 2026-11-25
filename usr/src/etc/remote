@@ -1,28 +1,43 @@
 #
 #      @(#)remote    1.2 (2.11BSD) 2026/6/24
 #
+# The 286's: the serial ports are tty00 and tty01, COM1 and COM2.
+# /etc/ttys has a getty on tty00 and leaves tty01 off, so a modem or a
+# line to another machine goes on COM2.  `tip com2` takes the line
+# directly, `tip -9600 5551212` dials with a Hayes modem, and `tip
+# /dev/tty01` is the port at 1200 baud with no entry here.
+#
 # General dialer definitions used below
 #
 dial19200|19200 Baud Hayes attributes:\
-	:br#19200:at=hayes:du:
+	:dv=/dev/tty01:br#19200:at=hayes:du:
 dial9600|9600 Baud Hayes attributes:\
-	:br#9600:at=hayes:du:
-dial1200|1200 Baud DN11 attributes:\
-	:dv=/dev/ttyi8:br#1200:cu=/dev/dn1:at=dn11:du:
-dial300|300 Ventel attributes:\
-	:dv=/dev/cul0:br#300:cu=/dev/cul0:at=ventel:du:
+	:dv=/dev/tty01:br#9600:at=hayes:du:
+dial2400|2400 Baud Hayes attributes:\
+	:dv=/dev/tty01:br#2400:at=hayes:du:
+dial1200|1200 Baud Hayes attributes:\
+	:dv=/dev/tty01:br#1200:at=hayes:du:
 #
 # UNIX system definitions
 #
+UNIX-9600|9600 Baud dial-out to another UNIX system:\
+	:el=^U^C^R^O^D^S^Q@:ie=#%$:oe=^D:tc=dial9600:
+UNIX-2400|2400 Baud dial-out to another UNIX system:\
+	:el=^U^C^R^O^D^S^Q@:ie=#%$:oe=^D:tc=dial2400:
 UNIX-1200|1200 Baud dial-out to another UNIX system:\
 	:el=^U^C^R^O^D^S^Q@:ie=#%$:oe=^D:tc=dial1200:
-UNIX-300|300 Baud dial-out to another UNIX system:\
-	:el=^U^C^R^O^D^S^Q@:ie=#%$:oe=^D:tc=dial300:
 tip0|tip1200:tc=UNIX-1200:
-tip300:tc=UNIX-300:
-cu0|cu300:tc=UNIX-300:
-cu1200:tc=UNIX-1200:
-dialer:dv=/dev/cul0:br#1200:
+tip2400:tc=UNIX-2400:
+tip9600:tc=UNIX-9600:
+cu0|cu1200:tc=UNIX-1200:
+cu2400:tc=UNIX-2400:
+cu9600:tc=UNIX-9600:
+dialer:dv=/dev/tty01:br#1200:
+#
+# Direct lines, with no modem
+#
+com1|tty00|COM1, direct:dv=/dev/tty00:br#9600:
+com2|tty01|COM2, direct:dv=/dev/tty01:br#9600:
 
 #--------------------------------------------------------------------
 #The attributes are:
