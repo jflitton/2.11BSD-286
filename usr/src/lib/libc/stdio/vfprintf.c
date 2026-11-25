@@ -63,6 +63,7 @@ char _hextab[] = "0123456789ABCDEF";
 int gnum(char **, struct prinfo *);
 void prstr(char *b, char *e, struct prinfo *pi);
 void putwth(register struct prinfo *pi);
+static int sbprintf(FILE *, const char *, va_list);
 
 int
 __svfprintf(FILE *iob, const char *fmt, va_list ap)
@@ -75,6 +76,9 @@ __svfprintf(FILE *iob, const char *fmt, va_list ap)
 	unsigned long l;
 	char buf[SZBUF];
 
+	if ((iob->_flags & (__SNBF|__SWR|__SRW)) == (__SNBF|__SWR) &&
+	    iob->_file >= 0)
+		return (sbprintf(iob, fmt, ap));
 	pri.nwrtn = 0;
 	pri.iob = iob;
 	pri.app = &ap;
@@ -298,4 +302,31 @@ putwth(register struct prinfo *pi)
 
 	while (w-- > 0)
 		fputc(' ', pi->iob), pi->nwrtn++;
+}
+
+/*
+ * Each character is put with fputc, which on an unbuffered stream, as
+ * stderr is, is a write of its own: a prompt of getpass came through
+ * telnet a character a packet.  Format into a buffer here, as 4.4BSD's
+ * __sbprintf and 4.3BSD's fprintf did, and write it at once.  Only a
+ * stream that is written and not read, so that no ungetc is in the way.
+ */
+static int
+sbprintf(register FILE *fp, const char *fmt, va_list ap)
+{
+	FILE fake;
+	unsigned char buf[256];
+	int ret;
+
+	fake = *fp;
+	fake._flags = fp->_flags & ~__SNBF;
+	fake._bf._base = fake._p = buf;
+	fake._bf._size = fake._w = sizeof (buf);
+	fake._lbfsize = 0;
+	ret = __svfprintf(&fake, fmt, ap);
+	if (__sflush(&fake))
+		ret = EOF;
+	if (fake._flags & __SERR)
+		fp->_flags |= __SERR;
+	return (ret);
 }

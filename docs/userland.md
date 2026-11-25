@@ -197,6 +197,12 @@ in the kernel finding a few; `w` takes 0.7 seconds now, where it took 3.
 Upstream's `fseek` also left an `ungetc`'d character's flag set, and the
 first read after the seek returned what was in the buffer before it.
 
+`printf` and the rest put each character with `fputc`, which on an
+unbuffered stream, as `stderr` is, was a `write` of its own: `getpass`'s
+`Password:` came through `telnet` a character a packet. As 4.3BSD's
+`fprintf` and 4.4BSD's `__sbprintf` did, what is printed to such a
+stream is formatted into a buffer and written at once.
+
 The system's error messages are in `/etc/syserrlst`, not in each
 program's data, as on the PDP-11. `tools/mkerrlst.py` makes the file from
 `usr.lib/liberrlst/errlst.c`.

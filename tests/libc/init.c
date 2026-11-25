@@ -19,6 +19,7 @@
 #include <sys/uio.h>
 #include <sys/reboot.h>
 #include <sys/dir.h>
+#include <sys/socket.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -92,7 +93,7 @@ stdio()
 {
 	FILE *f;
 	char line[80];
-	int n, a, b;
+	int n, a, b, sv[2];
 	long l;
 	char word[20];
 	double d;
@@ -158,6 +159,22 @@ stdio()
 	check(sscanf("17 0x1f -3.5e2", "%d %x %lf", &a, &b, &d) == 3 &&
 	    a == 17 && b == 31 && d == -350.0, "sscanf");
 	check(unlink("/tmp/stdio") == 0, "unlink the file");
+	/*
+	 * printf to an unbuffered stream, as stderr is, writes once: a
+	 * datagram socket keeps each write apart.
+	 */
+	if (socketpair(AF_UNIX, SOCK_DGRAM, 0, sv) < 0 ||
+	    (f = fdopen(sv[0], "w")) == NULL) {
+		check(0, "socketpair and fdopen");
+		return;
+	}
+	setbuf(f, (char *)NULL);
+	fprintf(f, "%s %d:", "Password", 2);
+	n = recv(sv[1], line, sizeof line, 0);
+	check(n == 11 && strncmp(line, "Password 2:", 11) == 0,
+	    "printf to an unbuffered stream writes once");
+	fclose(f);
+	close(sv[1]);
 }
 
 strings()
