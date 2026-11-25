@@ -71,6 +71,7 @@ char	**av, **clist, **llist, **plist;
 int	cflag, eflag, oflag, pflag, sflag, wflag, exflag, proflag;
 int	Mflag, debug;
 int	exfail;
+int	quiet;			/* callsys: the program's errors to /dev/null */
 char	*chpass;
 char	*npassname;
 
@@ -84,7 +85,7 @@ main(argc, argv)
 	time_t tid;
 	char *t, *ctbuf;
 	char *assource;
-	int i, j, c;
+	int i, j, c, c2fail;
 
 	/* ld currently adds upto 5 args; 10 is room to spare */
 	av = (char **)calloc(argc+10, sizeof (char **));
@@ -322,11 +323,19 @@ main(argc, argv)
 		}
 		if (oflag) {
 			av[0] = "c2"; av[1] = tmp5; av[2] = tmp3; av[3] = 0;
-			if (callsys(c2, av)
 #ifdef i286
-			    && callsys(c2big, av)
+			/*
+			 * c2 says nothing: c2l, given the file when c2 fails,
+			 * says again what c2 would have, but that it had no
+			 * space for a function, which c2l has.
+			 */
+			quiet = 1;
+			c2fail = callsys(c2, av);
+			quiet = 0;
+			if (c2fail && callsys(c2big, av)) {
+#else
+			if (callsys(c2, av)) {
 #endif
-			    ) {
 				unlink(tmp3);
 				tmp3 = assource = tmp5;
 			} else
@@ -482,6 +491,10 @@ callsys(f, v)
 		return (100);
 	}
 	if (t == 0) {
+		if (quiet) {
+			close(2);
+			open("/dev/null", 1);
+		}
 		execv(f, v);
 		printf("Can't find %s\n", f);
 		fflush(stdout);
