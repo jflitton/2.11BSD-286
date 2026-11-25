@@ -56,6 +56,12 @@ struct	nlist nl[] = {
 	{ "_spp_debx" },
 	0
 };
+/*
+ * Where a symbol is in /dev/kmem: on the 286, the network's variables
+ * are in a segment of their own, whose number nlist gives in n_ovly
+ * and /dev/kmem takes in an offset's high 16 bits.
+ */
+#define	KOFF(i)	(((off_t)nl[i].n_ovly << 16) + nl[i].n_value)
 struct	spp_debug spp_debug[SPP_NDEBUG];
 caddr_t	spp_pcbs[SPP_NDEBUG];
 int	spp_debx;
@@ -127,13 +133,13 @@ again:
 		nl[0].n_value &= 0x7fffffff;
 		nl[1].n_value &= 0x7fffffff;
 	}
-	(void) lseek(0, nl[1].n_value, 0);
+	(void) lseek(0, KOFF(1), 0);
 	if (read(0, &spp_debx, sizeof (spp_debx)) != sizeof (spp_debx)) {
 		fprintf(stderr, "trsp: "); perror("spp_debx");
 		exit(3);
 	}
 	printf("spp_debx=%d\n", spp_debx);
-	(void) lseek(0, nl[0].n_value, 0);
+	(void) lseek(0, KOFF(0), 0);
 	if (read(0, spp_debug, sizeof (spp_debug)) != sizeof (spp_debug)) {
 		fprintf(stderr, "trsp: "); perror("spp_debug");
 		exit(3);
@@ -150,12 +156,12 @@ again:
 			exit(2);
 		}
 		while(cp < cplim) *cp++ = 0;
-		(void) lseek(0, nl[0].n_value, 0);
+		(void) lseek(0, KOFF(0), 0);
 		if (write(0, spp_debug, sizeof (spp_debug)) != sizeof (spp_debug)) {
 			fprintf(stderr, "trsp: "); perror("spp_debug");
 			exit(3);
 		}
-		(void) lseek(0, nl[1].n_value, 0);
+		(void) lseek(0, KOFF(1), 0);
 		spp_debx = 0;
 		if (write(0, &spp_debx, sizeof (spp_debx)) != sizeof (spp_debx)) {
 			fprintf(stderr, "trsp: "); perror("spp_debx");
@@ -213,7 +219,8 @@ dotrace(sppcb)
 		if (sppcb && sd->sd_cb != sppcb)
 			continue;
 		ntime = ntohl(sd->sd_time);
-		spp_trace(sd->sd_act, sd->sd_ostate, sd->sd_cb, &sd->sd_sp,
+		spp_trace(sd->sd_act, sd->sd_ostate,
+		    (struct sppcb *)sd->sd_cb, &sd->sd_sp,
 		    &sd->sd_si, sd->sd_req);
 	}
 	for (i = 0; i < spp_debx % SPP_NDEBUG; i++) {
@@ -221,16 +228,17 @@ dotrace(sppcb)
 		if (sppcb && sd->sd_cb != sppcb)
 			continue;
 		ntime = ntohl(sd->sd_time);
-		spp_trace(sd->sd_act, sd->sd_ostate, sd->sd_cb, &sd->sd_sp,
+		spp_trace(sd->sd_act, sd->sd_ostate,
+		    (struct sppcb *)sd->sd_cb, &sd->sd_sp,
 		    &sd->sd_si, sd->sd_req);
 	}
 }
 
 ptime(ms)
-	int ms;
+	unsigned long ms;
 {
 
-	printf("%03d ", (ms/10) % 1000);
+	printf("%03d ", (int)((ms/10) % 1000));
 }
 
 numeric(c1, c2)

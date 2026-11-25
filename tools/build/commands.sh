@@ -13,7 +13,9 @@
 #	cc		cc.py
 #	as		the system's, as compiled for this machine; with
 #			the cross compiler, NASM (as.py)
-#	ld, cpp		the system's, as compiled for this machine
+#	cpp		the system's, as compiled for this machine
+#	ld		the same, finding the root's libraries (ld.py);
+#			with the cross compiler, cc.py's linking
 #	yacc, lex	the same
 #	xstr, mkstr, tsort  the tree's (ucb/xstr.c, ucb/mkstr, usr.bin/tsort.c),
 #			compiled here for this machine
@@ -124,7 +126,8 @@ else
     exec /bin/expr "$@"
 fi
 END
-for t in as ld cpp; do run $t "$top/obj/host/ccom/$t"; done
+for t in as cpp; do run $t "$top/obj/host/ccom/$t"; done
+run ld python3 -I "$here/ld.py" "$top" "$out" "$mode" "$libroot"
 [ "$mode" = native ] || run as python3 -I "$here/as.py" "$top" "$out" "$mode"
 for t in yacc lex eqn; do run $t "$top/obj/host/$t"; done
 run ex python3 -I "$here/ex.py" "$top"

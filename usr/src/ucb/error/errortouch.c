@@ -13,6 +13,7 @@ static char sccsid[] = "@(#)errortouch.c	5.2 (2.11BSD) 2026/5/9";
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <signal.h>
+#include <stdarg.h>
 #include "error.h"
 
 /*
@@ -699,18 +700,20 @@ errorprint(place, errorp, print_all)
 	putc('\n', place);
 }
 
-int inquire(fmt, a1, a2)
-	char	*fmt;
-	/*VARARGS1*/
+/*VARARGS1*/
+int inquire(char *fmt, ...)
 {
 	char	buffer[128];
+	va_list	ap;
 
 	if (queryfile == NULL)
 		return(0);
 	for(;;){
 		do{
 			fflush(stdout);
-			fprintf(stderr, fmt, a1, a2);
+			va_start(ap, fmt);
+			vfprintf(stderr, fmt, ap);
+			va_end(ap);
 			fflush(stderr);
 		} while (fgets(buffer, 127, queryfile) == NULL);
 		switch(buffer[0]){

@@ -14,6 +14,8 @@
 /usr/adm/wtmp		# init and login
 /var/run/*		# the daemons, and dev_mkdb and ps -U in /etc/rc
 /var/log/sendmail.st	# sendmail
+/usr/spool/lpd.lock	# lpd, and the daemon it starts for each printer
+/usr/spool/lpd/lock
 /var/cron		# cron, which makes its directories
 /var/cron/tabs
 /usr/spool/at/lasttimedone	# atrun, which cron runs

@@ -11,7 +11,7 @@
 lp|Line Printer:\
         :lp=/dev/lp0:\
         :sd=/usr/spool/lpd:\
-        :lf=/usr/spool/lpd/errs:\
+        :lf=/usr/adm/lpd-errs:\
         :af=/usr/spool/lpd/acct:\
         :of=/usr/libexec/lpr/lpf:\
         :if=/usr/libexec/lpr/lpf:\
@@ -22,7 +22,7 @@ lp|Line Printer:\
 #lp|B300:\
 #	:lp=/dev/ttyS5:\
 #	:sd=/usr/spool/lpd:\
-#	:lf=/usr/spool/lpd/errs:\
+#	:lf=/usr/adm/lpd-errs:\
 #	:af=/usr/spool/lpd/acct:\
 #	:of=/usr/libexec/lpr/lpf:\
 #	:if=/usr/libexec/lpr/lpf:\

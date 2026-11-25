@@ -68,6 +68,17 @@ Of the programs this port builds:
     usr/src/usr.sbin/cron      may be distributed freely, and sold with
                                its source, with its author's name kept
                                and changes marked
+    usr/src/local/zmodem       may be used freely for non-commercial and
+                               educational purposes; commercial or
+                               administrative use asks a licence fee for
+                               each serial port; it must be passed on as
+                               source with its notice
+    usr/src/local/ddd          may be used for non-commercial purposes
+    usr/src/local/less         may not be sold for profit without its
+    usr/src/local/afio         author's consent, nor may afio, cxref or
+    usr/src/local/cxref        qterm be sold, and qterm's author must be
+    usr/src/local/qterm        credited
+    usr/src/games/hack         a copyright line, and nothing more
 
 Of the rest of the tree, which the port does not build, and which is
 here as upstream distributes it:
@@ -80,14 +91,6 @@ here as upstream distributes it:
                                distributed with commercial products or
                                by commercial concerns, without Columbia
                                University's written permission
-    usr/src/local/zmodem       may be used freely for non-commercial and
-                               educational purposes, and must be passed
-                               on as source with its notice
-    usr/src/local/ddd          may be used for non-commercial purposes
-    usr/src/local/less         may not be sold for profit without its
-    usr/src/local/afio         author's consent, nor may afio or cxref
-    usr/src/local/cxref        be sold
-    usr/src/games/hack         a copyright line, and nothing more
 
 
 Not in the repository

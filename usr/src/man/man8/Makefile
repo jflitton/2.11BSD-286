@@ -18,10 +18,12 @@
 #
 # The 286's: the pages of what it has.
 MDIR=	/usr/man/cat8
-SRCS=	dump.8 dumpdir.8 fsck.8 getty.8 intro.8 makekey.8 named.8 rc.8 \
-	rdump.8 routed.8 sendmail.8 sync.8 timed.8 timedc.8
-OBJS=	dump.0 dumpdir.0 fsck.0 getty.0 intro.0 makekey.0 named.0 rc.0 \
-	rdump.0 routed.0 sendmail.0 sync.0 timed.0 timedc.0
+SRCS=	bugfiler.8 dump.8 dumpdir.8 fsck.8 getty.8 intro.8 lpc.8 lpd.8 \
+	makekey.8 named.8 pac.8 rc.8 rdump.8 routed.8 sendmail.8 sync.8 \
+	timed.8 timedc.8
+OBJS=	bugfiler.0 dump.0 dumpdir.0 fsck.0 getty.0 intro.0 lpc.0 lpd.0 \
+	makekey.0 named.0 pac.0 rc.0 rdump.0 routed.0 sendmail.0 sync.0 \
+	timed.0 timedc.0
 
 .SUFFIXES: .8 .0
 

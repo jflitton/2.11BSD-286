@@ -17,6 +17,7 @@ static char sccsid[] = "@(#)printjob.c	5.2.5 (2.11BSD) 2026/9/16";
 
 #include "lp.h"
 #include <sys/time.h>
+#include <stdarg.h>
 
 #define DORETURN	0	/* absorb fork error */
 #define DOABORT		1	/* abort if dofork fails */
@@ -123,7 +124,11 @@ printjob()
 	}
 	if (nitems == 0)		/* no work to do */
 		exit(0);
-	if (stb.st_mode & 01) {		/* reset queue flag */
+	/*
+	 * The lock's own mode: when there was no lock, the stat above
+	 * failed and left stb as it found it.
+	 */
+	if (fstat(lfd, &stb) == 0 && (stb.st_mode & 01)) { /* reset queue flag */
 		if (fchmod(lfd, stb.st_mode & 0776) < 0)
 			syslog(LOG_ERR, "%s: %s: %m", printer, LO);
 	}
@@ -1268,11 +1273,11 @@ setty()
 }
 
 /*VARARGS1*/
-status(msg, a1, a2, a3)
-	char *msg;
+status(char *msg, ...)
 {
 	register int fd;
 	char buf[BUFSIZ];
+	va_list ap;
 
 	umask(0);
 	fd = open(ST, O_WRONLY|O_CREAT, 0664);
@@ -1281,7 +1286,9 @@ status(msg, a1, a2, a3)
 		exit(1);
 	}
 	ftruncate(fd, 0L);
-	sprintf(buf, msg, a1, a2, a3);
+	va_start(ap, msg);
+	vsprintf(buf, msg, ap);
+	va_end(ap);
 	strcat(buf, "\n");
 	(void) write(fd, buf, strlen(buf));
 	(void) close(fd);

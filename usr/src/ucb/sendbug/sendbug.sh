@@ -6,13 +6,14 @@
 #
 #	@(#)sendbug.sh	6.3 (2.11BSD) 2025/3/7
 #
-# Create a bug report and mail to bugs@2bsd.com
+# Create a bug report and mail to the 286 port's maintainer,
+# jeff@flitton.dev
 #
 
 TEMP=/tmp/bug$$
 FORMAT=/usr/share/misc/bugformat
 
-: ${BUGADDR=bugs@2BSD.COM}
+: ${BUGADDR=jeff@flitton.dev}
 : ${EDITOR=/usr/ucb/vi}
 
 trap '/bin/rm -f $TEMP ; exit 1' 1 2 3 13 15

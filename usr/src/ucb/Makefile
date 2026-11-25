@@ -10,8 +10,8 @@ LDFLAGS= -i
 
 # Programs that live in subdirectories, and have makefiles of their own.
 #
-SUBDIR=	Mail compress ex finger ftp indent lock man mkstr \
-	more msgs netstat rdist rlogin talk tftp \
+SUBDIR=	Mail compress error ex finger ftp indent lock man mkstr \
+	more msgs netstat rdist rlogin sendbug talk tftp \
 	top tset window
 
 # Shell scripts that need only be installed and are never removed.

@@ -53,6 +53,12 @@ struct	nlist nl[] = {
 	{ "_tcp_debx" },
 	0
 };
+/*
+ * Where a symbol is in /dev/kmem: on the 286, the network's variables
+ * are in a segment of their own, whose number nlist gives in n_ovly
+ * and /dev/kmem takes in an offset's high 16 bits.
+ */
+#define	KOFF(i)	(((off_t)nl[i].n_ovly << 16) + nl[i].n_value)
 struct	tcp_debug tcp_debug[TCP_NDEBUG];
 caddr_t	tcp_pcbs[TCP_NDEBUG];
 int	tcp_debx;
@@ -124,12 +130,12 @@ again:
 		nl[0].n_value &= 0x7fffffff;
 		nl[1].n_value &= 0x7fffffff;
 	}
-	(void) lseek(0, nl[1].n_value, 0);
+	(void) lseek(0, KOFF(1), 0);
 	if (read(0, &tcp_debx, sizeof (tcp_debx)) != sizeof (tcp_debx)) {
 		fprintf(stderr, "trpt: "); perror("tcp_debx");
 		exit(3);
 	}
-	(void) lseek(0, nl[0].n_value, 0);
+	(void) lseek(0, KOFF(0), 0);
 	if (read(0, tcp_debug, sizeof (tcp_debug)) != sizeof (tcp_debug)) {
 		fprintf(stderr, "trpt: "); perror("tcp_debug");
 		exit(3);
@@ -188,7 +194,8 @@ again:
 		if (tcpcb && td->td_tcb != tcpcb)
 			continue;
 		ntime = ntohl(td->td_time);
-		tcp_trace(td->td_act, td->td_ostate, td->td_tcb, &td->td_cb,
+		tcp_trace(td->td_act, td->td_ostate,
+		    (struct tcpcb *)td->td_tcb, &td->td_cb,
 		    &td->td_ti, td->td_req);
 		if (i == tcp_debx)
 			goto done;
@@ -198,7 +205,8 @@ again:
 		if (tcpcb && td->td_tcb != tcpcb)
 			continue;
 		ntime = ntohl(td->td_time);
-		tcp_trace(td->td_act, td->td_ostate, td->td_tcb, &td->td_cb,
+		tcp_trace(td->td_act, td->td_ostate,
+		    (struct tcpcb *)td->td_tcb, &td->td_cb,
 		    &td->td_ti, td->td_req);
 	}
 done:
@@ -208,13 +216,13 @@ done:
 		prev_debx = 0;
 	    do {
 		sleep(1);
-		(void) lseek(0, nl[1].n_value, 0);
+		(void) lseek(0, KOFF(1), 0);
 		if (read(0, &tcp_debx, sizeof(tcp_debx)) != sizeof(tcp_debx)) {
 			fprintf(stderr, "trpt: "); perror("tcp_debx");
 			exit(3);
 		}
 	    } while (tcp_debx == prev_debx);
-	    (void) lseek(0, nl[0].n_value, 0);
+	    (void) lseek(0, KOFF(0), 0);
 	    if (read(0, tcp_debug, sizeof(tcp_debug)) != sizeof(tcp_debug)) {
 		    fprintf(stderr, "trpt: "); perror("tcp_debug");
 		    exit(3);
@@ -262,17 +270,18 @@ tcp_trace(act, ostate, atp, tp, ti, req)
 		if (act == TA_OUTPUT)
 			len -= sizeof (struct tcphdr);
 		if (len)
-			printf("[%x..%x)", seq, seq+len);
+			printf("[%lx..%lx)", seq, seq+len);
 		else
-			printf("%x", seq);
-		printf("@%x", ack);
+			printf("%lx", seq);
+		printf("@%lx", ack);
 		if (win)
 			printf("(win=%x)", win);
 		flags = ti->ti_flags;
 		if (flags) {
 			char *cp = "<";
-#define pf(f) { if (ti->ti_flags&TH_ ## f) { printf("%s%s", cp, "f"); cp = ","; } }
-			pf(SYN); pf(ACK); pf(FIN); pf(RST); pf(PUSH); pf(URG);
+#define pf(f, s) { if (ti->ti_flags&TH_ ## f) { printf("%s%s", cp, s); cp = ","; } }
+			pf(SYN, "SYN"); pf(ACK, "ACK"); pf(FIN, "FIN");
+			pf(RST, "RST"); pf(PUSH, "PUSH"); pf(URG, "URG");
 			printf(">");
 		}
 		break;
@@ -289,10 +298,10 @@ tcp_trace(act, ostate, atp, tp, ti, req)
 	/* print out internal state of tp !?! */
 	printf("\n");
 	if (sflag) {
-		printf("\trcv_nxt %x rcv_wnd %x snd_una %x snd_nxt %x snd_max %x\n",
+		printf("\trcv_nxt %lx rcv_wnd %x snd_una %lx snd_nxt %lx snd_max %lx\n",
 		    tp->rcv_nxt, tp->rcv_wnd, tp->snd_una, tp->snd_nxt,
 		    tp->snd_max);
-		printf("\tsnd_wl1 %x snd_wl2 %x snd_wnd %x\n", tp->snd_wl1,
+		printf("\tsnd_wl1 %lx snd_wl2 %lx snd_wnd %x\n", tp->snd_wl1,
 		    tp->snd_wl2, tp->snd_wnd);
 	}
 	/* print out timers? */
@@ -314,10 +323,10 @@ tcp_trace(act, ostate, atp, tp, ti, req)
 }
 
 ptime(ms)
-	int ms;
+	n_time ms;
 {
 
-	printf("%03d ", (ms/10) % 1000);
+	printf("%03d ", (int)((ms/10) % 1000));
 }
 
 numeric(c1, c2)

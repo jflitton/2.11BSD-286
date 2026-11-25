@@ -1875,6 +1875,144 @@ not at a terminal, and at the terminal find a line and show its help;
 gives `jove` a line and has it write the file; and has `tip` take the
 second serial port and let it go.
 
+## Printers, and the rest of upstream's
+
+Then what was left of upstream's that waits on nothing the 286 lacks:
+the line printer's spooler, `rmail`, `error`, `sendbug`, `trpt` and
+`trsp`, and from `local`, in `/usr/local`, `afio`, `cxref`, `ddd`,
+`mtools`, `qterm`, `welcome`, and `sz`, `rz` and `crc`. All are
+small-model programs.
+
+`lpr`, `lpq` and `lprm` queue, list and take away jobs and `lpd` prints
+them, set-user root and set-group `daemon`, which owns
+`/usr/spool/lpd`, as upstream installs them; `lpc` stops and starts the
+queues, `pac` adds up what each user printed, and `lptest` writes the
+ripple of characters a printer is tried with. The filters for text,
+`lpf` and `necf`, are in `/usr/libexec/lpr`; those for Versatec and
+Varian plotters the filters' Makefile installs only when asked
+(`installv`). `/etc/printcap` is upstream's, whose `lp` writes to
+`/dev/lp0`, the PDP-11's line printer: the 286 has no driver for its
+parallel port ([what is not ported](unported.md)), so its printer is one
+on a serial line, as the file's second entry, commented out, is, or
+another machine's, which `rm` names and `lpd` sends the job to.
+`/etc/rc` starts `lpd` always, as upstream's does, having taken away
+`/dev/printer`, the socket by which `lpr` tells it of a job, which an
+`lpd` that died leaves behind. `lpd` logs through `syslogd` to
+`/usr/adm/lpd-errs`, which the distribution makes, and each printer's
+daemon writes its filters' complaints to the file the printer's `lf`
+names, which `lpd` opens for each printer as it starts. Upstream's `lp`
+named `/usr/spool/lpd/errs`, which nothing makes, and `lpd` complained
+of it on the console in the middle of `rc`'s line; it names
+`lpd-errs` now, as upstream's other entries do. `lpr` will not print a
+program or an object file, which it knew by the VAX's magic numbers;
+`lp.local.h` gives it the 286's (`A_MAGIC` and `A_OBJECT`). Taking a
+job from another machine, `lpd` opens the block device of the spool's
+file system to see how much room it has, which the kernel refuses
+while the file system is mounted and the security level is 1, as
+upstream's does; it says so in `lpd-errs` and takes the job without
+looking. A printer's daemon set the mode of a lock it had just made,
+the first time the printer printed, from what it had not managed to
+`stat`, whatever was on the stack (`printjob.c`): a printer could be
+turned off, or its queue, by printing; it reads the lock's mode from
+the lock now. Accounting (`af`) is in a file that must be made, owned by
+`daemon`, which the filters run as.
+
+`rmail` hands `sendmail` a letter that came by UUCP, with the address
+it came by; it is ported though UUCP is not. `error` reads a compiler's
+messages and puts each into the source file it is about, as a comment,
+or says which it could not. `sendbug` mails a report of a bug, made with
+the editor from a form, to the maintainer of the 286's port,
+`jeff@flitton.dev`, where upstream's mailed `bugs@2BSD.COM`; `bugfiler`,
+which files the reports where they are received, and its `unixtomh` are
+installed with it, as upstream installs them, with upstream's address.
+
+`trpt` prints what the kernel kept of the last things done to TCP
+connections that have `SO_DEBUG` set, as `rsh -d` sets it: on the 286
+the last two (`TCP_NDEBUG`), each a segment sent or received or a
+request of the connection's user, and the state it left the connection
+in. The kernel keeps them whether it is compiled with `TCPDEBUG` or not,
+which only has it print them on the console too. The trace is the
+network's, in the network's own segment ([programs that read the
+kernel](#programs-that-read-the-kernel)), which `trpt` reads through
+`/dev/kmem` with that segment's number in the high 16 bits, where
+upstream's read at the symbol's value alone. `trsp` does as much for
+the connections of SPP, the Xerox protocols', which the kernel has not:
+it says that `/unix` has no names for it. It is installed as upstream
+installs it.
+
+From `local`: `afio` writes and reads archives in `cpio`'s format,
+with more care for a damaged one; `cxref` lists where each name and
+constant of C files is used, with its three passes in
+`/usr/local/lib/cxref`; `ddd` copies as `dd` does with two processes,
+one reading while the other writes; `qterm` asks the terminal what it
+is, by the answers in `/usr/local/lib/qtermtab`; `welcome` greets the
+user with the load, the date and the time, drawn with `curses`; `sz` and
+`rz` send and receive files over a serial line by ZMODEM, YMODEM or
+XMODEM, and `crc` prints the 32-bit CRC of files. `mtools` reads and
+writes MS-DOS's diskettes: `mdir`, `mcopy`, `mformat`, `mmd` and the
+rest. Its table of drives (`devices.c`) is the 286's: `A:` and `B:` are
+the two drives' raw devices, `/dev/rfl0` and `/dev/rfl1`, which it
+reads and writes a track at a time; it reads the diskette's shape from
+its boot sector, of whatever kind the driver has found the diskette to
+be ([disks](disks.md)).
+
+Their notices ([COPYRIGHT](../COPYRIGHT)): `afio`, `cxref` and `qterm`
+may not be sold, and `ddd` is for non-commercial use; `sz` and `rz` are
+free for non-commercial and educational use, and ask a fee for each
+serial port of a commercial or administrative one.
+
+What the 16-bit `int` broke ([what the PDP-11 let programs
+assume](#what-the-pdp-11-let-programs-assume)): `afio` made a time and a
+size from two 16-bit halves of an old binary header by shifting an
+`int`, which lost the high half, and divided by 1024 * 1024, which is 0,
+to print a size in megabytes. `mtools`' `mdir` printed the year less
+1900, 126 for 2026, a digit more than its buffer has room for; it
+prints the last two. `mtools` keeps a cluster of up to 8K on the stack
+as it writes one, and `afio` 8K as it copies a file into a directory
+(`-p`): with the 8K of stack a program has unless it asks for more
+(`-stack`, [executable format](executable-format.md)), the stack ran
+over the data below it, and `mtools` wrote at offsets that were not
+the diskette's. Both
+are linked with a stack of 16K, as `ftpd` and `Mail` are.
+
+Two of `ddd`'s bugs are any machine's: it opened the file it writes
+with `O_CREAT` and no mode, so that the file had whatever was on the
+stack, and it said it had failed when the copy was done and the
+process that read the end of it was not the one the shell waits for,
+which of the two is a matter of chance.
+
+`qterm`'s Makefile links it by running `ld` itself, with `crt0.o` and
+the C library; where the system is built `tools/build/ld.py` stands in
+for that `ld`, as the stand-ins for `as` and `cpp` do: the system's own
+`ld` with the root's libraries, or for the cross compiler its `cc`,
+which brings its own.
+
+For the cross compiler ([what this compiler
+needed](#what-this-compiler-needed)), the functions that pass on their
+arguments to `printf`, each called with a different number, are
+variadic: `lpr`'s `fatal`, `lpd`'s `status` and `frecverr`, `lpq`'s
+`standout`, `error`'s `error` and `inquire`, and `sz` and `rz`'s `vfile`
+and `zperr`. The plotters' filters declare `clear`'s parameter.
+`trpt` and `trsp` cast the address of the control block they pass;
+`trpt` prints the sequence numbers, which are `long`, with `%lx`, and
+names a segment's flags with a string of its own for each, where its
+macro had the flag's name put inside a string, as a preprocessor of
+the time did and the system's does not.
+
+`tests/programs` has `lptest` write its ripple, `crc` sum two files,
+`cxref` list a program's names, `error` put a compiler's complaint into
+the source, `afio` write an archive and read it back, `ddd` copy 160,000
+bytes, and `welcome` greet; `mtools` format a diskette in the second
+drive, copy files to it and from it, and make and take away a
+directory, and the test then reads the file it left there from the
+diskette's image as MS-DOS would; and at the terminal `qterm` ask the
+terminal what it is. `tests/network` has a printer that is a file, and
+the same printer by way of the network (`rm=localhost`, which
+`/etc/hosts.lpd` lets in): `lpr` queues jobs to both, `lpq` lists them,
+`lprm` takes one away, `lpc` stops and starts the printing, and `pac`
+adds up the pages; `rmail` and `sendbug` mail a user; and `trpt` shows
+the trace of an `rsh -d`.
+
 ## ve
 
 `ve` is a screen editor with the modes and the most used commands of
@@ -2373,8 +2511,8 @@ root's prompt and paths, and with the same erase character on the
 console's screens.
 
 Upstream's `rc` is the PDP-11's, with its buses and network interfaces,
-and calls some things that are not built yet: the quota programs,
-`savecore` and `lpd`. This port's checks the file
+and calls some things that are not built yet: the quota programs and
+`savecore`. This port's checks the file
 systems as upstream's does. At an automatic boot `fsck -p` checks each
 in `fstab` that was not unmounted cleanly, the root first and alone; if
 it had to change the root, which is mounted, `rc` starts the system
@@ -2395,7 +2533,8 @@ upstream's order, it starts `syslogd`; has `expreserve` save what `ex`
 was editing when the system went down; clears `/tmp`; starts `update`,
 which has the kernel write what it holds for the disks every 30
 seconds, and `cron`; turns accounting on ([the log, and what the clock
-runs](#the-log-and-what-the-clock-runs)); and starts `inetd`, and the
+runs](#the-log-and-what-the-clock-runs)); and starts `inetd`, `lpd`
+([printers](#printers-and-the-rest-of-upstreams)), and the
 daemons `rc.conf` asks for ([the network's
 programs](#the-networks-programs)), among them `named`, which it starts
 before `inetd` as upstream's does, and `sendmail`'s ([mail](#mail)),
@@ -2511,8 +2650,8 @@ shared by a partition table, and boots it with no diskette. The root's
 superblock is not marked clean, as a power cut leaves it, so `/etc/rc`
 has `fsck` check it, which must mark it clean, and starts the system
 again; the second time the root must be clean, and `rc` must start
-`syslogd`, clear `/tmp`, and start `update`, `cron`, accounting and
-`inetd`, which the console's screen shows. The system goes
+`syslogd`, clear `/tmp`, and start `update`, `cron`, accounting,
+`inetd` and `lpd`, which the console's screen shows. The system goes
 multi-user and runs `getty`; the test logs in as root on the first
 serial port, and in the shell makes a directory, copies and compares a
 file, runs a loop, a second shell and a pipeline, expands a pattern, and

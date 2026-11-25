@@ -410,6 +410,86 @@ two
 guest
 guest
 three
+== trpt
+rsh localhost -d -l guest echo traced
+trpt | sed -n 's/^[0-9][0-9][0-9] [A-Z_0-9]*:[a-z]* .* -> [A-Z_0-9]*$/trace/p'
+--
+traced
+trace
+trace
+== lpr
+cat >> /etc/printcap <<'END'
+tf|a printer that is a file:\
+	:lp=/usr/spool/lpd/tf/out:sd=/usr/spool/lpd/tf:lf=/usr/adm/lpd-errs:\
+	:af=/usr/spool/lpd/tf/acct:if=/usr/libexec/lpr/lpf:sh:sf:
+rt|the same, by way of the network:\
+	:lp=:rm=localhost:rp=tf:sd=/usr/spool/lpd/rt:lf=/usr/adm/lpd-errs:
+END
+for d in tf rt
+do
+	mkdir /usr/spool/lpd/$d
+	chown daemon /usr/spool/lpd/$d; chgrp daemon /usr/spool/lpd/$d
+	chmod 775 /usr/spool/lpd/$d
+done
+cp /dev/null /usr/spool/lpd/tf/out; cp /dev/null /usr/spool/lpd/tf/acct
+chown daemon /usr/spool/lpd/tf/out /usr/spool/lpd/tf/acct
+echo localhost > /etc/hosts.lpd
+lpc stop tf
+lptest 20 3 | lpr -Ptf
+lpr -Ptf /etc/motd
+lpq -Ptf
+lprm -Ptf 1
+lpc status tf
+lpc start tf
+sh /mnt/d/printed
+tr -d '\014' < /usr/spool/lpd/tf/out
+cp /dev/null /usr/spool/lpd/tf/out
+echo remote-line | lpr -Prt
+sh /mnt/d/printed
+tr -d '\014' < /usr/spool/lpd/tf/out
+lpq -Prt
+pac -Ptf
+--
+tf:
+	printing disabled
+Warning: tf is down: 
+Warning: no daemon present
+Rank   Owner      Job  Files                                 Total Size
+1st    root       0    (standard input)                      63 bytes
+2nd    root       1    /etc/motd                             26 bytes
+dfA001pc286 dequeued
+cfA001pc286 dequeued
+tf:
+	queuing is enabled
+	printing is disabled
+	1 entry in spool area
+	no daemon present
+tf:
+	printing enabled
+	daemon started
+!"#$%&'()*+,-./01234
+"#$%&'()*+,-./012345
+#$%&'()*+,-./0123456
+remote-line
+no entries
+  Login               pages/feet   runs    price
+pc286:root                  4.00    2   $  0.08
+
+total                       4.00    2   $  0.08
+=file printed
+# sh /mnt/d/printed: wait up to a minute for the printer tf to have
+# written its file and have nothing left in its queue.
+n=0
+while test $n -lt 60
+do
+	if test -s /usr/spool/lpd/tf/out &&
+	    ls /usr/spool/lpd/tf | grep '^cf' > /dev/null
+	then :
+	elif test -s /usr/spool/lpd/tf/out
+	then break
+	fi
+	sleep 1; n=`expr $n + 1`
+done
 =file wait
 # sh /mnt/d/wait FILE N: wait up to a minute for FILE to hold N letters.
 n=0
@@ -669,3 +749,30 @@ X-Cron-Env: <LOGNAME=guest>
 X-Cron-Env: <USER=guest>
 
 cron-said
+== rmail
+printf 'From someone Wed Nov 25 06:00:00 2026 remote from elsewhere\nSubject: by rmail\n\nrmail-body\n' | rmail ftp
+sh /mnt/d/wait /usr/spool/mail/ftp 1
+sh /mnt/d/letters /usr/spool/mail/ftp
+--
+From elsewhere!someone
+From: elsewhere!someone
+Subject: by rmail
+Apparently-To: ftp
+
+rmail-body
+
+== sendbug
+printf '#!/bin/sh\necho "Description: sendbug-said" >> $1\n' > ed.sh
+chmod +x ed.sh
+EDITOR=/tmp/w/ed.sh sendbug ftp
+sh /mnt/d/wait /usr/spool/mail/ftp 2
+sh /mnt/d/letters /usr/spool/mail/ftp | sed -n '/^From daemon/,/^$/p'
+grep -c sendbug-said /usr/spool/mail/ftp
+--
+From daemon
+From: root (System Administrator)
+Subject: Short summary of the problem
+Index: 	<source directory>/<source file> 2.11BSD
+Apparently-To: ftp
+
+1

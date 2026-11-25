@@ -22,6 +22,7 @@ static char sccsid[] = "@(#)lpq.c	5.3 (2.11BSD) 2026/5/10";
  */
 
 #include "lp.h"
+#include <stdarg.h>
 
 char	*user[MAXUSERS];	/* users to process */
 int	users;			/* # of users in user array */
@@ -143,19 +144,21 @@ usage()
  * If we have the capability, print this in standout mode
  */
 static
-standout(f, s, a1, a2)
-	FILE *f;
-	char *s;
+standout(FILE *f, char *s, ...)
 {
+	va_list ap;
+
+	va_start(ap, s);
 #ifdef TERMCAP
 	if (SO)
 		tputs(SO, 0, putch);
-	fprintf(f, s, a1, a2);
+	vfprintf(f, s, ap);
 	if (SO && SE)
 		tputs(SE, 0, putch);
 #else
-	fprintf(f, s, a1, a2);
+	vfprintf(f, s, ap);
 #endif
+	va_end(ap);
 }
 
 #ifdef TERMCAP

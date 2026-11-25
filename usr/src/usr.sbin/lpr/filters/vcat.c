@@ -810,7 +810,7 @@ slop_lines(nlines)
 
 /*ARGSUSED*/
 clear(lp, nbytes)
-	int *lp;
+	char *lp;
 	int nbytes;
 {
 #ifdef vax

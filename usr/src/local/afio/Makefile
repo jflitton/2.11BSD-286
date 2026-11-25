@@ -28,7 +28,7 @@ CFLAGS	= $1 $2 $3 $4 $5 $6 $7 -O
 all: afio afio.0
 
 afio: afio.o
-	$(CC) -i $(CFLAGS) -o afio afio.o
+	$(CC) -i -stack 16384 $(CFLAGS) -o afio afio.o
 
 install: all
 	install -c -s -m 0751 afio /usr/local/afio

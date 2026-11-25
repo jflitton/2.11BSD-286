@@ -246,7 +246,8 @@ unsigned date_high, date_low;
 	month_hi = (date_high & 0x1) << 3;
 	month_low = date_low >> 5;
 	day = date_low & 0x1f;
-	sprintf(ans, "%2d-%02d-%02d", month_hi + month_low, day, year);
+	/* two digits of the year, which from 2000 is more than 99 */
+	sprintf(ans, "%2d-%02d-%02d", month_hi + month_low, day, year % 100);
 	return(ans);
 }
 

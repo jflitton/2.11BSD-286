@@ -5,9 +5,9 @@
 
 SUBDIR=	ac accton arp chown chroot cron dev_mkdb \
 	flformat inetd \
-	makewhatis mkhosts named nc ntp pstat quot \
+	lpr makewhatis mkhosts named nc ntp pstat quot \
 	rmt rwhod sa sendmail syslogd timed \
-	tracebuf traceroute update vipw
+	tracebuf traceroute trpt trsp update vipw
 
 all:	${SUBDIR}
 

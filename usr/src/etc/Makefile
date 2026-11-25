@@ -14,9 +14,9 @@
 # each), as 4.4BSD's distribution makes them first, so that what the
 # Makefiles of /usr/src install has where to go; and after the files,
 # the devices, by MAKEDEV, which makes what the machine has (all), as
-# 4.4BSD's runs it.  Not the files of lpr, autoconfig, savecore and
-# uucp, which the 286 has not: dtab, printcap, shutdownlog and uucp's
-# (SUBDIR); nor rc.local, whose work its rc does.  /usr/adm, /var/run
+# 4.4BSD's runs it.  Not the files of autoconfig, savecore and uucp,
+# which the 286 has not: dtab, shutdownlog and uucp's (SUBDIR); nor
+# rc.local, whose work its rc does.  /usr/adm, /var/run
 # and /var/db are 755, where the owner may search them, and not 655.
 # cron's log is made, and the database of the aliases, as newaliases
 # makes it, without which each sendmail waits for someone to make it.
@@ -29,7 +29,7 @@ SUBDIR= root
 
 FILES=	acctd.cf aliases crontab disktab fstab ftpusers gettytab group \
 	hosts hosts.allow hosts.deny inetd.conf inetd.conf.nowrappers \
-	motd netstart networks ntp.conf protocols rc rc.conf \
+	motd netstart networks ntp.conf printcap protocols rc rc.conf \
 	remote sendmail.cf services shells syslog.conf ttys
 
 # The phones file can contain sensitive information (see phones(5)) so is

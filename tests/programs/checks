@@ -42,6 +42,12 @@ one
 three
 four
 five
+=file bad.c
+foo(a)
+int a;
+{
+	return b;
+}
 =file prog.c
 foo(a)
 int a;
@@ -2469,6 +2475,76 @@ new
 betA
 same
      ve - screen editor in the manner of vim
+== lptest
+lptest 20 3
+--
+!"#$%&'()*+,-./01234
+"#$%&'()*+,-./012345
+#$%&'()*+,-./0123456
+== crc
+/usr/local/crc /mnt/d/words /mnt/d/nums
+--
+1AF04D8B      39 /mnt/d/words
+20ABB980      14 /mnt/d/nums
+== cxref
+cp /mnt/d/prog.c .
+/usr/local/cxref prog.c | expand | tr -d '\014'
+--
+        C Cross Reference Listing of prog.c
+
+a                       prog.c          1, 2, 4
+foo                     prog.c          1, 8
+main                    prog.c          6
+1                       prog.c          8
+== error
+cp /mnt/d/bad.c .
+cc -c bad.c > cc.out 2>&1
+cat cc.out
+error -n < cc.out
+error < cc.out > /dev/null
+cat bad.c
+--
+bad.c:4: b undefined; func. foo
+1 file contains errors "bad.c" (1)
+
+File "bad.c" has 1 error.
+	1 of these errors can be inserted into the file.
+[cc] bad.c 4 b undefined; func. foo
+You didn't touch any files.
+foo(a)
+int a;
+{
+/*###4 [cc] b undefined; func. foo%%%*/
+	return b;
+}
+== afio
+cp /mnt/d/words /mnt/d/nums .
+ls words nums | /usr/local/afio -o a.afio
+/usr/local/afio -t a.afio
+mkdir p
+ls words nums | /usr/local/afio -p p
+cmp p/words words && cmp p/nums nums && echo passed
+mkdir x
+cd x
+/usr/local/afio -i ../a.afio
+cmp words ../words && cmp nums ../nums && echo same
+--
+nums
+words
+passed
+same
+== ddd
+lptest 79 2000 > big
+/usr/local/ddd if=big of=out bs=4k
+echo $?
+cmp big out && echo same
+ls -l out | awk '{print $1}'
+--
+39+1 records in
+39+1 records out
+0
+same
+-rw-r--r--
 == open
 cat > m.c <<'END'
 #include <fcntl.h>
@@ -2477,3 +2553,50 @@ END
 cc -o m m.c && ./m && ls -l f | awk '{print $1}'
 --
 -rw-r--r--
+== welcome
+(/usr/local/welcome; echo) | grep -c 'running BSD'
+--
+1
+== mtools
+PATH=$PATH:/usr/local; export PATH
+when='s/ *[0-9]*-[0-9][0-9]-[0-9][0-9] *[0-9]*:[0-9][0-9][ap]$//'
+mformat b:
+mcopy /mnt/d/words b:words.txt
+mmd b:sub
+mcopy /mnt/d/nums b:sub/nums
+mdir b: | sed "$when"
+mdir b:sub | sed "$when"
+mtype b:words.txt
+mread b:sub/nums nums
+cmp nums /mnt/d/nums && echo same
+mren b:sub/nums b:sub/n2
+mdel b:sub/n2
+mrd b:sub
+mdir b: | sed "$when"
+--
+ Volume in drive B has no label
+ Directory for B:/
+
+WORDS    TXT          39
+SUB              <DIR>
+       2 File(s)     1456128 bytes free
+ Volume in drive B has no label
+ Directory for B:/SUB
+
+.                <DIR>
+..               <DIR>
+NUMS                  14
+       3 File(s)     1456128 bytes free
+pear
+apple
+fig
+apple
+banana
+cherry
+fig
+same
+ Volume in drive B has no label
+ Directory for B:/
+
+WORDS    TXT          39
+       1 File(s)     1457152 bytes free

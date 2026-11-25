@@ -13,6 +13,7 @@ static char sccsid[] = "@(#)common.c	5.3 (2.11BSD) 2026/5/10";
  */
 
 #include "lp.h"
+#include <stdarg.h>
 
 int	DU;		/* daeomon user-id */
 int	MX;		/* maximum number of blocks to copy */
@@ -223,15 +224,18 @@ compar(p1, p2)
 }
 
 /*VARARGS1*/
-fatal(msg, a1, a2, a3)
-	char *msg;
+fatal(char *msg, ...)
 {
+	va_list ap;
+
 	if (from != host)
 		printf("%s: ", host);
 	printf("%s: ", name);
 	if (printer)
 		printf("%s: ", printer);
-	printf(msg, a1, a2, a3);
+	va_start(ap, msg);
+	vprintf(msg, ap);
+	va_end(ap);
 	putchar('\n');
 	exit(1);
 }

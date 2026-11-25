@@ -1,14 +1,17 @@
 #!/bin/sh
 # Test the programs that work on text and files, those for disks and
 # file systems, and the games: boot the system from a hard disk to
-# multi-user, with a second disk for disklabel and the rest to write on,
-# log in on the first serial port as root, and have it run each of the
-# checks in tests/programs/checks, which are on a file system of their
-# own with the files they read.  A check is a few lines for the shell and
-# what they must write, to the byte.  Then use what needs a terminal: tty
+# multi-user, with a second disk for disklabel and the rest to write on
+# and a blank diskette in the second drive for mtools, log in on the
+# first serial port as root, and have it run each of the checks in
+# tests/programs/checks, which are on a file system of their own with
+# the files they read.  A check is a few lines for the shell and what
+# they must write, to the byte.  Then use what needs a terminal: tty
 # and mesg, more, man, script, lock, tset and clear, the games
 # battlestar, hack, backgammon, rogue, robots and hangman, window and
-# ve, less, jove and tip; and stop the system with shutdown.
+# ve, less, jove, tip and qterm; and stop the system with shutdown.
+# The file mtools left on the diskette is read from its image here, as
+# MS-DOS would read it.
 # The kernel, /boot, the C library, the programs and the root file system
 # are built as they would be for a real machine, as tests/system has
 # them.
@@ -75,6 +78,8 @@ geometry=$(python3 -I "$top/tools/mkdisk.py" -p -g 977,5,17 \
 # has room for a file system in a, and partition e unused.
 spare=$(python3 -I "$top/tools/mkdisk.py" -p -g 100,4,17 spare.img a=fs:2000 \
     e=2000 | tail -1)
+# A diskette of 1.44 MB, blank, which mformat makes an MS-DOS one.
+python3 -I -c 'open("dos.img", "wb").write(bytes(1474560))'
 
 # What is typed waits for something only the system writes, as in
 # tests/system: a typed line is echoed, so what it waits for is split by
@@ -95,7 +100,8 @@ spare=$(python3 -I "$top/tools/mkdisk.py" -p -g 100,4,17 spare.img a=fs:2000 \
 # line, is given its text and then the name to write it to, which a
 # Return ends, and the Return after the command that leaves it is the
 # shell's.  tip takes the second serial port, which nothing is on, and
-# its escape ends that.
+# its escape ends that.  qterm asks the terminal what it is, which this
+# one does not answer, and takes its word from TERM.
 CTRLD=$(printf '\004')
 CTRLC=$(printf '\003')
 CTRLP=$(printf '\020')
@@ -103,7 +109,8 @@ CTRLW=$(printf '\027')
 CTRLX=$(printf '\030')
 ESC=$(printf '\033')
 TIMEOUT=${TIMEOUT:-1800} python3 -I "$top/tests/harness/runtest.py" \
-    --hd programs.img,$geometry,xtide --hd2 spare.img,$spare --until halting \
+    --hd programs.img,$geometry,xtide --hd2 spare.img,$spare --fdb dos.img \
+    --until halting \
     --type "login: " "root" \
     --type "# " 'mount /dev/wd0d /mnt; sh /mnt/check.sh; umount /mnt' \
     --type "checks: " 'tty; mesg; mesg n; mesg; mesg y' \
@@ -164,6 +171,7 @@ TIMEOUT=${TIMEOUT:-1800} python3 -I "$top/tests/harness/runtest.py" \
     --type "# " 'tip com2' \
     --type "connected" '~.' \
     --type "EOT]" 'echo "ti""p-done"' \
+    --type "# " '/usr/local/qterm; echo "qte""rm-$?"' \
     --type "# " 'echo "@ex""it 00"; shutdown -h now going down' \
     --boot programs$case
 
@@ -189,6 +197,7 @@ for want in "^/dev/tty00" "^is y" "^is n" "--More--(.*%)" \
     "Word #:" "in-window" "/dev/ttyp[0-9]" "changed, line" "^ve-total" \
     "/etc/services ([0-9]*%)" "525/udp" "End of help" "^jove-jove-text" \
     "^.connected" "EOT]" "^tip-done" \
+    'Terminal NOT recognized - defaults to "vt100"' "^qterm-0" \
     "System going down IMMEDIATELY" "going down" \
     "System shutdown time has arrived" "halting"; do
     if ! grep -q -- "$want" "$serial"; then
@@ -197,6 +206,28 @@ for want in "^/dev/tty00" "^is y" "^is n" "--More--(.*%)" \
     fi
 done
 python3 -I "$top/tools/fsck.py" programs.img
+# The diskette, by its boot sector's numbers: the root directory must
+# have WORDS.TXT, and its chain of clusters in the first FAT the words.
+python3 -I - dos.img "$out/checks/d/words" <<'EOF2'
+import struct, sys
+d = open(sys.argv[1], "rb").read()
+bps, spc, rsv, nfat, nroot, tot, media, spf = struct.unpack_from("<HBHBHHBH", d, 11)
+root = (rsv + nfat * spf) * bps
+data = root + nroot * 32
+fat = d[rsv * bps:(rsv + spf) * bps]
+for i in range(nroot):
+    e = d[root + 32 * i:root + 32 * i + 32]
+    if e[:11] == b"WORDS   TXT":
+        c, size = struct.unpack_from("<HI", e, 26)
+        got = b""
+        while 2 <= c < 0xff8:
+            got += d[data + (c - 2) * spc * bps:data + (c - 1) * spc * bps]
+            v = struct.unpack_from("<H", fat, c * 3 // 2)[0]
+            c = v >> 4 if c & 1 else v & 0xfff
+        if got[:size] == open(sys.argv[2], "rb").read():
+            sys.exit(0)
+sys.exit("programs: the diskette has not WORDS.TXT as mtools wrote it")
+EOF2
 python3 -I "$top/tools/fsck.py" -p a spare.img
 python3 -I "$top/tools/fsck.py" -p e spare.img
-echo "programs: $n checks of the programs that work on text and files, of nroff and man, of tbl, eqn, refer, spell and the rest documents go through, of zic and /usr/adm's scripts, of disklabel, the file system checkers, dump, restor and the rest of the administrator's, and fstat, and of the games, and tty, mesg, more, man, script, lock, tset, clear, six games, window, ve, less, jove, tip and shutdown at a terminal"
+echo "programs: $n checks of the programs that work on text and files, of nroff and man, of tbl, eqn, refer, spell and the rest documents go through, of zic and /usr/adm's scripts, of disklabel, the file system checkers, dump, restor and the rest of the administrator's, and fstat, of the games, and of lptest, crc, cxref, error, afio, ddd, welcome and mtools, and tty, mesg, more, man, script, lock, tset, clear, six games, window, ve, less, jove, tip, qterm and shutdown at a terminal"

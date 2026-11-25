@@ -15,6 +15,7 @@ static char sccsid[] = "@(#)recvjob.c	5.4.2 (2.11BSD) 2026/9/13";
 
 #include "lp.h"
 #include <sys/fs.h>
+#include <stdarg.h>
 
 char	*sp = "";
 #define ack()	(void) write(1, sp, 1);
@@ -304,11 +305,14 @@ rcleanup()
 	dfname[0] = '\0';
 }
 
-frecverr(msg, a1, a2)
-	char *msg;
+frecverr(char *msg, ...)
 {
+	va_list ap;
+
 	rcleanup();
-	syslog(LOG_ERR, msg, a1, a2);
+	va_start(ap, msg);
+	vsyslog(LOG_ERR, msg, ap);
+	va_end(ap);
 	putchar('\1');		/* return error code */
 	exit(1);
 }

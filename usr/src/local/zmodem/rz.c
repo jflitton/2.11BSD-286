@@ -373,13 +373,17 @@ usage()
 /*
  *  Debugging information output interface routine
  */
+#include <stdarg.h>
+
 /* VARARGS1 */
-vfile(f, a, b, c, d)
-char *f;
-long a, b, c, d;
+vfile(char *f, ...)
 {
+	va_list ap;
+
 	if (Verbose > 2) {
-		fprintf(stderr, f, a, b, c, d);
+		va_start(ap, f);
+		vfprintf(stderr, f, ap);
+		va_end(ap);
 		fprintf(stderr, "\n");
 	}
 }
@@ -1010,13 +1014,16 @@ register char *s,*t;
  * Log an error
  */
 /*VARARGS1*/
-zperr(s,p,u)
-char *s, *p, *u;
+zperr(char *s, ...)
 {
+	va_list ap;
+
 	if (Verbose <= 0)
 		return;
 	fprintf(stderr, "Retry %d: ", errors);
-	fprintf(stderr, s, p, u);
+	va_start(ap, s);
+	vfprintf(stderr, s, ap);
+	va_end(ap);
 	fprintf(stderr, "\n");
 }
 

@@ -10,6 +10,7 @@ static char sccsid[] = "@(#)errorsubr.c	5.2 (2.11BSD) 2026/5/9";
 
 #include <stdio.h>
 #include <ctype.h>
+#include <stdarg.h>
 #include "error.h"
 /*
  *	Arrayify a list of rules
@@ -40,11 +41,14 @@ arrayify(e_length, e_array, header)
 }
 
 /*VARARGS1*/
-error(msg, a1, a2, a3)
-	char	*msg;
+error(char *msg, ...)
 {
+	va_list	ap;
+
 	fprintf(stderr, "Error: ");
-	fprintf(stderr, msg, a1, a2, a3);
+	va_start(ap, msg);
+	vfprintf(stderr, msg, ap);
+	va_end(ap);
 	fprintf(stderr, "\n");
 	fflush(stdout);
 	fflush(stderr);

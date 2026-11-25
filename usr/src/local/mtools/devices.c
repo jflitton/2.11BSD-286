@@ -5,8 +5,13 @@
 #include <stdio.h>
 #include "msdos.h"
 
+/*
+ * The 286's two diskette drives, 3.5 inch ones of 1.44 MB; the driver
+ * finds what each diskette is, and mtools reads its shape from it.
+ */
 struct device devices[] = {
-	{'A', "/dev/rra9a", 0L, 12, 0, (int (*) ()) 0, 80, 2, 15},
+	{'A', "/dev/rfl0", 0L, 12, 0, (int (*) ()) 0, 80, 2, 18},
+	{'B', "/dev/rfl1", 0L, 12, 0, (int (*) ()) 0, 80, 2, 18},
 	{'\0', (char *) NULL, 0L, 0, 0, (int (*) ()) 0, 0, 0, 0}
 };
 

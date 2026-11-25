@@ -5,8 +5,8 @@
 #
 # Upstream's is the PDP-11's (its buses, its network
 # interfaces) and calls some things that are not built here yet: the
-# quota programs, savecore and lpd.  What this does of it, it does as
-# that does.  sendmail it starts as upstream's rc.local does.
+# quota programs and savecore.  What this does of it, it does as that
+# does.  sendmail it starts as upstream's rc.local does.
 
 HOME=/; export HOME
 PATH=/bin:/sbin:/usr/sbin:/usr/bin; export PATH
@@ -99,8 +99,9 @@ rm -f /var/run/acctd.pid
 accton /usr/adm/acct;	echo -n ' accounting'	>/dev/console 2>&1
 echo '.'					>/dev/console 2>&1
 
-# inetd, which answers telnet, ftp and the rest (/etc/inetd.conf), and
-# the daemons /etc/rc.conf asks for.
+# inetd, which answers telnet, ftp and the rest (/etc/inetd.conf); lpd,
+# the printers' spooler (/etc/printcap), as upstream's starts it always;
+# and the daemons /etc/rc.conf asks for.
 echo -n starting network daemons:		>/dev/console 2>&1
 if [ "${routed-NO}" = YES ]
 then
@@ -123,6 +124,8 @@ if [ "${ntpd-NO}" = YES ]
 then
 	ntpd;	echo -n ' ntpd'			>/dev/console 2>&1
 fi
+rm -f /dev/printer
+lpd;		echo -n ' printer'		>/dev/console 2>&1
 if [ "${sendmail-NO}" = YES ]
 then
 	(cd /usr/spool/mqueue; rm -f lf*)

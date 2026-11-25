@@ -867,8 +867,8 @@ reg Stat	*asb;
 	asb->sb_gid = binary.b_gid;
 	asb->sb_nlink = binary.b_nlink;
 	asb->sb_rdev = binary.b_rdev;
-	asb->sb_mtime = binary.b_mtime[0] << 16 | binary.b_mtime[1];
-	asb->sb_size = binary.b_size[0] << 16 | binary.b_size[1];
+	asb->sb_mtime = (long) binary.b_mtime[0] << 16 | binary.b_mtime[1];
+	asb->sb_size = (long) binary.b_size[0] << 16 | binary.b_size[1];
 	if (binary.b_name == 0 || binary.b_name >= PATHSIZE)
 		return (warnarch("Bad binary pathname length",
 		    (off_t) sizeof(binary) - (M_STRLEN - sizeof(ushort))));
@@ -1150,8 +1150,10 @@ reg Stat	*asb;
 	asb->sb_gid = swab(binary.b_gid);
 	asb->sb_nlink = swab(binary.b_nlink);
 	asb->sb_rdev = (dev_t) swab(binary.b_rdev);
-	asb->sb_mtime = swab(binary.b_mtime[0]) << 16 | swab(binary.b_mtime[1]);
-	asb->sb_size = swab(binary.b_size[0]) << 16 | swab(binary.b_size[1]);
+	asb->sb_mtime = (long) swab(binary.b_mtime[0]) << 16 |
+	    swab(binary.b_mtime[1]);
+	asb->sb_size = (long) swab(binary.b_size[0]) << 16 |
+	    swab(binary.b_size[1]);
 	if ((namesize = swab(binary.b_name)) == 0 || namesize >= PATHSIZE)
 		return (warnarch("Bad swapped pathname length",
 		    (off_t) sizeof(binary) - (M_STRLEN - sizeof(ushort))));
@@ -2408,7 +2410,7 @@ reg off_t	size;
 {
 	reg off_t	n;
 
-	if (n = (size / (1024 * 1024))) {
+	if (n = (size / (1024L * 1024))) {
 		VOID fprintf(stream, "%ldm+", n);
 		size -= n * 1024 * 1024;
 	}

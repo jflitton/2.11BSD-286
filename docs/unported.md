@@ -20,7 +20,7 @@ Some programs wait on more than themselves:
 |---|---|
 | Quotas (`sys/sys/quota_*.c` are in the tree, and not built) | `quota`, `quotacheck`, `quotaon`, `edquota`, `repquota` |
 | SLIP (`sys/net/if_sl.c`; `NSL` is 0) | `slattach` |
-| A driver for the parallel port | the line printer's programs, but for a printer on a serial port |
+| A driver for the parallel port | a printer on it; `lpr` and the rest are ported, for a printer on a serial port or across the network |
 | A tape driver | `mt`, `tcopy`, `ansitape`, and `dump` and `restor` to a tape |
 | Crash dumps written to the swap area | `savecore` |
 
@@ -43,7 +43,6 @@ ported yet:
 | program | where |
 |---|---|
 | `adb` and its scripts | `bin/adb`, `share/adb` |
-| `error` | `ucb/error` |
 | `f77` (*medium*), `efl` (*medium*), `ratfor`, `struct`, `pascal` | `usr.bin`, `ucb/pascal` |
 | `libF77`, `libI77`, `libU77` | `usr.lib` |
 
@@ -152,10 +151,9 @@ These are the rest of the writer's tools.
 |---|---|---|
 | `sendmail.MX` (*medium*) | `usr.sbin/sendmail.MX` | a `sendmail` that looks up MX records with `named` |
 | `mkhosts` | `usr.sbin/mkhosts` | `/etc/hosts` as a database. Its Makefile is run, as upstream's is, and installs nothing: `mkhosts` needs `gethostent`, which the C library has only when it reads the table of hosts itself, and it asks `named`, as upstream's does (`HOSTLOOKUP` in `lib/libc/Makefile`) |
-| `uucp` (*medium*), `rmail` | `usr.bin/uucp`, `bin/rmail` | |
+| `uucp` (*medium*) | `usr.bin/uucp` | `rmail`, which hands mail from it to `sendmail`, is ported |
 | `tn3270` | `ucb/tn3270` | |
 | `slattach` | `sbin/slattach` | waits on SLIP |
-| `trpt`, `trsp` | `usr.sbin` | want the kernel's TCP and SPP traces turned on |
 | `testnet` | `sbin/testnet` | upstream's `netstart` asks it whether the kernel has a network; the port's does not |
 
 ## Disks, files and administration
@@ -164,14 +162,11 @@ These are the rest of the writer's tools.
 |---|---|---|
 | `savecore` | `sbin` | waits on crash dumps |
 | `quota`, `quotacheck`, `quotaon`, `edquota`, `repquota` | `ucb`, `sbin`, `usr.sbin` | wait on quotas |
-| `sendbug` | `ucb/sendbug` | |
 
 ## Printers and tapes
 
 | program | where | notes |
 |---|---|---|
-| `lpr`, `lpq`, `lprm`, `lpc`, `lpd`, `pac` | `usr.sbin/lpr` | |
-| the printers' filters | `usr.sbin/lpr/filters` | most are for Versatec and Varian plotters |
 | `mt`, `tcopy` | `bin`, `ucb` | |
 | `ansitape` | `new/ansi` | |
 | `vmsbackup` | `new/vmsbackup` | reads VMS's backup tapes |
@@ -186,13 +181,8 @@ out.
 | program | where | notes |
 |---|---|---|
 | `rn` (*medium*), `nntp` | `new/rn`, `new/nntp` | |
-| `afio`, `cxref` | `local` | may not be sold |
-| `qterm`, `welcome` | `local` | |
 | `kermit` (*medium*) | `new/kermit5.188` | may not be sold or go with a commercial product |
-| `zmodem` | `local/zmodem` | for non-commercial use |
-| `ddd` | `local/ddd` | for non-commercial use |
 | `rcs` | `new/rcs` | may not be distributed without its author's permission |
-| `mtools` | `local/mtools` | not tried |
 
 [COPYRIGHT](../COPYRIGHT) has the restrictive notices in full.
 

@@ -361,7 +361,7 @@ want = ["/dev/wd0a: Marking file system clean",
         "/dev/wd0a: file system is clean; not checking",
         "starting system logger", "clearing /tmp",
         "standard daemons: update cron accounting.",
-        "starting network daemons: inetd.",
+        "starting network daemons: inetd printer.",
         "# echo abcd", "abcd", "term-pccons", "right",
         "AZ!@#$%^&*()_+{}|:<>?~"]
 bad = [w for w in want if w not in lines]

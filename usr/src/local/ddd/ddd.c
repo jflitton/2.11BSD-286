@@ -196,7 +196,7 @@ char *argv[];
       ifd = open(*argv, O_RDONLY);
       if (ifd < 0) perror (*argv);
     } else if (constp == &consts.OF) {
-      ofd = open(*argv, O_WRONLY | O_CREAT);   /* open file for output */
+      ofd = open(*argv, O_WRONLY | O_CREAT, 0666);   /* open file for output */
       if (ofd < 0) perror (*argv);
     } else if (constp == &consts.CBS) {        /* set buffer size */
       cbs = evalopt(*argv);
@@ -293,7 +293,7 @@ int pipenum;
   }
   if (tokenbuf != TOK_CONT) {  /* we did not get what we wanted */
     (void) getcounters(pipenum);       /* report record counters */
-    terminate(tokenbuf == TOK_DONE);   /* TOK_DONE means no error */
+    terminate(tokenbuf != TOK_DONE);   /* TOK_DONE means no error */
   }
 }      /* end of gettoken() */
 

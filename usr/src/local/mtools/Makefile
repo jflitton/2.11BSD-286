@@ -3,7 +3,7 @@
 # check the Configure file for some examples of device-specific setups
 
 CFLAGS	= -O
-LDFLAGS	= -i
+LDFLAGS	= -i -stack 16384
 LD	= cc
 LINT	= lint
 BINDIR	= /usr/local

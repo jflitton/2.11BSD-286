@@ -19,10 +19,15 @@
 #include <ar.h>
 #include <paths.h>
 
-#ifndef A_MAGIC1	/* must be a VM/UNIX system */
+#ifndef A_MAGIC1
+#ifdef A_OBJECT		/* the 286's: a program and an object */
+#	define A_MAGIC1	A_MAGIC
+#	define A_MAGIC2	A_OBJECT
+#else			/* must be a VM/UNIX system */
 #	define A_MAGIC1	OMAGIC
 #	define A_MAGIC2	NMAGIC
 #	define A_MAGIC3	ZMAGIC
+#endif
 #endif
 
 #	undef ARMAG

@@ -28,6 +28,7 @@ static char sccsid[] = "@(#)lpr.c	5.2.2 (2.11BSD) 2026/9/22";
 #include <signal.h>
 #include <ctype.h>
 #include <syslog.h>
+#include <stdarg.h>
 #include "lp.local.h"
 
 char    *tfname;		/* tmp copy of cf before linking */
@@ -531,7 +532,9 @@ test(file)
 		switch(execb.a_magic) {
 		case A_MAGIC1:
 		case A_MAGIC2:
+#ifdef A_MAGIC3
 		case A_MAGIC3:
+#endif
 #ifdef A_MAGIC4
 		case A_MAGIC4:
 #endif
@@ -668,11 +671,14 @@ mktemp(id, num, len)
 }
 
 /*VARARGS1*/
-fatal(msg, a1, a2, a3)
-	char *msg;
+fatal(char *msg, ...)
 {
+	va_list ap;
+
 	printf("%s: ", name);
-	printf(msg, a1, a2, a3);
+	va_start(ap, msg);
+	vprintf(msg, ap);
+	va_end(ap);
 	putchar('\n');
 	exit(1);
 }

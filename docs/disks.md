@@ -256,7 +256,10 @@ RX02 had a device for each density.
   what it wrote.
 - Asked for a label (`DIOCGDINFO`), the driver gives one for what it
   found, of one partition, the whole diskette, so `newfs /dev/rfl0`
-  needs no disk type. `tar` and `dump` write to the raw device.
+  needs no disk type. `tar` and `dump` write to the raw device, and
+  `mtools` reads and writes MS-DOS's diskettes through it: `mdir a:`,
+  `mcopy file b:` ([printers, and the rest of
+  upstream's](userland.md#printers-and-the-rest-of-upstreams)).
 - DMA does not count past a multiple of 64K in memory. A transfer is
   cut there, and a sector with one inside it goes by way of 512 bytes
   of the kernel's own that have none.

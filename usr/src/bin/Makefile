@@ -22,7 +22,7 @@ SCRIPT=	false true
 #
 STD=	cat cc chgrp chmod cmp cp date dd du echo ed hostid \
 	grep kill ln mv nice od pagesize pr \
-	pwd rm rmdir size sync tar tee time who
+	pwd rm rmail rmdir size sync tar tee time who
 
 # C programs that live in the current directory and need explicit make lines.
 #
