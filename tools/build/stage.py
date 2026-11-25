@@ -111,6 +111,15 @@ for dp, dn, fn in os.walk(src):
     os.makedirs(to, exist_ok=True)
     for d in srcmk.models(rel):
         os.makedirs(os.path.join(usrsrc, d), exist_ok=True)
+    # A link to a directory (sendmail's cf, cf.hosttable) is a link
+    # there too: without it, `cd cf; make clean' makes clean where it is.
+    for f in [d for d in dn if os.path.islink(os.path.join(dp, d))]:
+        s, t = os.path.join(dp, f), os.path.join(to, f)
+        staged.append(os.path.join(rel, f))
+        if not os.path.islink(t) or os.readlink(t) != os.readlink(s):
+            if os.path.lexists(t):
+                os.unlink(t)
+            os.symlink(os.readlink(s), t)
     for f in sorted(fn):
         s, t = os.path.join(dp, f), os.path.join(to, f)
         name = os.path.join(rel, f)
@@ -138,7 +147,7 @@ for dp, dn, fn in os.walk(src):
             shutil.copy2(s, t)
 for name in sorted(before - set(staged)):
     t = os.path.join(usrsrc, name)
-    if os.path.lexists(t) and not os.path.isdir(t):
+    if os.path.islink(t) or os.path.lexists(t) and not os.path.isdir(t):
         os.unlink(t)
 with open(out + "/staged", "w") as f:
     f.write("".join(n + "\n" for n in staged))
