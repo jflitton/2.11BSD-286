@@ -209,7 +209,7 @@ kern_sysctl(name, namelen, oldp, oldlenp, newp, newlen)
 	size_t newlen;
 {
 	int error, level, tmphz;
-	u_long longhostid;
+	long longhostid;
 	extern int Acctthresh;		/* kern_acct.c */
 	extern char version[];
 
