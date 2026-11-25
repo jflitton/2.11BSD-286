@@ -56,7 +56,9 @@ struct	nlist {
 	} n_un;
 #else
 	char	*n_name;	/* symbol name (in memory) */
+#ifndef	__LARGE__		/* where a pointer is an off_t's size, none */
 	char	*n_filler;	/* need to pad out to the union's size */
+#endif
 #endif
 	u_char	n_type;		/* Type of symbol - see below */
 	char	n_ovly;		/* Overlay number */
