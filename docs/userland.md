@@ -188,6 +188,15 @@ Left out:
 `nlist` is in it, reading this system's format ([programs that read the
 kernel](#programs-that-read-the-kernel)).
 
+`fseek` has 4.4BSD's optimisation again, which upstream took out as of
+no use on the PDP-11: a seek within what a stream has read moves in its
+buffer, and one beyond it reads the block it lands in, where each seek
+had thrown the buffer away and read it anew. `nlist` seeks to each
+symbol's name, and `w`, `vmstat` and `top` spent two seconds and more
+in the kernel finding a few; `w` takes 0.7 seconds now, where it took 3.
+Upstream's `fseek` also left an `ungetc`'d character's flag set, and the
+first read after the seek returned what was in the buffer before it.
+
 The system's error messages are in `/etc/syserrlst`, not in each
 program's data, as on the PDP-11. `tools/mkerrlst.py` makes the file from
 `usr.lib/liberrlst/errlst.c`.

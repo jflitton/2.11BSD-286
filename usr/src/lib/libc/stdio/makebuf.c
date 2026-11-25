@@ -55,8 +55,8 @@ static char sccsid[] = "@(#)makebuf.c	8.2 (2.11BSD) 2025/12/25";
  * Allocate a file buffer, or switch to unbuffered I/O.
  * Per the ANSI C standard, ALL tty devices default to line buffered.
  *
- * As a side effect, we set __SOPT or __SNPT (en/dis-able fseek
- * optimisation) right after the fstat() that finds the buffer size.
+ * Whether fseek may optimise, __SOPT or __SNPT, is left to fseek, which
+ * finds it with an fstat() the first time it is called.
  */
 void
 __smakebuf(register FILE *fp)
@@ -76,7 +76,7 @@ __smakebuf(register FILE *fp)
 #if 0
 	__cleanup = _cleanup;
 #endif
-	fp->_flags |= (__SMBF|__SNPT);
+	fp->_flags |= __SMBF;
 	fp->_bf._base = fp->_p = p;
 	fp->_bf._size = size;
 	if (isatty(fp->_file))

@@ -65,6 +65,29 @@ char	sbuf[256];
 #define	fmt(want, args)	(sprintf args, strcmp(sbuf, want) == 0 ? 1 : \
 	(printf("  got \"%s\", wanted \"%s\"\n", sbuf, want), 0))
 
+/* where line N of /tmp/stdio starts, each "line N of the file\n" */
+long
+lineat(n)
+	int n;
+{
+	if (n < 10)
+		return (19L * n);
+	if (n < 100)
+		return (190L + 20L * (n - 10));
+	return (1990L + 21L * (n - 100));
+}
+
+/* whether the next line read is line N */
+isline(f, n)
+	FILE *f;
+	int n;
+{
+	char got[40], want[40];
+
+	sprintf(want, "line %d of the file\n", n);
+	return (fgets(got, sizeof got, f) != NULL && strcmp(got, want) == 0);
+}
+
 stdio()
 {
 	FILE *f;
@@ -110,6 +133,27 @@ stdio()
 	check(l == 13, "ftell");
 	n = getc(f);
 	check(n == ' ' && ungetc(n, f) == n && getc(f) == ' ', "getc and ungetc");
+	/*
+	 * fseek within the block read and beyond it, each way, from where
+	 * the file is and from its end, and past what ungetc pushed back.
+	 */
+	check(fseek(f, lineat(5), 0) == 0 && isline(f, 5) &&
+	    fseek(f, lineat(2), 0) == 0 && isline(f, 2), "fseek within the buffer");
+	check(fseek(f, lineat(150), 0) == 0 && ftell(f) == lineat(150) &&
+	    isline(f, 150) && fseek(f, lineat(1), 0) == 0 && isline(f, 1),
+	    "fseek beyond it");
+	check(ftell(f) == lineat(2) && fseek(f, lineat(120) - lineat(2), 1) == 0 &&
+	    isline(f, 120) && fseek(f, lineat(3) - lineat(121), 1) == 0 &&
+	    isline(f, 3), "fseek from where it is");
+	check(fseek(f, -21L, 2) == 0 && isline(f, 199) && getc(f) == EOF &&
+	    feof(f) && fseek(f, lineat(4), 0) == 0 && !feof(f) && isline(f, 4),
+	    "fseek from the end");
+	n = getc(f);
+	check(ungetc('X', f) == 'X' && fseek(f, lineat(9), 0) == 0 &&
+	    isline(f, 9), "fseek past ungetc's");
+	n = getc(f);
+	check(ungetc('Y', f) == 'Y' && ftell(f) == lineat(10) &&
+	    fseek(f, 0L, 1) == 0 && isline(f, 10), "fseek from where ungetc left it");
 	fclose(f);
 	check(sscanf("17 0x1f -3.5e2", "%d %x %lf", &a, &b, &d) == 3 &&
 	    a == 17 && b == 31 && d == -350.0, "sscanf");

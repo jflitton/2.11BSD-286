@@ -39,6 +39,7 @@ static char sccsid[] = "@(#)fseek.c	8.4 (2.11BSD) 2025/12/26";
 #endif
 
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,9 +50,24 @@ static char sccsid[] = "@(#)fseek.c	8.4 (2.11BSD) 2025/12/26";
  * ragge
  * Remove fseek optimizations.  Not likely that it will make any sense
  * on pdp11.
+ *
+ * On the 286 they do: nlist() seeks to each symbol's name in turn, and
+ * each seek threw the buffer away and read it again, two system calls a
+ * symbol.  They are 4.4BSD's again, with the buffer always BUFSIZ, and
+ * ungetc()'s characters in its own buffer or, with __SUNC, in _ubuf.
  */
 
 #define	POS_ERR	(-(fpos_t)1)
+
+/* ungetc() has pushed characters back */
+#define	UNGOT(fp)	(HASUB(fp) || ((fp)->_flags & __SUNC))
+
+/* forget them */
+#define	UNGOTDROP(fp) { \
+	if (HASUB(fp)) \
+		FREEUB(fp); \
+	(fp)->_flags &= ~__SUNC; \
+}
 
 /*
  * Seek the given file to the given offset.
@@ -64,6 +80,8 @@ fseek(register FILE *fp, long offset, int whence)
 	fpos_t target, curoff;
 	size_t n;
 	void *c;
+	struct stat st;
+	int havepos;
 
 	/*
 	 * Have to be able to seek.
@@ -95,18 +113,20 @@ fseek(register FILE *fp, long offset, int whence)
 		}
 		if (fp->_flags & __SRD) {
 			curoff -= fp->_r;
-			if (HASUB(fp) || (fp->_flags & __SUNC))
+			if (UNGOT(fp))
 				curoff -= fp->_ur;
 		} else if (fp->_flags & __SWR && fp->_p != NULL)
 			curoff += fp->_p - fp->_bf._base;
 
 		offset += curoff;
 		whence = SEEK_SET;
+		havepos = 1;
 		break;
 
 	case SEEK_SET:
 	case SEEK_END:
 		curoff = 0;		/* XXX just to keep gcc quiet */
+		havepos = 0;
 		break;
 
 	default:
@@ -118,24 +138,116 @@ fseek(register FILE *fp, long offset, int whence)
 	 * Can only optimise if:
 	 *	reading (and not reading-and-writing);
 	 *	not unbuffered; and
-	 *	this is a `regular' Unix file (and hence seekfn==__sseek).
+	 *	this is a `regular' Unix file (and hence seekfn==__sseek),
+	 *	with a buffer of BUFSIZ.
 	 * We must check __NBF first, because it is possible to have __NBF
 	 * and __SOPT both set.
 	 */
 	if (fp->_bf._base == NULL)
 		__smakebuf(fp);
+	if (fp->_flags & (__SWR | __SRW | __SNBF | __SNPT))
+		goto dumb;
+	if ((fp->_flags & __SOPT) == 0) {
+		if (ISFALL(fp) || fp->_file < 0 || fstat(fp->_file, &st) ||
+		    (st.st_mode & S_IFMT) != S_IFREG ||
+		    fp->_bf._size != BUFSIZ) {
+			fp->_flags |= __SNPT;
+			goto dumb;
+		}
+		fp->_flags |= __SOPT;
+	}
+
+	/*
+	 * We are reading; we can try to optimise.
+	 * Figure out where we are going and where we are now.
+	 */
+	if (whence == SEEK_SET)
+		target = offset;
+	else {
+		if (fstat(fp->_file, &st))
+			goto dumb;
+		target = st.st_size + offset;
+	}
+
+	if (!havepos) {
+		if (fp->_flags & __SOFF)
+			curoff = fp->_offset;
+		else {
+			curoff = (*seekfn)(c, (fpos_t)0, SEEK_CUR);
+			if (curoff == POS_ERR)
+				goto dumb;
+		}
+		curoff -= fp->_r;
+		if (UNGOT(fp))
+			curoff -= fp->_ur;
+	}
+
+	/*
+	 * Compute the number of bytes in the input buffer (pretending
+	 * that any ungetc() input has been discarded).  Adjust current
+	 * offset backwards by this count so that it represents the
+	 * file offset for the first byte in the current input buffer.
+	 */
+	if (UNGOT(fp)) {
+		curoff += fp->_r;	/* kill off ungetc */
+		n = fp->_up - fp->_bf._base;
+		curoff -= n;
+		n += fp->_ur;
+	} else {
+		n = fp->_p - fp->_bf._base;
+		curoff -= n;
+		n += fp->_r;
+	}
+
+	/*
+	 * If the target offset is within the current buffer,
+	 * simply adjust the pointers, clear EOF, undo ungetc(),
+	 * and return.  (If the buffer was modified, we have to
+	 * skip this; see fgetln.c.)
+	 */
+	if ((fp->_flags & __SMOD) == 0 &&
+	    target >= curoff && target < curoff + n) {
+		register int o = target - curoff;
+
+		fp->_p = fp->_bf._base + o;
+		fp->_r = n - o;
+		UNGOTDROP(fp);
+		fp->_flags &= ~__SEOF;
+		return (0);
+	}
+
+	/*
+	 * The place we want to get to is not within the current buffer.
+	 * Read the block it is in, from the block's start, so that only
+	 * the one block is read.
+	 */
+	curoff = target & ~(fpos_t)(BUFSIZ - 1);
+	if ((*seekfn)(c, curoff, SEEK_SET) == POS_ERR)
+		goto dumb;
+	fp->_r = 0;
+	fp->_p = fp->_bf._base;
+	UNGOTDROP(fp);
+	fp->_flags &= ~__SEOF;
+	n = target - curoff;
+	if (n) {
+		if (__srefill(fp) || fp->_r < n)
+			goto dumb;
+		fp->_p += n;
+		fp->_r -= n;
+	}
+	return (0);
 
 	/*
 	 * We get here if we cannot optimise the seek ... just
 	 * do it.  Allow the seek function to change fp->_bf._base.
 	 */
+dumb:
 	if (__sflush(fp) ||
 	    (*seekfn)(c, (fpos_t)offset, whence) == POS_ERR) {
 		return (EOF);
 	}
 	/* success: clear EOF indicator and discard ungetc() data */
-	if (HASUB(fp))
-		FREEUB(fp);
+	UNGOTDROP(fp);
 	fp->_p = fp->_bf._base;
 	fp->_r = 0;
 	/* fp->_w = 0; */	/* unnecessary (I think...) */
