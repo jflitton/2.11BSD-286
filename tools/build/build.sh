@@ -40,8 +40,8 @@
 #     steps 2 and 4 in OUT/xlib, of lib/libc and usr.lib alone, with
 #     obj/lib's C library (usr/src/lib/libc/i286 TOOLS=cross) first.
 #  2. usr/src is copied to OUT/root/usr/src, where what was made before
-#     is kept (stage.py), and each directory whose Makefile has changed
-#     is cleaned.  When what every program is made with has changed, the
+#     is kept (stage.py), and each directory whose Makefile or sources
+#     have changed is cleaned.  When what every program is made with has changed, the
 #     compiler, its tools or the headers, all is made anew.
 #  3. The root is made anew, OUT/dest, by etc's distribution, which makes
 #     its directories, /etc and /dev (usr/src/etc/Makefile), and with what

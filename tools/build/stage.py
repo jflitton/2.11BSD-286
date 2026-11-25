@@ -30,8 +30,12 @@ them and name none they are made with.  A command it names by where
 the system has it is seen to as it is run (sh.py), and where `make
 install` puts a file is left as it is: the commands that are given such
 a name put it in OUT/dest (commands.sh).  The directories whose
-Makefiles are not what they were are listed in OUT/remade, a line each,
-for build.sh to clean them first.
+Makefiles are not what they were, or which have a file that is not, or
+are the nearest above it with a Makefile, are listed in OUT/remade, a
+line each, for build.sh to clean them first: a Makefile need not say
+what a program is made of (bin's has `${STD}:' and no more, and upstream
+made clean before it made all), and usr/src's own is not one to clean
+for a file (the kernel's sources, whose Makefile says).
 
 adventure's game is made by running a.out, which reads the game's text
 and writes itself out with it, and only the 286 can run that: here its
@@ -91,6 +95,17 @@ def makefile(text, rel, here):
                     SYS.sub(dest + "/", m.group(2)), text)
 
 
+def maker(rel):
+    """REL, or the nearest directory above it, that has a Makefile, but
+    for usr/src itself: None."""
+    while rel:
+        if any(os.path.isfile(os.path.join(src, rel, m))
+               for m in ("Makefile", "makefile")):
+            return rel
+        rel = os.path.dirname(rel)
+    return None
+
+
 def same(a, b):
     """Whether files A and B have the same contents."""
     if os.path.getsize(a) != os.path.getsize(b):
@@ -143,6 +158,8 @@ for dp, dn, fn in os.walk(src):
                 open(t, "w", errors="surrogateescape").write(text)
         elif not os.path.isfile(t) or os.path.islink(t) or not same(s, t):
             if os.path.lexists(t):
+                if name in before and maker(rel):
+                    remade.append(maker(rel))
                 os.unlink(t)
             shutil.copy2(s, t)
 for name in sorted(before - set(staged)):
@@ -152,7 +169,7 @@ for name in sorted(before - set(staged)):
 with open(out + "/staged", "w") as f:
     f.write("".join(n + "\n" for n in staged))
 with open(out + "/remade", "w") as f:
-    f.write("".join(d + "\n" for d in remade))
+    f.write("".join(d + "\n" for d in dict.fromkeys(remade)))
 
 inc = os.path.join(root, "usr", "include")
 if not os.path.lexists(inc):
