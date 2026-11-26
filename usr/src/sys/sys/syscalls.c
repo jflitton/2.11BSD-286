@@ -7,9 +7,10 @@
  */
 
 /*
- * System call names.
+ * System call names.  Nothing in the kernel reads them, and the 286's
+ * data segment, as the PDP-11's, has no room for them.
  */
-#ifndef pdp11
+#if !defined(pdp11) && !defined(i286)
 char *syscallnames[] = {
 	"indir",		/*   0 = indir */
 	"exit",			/*   1 = exit */

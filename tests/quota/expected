@@ -1,0 +1,100 @@
+== quota
+/dev/wd0d on /home (with quotas)
+quotas  quser
+                        Block limits               File limits
+User            used    soft    hard  warn    used  soft  hard  warn
+root      --       0       0       0    0       1     0     0     0
+quser     --       0       0       0    0       2     0     0     0
+== edquota
+Quotas for quser:
+/home: blocks in use: 0, limits (soft = 0, hard = 0)
+        inodes in use: 2, limits (soft = 0, hard = 0)
+Disc quotas for quser (uid 100):
+    Filsys current   quota   limit  #warns   files   quota   limit  #warns
+     /home       0      20      30               2       5       8        
+                        Block limits               File limits
+User            used    soft    hard  warn    used  soft  hard  warn
+root      --       0      20      30    3       1     5     8     3
+quser     --       0      20      30    3       2     5     8     3
+== fill
+12+0 records in
+12+0 records out
+12288 bytes transferred
+WARNING: disc quota (/home) exceeded
+10+0 records in
+10+0 records out
+10240 bytes transferred
+WARNING - too many files (/home)
+DISC LIMIT REACHED (/home) - WRITE FAILED
+write: Disc quota exceeded
+8+0 records in
+7+0 records out
+7168 bytes transferred
+FILE LIMIT REACHED - CREATE FAILED (/home)
+touch: f: Disc quota exceeded
+touch: g: Disc quota exceeded
+Disc quotas for quser (uid 100):
+    Filsys current   quota   limit  #warns   files   quota   limit  #warns
+     /home      29*     20      30               7*      5       8        
+# ^D
+2.11 BSD UNIX (Amnesiac) (tty00)
+login: quser
+Warning: too many files on /home, 2 warnings left
+Warning: too much disc space on /home, 2 warnings left
+$ quota
+Disc quotas for quser (uid 100):
+    Filsys current   quota   limit  #warns   files   quota   limit  #warns
+     /home      29*     20      30       2       7*      5       8       2
+$ ^D
+2.11 BSD UNIX (Amnesiac) (tty00)
+login: quser
+Warning: too many files on /home, 1 warning left
+Warning: too much disc space on /home, 1 warning left
+$ quota
+Disc quotas for quser (uid 100):
+    Filsys current   quota   limit  #warns   files   quota   limit  #warns
+     /home      29*     20      30       1       7*      5       8       1
+$ ^D
+2.11 BSD UNIX (Amnesiac) (tty00)
+login: quser
+WARNING: too many files on /home, NO MORE!!
+WARNING: too much disc space on /home, NO MORE!!
+$ sh /root/user.sh over
+== over
+OVER DISC QUOTA: (/home) NO MORE DISC SPACE
+write: Disc quota exceeded
+1+0 records in
+0+0 records out
+OVER FILE QUOTA - NO MORE FILES (/home)
+touch: h: Disc quota exceeded
+UNDER DISC QUOTA: (/home) by 8 Kbytes
+Disc quotas for quser (uid 100):
+    Filsys current   quota   limit  #warns   files   quota   limit  #warns
+     /home      12      20      30               5*      5       8       0
+$ ^D
+2.11 BSD UNIX (Amnesiac) (tty00)
+login: root
+2.11 BSD UNIX for the 286
+erase DEL, kill ^U, intr ^C
+# sh /root/quota.sh check; reboot
+== check
+/home: quotas turned off
+*** Checking quotas for /dev/rwd0d (/home)
+root     fixed: inodes 1 -> 2   bytes 0 -> 655872
+quser    fixed: inodes 5 -> 6   bytes 12288 -> 12826
+/home: quotas turned on
+                        Block limits               File limits
+User            used    soft    hard  warn    used  soft  hard  warn
+root      +-     640      20      30    3       2     5     8     3
+quser     -+      12      20      30    3       6     5     8     0
+== rebooting
+== after
+/dev/wd0d on /home (with quotas)
+                        Block limits               File limits
+User            used    soft    hard  warn    used  soft  hard  warn
+root      +-     640      20      30    3       2     5     8     3
+quser     -+      12      20      30    3       6     5     8     0
+Disc quotas for quser (uid 100):
+    Filsys current   quota   limit  #warns   files   quota   limit  #warns
+     /home      12      20      30               6*      5       8       0
+== end

@@ -36,12 +36,12 @@
 /*
  * Quota cache - hash chain headers.
  */
-#ifndef pdp11
+#if !defined(pdp11) && !defined(i286)
 #define	NQHASH		32	/* small power of two */
 #endif
 #define	QHASH(uid)	((unsigned)(uid) & (NQHASH-1))
 
-#ifndef pdp11
+#if !defined(pdp11) && !defined(i286)
 struct	qhash	{
 	struct	qhash	*qh_forw;	/* MUST be first */
 	struct	qhash	*qh_back;	/* MUST be second */
@@ -49,25 +49,25 @@ struct	qhash	{
 
 struct	qhash	qhash[NQHASH];
 #else
-struct	qhash	*qhash;
+struct	qhash	__far *qhash;
 #endif
 
 /*
  * Quota free list.
  */
-struct	quota	*qfreelist, **qfreetail;
-typedef	struct quota *Qptr;
+struct	quota	__far *qfreelist, __far * __far *qfreetail;
+typedef	struct quota __far *Qptr;
 
 /*
  * Dquot cache - hash chain headers.
  */
-#ifndef pdp11		/* and 51 isn't even prime, see quota.h */
+#if !defined(pdp11) && !defined(i286)	/* and 51 isn't even prime, see quota.h */
 #define	NDQHASH		51		/* a smallish prime */
 #endif
 #define	DQHASH(uid, dev) \
 	((unsigned)(((int)(dev) * 4) + (uid)) % NDQHASH)
 
-#ifndef pdp11
+#if !defined(pdp11) && !defined(i286)
 struct	dqhead	{
 	struct	dqhead	*dqh_forw;	/* MUST be first */
 	struct	dqhead	*dqh_back;	/* MUST be second */
@@ -75,15 +75,50 @@ struct	dqhead	{
 
 struct	dqhead	dqhead[NDQHASH];
 #else
-	struct	dqhead	*dqhead;
+	struct	dqhead	__far *dqhead;
 #endif
 
 /*
  * Dquot free list.
  */
-struct	dquot	*dqfreel, **dqback;
+struct	dquot	__far *dqfreel, __far * __far *dqback;
 
-typedef	struct dquot *DQptr;
+typedef	struct dquot __far *DQptr;
+
+/*
+ * The tables, which quota.h declares and QUOini (param.c) points at.
+ */
+struct	quota __far *quota, __far *quotaNQUOTA;
+int	nquota;
+struct	dquot __far *dquot, __far *dquotNDQUOT;
+int	ndquot;
+struct	dquot __far * __far *ix_dquot;
+
+#ifdef i286
+/*
+ * The queues here are in far data, and the kernel's insque and remque
+ * are for its own, whose links are near.  The structures of each queue
+ * begin with their two links, as a qhash is.
+ */
+static void
+qinsque(struct qhash __far *e, struct qhash __far *after)
+{
+	e->qh_forw = after->qh_forw;
+	e->qh_back = after;
+	after->qh_forw->qh_back = e;
+	after->qh_forw = e;
+}
+
+static void
+qremque(struct qhash __far *e)
+{
+	e->qh_back->qh_forw = e->qh_forw;
+	e->qh_forw->qh_back = e->qh_back;
+}
+#define	insque(e, after) \
+	qinsque((struct qhash __far *)(e), (struct qhash __far *)(after))
+#define	remque(e)	qremque((struct qhash __far *)(e))
+#endif
 
 /*
  * Initialize quota caches.
@@ -91,10 +126,10 @@ typedef	struct dquot *DQptr;
 qtinit()
 {
 	register i;
-	register struct quota *q = quota;
-	register struct qhash *qh = qhash;
-	register struct dquot *dq = dquot;
-	register struct dqhead *dh = dqhead;
+	register struct quota __far *q = quota;
+	register struct qhash __far *qh = qhash;
+	register struct dquot __far *dq = dquot;
+	register struct dqhead __far *dh = dqhead;
 
 	/*
 	 * First the cache of structures assigned users.
@@ -142,16 +177,16 @@ qtinit()
  * or make one.  If lookuponly is non-zero, just the lookup is performed.
  * If nodq is non-zero, the dquot structures are left uninitialized.
  */
-struct quota *
+struct quota __far *
 getquota(uid, lookuponly, nodq)
 	register uid_t uid;
 	int lookuponly, nodq;
 {
-	register struct quota *q;
-	register struct qhash *qh;
-	register struct dquot **dqq;
+	register struct quota __far *q;
+	register struct qhash __far *qh;
+	register struct dquot __far * __far *dqq;
 	register struct mount *mp;
-	register struct quota *qq;
+	register struct quota __far *qq;
 
 	/*
 	 * Fast check to see if an existing structure
@@ -184,7 +219,7 @@ getquota(uid, lookuponly, nodq)
 				if (!nodq)
 				for (dqq = q->q_dq, mp = mount;
 				    dqq < &q->q_dq[NMOUNT]; dqq++, mp++)
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 					if (*dqq == LOSTDQUOT && mp->m_inodp) {
 #else
 					if (*dqq == LOSTDQUOT && mp->m_bufp) {
@@ -199,7 +234,7 @@ quick:
 			q->q_cnt++;
 			while (q->q_flags & Q_LOCK) {
 				q->q_flags |= Q_WANT;
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 				QUOTAUNMAP();
 				sleep((caddr_t) q, PINOD+1);
 				QUOTAMAP();
@@ -256,7 +291,7 @@ quick:
 			putdq(mp, *dqq, 1);
 		}
 	for (mp = mount, dqq = q->q_dq; dqq < &q->q_dq[NMOUNT]; mp++, dqq++)
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 		if (!nodq && mp->m_inodp) {
 #else
 		if (!nodq && mp->m_bufp) {
@@ -279,9 +314,9 @@ quick:
  * Delete a quota, wakeup anyone waiting.
  */
 delquota(q)
-	register struct quota *q;
+	register struct quota __far *q;
 {
-	register struct dquot **dqq;
+	register struct dquot __far * __far *dqq;
 	register struct mount *mp;
 
  top:
@@ -291,7 +326,7 @@ delquota(q)
 	}
 	if (q->q_flags & Q_LOCK) {
 		q->q_flags |= Q_WANT;
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 		QUOTAUNMAP();
 		sleep((caddr_t)q, PINOD+2);
 		QUOTAMAP();
@@ -315,7 +350,7 @@ delquota(q)
 	if ((q->q_flags & Q_NDQ) == 0) {
 		mp = mount;
 		for (dqq = q->q_dq; dqq < &q->q_dq[NMOUNT]; dqq++, mp++)
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 			if (mp->m_inodp)
 #else
 			if (mp->m_bufp)
@@ -348,14 +383,14 @@ delquota(q)
  * Obtain the user's on-disk quota limit
  * from the file specified.
  */
-struct dquot *
+struct dquot __far *
 discquota(uid, ip)
 	uid_t uid;
 	register struct inode *ip;
 {
-	register struct dquot *dq;
-	register struct dqhead *dh;
-	register struct dquot *dp;
+	register struct dquot __far *dq;
+	register struct dqhead __far *dh;
+	register struct dquot __far *dp;
 	int fail;
 
 	if (ip == NULL)
@@ -399,7 +434,7 @@ discquota(uid, ip)
 	if (dq == NODQUOT)
 		return (dq);
 	dq->dq_flags = DQ_LOCK;
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 	{
 		struct dqblk xq;
 
@@ -442,15 +477,15 @@ discquota(uid, ip)
  * no free slots in the cache, flush LRU entry from
  * the cache to the appropriate quota file on disk.
  */
-struct dquot *
+struct dquot __far *
 dqalloc(uid, dev)
 	uid_t uid;
 	dev_t dev;
 {
-	register struct dquot *dq;
-	register struct dqhead *dh;
-	register struct dquot *dp;
-	register struct quota *q;
+	register struct dquot __far *dq;
+	register struct dqhead __far *dh;
+	register struct dquot __far *dp;
+	register struct quota __far *q;
 	register struct mount *mp;
 	static struct dqblk zdqb = { 0 };
 
@@ -461,7 +496,7 @@ dqalloc(uid, dev)
 	 * is necessary in claiming an entry.
 	 */
 	for (mp = mount; mp < &mount[NMOUNT]; mp++) {
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 		if (mp->m_dev == dev && mp->m_inodp) {
 #else
 		if (mp->m_dev == dev && mp->m_bufp) {
@@ -486,7 +521,7 @@ dqalloc(uid, dev)
 	if ((dq = dqfreel) == NODQUOT && (q = qfreelist) != NOQUOTA) {
 
 		do {
-			register struct dquot **dqq;
+			register struct dquot __far * __far *dqq;
 			register struct mount *mountp = mount;
 
 			dqq = q->q_dq;
@@ -547,7 +582,7 @@ dqalloc(uid, dev)
  * dqrele - layman's interface to putdq.
  */
 dqrele(dq)
-	register struct dquot *dq;
+	register struct dquot __far *dq;
 {
 	register struct mount *mp;
 
@@ -562,7 +597,7 @@ dqrele(dq)
 	 * to sync the quota information to.
 	 */
 	for (mp = mount; mp < &mount[NMOUNT]; mp++)
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 		if (mp->m_inodp && mp->m_dev == dq->dq_dev) {
 #else
 		if (mp->m_bufp && mp->m_dev == dq->dq_dev) {
@@ -578,7 +613,8 @@ dqrele(dq)
  */
 putdq(mp, dq, free)
 	register struct mount *mp;
-	register struct dquot *dq;
+	register struct dquot __far *dq;
+	int free;
 {
 	register struct inode *ip;
 
@@ -614,7 +650,7 @@ putdq(mp, dq, free)
 	 */
 	while (dq->dq_flags & DQ_LOCK) {
 		dq->dq_flags |= DQ_WANT;
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 		QUOTAUNMAP();
 		sleep((caddr_t)dq, PINOD+2);
 		QUOTAMAP();
@@ -630,7 +666,7 @@ putdq(mp, dq, free)
 	dq->dq_flags |= DQ_LOCK;
 	if ((ip = mp->m_qinod) == NULL)
 		panic("lost quota file");
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 	{
 		struct dqblk xq;
 		uid_t uid;
@@ -661,12 +697,12 @@ putdq(mp, dq, free)
 /*
  * See if there is a quota struct in core for user 'uid'.
  */
-struct quota *
+struct quota __far *
 qfind(uid)
 	register uid_t uid;
 {
-	register struct quota *q;
-	register struct qhash *qh;
+	register struct quota __far *q;
+	register struct qhash __far *qh;
 
 	/* 
 	 * Check common cases first: asking for own quota,
@@ -694,11 +730,11 @@ qfind(uid)
  */
 opendq(mp, fname)
 	register struct mount *mp;
-	caddr_t fname;
+	char __far *fname;
 {
 	register struct inode *ip;
-	register struct quota *q;
-	struct dquot *dq;
+	register struct quota __far *q;
+	struct dquot __far *dq;
 	struct	nameidata nd;
 	register struct nameidata *ndp = &nd;
 	int i;
@@ -748,9 +784,9 @@ opendq(mp, fname)
 closedq(mp)
 	register struct mount *mp;
 {
-	register struct dquot *dq;
+	register struct dquot __far *dq;
 	register i = mp - mount;
-	register struct quota *q;
+	register struct quota __far *q;
 	register struct inode *ip;
 
 	if (mp->m_qinod == NULL)
@@ -761,7 +797,7 @@ closedq(mp)
 	 */
 	for (ip = inode; ip < inodeNINODE; ip++)
 		if (ip->i_dev == mp->m_dev) {
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 			dq = ix_dquot[ip - inode];
 			ix_dquot[ip - inode] = NODQUOT;
 #else
@@ -775,15 +811,19 @@ closedq(mp)
 	 * quota info to disk and also delete
 	 * references to closing quota file.
 	 */
+	/*
+	 * Every quota's, those that count nothing (Q_NDQ) too: root's is
+	 * one, and Q_SETDLIM gives it a dquot as it does any other, which
+	 * passed over here was never let go of, and the loop below found it
+	 * and panicked.
+	 */
 	for (q = quota; q < quotaNQUOTA; q++) {
-		if ((q->q_flags & Q_NDQ) == 0) {
-			if (q->q_cnt) {
-				q->q_cnt++;
-				putdq(mp, q->q_dq[i], 1);
-				delquota(q);
-			} else
-				putdq(mp, q->q_dq[i], 1);
-		}
+		if (q->q_cnt) {
+			q->q_cnt++;
+			putdq(mp, q->q_dq[i], 1);
+			delquota(q);
+		} else
+			putdq(mp, q->q_dq[i], 1);
 		q->q_dq[i] = NODQUOT;
 	}
 

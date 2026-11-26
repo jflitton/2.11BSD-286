@@ -670,7 +670,7 @@ chown1(ip, uid, gid)
 {
 	int ouid, ogid;
 #ifdef QUOTA
-	struct	dquot	**xdq;
+	struct	dquot	__far * __far *xdq;
 	long change;
 #endif
 	if (uid == -1)
@@ -1100,7 +1100,7 @@ register struct nameidata *ndp;
 	register struct inode *ip;
 	register struct inode *pdir = ndp->ni_pdir;
 #ifdef	QUOTA
-	struct	dquot	**xdq;
+	struct	dquot	__far * __far *xdq;
 #endif
 
 	ip = ialloc(pdir);
@@ -1169,7 +1169,7 @@ mkdir()
 	struct	nameidata nd;
 	register struct nameidata *ndp = &nd;
 #ifdef	QUOTA
-	struct	dquot **xdq;
+	struct	dquot __far * __far *xdq;
 #endif
 
 	NDINIT(ndp, CREATE, NOFOLLOW, UIO_USERSPACE, uap->name);

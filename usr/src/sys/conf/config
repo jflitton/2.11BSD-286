@@ -109,6 +109,9 @@ OPTS=
 if [ "$UCB_METER" = YES ]; then
 	OPTS="$OPTS -DUCB_METER"
 fi
+if [ "$QUOTA" = YES ]; then
+	OPTS="$OPTS -DQUOTA"
+fi
 OPTS="$OPTS -DINET"
 echo "#define NLOOP	1"	> ../$MACHINE/loop.h
 

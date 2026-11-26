@@ -12,7 +12,6 @@
 
 #include "param.h"
 #include "systm.h"
-#include "user.h"
 
 int	nosys();
 
@@ -43,21 +42,7 @@ int	pselect(),select(),fcntl(),flock();
 
 /* 1.6 resource controls */
 int	getpriority(),setpriority(),getrusage(),getrlimit(),setrlimit();
-#ifdef QUOTA
 int	setquota(),qquota();
-#else
-/*
- * Without quotas the calls say so with EINVAL, which is what login and
- * the quota programs look for, rather than end the caller with SIGSYS.
- */
-#define	setquota	noquota
-#define	qquota		noquota
-static
-noquota()
-{
-	u.u_error = EINVAL;
-}
-#endif
 
 /* 1.7 system operation support */
 int	umount(),smount();

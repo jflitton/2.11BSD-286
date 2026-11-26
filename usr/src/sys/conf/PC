@@ -42,6 +42,10 @@ TIMEZONE	0			# kernel uses GMT by default
 # use it.
 UCB_METER	YES			# vmstat performance metering
 
+# Disk quotas, on the file systems /etc/fstab says rq for.  Their tables
+# are far data, 9K of it; the code reads them through far pointers.
+QUOTA		YES			# dynamic file system quotas
+
 # NBUF is the most buffers the cache may have, 1K of data each; the
 # kernel takes a sixteenth of the memory it finds, up to this (param.c).
 # The headers are in the kernel's data, 28 bytes each.

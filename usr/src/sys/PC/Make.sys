@@ -12,9 +12,9 @@
 #	2.6 (2.11BSD GTE) 1997/11/28
 #
 # The 286's: the kernel's files of ../sys but the network's, which are
-# Make.net's.  The quotas, the Ingres lock driver and the tablet line
-# discipline are not in its kernel.  No spl script: the 286's spl is
-# what the compiler makes of it.
+# Make.net's.  The Ingres lock driver and the tablet line discipline
+# are not in its kernel.  No spl script: the 286's spl is what the
+# compiler makes of it.
 #
 S=	../sys
 VPATH=	../sys
@@ -27,6 +27,8 @@ CFILES=	${S}/init_main.c ${S}/init_sysent.c ${S}/kern_acct.c		\
 	${S}/kern_sig.c ${S}/kern_subr.c ${S}/kern_sysctl.c		\
 	${S}/kern_sig2.c						\
 	${S}/kern_synch.c ${S}/kern_time.c ${S}/kern_xxx.c		\
+	${S}/quota_kern.c ${S}/quota_subr.c ${S}/quota_sys.c		\
+	${S}/quota_ufs.c						\
 	${S}/subr_log.c ${S}/subr_prf.c ${S}/subr_rmap.c		\
 	${S}/subr_xxx.c ${S}/sys_generic.c ${S}/sys_inode.c		\
 	${S}/sys_kern.c ${S}/sys_pipe.c					\
@@ -44,6 +46,7 @@ OBJS=	init_main.o init_sysent.o kern_acct.o kern_clock.o		\
 	kern_proc.o kern_prot.o kern_resource.o kern_sig.o kern_sysctl.o \
 	kern_prot2.o kern_sig2.o					\
 	kern_subr.o kern_synch.o kern_time.o kern_xxx.o			\
+	quota_kern.o quota_subr.o quota_sys.o quota_ufs.o		\
 	subr_log.o subr_prf.o subr_rmap.o				\
 	subr_xxx.o sys_generic.o sys_inode.o sys_kern.o			\
 	sys_pipe.o sys_process.o syscalls.o tty.o tty_conf.o tty_pty.o	\

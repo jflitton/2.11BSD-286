@@ -364,11 +364,9 @@ a union (`bin/sh/mode.h`); the shell's few other such uses have casts.
 - **That `/etc/autoconfig` exists.** On the PDP-11 `init` runs it to find
   the devices; this kernel finds its own, and `init` no longer runs it.
 
-The kernel changed for two of these: without quotas compiled in, the
-quota calls fail with EINVAL, which `login` looks for, rather than end
-the caller with SIGSYS; and `execve` gives the arguments and environment
-room above the program's stack, so that the stack size a program is
-linked with is its own (8K by default).
+The kernel changed for one of these: `execve` gives the arguments and
+environment room above the program's stack, so that the stack size a
+program is linked with is its own (8K by default).
 
 ## Before a program is built
 
@@ -2588,16 +2586,16 @@ with it (`usr/src/local/adduser`), root's without
 root's prompt and paths, and with the same erase character on the
 console's screens.
 
-Upstream's `rc` is the PDP-11's, with its buses and network interfaces,
-and calls some things that are not built yet: the quota programs. This
-port's checks the file
+Upstream's `rc` is the PDP-11's, with its buses and network interfaces.
+This port's checks the file
 systems as upstream's does. At an automatic boot `fsck -p` checks each
 in `fstab` that was not unmounted cleanly, the root first and alone; if
 it had to change the root, which is mounted, `rc` starts the system
 again with `reboot -n`, so that nothing the kernel held of the old is
 written over what `fsck` wrote. From single user `rc` checks nothing,
 that having been done by hand. `mount -a` mounts the rest of `fstab`,
-and `dev_mkdb` and `ps -U` make the databases of devices and of the
+`quotacheck -a` and `quotaon -a` count and turn on the quotas of those
+it says `rq` for ([quotas](#quotas)), and `dev_mkdb` and `ps -U` make the databases of devices and of the
 kernel's symbols that `ps` reads ([programs that read the
 kernel](#programs-that-read-the-kernel)), and the locks that `tip`
 leaves in `/usr/spool/uucp` are taken away. Then `rc` reads
@@ -2793,6 +2791,97 @@ it, at its start; here `adb`, `ps` and `pstat` know a dump by its
 header and read each of the kernel's segments where the descriptors
 saved in the dump say. `crash(8)` is upstream's with the PDP-11's
 traps, registers and console switches written again for the 286.
+
+## Quotas
+
+The kernel keeps upstream's quotas, Melbourne's: for each user on each
+file system that has a quota file, a soft and a hard limit of the
+kilobytes the user's files may hold and of how many there may be. A
+file system has them when `/etc/fstab` says `rq` for it where it would
+say `rw`:
+
+```
+/dev/wd0d	/home	ufs	rq		1	2
+```
+
+At each start `/etc/rc` has `quotacheck -a` count what each user has on
+those, making the quota file, `quotas` at the top of the file system,
+where there is none, and `quotaon -a` turn their quotas on, as
+upstream's does. Then:
+
+```
+edquota quser		quser's limits, in an editor ($EDITOR, or vi)
+edquota -p quser a b	a's and b's the same as quser's
+quota -v quser		what quser has and may have (anyone, of themselves)
+repquota /home		what everyone has there
+quotaoff /home		the kernel stops counting there, until quotacheck and quotaon
+```
+
+Past a soft limit the kernel says so on the terminal of the process
+that went past it, and lets it go on to the hard limit, where a write or
+a new file fails with EDQUOT, "Disc quota exceeded". A user over a soft
+limit has three warnings, one used at each login, which `login` has the
+kernel print; with none left the soft limit is a hard one, until the
+user is under it again. Root is never stopped. What is counted is a
+file's size, as 2.11BSD's kernel counts it, not the blocks it holds,
+and `quota` and `repquota` show it in kilobytes.
+
+The PDP-11 kernel keeps the quotas' tables in 8K of their own, which
+it maps in at SEG5 to use them (`QUOTAMAP`); this one keeps them in far
+data, 9K in `param.c`, where they are linked by far pointers, and takes
+the PDP-11's way elsewhere: sizes in bytes, and each inode's quota in
+`ix_dquot` beside the inode table rather than in it. The kernel's own
+data segment holds only their few pointers and messages, room for which
+was made by leaving out `syscallnames`, which nothing reads and the
+PDP-11's kernel leaves out too. `QUOTA` in `conf/PC` is on as shipped;
+a kernel without it fails the calls with EINVAL, as upstream's does,
+which `login` looks for.
+
+Upstream's had bugs on the PDP-11 too, which no one there would have
+met who did not use quotas:
+
+- Removing a file gave none of its bytes back: `irele` let go of the
+  inode's quota before `itrunc` freed the blocks, which found none to
+  give them to. 4.3BSD frees first, and so does this one.
+- Freeing more than had been counted, as when the quotas were turned
+  on with no `quotacheck`, took the count around to 4G, and the user
+  far over the limit: the count is unsigned, and the test that it would
+  not go below 0 was always true.
+- `UNDER DISC QUOTA` gave a `long` to `%d`, which on the PDP-11 prints
+  its high word, 0.
+- `qsync` asked for root, for the `quota` call's sake, but the kernel
+  calls it itself as it syncs a file system: `sync` failed with EPERM
+  for anyone else. The `quota` call asks now.
+- Turning quotas off let go of the quota file's dquots held by every
+  user's quota but those that count nothing, root's among them, which
+  `edquota root` gives one as it does anyone: then the kernel found it
+  still held and panicked, "closedq: stray dquot".
+- `edquota` is 4.4BSD's, made over for these quotas, which have
+  warnings where 4.4BSD's have grace times, and it never set them: a
+  user given limits had none, so that the soft limit of files was a hard
+  one from the start. A user under a soft limit is given all of its
+  warnings now, as a login gives them. `edquota -p` gave each user the
+  prototype's counts with its limits, the `quota` call setting both;
+  it gives the limits alone.
+- `quotacheck` never looked at the last inode, and said "creating quota
+  file" with the error of the open before it. `edquota` and `quota`
+  read a user's entry at the uid times its size, in 16 bits, and so at
+  the wrong place past uid 3276; `edquota -p` took an unknown user for
+  uid 65535 and wrote its limits there; `quota`'s exit status was
+  whatever `main` left. `quota` passed its `printf`'s arguments as
+  `int`s, which the compiler rejects for pointers; it has `stdarg`.
+- `dd` counted a record it could not write as written, and added the
+  -1 the write gave to the bytes: after "Disc quota exceeded" it said
+  one record too many, and 64K too many bytes.
+
+The `quota` call gives and takes kilobytes, where the kernel and the
+quota file count bytes, so that what `edquota` sets back loses what is
+over a whole kilobyte until `quotacheck` next counts, as on the PDP-11.
+
+`tests/quota` boots a system with `/home` on a file system of its own,
+gives a user limits there and fills them, logs in as the user until the
+warnings are gone, counts again with `quotacheck` and starts the system
+again.
 
 ## Following a program
 

@@ -20,7 +20,7 @@
  * by 'setuid' sys call, &/or by the Q_SETUID quota() call.
  */
 struct quota {
-	struct	quota *q_forw, *q_back;	/* hash chain, MUST be first */
+	struct	quota __far *q_forw, __far *q_back;	/* hash chain, MUST be first */
 	short	q_cnt;			/* ref count (# processes) */
 	uid_t	q_uid;			/* real uid of owner */
 	int	q_flags;		/* struct management flags */
@@ -28,16 +28,15 @@ struct quota {
 #define	Q_WANT	0x02		/* issue a wakeup when lock goes off */
 #define	Q_NEW	0x04		/* new quota - no proc1 msg sent yet */
 #define	Q_NDQ	0x08		/* account has NO disc quota */
-	struct	quota *q_freef, **q_freeb;
-	struct	dquot *q_dq[NMOUNT];	/* disc quotas for mounted filesys's */
+	struct	quota __far *q_freef, __far * __far *q_freeb;
+	struct	dquot __far *q_dq[NMOUNT];	/* disc quotas for mounted filesys's */
 };
 
-#define	NOQUOTA	((struct quota *) 0)
+#define	NOQUOTA	((struct quota __far *) 0)
 
 #if defined(KERNEL) && defined(QUOTA) && !defined(SUPERVISOR)
-struct	quota *quota, *quotaNQUOTA;
-int	nquota;
-struct	quota *getquota(), *qfind();
+extern struct	quota __far *quota, __far *quotaNQUOTA;
+extern int	nquota;
 #endif
 
 /*
@@ -75,11 +74,11 @@ struct	dqblk {
  * for the current user. A cache is kept of other recently used entries.
  */
 struct	dquot {
-	struct	dquot *dq_forw, *dq_back;/* MUST be first entry */
+	struct	dquot __far *dq_forw, __far *dq_back;/* MUST be first entry */
 	union	{
-		struct	quota *Dq_own;	/* the quota that points to this */
+		struct	quota __far *Dq_own;	/* the quota that points to this */
 		struct {		/* free list */
-			struct	dquot *Dq_freef, **Dq_freeb;
+			struct	dquot __far *Dq_freef, __far * __far *Dq_freeb;
 		} dq_f;
 	} dq_u;
 	short	dq_flags;
@@ -107,13 +106,12 @@ struct	dquot {
 #define	dq_bwarn	dq_dqb.dqb_bwarn
 #define	dq_iwarn	dq_dqb.dqb_iwarn
 
-#define	NODQUOT		((struct dquot *) 0)
-#define	LOSTDQUOT	((struct dquot *) 1)
+#define	NODQUOT		((struct dquot __far *) 0)
+#define	LOSTDQUOT	((struct dquot __far *) 1)
 
 #if defined(KERNEL) && defined(QUOTA) && !defined(SUPERVISOR)
-struct	dquot *dquot, *dquotNDQUOT;
-int	ndquot;
-struct	dquot *discquota(), *inoquota(), *dqalloc(), *dqp();
+extern struct	dquot __far *dquot, __far *dquotNDQUOT;
+extern int	ndquot;
 #endif
 
 #define	QUOTAFILENAME	"quotas"
@@ -150,24 +148,56 @@ struct	dqwarn {
 #include "../machine/seg.h"
 
 struct	qhash {
-	struct	qhash *qh_forw;
-	struct	qhash *qh_back;
+	struct	qhash __far *qh_forw;
+	struct	qhash __far *qh_back;
 };
 
 struct	dqhead {
-	struct	dqhead *dqh_forw;
-	struct	dqhead *dqh_back;
+	struct	dqhead __far *dqh_forw;
+	struct	dqhead __far *dqh_back;
 };
 
+#ifdef pdp11
 #define	QUOTAMAP()	mapseg5(quotreg, quotdesc)
 #define	QUOTAUNMAP()	normalseg5()
 
 memaddr	quotreg;
 u_short	quotdesc;
-struct	dquot **ix_dquot;
+#else
+/*
+ * The 286 has the quotas in far data of their own (param.c), where the
+ * PDP-11 maps them in at SEG5, and reaches them through far pointers:
+ * there is nothing to map.  A process waiting for a quota or a dquot
+ * sleeps on its offset, (caddr_t)q, the kernel's channels being 16
+ * bits; one of the kernel's own at the same address is woken with it,
+ * and the other way round, and each looks again, as every sleeper here
+ * does.
+ */
+#define	QUOTAMAP()
+#define	QUOTAUNMAP()
+#endif
+extern struct	dquot __far * __far *ix_dquot;
 
 #define	NQHASH		16	/* small power of 2 */
 #define	NDQHASH		37	/* 4.3bsd used 51 which isn't even prime */
 #define	NQUOTA		40
 #define	NDQUOT		150
+
+/*
+ * What takes or gives a far pointer has a prototype, so that the
+ * compiler checks it.
+ */
+struct	inode; struct mount;
+struct	quota __far *getquota(uid_t uid, int lookuponly, int nodq);
+struct	quota __far *qfind(uid_t uid);
+int	delquota(struct quota __far *q);
+struct	dquot __far *discquota(uid_t uid, struct inode *ip);
+struct	dquot __far *dqalloc(uid_t uid, dev_t dev);
+struct	dquot __far *dqp(struct quota __far *q, dev_t dev);
+struct	dquot __far *inoquota(struct inode *ip);
+int	dqrele(struct dquot __far *dq);
+int	putdq(struct mount *mp, struct dquot __far *dq, int free);
+int	opendq(struct mount *mp, char __far *fname);
+int	qstart(struct quota __far *q);
+int	qwarn(struct dquot __far *dq);
 #endif

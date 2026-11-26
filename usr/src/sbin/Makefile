@@ -7,7 +7,7 @@ CFLAGS=	-O
 
 SUBDIR= badsect clri dcheck dmesg dump fsck icheck \
 	ifconfig init mkfs mknod mkpasswd mount ncheck newfs \
-	reboot restor route routed savecore \
+	quotacheck reboot restor route routed savecore \
 	shutdown umount
 
 all:	${SUBDIR}

@@ -22,12 +22,12 @@
 #include "mount.h"
 #include "uio.h"
 
-struct dquot *
+struct dquot __far *
 dqp(q, dev)
-	struct quota *q;
+	struct quota __far *q;
 	dev_t dev;
 {
-	register struct dquot **dqq;
+	register struct dquot __far * __far *dqq;
 	register i;
 
 	if (q == NOQUOTA || q->q_flags & Q_NDQ)
@@ -52,7 +52,7 @@ dqp(q, dev)
  */
 qclean()
 {
-	register struct quota *q = u.u_quota;
+	register struct quota __far *q = u.u_quota;
 
 	if (q == NOQUOTA)
 		return;
@@ -72,14 +72,14 @@ qclean()
 }
 
 qstart(q)
-	register struct quota *q;
+	register struct quota __far *q;
 {
 
 	u.u_quota = q;
 }
 
 qwarn(dq)
-	register struct dquot *dq;
+	register struct dquot __far *dq;
 {
 	register struct fs *fs = NULL;
 

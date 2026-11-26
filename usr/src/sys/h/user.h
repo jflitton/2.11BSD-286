@@ -145,7 +145,7 @@ struct user {
 
 /* 1.6 - resource controls */
 	struct	rlimit u_rlimit[RLIM_NLIMITS];
-	struct	quota *u_quota;		/* user's quota structure */
+	struct	quota __far *u_quota;	/* user's quota structure */
 
 /* namei & co. */
 	struct	nameicache {		/* last successful directory search */
@@ -153,7 +153,7 @@ struct user {
 		ino_t nc_inumber;	/* inum of cached directory */
 		dev_t nc_dev;		/* dev of cached directory */
 	} u_ncache;
-	short	u_xxxx[2];		/* spare */
+	short	u_xxxx[1];		/* spare: the other went to u_quota */
 	char	u_login[MAXLOGNAME];	/* setlogin/getlogin */
 	short	u_stack[1];		/* kernel stack per user
 					 * extends from u + USIZE*64

@@ -163,14 +163,14 @@ main(argc, argv)
 	endfsent();
 	for (i = 0; i < argc; i++)
 		if ((done & (1 << i)) == 0)
-			warn("%s not found in %s", argv[i], FSTAB);
+			warnx("%s not found in %s", argv[i], FSTAB);
 	exit(errs);
 }
 
 void
 usage()
 {
-	(void)err(1, "usage:\t%s\n\t%s\n",
+	(void)errx(1, "usage:\t%s\n\t%s\n",
 		"quotacheck -a [-v] [-l num]",
 		"quotacheck [-v] filesys ...");
 /* NOTREACHED */
@@ -223,7 +223,7 @@ chkquota(fsname, mntpt, qnp)
 	bread(SBLOCK, (char *)&sblock, SBSIZE);
 	maxino = (sblock.fs_isize - 2) * INOPB;
 	resetinodebuf();
-	for (ino = ROOTINO; ino < maxino; ino++) {
+	for (ino = ROOTINO; ino <= maxino; ino++) {
 		if ((dp = getnextinode(ino)) == NULL)
 			continue;
 		if ((mode = dp->di_mode & IFMT) == 0)
@@ -264,16 +264,16 @@ update(fsdev, fsname, quotafile)
 		if (errno == ENOENT)
 			qfo = fopen(quotafile, "w+");
 		if (qfo) {
-			(void) warn("creating quota file %s", quotafile);
+			(void) warnx("creating quota file %s", quotafile);
 			(void) fchown(fileno(qfo), getuid(), getquotagid());
 			(void) fchmod(fileno(qfo), 0640);
 		} else {
-			(void) warn("%s: %s", quotafile, strerror(errno));
+			(void) warnx("%s: %s", quotafile, strerror(errno));
 			return (1);
 		}
 	}
 	if ((qfi = fopen(quotafile, "r")) == NULL) {
-		(void) warn("%s: %s", quotafile, strerror(errno));
+		(void) warnx("%s: %s", quotafile, strerror(errno));
 		(void) fclose(qfo);
 		return (1);
 	}
@@ -290,7 +290,7 @@ update(fsdev, fsname, quotafile)
 		return(1);
 	}
 	if (quotadev != statb.st_rdev)  {
-		warn("%s dev (0x%x) mismatch %s dev (0x%x)", quotafile, 
+		warnx("%s dev (0x%x) mismatch %s dev (0x%x)", quotafile, 
 			quotadev, fsname, statb.st_rdev);
 		fclose(qfi);
 		fclose(qfo);
@@ -445,7 +445,7 @@ addid(id, name)
 	else
 		len = 10;
 	if ((fup = (struct fileusage *)calloc(1, sizeof(*fup) + len)) == NULL)
-		err("%s", strerror(errno));
+		nomem();
 	fhp = &fuhead[id & (FUHASH - 1)];
 	fup->fu_next = *fhp;
 	*fhp = fup;
@@ -476,7 +476,7 @@ getnextinode(inumber)
 	daddr_t dblk;
 	static struct dinode *dp;
 
-	if (inumber != nextino++ || inumber >= maxino)
+	if (inumber != nextino++ || inumber > maxino)
 		err(1, "bad inode number %d to nextinode", inumber);
 	if (inumber > lastinum) {
 		dblk = itod(inumber);

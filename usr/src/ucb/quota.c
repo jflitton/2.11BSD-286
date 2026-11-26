@@ -16,6 +16,7 @@ static char sccsid[] = "@(#)quota.c	5.4.4 (2.11BSD) 2026/9/14";
  * Disk quota reporting program.
  */
 #include <stdio.h>
+#include <stdarg.h>
 #include <fstab.h>
 #include <ctype.h>
 #include <pwd.h>
@@ -32,6 +33,7 @@ int	vflag;
 int	done;
 int	morethanone;
 char	*qfname = "quotas";
+void	xprintf(char *fmt, ...);
 
 main(argc, argv)
 	char *argv[];
@@ -76,6 +78,7 @@ main(argc, argv)
 		else
 			showname(*argv);
 	}
+	exit(0);
 }
 
 showuid(uid)
@@ -142,7 +145,7 @@ showquotas(uid, name)
 			fd = open(qfpathname, O_RDONLY);
 			if (fd < 0)
 				continue;
-			(void) lseek(fd, (off_t)(uid * sizeof (dqblk)), L_SET);
+			(void) lseek(fd, (off_t)uid * sizeof (dqblk), L_SET);
 			switch (read(fd, (char *)&dqblk, sizeof dqblk)) {
 			case 0:			/* EOF */
 				/*
@@ -261,12 +264,12 @@ heading(uid, name)
 	);
 }
 
-/*VARARGS1*/
-xprintf(fmt, arg1, arg2, arg3, arg4, arg5, arg6)
-	char *fmt;
+void
+xprintf(char *fmt, ...)
 {
 	char	buf[100];
 	static int column;
+	va_list ap;
 
 	if (fmt == 0 && column || column >= 40) {
 		(void) putchar('\n');
@@ -274,7 +277,9 @@ xprintf(fmt, arg1, arg2, arg3, arg4, arg5, arg6)
 	}
 	if (fmt == 0)
 		return;
-	(void) sprintf(buf, fmt, arg1, arg2, arg3, arg4, arg5, arg6);
+	va_start(ap, fmt);
+	(void) vsprintf(buf, fmt, ap);
+	va_end(ap);
 	if (column != 0 && strlen(buf) < 39)
 		while (column++ < 40)
 			(void) putchar(' ');

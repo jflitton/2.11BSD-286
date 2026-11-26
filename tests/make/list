@@ -260,6 +260,7 @@
 /sbin/mount f 755 0.10
 /sbin/ncheck f 755 0.10
 /sbin/newfs f 755 0.10
+/sbin/quotacheck f 755 0.10
 /sbin/rdump f 755 0.0
 /sbin/reboot f 755 0.10 = /sbin/fastboot
 /sbin/restor f 755 0.10
@@ -1088,6 +1089,7 @@
 /usr/man/cat1/ps.0 f 444 0.10
 /usr/man/cat1/ptx.0 f 444 0.10
 /usr/man/cat1/pwd.0 f 444 0.10
+/usr/man/cat1/quota.0 f 444 0.10
 /usr/man/cat1/ranlib.0 f 444 0.10
 /usr/man/cat1/rcp.0 f 444 0.10
 /usr/man/cat1/rdist.0 f 444 0.10
@@ -1859,6 +1861,7 @@
 /usr/man/cat8/dmesg.0 f 444 0.10
 /usr/man/cat8/dump.0 f 444 0.10
 /usr/man/cat8/dumpdir.0 f 444 0.10
+/usr/man/cat8/edquota.0 f 444 0.10
 /usr/man/cat8/fastboot.0 f 444 0.10 = /usr/man/cat8/fastboot.0
 /usr/man/cat8/fingerd.0 f 444 0.10
 /usr/man/cat8/flformat.0 f 444 0.10
@@ -1894,10 +1897,14 @@
 /usr/man/cat8/popper.0 f 444 0.10
 /usr/man/cat8/pstat.0 f 444 0.10
 /usr/man/cat8/quot.0 f 444 0.10
+/usr/man/cat8/quotacheck.0 f 444 0.10
+/usr/man/cat8/quotaoff.0 f 444 0.10 = /usr/man/cat8/quotaoff.0
+/usr/man/cat8/quotaon.0 f 444 0.10 = /usr/man/cat8/quotaoff.0
 /usr/man/cat8/rc.0 f 444 0.10
 /usr/man/cat8/rdump.0 f 444 0.10
 /usr/man/cat8/reboot.0 f 444 0.10 = /usr/man/cat8/fastboot.0
 /usr/man/cat8/renice.0 f 444 0.10
+/usr/man/cat8/repquota.0 f 444 0.10
 /usr/man/cat8/restor.0 f 444 0.10
 /usr/man/cat8/rexecd.0 f 444 0.10
 /usr/man/cat8/rlogind.0 f 444 0.10
@@ -1971,6 +1978,7 @@
 /usr/sbin/chroot f 4751 0.10
 /usr/sbin/cron f 111 0.0
 /usr/sbin/dev_mkdb f 755 0.10
+/usr/sbin/edquota f 755 0.10
 /usr/sbin/expreserve f 4755 0.0
 /usr/sbin/exrecover f 4755 0.0
 /usr/sbin/flformat f 755 0.10
@@ -1990,6 +1998,9 @@
 /usr/sbin/pac f 755 0.0
 /usr/sbin/pstat f 2755 0.2
 /usr/sbin/quot f 2755 0.5
+/usr/sbin/quotaoff f 755 0.10 = /usr/sbin/quotaoff
+/usr/sbin/quotaon f 755 0.10 = /usr/sbin/quotaoff
+/usr/sbin/repquota f 755 0.10
 /usr/sbin/rmt f 755 0.10
 /usr/sbin/rwhod f 755 0.10
 /usr/sbin/sa f 755 0.10
@@ -2954,6 +2965,7 @@
 /usr/ucb/netstat f 2755 0.2
 /usr/ucb/page f 755 0.10 = /usr/ucb/more
 /usr/ucb/printenv f 755 0.0
+/usr/ucb/quota f 4755 0.0
 /usr/ucb/rdist f 4751 0.0
 /usr/ucb/reset f 755 0.0 = /usr/ucb/reset
 /usr/ucb/rlogin f 4755 0.10

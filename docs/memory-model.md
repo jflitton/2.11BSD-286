@@ -112,10 +112,10 @@ double in size, and all of that C would need auditing.
 
 Things too big for the kernel's data segment get segments of their own and
 are reached through based or far pointers: the buffer cache's data, user
-memory, the terminals' character blocks, and any table grown past its
-PDP-11 size. The PDP-11 kernel already
-treats buffers this way, through `mapin` and `mapseg5`, so this follows the
-code's existing shape.
+memory, the terminals' character blocks, the quotas, and any table grown
+past its PDP-11 size. The PDP-11 kernel already
+treats buffers this way, through `mapin` and `mapseg5`, and the quotas
+through `QUOTAMAP`, so this follows the code's existing shape.
 
 Networking keeps a data segment of its own. On the PDP-11 it runs in
 supervisor mode in a separate address space, and the kernel and network

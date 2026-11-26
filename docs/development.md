@@ -374,6 +374,10 @@ tests/crash/run.sh      # crash dumps: the kernel made to panic, and
                         # reboot -d, on an IDE disk and a SCSI one, each
                         # dump saved by savecore and read with adb, ps
                         # and pstat
+tests/quota/run.sh      # disk quotas: limits given with edquota, filled
+                        # past the soft ones to the hard ones, the
+                        # warnings at login used up, counted again with
+                        # quotacheck and kept as the system starts again
 tests/vt/run.sh         # the console's terminal emulator, on the machine
                         # the system is built on: 302 checks
 tests/ve/run.sh         # the editor ve, built for that machine too: 115
@@ -382,8 +386,8 @@ tests/ve/run.sh         # the editor ve, built for that machine too: 115
 ```
 
 The tests that boot the system as a machine has it, `tests/system`,
-`tests/network`, `tests/programs`, `tests/crash`, `tests/bench`, `tests/libc` and
-`tests/ccom` with `self.sh`, boot either build of it:
+`tests/network`, `tests/programs`, `tests/crash`, `tests/quota`, `tests/bench`,
+`tests/libc` and `tests/ccom` with `self.sh`, boot either build of it:
 with `TOOLS=cross` the cross compiler's, and with `TOOLS=native` the system's
 own compiler's, assembler's and linker's throughout, the kernel, the
 libraries, every program on the disk and the boot programs
@@ -544,6 +548,17 @@ and so on).
   Adaptec, whose drivers each write the dump
   ([disks](disks.md#crash-dumps), [the C library and
   programs](userland.md#crash-dumps)).
+- `tests/quota` boots it with `/home` a file system of its own, which
+  `/etc/fstab` says `rq` for, so that `/etc/rc` makes its quota file
+  and turns its quotas on, and a user, `quser`, at home there. Root
+  gives the user limits with `edquota`, and the user writes past the
+  soft limits, where the kernel warns, to the hard ones, where it
+  refuses; then logs in three times, each login using up a warning,
+  until the soft limits are hard, and removes files, which gives their
+  bytes back. Root turns the quotas off, gives the user a file, has
+  `quotacheck` count it, and starts the system again. What `quota`,
+  `repquota` and the kernel say must be as `expected` has it ([the C
+  library and programs](userland.md#quotas)).
 - `tests/bench` boots it and runs `bench`, this port's benchmark, while
   the harness times each test by the marks it writes and samples where
   the processor is. It prints what each test took and leaves
@@ -580,6 +595,7 @@ are from single runs with an 86Box that has the automation socket.
 | a header, or the tools every program is made with | the build that `tests/programs` or `tests/system` starts with, which makes everything again | 7 minutes and more |
 | a Makefile, a large source, the compiler or the other tools | `tests/self/changed.sh` | |
 | a panic, the disks' dump routines, `savecore`, `adb -k`, `ps -k`, `pstat -k` | `tests/crash` | 3½ minutes |
+| the quotas, in the kernel or the programs | `tests/quota` | 2½ minutes |
 
 The build here makes what the system makes of the same Makefiles, to
 the byte but for the few files `tests/self/differs` names, which are

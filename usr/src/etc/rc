@@ -3,10 +3,9 @@
 # "autoboot" when the machine has come up by itself, or "fastboot" when
 # it comes from single user.  If it fails, init goes to single user.
 #
-# Upstream's is the PDP-11's (its buses, its network
-# interfaces) and calls some things that are not built here yet: the
-# quota programs.  What this does of it, it does as that does.
-# sendmail it starts as upstream's rc.local does.
+# Upstream's is the PDP-11's (its buses, its network interfaces).  What
+# this does of it, it does as that does.  sendmail it starts as
+# upstream's rc.local does.
 
 HOME=/; export HOME
 PATH=/bin:/sbin:/usr/sbin:/usr/bin; export PATH
@@ -60,6 +59,13 @@ fi
 # the options it gives.
 umount -a
 mount -a					>/dev/console 2>&1
+
+# Quotas on the file systems fstab says rq for: what each user has is
+# counted again, and the kernel then keeps count.
+echo -n 'checking quotas:'			>/dev/console 2>&1
+quotacheck -a					>/dev/console 2>&1
+echo ' done.'					>/dev/console 2>&1
+quotaon -a
 
 # The names of the devices, for devname(3), and the kernel's symbols
 # that ps needs, so that it need not read them from /unix each time.

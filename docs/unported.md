@@ -18,7 +18,6 @@ Some programs wait on more than themselves:
 
 | what | for |
 |---|---|
-| Quotas (`sys/sys/quota_*.c` are in the tree, and not built) | `quota`, `quotacheck`, `quotaon`, `edquota`, `repquota` |
 | SLIP (`sys/net/if_sl.c`; `NSL` is 0) | `slattach` |
 | A driver for the parallel port | a printer on it; `lpr` and the rest are ported, for a printer on a serial port or across the network |
 | A tape driver | `mt`, `tcopy`, `ansitape`, `vmsbackup`, and `dump` and `restor` to a tape |
@@ -145,12 +144,6 @@ All are ported: `nroff` and `troff`, with `tbl`, `eqn`, `neqn`, `refer`,
 | `uucp` (*medium*) | `usr.bin/uucp` | `rmail`, which hands mail from it to `sendmail`, is ported |
 | `slattach` | `sbin/slattach` | waits on SLIP |
 | `testnet` | `sbin/testnet` | upstream's `netstart` asks it whether the kernel has a network; the port's does not |
-
-## Disks, files and administration
-
-| program | where | notes |
-|---|---|---|
-| `quota`, `quotacheck`, `quotaon`, `edquota`, `repquota` | `ucb`, `sbin`, `usr.sbin` | wait on quotas |
 
 ## Tapes
 

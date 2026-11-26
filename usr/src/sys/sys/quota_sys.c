@@ -21,6 +21,14 @@
 #include "mount.h"
 #include "uio.h"
 
+#ifdef QUOTA
+int	setdlim(struct quota __far *q, dev_t dev, uaddr_t addr);
+int	getdlim(struct quota __far *q, dev_t dev, uaddr_t addr);
+int	setduse(struct quota __far *q, dev_t dev, uaddr_t addr);
+int	setwarn(struct quota __far *q, dev_t dev, uaddr_t addr);
+int	dowarn(struct quota __far *q, dev_t dev);
+#endif
+
 /*
  * The sys call that tells the system about a quota file.
  */
@@ -38,19 +46,19 @@ setquota()
 	if (u.u_error)
 		return;
 	for (mp = mount; mp < &mount[NMOUNT]; mp++)
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 		if (mp->m_inodp && mp->m_dev == dev) {
 #else
 		if (mp->m_bufp && mp->m_dev == dev) {
 #endif
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 			QUOTAMAP();
 #endif
 			if (uap->fname == NULL)
 				closedq(mp);
 			else
 				opendq(mp, uap->fname);
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 			QUOTAUNMAP();
 #endif
 			return;
@@ -73,16 +81,16 @@ qquota()
 		int	arg;
 		uaddr_t	addr;
 	} *uap = (struct a *)u.u_ap;
-	register struct quota *q;
+	register struct quota __far *q;
 
 #ifdef QUOTA
 	if (uap->uid < 0)
 		uap->uid = u.u_ruid;
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 	QUOTAMAP();
 #endif
 	if (uap->uid != u.u_ruid && uap->uid != u.u_quota->q_uid && !suser())
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 	{
 		QUOTAUNMAP();
 		return;
@@ -93,7 +101,7 @@ qquota()
 	if (uap->cmd != Q_SYNC && uap->cmd != Q_SETUID) {
 		q = getquota((uid_t)uap->uid, uap->cmd == Q_DOWARN, 0);
 		if (q == NOQUOTA) {
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 			QUOTAUNMAP();
 #endif
 			u.u_error = ESRCH;
@@ -125,15 +133,21 @@ qquota()
 		break;
 	
 	case Q_SYNC:
-		u.u_error = qsync((dev_t)uap->arg);
-#ifdef pdp11
+		/*
+		 * Root's alone; the check is here and not in qsync, which
+		 * the kernel calls itself as it syncs a file system
+		 * (ufs_sync), where it made sync(2) fail for anyone else.
+		 */
+		if (suser())
+			u.u_error = qsync((dev_t)uap->arg);
+#if defined(pdp11) || defined(i286)
 		QUOTAUNMAP();
 #endif
 		return;
 
 	case Q_SETUID:
 		u.u_error = qsetuid((uid_t)uap->uid, uap->arg);
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 		QUOTAUNMAP();
 #endif
 		return;
@@ -144,7 +158,7 @@ qquota()
 	}
 bad:
 	delquota(q);
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 	QUOTAUNMAP();
 #endif
 #else
@@ -157,12 +171,12 @@ bad:
  * Q_SETDLIM - assign an entire dqblk structure.
  */
 setdlim(q, dev, addr)
-	register struct quota *q;
+	register struct quota __far *q;
 	dev_t dev;
-	caddr_t addr;
+	uaddr_t addr;
 {
 	register struct inode *ip;
-	register struct dquot *dq, *odq;
+	register struct dquot __far *dq, __far *odq;
 	struct dqblk newlim;
 	int index, error = 0;
 
@@ -187,7 +201,7 @@ setdlim(q, dev, addr)
 		panic("setdlim");
 	while (dq->dq_flags & DQ_LOCK) {
 		dq->dq_flags |= DQ_WANT;
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 		QUOTAUNMAP();
 		sleep((caddr_t)dq, PINOD+1);
 		QUOTAMAP();
@@ -204,7 +218,7 @@ setdlim(q, dev, addr)
 		dqrele(dq);
 		return (error);
 	}
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 	/* we speak bytes not blocks, so convert the structure here */
 	newlim.dqb_bsoftlimit = (long)dbtob(newlim.dqb_bsoftlimit);
 	newlim.dqb_bhardlimit = (long)dbtob(newlim.dqb_bhardlimit);
@@ -226,14 +240,14 @@ setdlim(q, dev, addr)
 	for (ip = inode; ip < inodeNINODE; ip++)
 		if (ip->i_uid == q->q_uid && ip->i_dev == dev && ip->i_mode) {
 			if (dq == NODQUOT)
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 				dqrele(ix_dquot[ip - inode]);
 #else
 				dqrele(ip->i_dquot);
 #endif
 			else
 				dq->dq_cnt++;
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 			ix_dquot[ip - inode] = dq;
 #else
 			ip->i_dquot = dq;
@@ -246,17 +260,17 @@ setdlim(q, dev, addr)
  * Q_GETDLIM - return current values in a dqblk structure.
  */
 getdlim(q, dev, addr)
-	struct quota *q;
+	struct quota __far *q;
 	dev_t dev;
-	caddr_t addr;
+	uaddr_t addr;
 {
-	register struct dquot *dq;
+	register struct dquot __far *dq;
 	int error;
 
 	dq = dqp(q, dev);
 	if (dq == NODQUOT)
 		return (ESRCH);
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 	/* we do bytes not blocks, so convert the structure here */
 	{
 		struct dqblk dqb;
@@ -279,11 +293,11 @@ getdlim(q, dev, addr)
  * Resets warnings and associated flags.
  */
 setduse(q, dev, addr)
-	register struct quota *q;
+	register struct quota __far *q;
 	dev_t dev;
-	caddr_t addr;
+	uaddr_t addr;
 {
-	register struct dquot *dq;
+	register struct dquot __far *dq;
 	struct dqusage usage;
 	int error = 0;
 
@@ -294,7 +308,7 @@ setduse(q, dev, addr)
 		return (ESRCH);
 	while (dq->dq_flags & DQ_LOCK) {
 		dq->dq_flags |= DQ_WANT;
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 		QUOTAUNMAP();
 		sleep((caddr_t)dq, PINOD+1);
 		QUOTAMAP();
@@ -307,7 +321,7 @@ setduse(q, dev, addr)
 	error = copyin(addr, (caddr_t)&usage, sizeof (usage));
 	if (error == 0) {
 		dq->dq_curinodes = usage.du_curinodes;
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 		dq->dq_curblocks = dbtob(usage.du_curblocks);
 #else
 		dq->dq_curblocks = usage.du_curblocks;
@@ -327,11 +341,11 @@ setduse(q, dev, addr)
  * Q_SETWARN - set warning counters.
  */
 setwarn(q, dev, addr)
-	register struct quota *q;
+	register struct quota __far *q;
 	dev_t dev;
-	caddr_t addr;
+	uaddr_t addr;
 {
-	register struct dquot *dq;
+	register struct dquot __far *dq;
 	int error = 0;
 	struct dqwarn warn;
 
@@ -342,7 +356,7 @@ setwarn(q, dev, addr)
 		return (ESRCH);
 	while (dq->dq_flags & DQ_LOCK) {
 		dq->dq_flags |= DQ_WANT;
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 		QUOTAUNMAP();
 		sleep((caddr_t)dq, PINOD+1);
 		QUOTAMAP();
@@ -367,10 +381,10 @@ setwarn(q, dev, addr)
  * Q_DOWARN - force warning(s) to user(s).
  */
 dowarn(q, dev)
-	register struct quota *q;
+	register struct quota __far *q;
 	dev_t dev;
 {
-	register struct dquot *dq, **dqq;
+	register struct dquot __far *dq, __far * __far *dqq;
 
 	if (!suser() || u.u_ttyp == NULL)
 		return (u.u_error);			/* XXX */
@@ -396,14 +410,12 @@ dowarn(q, dev)
 qsync(dev)
 	dev_t dev;
 {
-	register struct quota *q;
+	register struct quota __far *q;
 	register struct mount *mp;
 	register index;
 
-	if (!suser())
-		return (u.u_error);			/* XXX */
 	for (mp = mount, index = 0; mp < &mount[NMOUNT]; mp++, index++)
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 		if (mp->m_inodp && mp->m_qinod &&
 #else
 		if (mp->m_bufp && mp->m_qinod &&
@@ -426,7 +438,7 @@ qsetuid(uid, noquota)
 	uid_t uid;
 	int noquota;
 {
-	register struct quota *q;
+	register struct quota __far *q;
 
 	if (uid == u.u_quota->q_uid)
 		return (0);

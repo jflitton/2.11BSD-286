@@ -26,12 +26,12 @@
  * Find the dquot structure that should
  * be used in checking i/o on inode ip.
  */
-struct dquot *
+struct dquot __far *
 inoquota(ip)
 	register struct inode *ip;
 {
-	register struct quota *q;
-	register struct dquot **dqq;
+	register struct quota __far *q;
+	register struct dquot __far * __far *dqq;
 	register struct mount *mp;
 	int index;
 
@@ -39,7 +39,7 @@ inoquota(ip)
 	q = qfind(ip->i_uid);
 	if (q == NOQUOTA) {
 		for (mp = mount; mp < &mount[NMOUNT]; mp++)
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 			if (mp->m_inodp && mp->m_dev == ip->i_dev)
 #else
 			if (mp->m_bufp && mp->m_dev == ip->i_dev)
@@ -56,7 +56,7 @@ inoquota(ip)
 		return (NODQUOT);
 	if (q->q_flags & Q_LOCK) {
 		q->q_flags |= Q_WANT;
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 		QUOTAUNMAP();
 		sleep((caddr_t)q, PINOD+1);
 		QUOTAMAP();
@@ -89,11 +89,11 @@ chkdq(ip, change, force)
 	long change;
 	int force;
 {
-	register struct dquot *dq;
+	register struct dquot __far *dq;
 
 	if (change == 0)
 		return (0);
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 	dq = ix_dquot[ip - inode];
 #else
 	dq = ip->i_dquot;
@@ -110,9 +110,9 @@ chkdq(ip, change, force)
 	    (dq->dq_curblocks + change) < dq->dq_bsoftlimit) {
 		dq->dq_bwarn = MAX_DQ_WARN;
 		if (dq->dq_own == u.u_quota) {
-			uprintf("\nUNDER DISC QUOTA: (%s) by %d Kbytes\n",
+			uprintf("\nUNDER DISC QUOTA: (%s) by %D Kbytes\n",
 				ip->i_fs->fs_fsmnt,
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 				(dq->dq_bsoftlimit + 1023L - (dq->dq_curblocks
 				 + change)) / 1024);
 #else
@@ -122,7 +122,12 @@ chkdq(ip, change, force)
 		}
 	}
 	if (change < 0) {
-		if (dq->dq_curblocks + change >= 0)
+		/*
+		 * dq_curblocks is unsigned: its sum with change was never
+		 * less than 0, and freeing more than was counted took it
+		 * round to 4G.
+		 */
+		if (dq->dq_curblocks >= -change)
 			dq->dq_curblocks += change;
 		else
 			dq->dq_curblocks = 0;
@@ -180,8 +185,8 @@ chkiq(dev, ip, uid, force)
 	register struct inode *ip;
 	int force;
 {
-	register struct dquot *dq;
-	register struct quota *q;
+	register struct dquot __far *dq;
+	register struct quota __far *q;
 
 	if (ip == NULL)	{		/* allocation */
 		q = qfind(uid);
@@ -190,7 +195,7 @@ chkiq(dev, ip, uid, force)
 		else
 			dq = discquota(uid, mount[getfsx(dev)].m_qinod);
 	} else {			/* free */
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 		dq = ix_dquot[ip - inode];
 #else
 		dq = ip->i_dquot;

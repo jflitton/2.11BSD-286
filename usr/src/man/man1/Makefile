@@ -34,7 +34,7 @@ SRCS=	adb.1 addbib.1 apply.1 apropos.1 at.1 atq.1 atrm.1 \
 	more.1 mset.1 msgs.1 mv.1 netstat.1 newaliases.1 nice.1 nm.1
 SRCS1=	nroff.1 nslookup.1 od.1 pagesize.1 \
 	plot.1 pr.1 printenv.1 ps.1 ptx.1 pwd.1 \
-	rcp.1 rdist.1 refer.1 rev.1 \
+	quota.1 rcp.1 rdist.1 refer.1 rev.1 \
 	rm.1 rmail.1 rmdir.1 roffbib.1 rsh.1 ruptime.1 rwho.1 \
 	script.1 sed.1 sendbug.1 sh.1 size.1 sleep.1 soelim.1 \
 	sort.1 sortbib.1 spell.1 spline.1 split.1 strings.1 \
@@ -61,7 +61,7 @@ OBJS1=	adb.0 addbib.0 apply.0 apropos.0 at.0 atq.0 atrm.0 \
 	more.0 mset.0 msgs.0 mv.0 netstat.0 newaliases.0 nice.0 nm.0
 OBJS2=	nroff.0 nslookup.0 od.0 pagesize.0 \
 	plot.0 pr.0 printenv.0 ps.0 ptx.0 pwd.0 \
-	rcp.0 rdist.0 refer.0 rev.0 \
+	quota.0 rcp.0 rdist.0 refer.0 rev.0 \
 	rm.0 rmail.0 rmdir.0 roffbib.0 rsh.0 ruptime.0 rwho.0 \
 	script.0 sed.0 sendbug.0 sh.0 size.0 sleep.0 soelim.0 \
 	sort.0 sortbib.0 spell.0 spline.0 split.0 strings.0 \

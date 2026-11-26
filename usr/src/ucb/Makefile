@@ -33,7 +33,7 @@ NSTD=	clear ul vacation
 
 # Programs that must run setuid to root
 #
-SETUID=	rsh
+SETUID=	quota rsh
 
 # Programs that must run set-group-id kmem.
 #

@@ -4,9 +4,9 @@
 #	@(#)Makefile	1.6 (2.11BSD) 2026/5/13
 
 SUBDIR=	ac accton arp chown chroot cron dev_mkdb \
-	flformat inetd \
+	edquota flformat inetd \
 	lpr makewhatis mkhosts named nc ntp pstat quot \
-	rmt rwhod sa sendmail syslogd timed \
+	quotaon repquota rmt rwhod sa sendmail syslogd timed \
 	tracebuf traceroute trpt trsp update vipw
 
 all:	${SUBDIR}

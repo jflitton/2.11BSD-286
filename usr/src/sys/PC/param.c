@@ -132,3 +132,32 @@ struct map	swapmap[1] = {
 struct pseg __far	pseg[NPROC * NSEG];
 struct segdesc __far	ldt[NPROC * NSEG];
 struct xmount __far	xmount[NMOUNT];
+
+#ifdef QUOTA
+#include "../h/quota.h"
+/*
+ * The quotas, outside it too, where the PDP-11 maps them in at SEG5:
+ * QUOini (startup) points quota.h's tables at them.
+ */
+struct quota __far	xquota[NQUOTA];		/* the quotas themselves */
+struct dquot __far * __far ixdquot[NINODE];	/* 2.11 equiv of i_dquot */
+struct dquot __far	xdquot[NDQUOT];		/* the dquots themselves */
+struct qhash __far	xqhash[NQHASH];
+struct dqhead __far	xdqhash[NDQHASH];
+
+QUOini()
+{
+	extern struct qhash __far *qhash;
+	extern struct dqhead __far *dqhead;
+
+	quota = xquota;
+	dquot = xdquot;
+	qhash = xqhash;
+	dqhead = xdqhash;
+	ndquot = NDQUOT;
+	nquota = NQUOTA;
+	ix_dquot = ixdquot;
+	dquotNDQUOT = &dquot[ndquot];
+	quotaNQUOTA = &quota[nquota];
+}
+#endif

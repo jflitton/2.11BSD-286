@@ -144,6 +144,13 @@ startup()
 	if ((bpaddr = malloc(coremap, btoc((long)nbuf * MAXBSIZE))) == 0)
 		panic("buffers");
 
+#ifdef QUOTA
+	/*
+	 * The quotas' tables, which are far data (param.c).
+	 */
+	QUOini();
+#endif
+
 	/*
 	 * The first slot is the swapper's, and it is running in it.
 	 */

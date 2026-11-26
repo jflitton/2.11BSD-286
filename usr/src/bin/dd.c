@@ -447,17 +447,21 @@ flsh()
 	register unsigned c;
 
 	if(obc) {
-		if(obc == obs)
-			nofr++; else
-			nopr++;
+		/*
+		 * A record that could not be written is not counted: it
+		 * was, and the -1 the write gave added to the bytes.
+		 */
 		c = write(obf, obuf, obc);
-		if (progress > 0 && ((nofr + nopr) % progress) == 0)
-			fprintf(stderr, ".");
-		nbytes += c;
 		if(c != obc) {
 			perror("write");
 			term(1);
 		}
+		if(obc == obs)
+			nofr++; else
+			nopr++;
+		if (progress > 0 && ((nofr + nopr) % progress) == 0)
+			fprintf(stderr, ".");
+		nbytes += c;
 		obc = 0;
 	}
 }

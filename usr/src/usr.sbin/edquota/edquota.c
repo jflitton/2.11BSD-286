@@ -78,6 +78,7 @@ main(argc, argv)
 	int argc;
 {
 	register struct quotause *protoprivs, *curprivs;
+	register struct quotause *qup, *pqp;
 	extern char *optarg;
 	extern int optind;
 	uid_t id, protoid;
@@ -108,9 +109,30 @@ main(argc, argv)
 			exit(1);
 		protoprivs = getprivs(protoid);
 		while (argc-- > 0) {
-			if ((id = getentry(*argv++)) < 0)
+			if ((id = getentry(*argv++)) == -1)
 				continue;
-			putprivs(id, protoprivs);
+			/*
+			 * The prototype's limits, and the user's own usage:
+			 * Q_SETDLIM sets the whole dqblk, and with the
+			 * prototype's it gave every user its counts.
+			 */
+			curprivs = getprivs(id);
+			for (qup = curprivs; qup; qup = qup->next)
+				for (pqp = protoprivs; pqp; pqp = pqp->next) {
+					if (strcmp(qup->fsname, pqp->fsname))
+						continue;
+					qup->dqblk.dqb_bsoftlimit =
+					    pqp->dqblk.dqb_bsoftlimit;
+					qup->dqblk.dqb_bhardlimit =
+					    pqp->dqblk.dqb_bhardlimit;
+					qup->dqblk.dqb_isoftlimit =
+					    pqp->dqblk.dqb_isoftlimit;
+					qup->dqblk.dqb_ihardlimit =
+					    pqp->dqblk.dqb_ihardlimit;
+					break;
+				}
+			putprivs(id, curprivs);
+			freeprivs(curprivs);
 		}
 		exit(0);
 	}
@@ -215,7 +237,7 @@ getprivs(id)
 				(void) fchown(fd, getuid(), -1);
 				(void) fchmod(fd, 0640);
 			}
-			lseek(fd, (long)(id * sizeof(struct dqblk)), L_SET);
+			lseek(fd, (long)id * sizeof(struct dqblk), L_SET);
 			switch (read(fd, &qup->dqblk, sizeof(struct dqblk))) {
 			case 0:			/* EOF */
 				/*
@@ -276,6 +298,17 @@ putprivs(id, quplist)
 			fprintf(stderr,"edquota: can't stat %s\n",qup->qfname);
 			continue;
 		}
+		/*
+		 * Under a soft limit, all the warnings for it, as a login
+		 * gives them (qwarn in the kernel).  What getprivs read was
+		 * 0 for a user never given limits, which made the soft
+		 * limits hard ones from the start.
+		 */
+		dq = &qup->dqblk;
+		if (dq->dqb_curinodes < dq->dqb_isoftlimit)
+			dq->dqb_iwarn = MAX_IQ_WARN;
+		if (dq->dqb_curblocks < dq->dqb_bsoftlimit)
+			dq->dqb_bwarn = MAX_DQ_WARN;
 
 		if (quota(Q_SETDLIM, id, sb.st_dev, &qup->dqblk) == 0)
 			continue;

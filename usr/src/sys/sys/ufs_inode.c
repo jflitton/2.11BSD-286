@@ -110,7 +110,7 @@ iget(dev, fs, ino)
 	struct icommon2 xic2;
 #endif
 #ifdef	QUOTA
-	struct dquot **xdq;
+	struct dquot __far * __far *xdq;
 #endif
 
 loop:
@@ -312,18 +312,23 @@ irele(ip)
 	if (ip->i_count == 1) {
 		ip->i_flag |= ILOCKED;
 		if (ip->i_nlink <= 0 && ip->i_fs->fs_ronly == 0) {
+			itrunc(ip, (u_long)0, 0);
+			ip->i_mode = 0;
+			ip->i_rdev = 0;
+			ip->i_flag |= IUPD|ICHG;
+			ifree(ip, ip->i_number);
 #ifdef QUOTA
+			/*
+			 * After itrunc, as 4.3BSD has it: before it, the inode
+			 * had no dquot left for itrunc to give the file's bytes
+			 * back to, and the owner was charged for them for good.
+			 */
 			QUOTAMAP();
 			(void) chkiq(ip->i_dev, ip, ip->i_uid, 0);
 			dqrele(ix_dquot[ip - inode]);
 			ix_dquot[ip - inode] = NODQUOT;
 			QUOTAUNMAP();
 #endif
-			itrunc(ip, (u_long)0, 0);
-			ip->i_mode = 0;
-			ip->i_rdev = 0;
-			ip->i_flag |= IUPD|ICHG;
-			ifree(ip, ip->i_number);
 		}
 		IUPDAT(ip, &time, &time, 0);
 		IUNLOCK(ip);
