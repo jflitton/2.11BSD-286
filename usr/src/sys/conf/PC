@@ -77,6 +77,15 @@ NRD		2		# disks in memory: the root /boot loads,
 NCOM		2		# serial ports, COM1 and COM2: at most 2
 
 #########################################
+# PERIPHERALS: OTHER			#
+#########################################
+
+NLP		1		# parallel ports, at 0x3BC, 0x378 and 0x278
+				# in the BIOS's order: at most 3
+LP_MAXCOL	132		# columns a printer prints; the rest of a
+				# longer line is not sent
+
+#########################################
 # PSEUDO DEVICES, PROTOCOLS, NETWORKING	#
 #########################################
 

@@ -1,6 +1,6 @@
 #!/bin/sh -
 #
-#	@(#)MAKEDEV	1.1 (2.11BSD) 2026/11/25
+#	@(#)MAKEDEV	1.2 (2.11BSD) 2026/11/26
 #
 # Device "make" file for the 286: upstream's, with this machine's
 # devices in place of the PDP-11's.  Valid arguments:
@@ -19,6 +19,8 @@
 # Pseudo terminals:
 #	pty*	set of 8 master and slave pseudo terminals, as many as
 #		the kernel has (NPTY)
+# Printers:
+#	lp*	parallel ports
 # Special purpose devices:
 #	ram	memory disks
 
@@ -29,7 +31,7 @@ do
 case $i in
 
 all)
-	sh MAKEDEV std wd0 wd1 sd0 sd1 fl0 fl1 ram vt com0 com1 pty0
+	sh MAKEDEV std wd0 wd1 sd0 sd1 fl0 fl1 ram vt com0 com1 pty0 lp0
 	;;
 
 std)
@@ -133,6 +135,20 @@ com*)
 		;;
 	*)
 		echo bad unit for com in: $i
+		;;
+	esac
+	;;
+
+lp*)
+	# The port is the minor number over 8 (lp(4)).
+	unit=`expr $i : 'lp\(.*\)'`
+	case $unit in
+	0|1|2)
+		mknod lp$unit c 12 `expr $unit '*' 8`
+		chmod 666 lp$unit
+		;;
+	*)
+		echo bad unit for lp in: $i
 		;;
 	esac
 	;;

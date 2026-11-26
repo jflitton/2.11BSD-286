@@ -55,7 +55,7 @@ if [ "$PDP11" ]; then
 	echo "$0: $MACHINE is a PDP-11's, and this is the 286's config."
 	exit 1
 fi
-for i in MAXUSERS LINEHZ NBUF NSLOT NWD NSD NFL NRD NCOM NETHER NNE NSL NPTY
+for i in MAXUSERS LINEHZ NBUF NSLOT NWD NSD NFL NRD NCOM NLP NETHER NNE NSL NPTY
 do
 	eval v=\$$i
 	if [ ! "$v" ]; then
@@ -74,6 +74,10 @@ fi
 
 if [ ! "$DST" ]; then
 	DST=0
+fi
+
+if [ ! "$LP_MAXCOL" ]; then
+	LP_MAXCOL=132
 fi
 
 if [ ! -d ../$MACHINE ]; then
@@ -120,6 +124,8 @@ echo "Creating device header files."
 echo "#define NCOM	$NCOM"		> ../$MACHINE/com.h
 echo "#define NETHER	$NETHER"	> ../$MACHINE/ether.h
 echo "#define NFL	$NFL"		> ../$MACHINE/fl.h
+echo "#define NLP	$NLP"		> ../$MACHINE/lp.h
+echo "#define LP_MAXCOL	$LP_MAXCOL"	>> ../$MACHINE/lp.h
 echo "#define NNE	$NNE"		> ../$MACHINE/ne.h
 echo "#define NPTY	$NPTY"		> ../$MACHINE/pty.h
 echo "#define NRD	$NRD"		> ../$MACHINE/rd.h

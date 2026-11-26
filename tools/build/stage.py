@@ -105,8 +105,8 @@ def maker(rel):
     while rel:
         if srcmk.makefile(rel):
             up = os.path.dirname(rel)
-            while up and os.path.basename(rel) in srcmk.entered(
-                    srcmk.text(up)):
+            while up and srcmk.makefile(up) and \
+                    os.path.basename(rel) in srcmk.entered(srcmk.text(up)):
                 rel, up = up, os.path.dirname(up)
             return rel
         rel = os.path.dirname(rel)

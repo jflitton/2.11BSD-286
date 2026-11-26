@@ -1,0 +1,11 @@
+== probe
+lp0 at 0x3BC irq 7
+== direct
+== lpr
+no entries
+lp:
+        queuing is enabled
+        printing is enabled
+        no entries
+        no daemon present
+== end

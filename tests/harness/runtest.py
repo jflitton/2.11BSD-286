@@ -6,7 +6,7 @@ usage: runtest.py NAME SOURCE...
                   [--hd2 IMAGE,CYLINDERS,HEADS,SECTORS[,ID]]
                   [--fda IMAGE[,SIZE]] [--fdb IMAGE[,SIZE]] [--until TEXT]
                   [--resets N] [--net CARD[:PORT:IRQ]] [--term TYPE:COLSxROWS]
-                  [--slip]
+                  [--slip] [--lpt]
                   [--mark TEXT] [--profile KERNEL[:MS]]
                   [--type AFTER TEXT | --key AFTER TEXT | --telnet AFTER TEXT]...
                   --boot NAME [EXECUTABLE [FILESYSTEM]]
@@ -85,6 +85,13 @@ speed it has set the port to.  The IP header's checksum and TCP's and
 UDP's are sums, which the swap does not change.  How many packets came
 back is printed after what the machine wrote, under a line "slip:".
 86Box with the automation socket only.
+
+With --lpt the machine's parallel port has a printer on it, 86Box's
+generic text printer, whose pages are 80 columns and 66 lines.  It keeps
+the last character printed at each place on a page, as text, and prints
+a page when the page is full, at a form feed, or once five seconds have
+gone without a character.  What it printed is in printed.txt in the run's
+directory when the run ends, a form feed between pages.  86Box only.
 
 With --mark, each time the machine writes TEXT to the serial port, the
 emulated time, to the millisecond, goes to marks.txt as a line: the time
@@ -261,6 +268,7 @@ TYPE = []               # --type, --key, --telnet: [kind, after, text]
 NET = None              # --net: (card, port, irq, the host's port)
 SLIP = False            # --slip: COM2 is a SLIP line that sends packets back
 SLIPSAID = None         # and what it did
+LPT = False             # --lpt: a printer on the parallel port
 TERM = None             # --term: (type, columns, rows)
 MARK = None             # --mark: the text whose every writing is timed
 PROFILE = None          # --profile: (kernel, milliseconds between samples)
@@ -622,7 +630,8 @@ def start_86box(box, img, out, com1, args=(), env=None):
                           % (FD[1][1], os.path.abspath(FD[1][0])))
     with open(os.path.join(vm, "86box.cfg"), "w") as f:
         f.write(cfg + ("fdd_01_fn = %s\n" % img if img else "")
-                + "\n[Ports (COM & LPT)]\n" + com1)
+                + "\n[Ports (COM & LPT)]\n" + com1
+                + ("lpt1_device = text_prt\n" if LPT else ""))
         if HD:
             f.write("\n[Hard disks]\nhdd_01_parameters = %d, %d, %d, 0, %s\n"
                     "hdd_01_fn = %s\n"
@@ -1016,11 +1025,18 @@ def run_86box(img, out):
     if teltext is not None:
         with open(os.path.join(out, "telnet.txt"), "w", newline="") as f:
             f.write(teltext)
+    if LPT:
+        # A file for each time the printer was reset, by the time.
+        d = os.path.join(out, "86box", "printer")
+        files = sorted(os.listdir(d)) if os.path.isdir(d) else []
+        with open(os.path.join(out, "printed.txt"), "wb") as f:
+            f.write(b"\f".join(open(os.path.join(d, n), "rb").read()
+                                for n in files))
     return text, seen, teltext
 
 
 def main():
-    global HD, HD2, UNTIL, RESETS, NET, SLIP, TERM, MARK, PROFILE
+    global HD, HD2, UNTIL, RESETS, NET, SLIP, LPT, TERM, MARK, PROFILE
     emu = os.environ.get("EMU", "86box")
     if emu not in ("86box", "qemu"):
         sys.exit("EMU must be 86box or qemu")
@@ -1088,6 +1104,11 @@ def main():
         if emu != "86box":
             sys.exit("--slip: needs 86Box")
         SLIP = True
+        del sys.argv[1]
+    if len(sys.argv) > 1 and sys.argv[1] == "--lpt":
+        if emu != "86box":
+            sys.exit("--lpt: needs 86Box")
+        LPT = True
         del sys.argv[1]
     if len(sys.argv) > 2 and sys.argv[1] == "--term":
         try:

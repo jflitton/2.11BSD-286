@@ -1944,10 +1944,10 @@ ripple of characters a printer is tried with. The filters for text,
 `lpf` and `necf`, are in `/usr/libexec/lpr`; those for Versatec and
 Varian plotters the filters' Makefile installs only when asked
 (`installv`). `/etc/printcap` is upstream's, whose `lp` writes to
-`/dev/lp0`, the PDP-11's line printer: the 286 has no driver for its
-parallel port ([what is not ported](unported.md)), so its printer is one
-on a serial line, as the file's second entry, commented out, is, or
-another machine's, which `rm` names and `lpd` sends the job to.
+`/dev/lp0`, the first parallel port ([the
+console](console.md#the-parallel-port)); a printer on a serial line is
+as the file's second entry, commented out, is, and another machine's is
+one that `rm` names, which `lpd` sends the job to.
 `/etc/rc` starts `lpd` always, as upstream's does, having taken away
 `/dev/printer`, the socket by which `lpr` tells it of a job, which an
 `lpd` that died leaves behind. `lpd` logs through `syslogd` to

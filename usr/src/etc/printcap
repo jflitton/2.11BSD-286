@@ -7,7 +7,7 @@
 #
 # This is a sample of printcap entries used by various printers/plotters
 
-# Standard text printer on the LP(V)11 interface.
+# Standard text printer on the first parallel port.
 lp|Line Printer:\
         :lp=/dev/lp0:\
         :sd=/usr/spool/lpd:\

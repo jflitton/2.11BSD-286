@@ -161,8 +161,8 @@ processes, files and inodes, the most buffers, the slots
 ([processes](processes.md#slots-the-user-structure-and-kernel-stack)),
 `UCB_METER`, and a count of each device: `NWD` IDE disks, `NSD` SCSI
 disks, `NFL` diskette drives, `NRD` disks in memory, `NCOM` serial
-ports, `NNE` NE1000s and NE2000s, `NSL` SLIP interfaces, `NPTY`
-pseudo-terminals. A driver whose
+ports, `NLP` parallel ports, `NNE` NE1000s and NE2000s, `NSL` SLIP
+interfaces, `NPTY` pseudo-terminals. A driver whose
 count is 0 is nothing in the kernel, and its places in the device
 switches are `nodev` (`sys/i286/conf.c`), as 2.11BSD has it. A kernel
 of the IDE disks, the console and the serial ports alone is 196,475
@@ -385,6 +385,8 @@ tests/mx/run.sh         # sendmail.MX in place of sendmail: letters
 tests/slip/run.sh       # SLIP on COM2, whose far end sends each packet
                         # back as its own: pings, and a program sent
                         # and fetched with rcp
+tests/lp/run.sh         # a printer on the parallel port: printing to
+                        # /dev/lp0 and by lpr, and what came out
 tests/uucp/run.sh       # UUCP: the system calls itself by TCP, through
                         # uucpd, and by a pty, the t protocol and the g,
                         # and sends and fetches files and a letter
@@ -397,8 +399,8 @@ tests/ve/run.sh         # the editor ve, built for that machine too: 115
 
 The tests that boot the system as a machine has it, `tests/system`,
 `tests/network`, `tests/programs`, `tests/crash`, `tests/quota`,
-`tests/mx`, `tests/slip`, `tests/uucp`, `tests/bench`, `tests/libc`
-and `tests/ccom` with
+`tests/mx`, `tests/slip`, `tests/lp`, `tests/uucp`, `tests/bench`,
+`tests/libc` and `tests/ccom` with
 `self.sh`, boot either build of it: with `TOOLS=cross` the cross
 compiler's, and with `TOOLS=native` the system's own compiler's,
 assembler's and linker's throughout, the kernel, the libraries, every
@@ -589,6 +591,14 @@ and so on).
   with `rcp`, and runs a command there with `rsh`. What they say must
   be as `expected` has it, and neither `sl0` nor IP may count an error
   ([the network](network.md#slip)).
+- `tests/lp` boots it with 86Box's generic text printer on the
+  parallel port (`runtest.py --lpt`), which keeps what it prints as
+  text. Root prints more than a page straight to `/dev/lp0`, and a
+  file of a tab, a carriage return, spaces at the end of a line and a
+  form feed, and then three lines and that file by `lpr`. What the
+  printer printed must be as `printed` has it, and what `lpq` and
+  `lpc` say as `expected` has it ([the
+  console](console.md#the-parallel-port)).
 - `tests/uucp` boots it with `/etc/uucp/L.sys` naming it twice, as
   `loop`, called by TCP, where `inetd` starts `uucpd`, and as `ploop`,
   called by a direct line that is a pty, with a `uucico` at its other
@@ -638,6 +648,7 @@ are from single runs with an 86Box that has the automation socket.
 | the quotas, in the kernel or the programs | `tests/quota` | 2½ minutes |
 | UUCP, its programs or its files in `/etc` | `tests/uucp` | 2¼ minutes |
 | SLIP, `slattach`, or the serial ports' driver | `tests/slip` | 3½ minutes |
+| the parallel port's driver, or `lpr` and `lpd` printing on it | `tests/lp` | 2 minutes |
 | `sendmail.MX`, or what `sendmail.cf` does with mail for another machine | `tests/mx` | 2½ minutes |
 
 The build here makes what the system makes of the same Makefiles, to

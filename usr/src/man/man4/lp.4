@@ -2,42 +2,50 @@
 .\" All rights reserved.  The Berkeley software License Agreement
 .\" specifies the terms and conditions for redistribution.
 .\"
-.\"	@(#)lp.4	6.1 (Berkeley) 1/28/88
+.\"	@(#)lp.4	6.2 (2.11BSD) 2026/11/26
 .\"
-.TH LP 4 "January 28, 1988"
+.TH LP 4 "November 26, 2026"
 .UC 2
 .SH NAME
 lp \- line printer
 .SH SYNOPSIS
 .ft B
 .nf
-/sys/conf/SYSTEM:
+/sys/conf/PC:
 .ta .5i +\w'LP_MAXCOL  'u +\w'lp_printers  'u
-	NLP	\fIlp_printers\fP	# Line Printer
+	NLP	\fIlp_printers\fP	# parallel ports: at most 3
 	LP_MAXCOL	\fI132\fP	# Maximum number of columns on line printers
 .DT
 
-/etc/dtab:
-.ta .5i +\w'#Name 'u +\w'Unit# 'u +\w'177777 'u +\w'Vector 'u +\w'Br 'u +\w'xxxxxxx 'u +\w'xxxxxxx 'u
-	#Name	Unit#	Addr	Vector	Br	Handler(s)		# Comments
-	lp	?	177514	200	4	lpintr		# lp-11 line printer
-.DT
-
 major device number(s):
-	raw: 5
+	raw: 12
 minor device encoding:
 	bit 01 specifies 64-character set (instead of 96-character set)
 	bits 06 are reserved
-	bits 0370 specify line printer unit: <lp_unit> * 8
+	bits 030 specify the parallel port: <lp_unit> * 8
 .fi
 .ft R
 .SH DESCRIPTION
 .I Lp
-provides the interface to any of the standard
-DEC line printers on an LP-11 parallel interface.
+provides the interface to a printer on one of a PC's parallel ports.
+The ports are found as the system starts, where the BIOS looks for
+them and in its order: 0x3BC, 0x378 and 0x278.
+The first found is
+.IR lp0 ,
+the next
+.IR lp1 ,
+and so on.
+Each has interrupt request 7, but one at 0x278 has 5.
 When it is opened or closed, a suitable number
 of page ejects is generated.
 Bytes written are printed.
+.PP
+Opening a port fails with EIO if its printer is off line, out of
+paper or reports an error, which
+.IR lpd (8)
+waits on and tries again; with EBUSY if a network card has the
+port's interrupt; and with ENXIO if the port is open already or
+was not found.
 .PP
 The unit number of the printer is specified by the minor device
 after removing the low 3 bits, which act as per-device parameters.
@@ -77,12 +85,14 @@ the following table:
 .PP
 The driver correctly interprets
 carriage returns, backspaces, tabs, and form feeds.
+A carriage return is sent before a line feed or a form feed
+when the carriage is not at the left, as a PC's printer wants.
 Lines longer than the maximum page width are truncated.
 The page width is specified via the LP_MAXCOL definition,
-set to 132 in the GENERIC distribution.
+set to 132 in the PC configuration.
 .SH FILES
 .ta \w'/dev/MAKEDEV.local  'u
-/dev/lp
+/dev/lp?
 .br
 /dev/MAKEDEV	script to create special files
 .br
@@ -90,10 +100,10 @@ set to 132 in the GENERIC distribution.
 .DT
 .SH "SEE ALSO"
 lpr(1),
-dtab(5),
-autoconfig(8)
+printcap(5),
+lpd(8)
 .SH DIAGNOSTICS
-None.
+\fBlp%d at 0x%x irq %d\fR.  A port found as the system starts.
 .SH BUGS
-Although the driver supports multiple printers this has never
-been tried.
+A port whose interrupt request is not the one given above
+sends a character only when the clock looks, every few seconds.

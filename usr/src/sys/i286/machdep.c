@@ -32,6 +32,7 @@
 #include "tty.h"
 #include "sysctl.h"
 #include "../machine/cpu.h"
+#include "lp.h"
 #include "rd.h"
 #include "sd.h"
 
@@ -157,6 +158,9 @@ startup()
 	slotproc[0] = &proc[0];
 
 	loginit();
+#if NLP > 0
+	lpattach();		/* once what it says is kept */
+#endif
 
 	/*
 	 * Initialize callouts

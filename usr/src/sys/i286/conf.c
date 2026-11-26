@@ -114,6 +114,15 @@ extern struct tty com_tty[];
 #define	com_tty		0
 #endif
 
+#include "lp.h"
+#if NLP > 0
+int	lpopen(), lpclose(), lpwrite();
+#else
+#define	lpopen		nodev
+#define	lpclose		nodev
+#define	lpwrite		nodev
+#endif
+
 int	mmrw();
 #define	mmselect	seltrue
 
@@ -194,6 +203,10 @@ struct cdevsw	cdevsw[] = {
 	flopen,		flclose,	rawrw,		rawrw,
 	flioctl,	nulldev,	0,		seltrue,
 	flstrategy,
+/* lp = 12 */
+	lpopen,		lpclose,	nodev,		lpwrite,
+	nodev,		nulldev,	0,		nodev,
+	nulldev,
 };
 int	nchrdev = sizeof(cdevsw) / sizeof(cdevsw[0]);
 
@@ -234,7 +247,7 @@ isdisk(dev, type)
 	return (0);
 }
 
-#define MAXDEV	12
+#define MAXDEV	13
 static char chrtoblktbl[MAXDEV] =  {
       /* CHR */      /* BLK */
 	/* 0 */		NODEV,
@@ -249,6 +262,7 @@ static char chrtoblktbl[MAXDEV] =  {
 	/* 9 */		2,		/* sd */
 	/* 10 */	NODEV,
 	/* 11 */	3,		/* fl */
+	/* 12 */	NODEV,
 };
 
 /*

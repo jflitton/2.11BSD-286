@@ -18,10 +18,10 @@
 #
 # The 286's: not the pages of the PDP-11's devices.
 MDIR=	/usr/man/cat4
-SRCS=	arp.4 fl.4 icmp.4 inet.4 ip.4 lo.4 networking.4 null.4 pty.4 \
-	tcp.4 tty.4 udp.4
-OBJS=	arp.0 fl.0 icmp.0 inet.0 ip.0 lo.0 networking.0 null.0 pty.0 \
-	tcp.0 tty.0 udp.0
+SRCS=	arp.4 fl.4 icmp.4 inet.4 ip.4 lo.4 lp.4 networking.4 null.4 \
+	pty.4 tcp.4 tty.4 udp.4
+OBJS=	arp.0 fl.0 icmp.0 inet.0 ip.0 lo.0 lp.0 networking.0 null.0 \
+	pty.0 tcp.0 tty.0 udp.0
 
 .SUFFIXES: .4 .0
 

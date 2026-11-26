@@ -81,6 +81,7 @@
 /dev/fl1 b 640 0.5 3 1
 /dev/klog c 600 0.0 3 0
 /dev/kmem c 640 0.2 1 1
+/dev/lp0 c 666 0.0 12 0
 /dev/mem c 640 0.2 1 0
 /dev/null c 666 0.0 1 2
 /dev/ptyp0 c 666 0.0 5 0
@@ -1770,6 +1771,7 @@
 /usr/man/cat4/inet.0 f 444 0.10
 /usr/man/cat4/ip.0 f 444 0.10
 /usr/man/cat4/lo.0 f 444 0.10
+/usr/man/cat4/lp.0 f 444 0.10
 /usr/man/cat4/networking.0 f 444 0.10
 /usr/man/cat4/null.0 f 444 0.10
 /usr/man/cat4/pty.0 f 444 0.10

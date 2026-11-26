@@ -18,7 +18,6 @@ Some programs wait on more than themselves:
 
 | what | for |
 |---|---|
-| A driver for the parallel port | a printer on it; `lpr` and the rest are ported, for a printer on a serial port or across the network |
 | A tape driver | `mt`, `tcopy`, `ansitape`, `vmsbackup`, and `dump` and `restor` to a tape |
 
 ## The compiler and object files

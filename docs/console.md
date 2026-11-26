@@ -9,6 +9,7 @@ runs in the emulator under `tests/system` and `tests/vt`.
 | `/dev/console` | 0, 0 | the first screen |
 | `/dev/ttyv1` to `ttyv3` | 0, 1 to 3 | the other three |
 | `/dev/tty00`, `tty01` | 10, 0 and 1 | COM1 and COM2 |
+| `/dev/lp0` | 12, 0 | the first parallel port, a printer's ([below](#the-parallel-port)) |
 
 The screens are minors of the console's driver, as on the PDP-11 the
 console's driver also has the extra DL-11s (`ttyl1` to `ttyl7` in
@@ -174,6 +175,48 @@ divisor. It lost the tail of whatever was being sent when `tcsh` gave
 its prompt, about one prompt in fifteen in a test that typed the next
 command as the last one's output began.
 
+## The parallel port
+
+`usr/src/sys/i286at/lp.c` is upstream's LP-11 driver with a PC's
+printer port in place of the LP-11: `/dev/lp0` to `lp2`, as many as
+`NLP` in `sys/conf/PC` (1), each 8 minors apart, as upstream's are, the
+low bit giving upstream's printers of capitals alone. The ports are
+found as the system starts, at 0x3BC, 0x378 and 0x278, in the order the
+BIOS looks at them, each there if its data register keeps what is
+written to it; a line `lp0 at 0x3BC irq 7` says so. The interrupt is 7,
+or 5 at 0x278, as a PC/AT has them; a PS/2's own port has 7 at any of
+the three addresses. The driver takes the interrupt when the port is
+first opened, as the serial ports' does, so a network card that has
+it keeps it, and opening the port fails with `EBUSY`.
+
+What upstream's driver does, it does: a page is ejected at the close if
+anything was printed, a tab is spaces, a backspace or a carriage return
+strikes over by returning the carriage, the rest of a line past
+`LP_MAXCOL` (132) is not sent, and opening a printer that is off line,
+out of paper or in error fails with `EIO`, on which `lpd` waits and
+tries again ([printers](userland.md#printers-and-the-rest-of-upstreams)).
+The handshake is the PC's. The LP-11 said it was busy the moment it was
+given a character, and was given characters as long as it said it was
+ready. A PC's printer is given a character on the data lines and a
+strobe, says it is busy only once it has seen the strobe, and
+acknowledges the character when it has taken it. The driver sends one
+character and the acknowledge, which interrupts, sends the next. The
+clock looks every 10 seconds, or 2 while characters are going, as
+upstream's does: a lost acknowledge costs that long, and a printer put
+right after it was off line goes on. A PS/2's port holds its interrupt
+until its status is read, which the handler does each time. A PC's
+printer moves the paper at a line feed and leaves the carriage where it
+is, so a carriage return goes before a line feed or a form feed when
+the carriage is not at the left.
+
+Upstream's had three bugs. Its first character was a NUL, which a
+character waiting to go was taken to be before the first was written;
+it is none now. The clock stopped looking once the port was closed and
+its queue empty, though the character taken from the queue might not
+have gone yet, which then waited for the next open; it looks until that
+has gone. And `MAKEDEV` made `lp1` minor 1, which the driver took for
+`lp0` in capitals; it makes it minor 8.
+
 ## Tests
 
 - `tests/vt` builds `vt.c` with the C compiler of the machine the system
@@ -191,6 +234,15 @@ command as the last one's output began.
   character; and goes back with Alt-F1. Then it checks what the screens
   showed, among them `vi`'s, all 25 lines, and that `who` lists the
   three logins.
+- `tests/lp` boots the system with 86Box's generic text printer on the
+  parallel port (`runtest.py --lpt`), which keeps what it prints as
+  text, and has root print more than a page straight to `/dev/lp0`,
+  and a file of a tab, a carriage return, spaces at the end of a line
+  and a form feed, then three lines and that file by `lpr`. What the
+  printer printed must be as `tests/lp/printed` has it. The printer
+  acknowledges every character, and the printing ends only if the
+  acknowledges interrupt. It is never busy, so the driver's waiting on
+  a busy printer, and on one off line, are not tested.
 
 The harness reads the screen through the VGA's own registers and
 memory: 86Box's `text` request goes by the BIOS's notes, which are out
@@ -207,4 +259,8 @@ of date once the kernel shows screens of its own.
   to the first screen is being drawn can land in the middle of it on
   the screen.
 - None of it has run on a real machine: not the PS/2's own keyboard
-  controller or display, and not the bell, which no test can hear.
+  controller or display, and not the bell, which no test can hear; and
+  no printer has been on a real parallel port.
+- The parallel port's interrupt is found by the port's address alone,
+  and a port with another prints a character each time the clock
+  looks.
