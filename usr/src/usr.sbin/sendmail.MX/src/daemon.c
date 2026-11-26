@@ -16,7 +16,8 @@
 #if !defined(lint) && !defined(NOSCCS)
 static char	SccsId[] = "@(#)daemon.c 5.22 (2.11BSD) 2026/9/19 (w/o daemon mode)";
 # endif
-# else
+# endif
+# ifdef DAEMON
 
 # include <netdb.h>
 # include <signal.h>

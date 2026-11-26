@@ -61,7 +61,9 @@
 #  5. The rest is made, make in each of usr/src's SRCDIR, and make
 #     installsrc installs it, after the scripts the manual's Makefiles
 #     run, which a system has before it makes anything.  A command that
-#     fails fails the build, which says where (OUT/log).
+#     fails fails the build, which says where (OUT/log).  What upstream
+#     has and does not make, which is ported, is made too and not
+#     installed (EXTRA), for the tests to install where they test it.
 #  6. The kernel and the boot programs are installed, as their Makefiles
 #     install them, and with root, the root file system is made of OUT/dest
 #     (proto.py) and /usr/include (tools/ccproto.py).
@@ -272,9 +274,12 @@ echo "$libc" > "$out/libc"
     mk lib/c2 install
     mk usr.lib "" install
 } >> "$log/lib" 2>&1
+# What upstream has and does not make (5.): sendmail.MX, a sendmail
+# that finds where to send mail by MX records (tests/mx).
+EXTRA=usr.sbin/sendmail.MX
 libs=$(libsum lib usr/lib)
 if [ -s "$out/libraries" ] && [ "$libs" != "$(cat "$out/libraries")" ]; then
-    for d in $(sed -n 's/^SRCDIR=//p' "$top/usr/src/Makefile"); do
+    for d in $(sed -n 's/^SRCDIR=//p' "$top/usr/src/Makefile") $EXTRA; do
         mk "$d" clean
     done > "$log/clean" 2>&1 || true
 fi
@@ -287,6 +292,7 @@ srcdir=$(sed -n 's/^SRCDIR=//p' "$top/usr/src/Makefile")
     (mk usr.sbin/makewhatis install)
     mk . "$srcdir"
     mk . installsrc
+    for d in $EXTRA; do mk "$d" ""; done
 } > "$log/build" 2>&1
 failed "$log/lib" "$log/build"
 

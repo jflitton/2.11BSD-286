@@ -42,7 +42,7 @@ setevent(intvl, func, arg)
 	register EVENT **evp;
 	register EVENT *ev;
 	auto time_t now;
-	extern tick();
+	extern void tick();
 
 # ifdef DEBUG
 	if (intvl <= 0)

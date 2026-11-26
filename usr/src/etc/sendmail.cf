@@ -284,7 +284,7 @@ R$*:$*			$1.$2				map colons to dots
 
 # output local host as user@host
 R$-			$1<@$w>				user w/o host
-R$+<@$=w>		$1<@$w>				or an alias
+R$+<@$=w>		$:$1<@$w>				or an alias, once
 R$+<@$->		$:$1<@$[$2$]>			ask nameserver
 R$+<@$*.$D>		$@$1<@$2.$D>			locals have domain now
 R$+<@$->		$@$1<@$2.$D>			if nameserver fails
@@ -310,7 +310,7 @@ R$*:$*			$1.$2				map colons to dots
 
 # output local host as user@host
 R$-			$1<@$w>				user w/o host
-R$+<@$=w>		$1<@$w>				or an alias
+R$+<@$=w>		$:$1<@$w>				or an alias, once
 R$+<@$->		$:$1<@$[$2$]>			ask nameserver
 R$+<@$*.$D>		$@$1<@$2.$D>			locals have domain now
 R$+<@$->		$@$1<@$2.$D>			if nameserver fails

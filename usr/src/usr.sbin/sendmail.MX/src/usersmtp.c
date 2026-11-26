@@ -15,6 +15,7 @@
  */
 
 # include "sendmail.h"
+# include <stdarg.h>
 
 #if !defined(lint) && !defined(NOSCCS)
 #ifdef SMTP
@@ -45,6 +46,8 @@ char	SmtpError[MAXLINE];		/* save failure error messages */
 FILE	*SmtpOut;			/* output file */
 FILE	*SmtpIn;			/* input file */
 int	SmtpPid;			/* pid of mailer */
+
+int	smtpmessage(char *, MAILER *, ...);
 
 /* following represents the state of the SMTP connection */
 int	SmtpState;			/* connection state, see below */
@@ -484,11 +487,13 @@ reply(m)
 */
 
 /*VARARGS1*/
-smtpmessage(f, m, a, b, c)
-	char *f;
-	MAILER *m;
+smtpmessage(char *f, MAILER *m, ...)
 {
-	(void) sprintf(SmtpMsgBuffer, f, a, b, c);
+	va_list ap;
+
+	va_start(ap, m);
+	(void) vsprintf(SmtpMsgBuffer, f, ap);
+	va_end(ap);
 	if (tTd(18, 1) || (Verbose && !HoldErrs))
 		nmessage(Arpa_Info, ">>> %s", SmtpMsgBuffer);
 	if (SmtpOut != NULL)

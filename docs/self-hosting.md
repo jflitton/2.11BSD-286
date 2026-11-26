@@ -424,9 +424,12 @@ not for a change. A change is checked two ways, and
   system's does; so is what a system has already that the Makefiles
   read and none installs, `/usr/dict`, and the scripts `man`'s
   Makefile installs and others run, `manroff` and `makewhatis`, which
-  are installed first. `sh tests/make/run.sh` makes it and compares
-  it with `tests/make/list`, each file, directory, device and link with
-  its mode, owner and group: 2681 names, in eight minutes the first
+  are installed first. `sendmail.MX`, which upstream has and does not
+  make, is made after the rest and not installed (`EXTRA` in
+  `build.sh`), for `tests/mx` to install; a change to it calls for
+  that test and nothing on the machine. `sh tests/make/run.sh` makes
+  the root and compares it with `tests/make/list`, each file,
+  directory, device and link with its mode, owner and group: 2681 names, in eight minutes the first
   time and two after a change. `HOST=1 sh tests/self/run.sh` makes `/boot`
   and the kernel with their Makefiles the same way and
   compares what they make, each object (`tests/self/host.sh`). That

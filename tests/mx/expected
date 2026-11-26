@@ -1,0 +1,42 @@
+== local
+From daemon
+From: root (System Administrator)
+Apparently-To: root
+local-body
+== newaliases
+6 aliases, longest 21 bytes, 117 bytes total
+From daemon
+From: root (System Administrator)
+Apparently-To: help
+alias-body
+== freeze
+frozen
+From daemon
+From: root (System Administrator)
+Apparently-To: root
+frozen-body
+== mx
+root@mail.test... Connecting to mail.test (tcpld)...
+220 mail Sendmail 5.59/1.25 ready
+>>> HELO pc286
+250 mail Hello pc286, pleased to meet you
+>>> MAIL From:<root@pc286.test>
+250 <root@pc286.test>... Sender ok
+>>> RCPT To:<root@mail.test>
+250 <root@mail.test>... Recipient ok
+>>> DATA
+354 Enter mail, end with "." on a line by itself
+>>> .
+250 Ok
+>>> QUIT
+221 mail closing connection
+root@mail.test... Sent
+From root@pc286.test
+From: root@pc286.test (System Administrator)
+Apparently-To: root@mail.test
+mx-body
+== nohost
+Mail queue is empty
+Subject: Returned mail: Host unknown
+550 root@mail.test... Host unknown
+== end

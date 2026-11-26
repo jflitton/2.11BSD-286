@@ -222,7 +222,7 @@ deliver(e, firstto)
 			continue;
 
 		/* avoid overflowing tobuf */
-		if (sizeof tobuf - (strlen(to->q_paddr) + strlen(tobuf) + 2) < 0)
+		if ((int)sizeof tobuf - (strlen(to->q_paddr) + strlen(tobuf) + 2) < 0)
 			break;
 
 # ifdef DEBUG
@@ -388,19 +388,12 @@ deliver(e, firstto)
  		if (host[0] != '[')
   		{
  			expand("\001w", buf, &buf[sizeof buf - 1], e);
- 			if ((Nmx = getmxrr(host, MxHosts, MAXMXHOSTS, buf)) < 0)
- 			{
- 				/*
- 				 * Map errors into standard values
- 				 */
- 				if (Nmx == -1)
- 					rcode = EX_TEMPFAIL;
- 				else if (Nmx == -3)
- 					rcode = EX_NOHOST;
- 				else
- 					rcode = EX_UNAVAILABLE;
- 			}
-  			else
+ 			/*
+ 			 * getmxrr (domain.c) is given this host's name and
+ 			 * where to put the error, which it returns -1 for
+ 			 */
+ 			rcode = EX_UNAVAILABLE;
+ 			if ((Nmx = getmxrr(host, MxHosts, buf, &rcode)) >= 0)
  				rcode = EX_OK;
   		}
   		else

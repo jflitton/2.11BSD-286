@@ -25,7 +25,10 @@ made of it: of a directory that make is run in when usr/src's Makefile
 runs it (tools/srcmk.py), the deepest it is in, and each directory that
 compiles it, as the build where the system is built did
 (tests/self/built.py); of the kernel's sources and its configuration
-(sys/conf, sys/PC), the kernel; and of /boot's, those.
+(sys/conf, sys/PC), the kernel; and of /boot's, those.  A file of what
+upstream has and does not make, which that build makes and does not
+install (EXTRA in tools/build/build.sh), calls for nothing here: the
+test that installs it tests it.
 """
 import os
 import sys
@@ -59,6 +62,12 @@ for macro in ("LIBDIR", "SRCDIR"):
             order += line.split("=", 1)[1].split()
 
 
+# What the build makes and does not install (tools/build/build.sh).
+extra = []
+for line in open(os.path.join(TOP, "tools", "build", "build.sh")):
+    if line.startswith("EXTRA="):
+        extra += [d + "/" for d in line.split("=", 1)[1].split()]
+
 # The directories each source is compiled in.
 among = built.sources(built.build(TOP))
 
@@ -91,6 +100,8 @@ for name in sys.stdin.read().split("\n"):
     elif name.startswith(BUILD):
         dirs.update(UNSEEN)
         why.append(name + ": how it is made")
+    elif rel and rel.startswith(tuple(extra)):
+        why.append(name + ": made and not installed")
     elif name.startswith("usr/src/sys/i286stand/"):
         parts.add("stand")
         why.append(name + ": the boot programs")

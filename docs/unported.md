@@ -138,7 +138,6 @@ All are ported: `nroff` and `troff`, with `tbl`, `eqn`, `neqn`, `refer`,
 
 | program | where | notes |
 |---|---|---|
-| `sendmail.MX` (*medium*) | `usr.sbin/sendmail.MX` | a `sendmail` that looks up MX records with `named` |
 | `mkhosts` | `usr.sbin/mkhosts` | `/etc/hosts` as a database. Its Makefile is run, as upstream's is, and installs nothing: `mkhosts` needs `gethostent`, which the C library has only when it reads the table of hosts itself, and it asks `named`, as upstream's does (`HOSTLOOKUP` in `lib/libc/Makefile`) |
 
 ## Tapes

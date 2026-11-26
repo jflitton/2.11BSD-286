@@ -769,6 +769,7 @@ finis()
 **		Unlocks the current job.
 */
 
+void
 intsig()
 {
 	FileName = NULL;
@@ -848,6 +849,14 @@ initmacros()
 **
 **	Side Effects:
 **		Writes BSS and malloc'ed memory to freezefile
+**
+**	On the 286 a program's stack lies between end and the break it
+**	started with, and its arguments and environment above the stack,
+**	so the BSS and the heap are written each by itself.  The heap
+**	begins where the break began (_minbrk), which is higher the more
+**	room the arguments and environment take; a later sendmail can thaw
+**	only if its own begin no higher, so that the heap read back lies
+**	above its arguments, and otherwise reads the configuration file.
 */
 
 union frz
@@ -859,9 +868,16 @@ union frz
 		char	*frzbrk;	/* the current break */
 		char	*frzedata;	/* address of edata */
 		char	*frzend;	/* address of end */
+#ifdef i286
+		char	*frzheap;	/* where the heap began */
+#endif
 		char	frzver[252];	/* sendmail version */
 	} frzinfo;
 };
+
+#ifdef i286
+extern char *_minbrk;		/* where the break began [crt0] */
+#endif
 
 freeze(freezefile)
 	char *freezefile;
@@ -890,6 +906,19 @@ freeze(freezefile)
 	fhdr.frzinfo.frzend = &end;
 	(void) strcpy(fhdr.frzinfo.frzver, Version);
 
+#ifdef i286
+	fhdr.frzinfo.frzheap = _minbrk;
+
+	/* write out the freeze header, the BSS and the heap */
+	if (write(f, (char *) &fhdr, sizeof fhdr) != sizeof fhdr ||
+	    write(f, (char *) &edata, (int) (&end - &edata)) !=
+					(int) (&end - &edata) ||
+	    write(f, _minbrk, (int) (fhdr.frzinfo.frzbrk - _minbrk)) !=
+					(int) (fhdr.frzinfo.frzbrk - _minbrk))
+	{
+		syserr("Cannot freeze");
+	}
+#else
 	/* write out the freeze header */
 	if (write(f, (char *) &fhdr, sizeof fhdr) != sizeof fhdr ||
 	    write(f, (char *) &edata, (int) (fhdr.frzinfo.frzbrk - &edata)) !=
@@ -897,6 +926,7 @@ freeze(freezefile)
 	{
 		syserr("Cannot freeze");
 	}
+#endif
 
 	/* fine, clean up */
 	(void) close(f);
@@ -938,6 +968,9 @@ thaw(freezefile)
 	if (read(f, (char *) &fhdr, sizeof fhdr) < sizeof fhdr ||
 	    fhdr.frzinfo.frzedata != &edata ||
 	    fhdr.frzinfo.frzend != &end ||
+#ifdef i286
+	    fhdr.frzinfo.frzheap < _minbrk ||
+#endif
 	    strcmp(fhdr.frzinfo.frzver, Version) != 0)
 	{
 		(void) close(f);
@@ -953,8 +986,16 @@ thaw(freezefile)
 	}
 
 	/* now read in the freeze file */
+#ifdef i286
+	if (read(f, (char *) &edata, (int) (&end - &edata)) !=
+					(int) (&end - &edata) ||
+	    read(f, fhdr.frzinfo.frzheap,
+		(int) (fhdr.frzinfo.frzbrk - fhdr.frzinfo.frzheap)) !=
+		(int) (fhdr.frzinfo.frzbrk - fhdr.frzinfo.frzheap))
+#else
 	if (read(f, (char *) &edata, (int) (fhdr.frzinfo.frzbrk - &edata)) !=
 					(int) (fhdr.frzinfo.frzbrk - &edata))
+#endif
 	{
 		/* oops!  we have trashed memory..... */
 		(void) write(2, "Cannot read freeze file\n", 24);
@@ -1030,7 +1071,9 @@ disconnect(fulldrop)
 	while ((fd = dup(fileno(CurEnv->e_xfp))) < 2 && fd > 0)
 		continue;
 
+#ifndef i286	/* ctime is the library's here, not libstubs' through ctimed */
 	XXctime();	/* XXX - close pipes to ctimed */
+#endif
 
 #ifdef TIOCNOTTY
 	/* drop our controlling TTY completely if possible */

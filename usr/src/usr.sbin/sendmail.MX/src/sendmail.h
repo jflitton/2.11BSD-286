@@ -586,3 +586,10 @@ extern char	*queuename();
 extern time_t	curtime();
 extern bool	shouldqueue();
 extern char	*denlstring();
+
+/* those that format a message with whatever it takes [err.c, conf.c] */
+extern int	syserr(char *, ...);
+extern int	usrerr(char *, ...);
+extern int	message(char *, char *, ...);
+extern int	nmessage(char *, char *, ...);
+extern int	setproctitle(char *, ...);

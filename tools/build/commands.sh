@@ -17,8 +17,9 @@
 #	ld		the same, finding the root's libraries (ld.py);
 #			with the cross compiler, cc.py's linking
 #	yacc, lex	the same
-#	xstr, mkstr, tsort  the tree's (ucb/xstr.c, ucb/mkstr, usr.bin/tsort.c),
-#			compiled here for this machine
+#	xstr, mkstr, tsort, what  the tree's (ucb/xstr.c, ucb/mkstr,
+#			usr.bin/tsort.c, ucb/what.c), compiled here for
+#			this machine
 #	ar, ranlib	ar.py, which makes a library whole each time with
 #			tools/ar.py, with ranlib's table, or of the cross
 #			compiler's objects, without
@@ -85,6 +86,7 @@ fresh() {	# fresh FILE SOURCE...: whether FILE is newer than each SOURCE
     $hostcc -o "$h/mkstr" "$s/ucb/mkstr/mkstr.c"
 [ "$h/tsort" -nt "$s/usr.bin/tsort.c" ] ||
     $hostcc -o "$h/tsort" "$s/usr.bin/tsort.c"
+[ "$h/what" -nt "$s/ucb/what.c" ] || $hostcc -o "$h/what" "$s/ucb/what.c"
 mkdir -p "$h/share/zoneinfo" "$h/games/fortune" "$h/games/monop" \
     "$h/games/phantasia" "$h/include/sys"
 ln -sf "$top/obj/host/zic" "$h/share/zoneinfo/zic"
@@ -137,7 +139,7 @@ for t in yacc lex eqn; do run $t "$top/obj/host/$t"; done
 run ex python3 -I "$here/ex.py" "$top"
 run tar python3 -I "$here/tar.py" "$out"
 run makewhatis "$b/sh" "$s/usr.sbin/makewhatis/makewhatis.sh"
-for t in xstr mkstr tsort spellin tbl; do run $t "$h/$t"; done
+for t in xstr mkstr tsort what spellin tbl; do run $t "$h/$t"; done
 run mkerrlst python3 -I "$top/tools/mkerrlst.py" \
     "$s/usr.lib/liberrlst/errlst.c" "$out/dest/etc/syserrlst"
 run manroff nroff -man -h

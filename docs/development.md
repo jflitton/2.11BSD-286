@@ -379,6 +379,9 @@ tests/quota/run.sh      # disk quotas: limits given with edquota, filled
                         # past the soft ones to the hard ones, the
                         # warnings at login used up, counted again with
                         # quotacheck and kept as the system starts again
+tests/mx/run.sh         # sendmail.MX in place of sendmail: letters
+                        # delivered here, and sent by SMTP to the
+                        # exchanger an MX record names
 tests/slip/run.sh       # SLIP on COM2, whose far end sends each packet
                         # back as its own: pings, and a program sent
                         # and fetched with rcp
@@ -394,7 +397,7 @@ tests/ve/run.sh         # the editor ve, built for that machine too: 115
 
 The tests that boot the system as a machine has it, `tests/system`,
 `tests/network`, `tests/programs`, `tests/crash`, `tests/quota`,
-`tests/slip`, `tests/uucp`, `tests/bench`, `tests/libc`
+`tests/mx`, `tests/slip`, `tests/uucp`, `tests/bench`, `tests/libc`
 and `tests/ccom` with
 `self.sh`, boot either build of it: with `TOOLS=cross` the cross
 compiler's, and with `TOOLS=native` the system's own compiler's,
@@ -568,6 +571,16 @@ and so on).
   `quotacheck` count it, and starts the system again. What `quota`,
   `repquota` and the kernel say must be as `expected` has it ([the C
   library and programs](userland.md#quotas)).
+- `tests/mx` boots it with `sendmail.MX`, which the build makes and
+  does not install, installed as `/usr/sbin/sendmail`, as its Makefile
+  would. Root has it deliver a letter here, one by an alias that
+  `newaliases` made anew, and one with the configuration frozen; then
+  has `named` serve a domain whose relay has three MX records, the two
+  preferred naming hosts that are not there, and `sendmail` send a
+  letter by SMTP, through the third, to its own daemon, started while
+  the machine had another name; and a letter for a relay that is no
+  host come back at once. What they say must be as `expected` has it
+  ([the C library and programs](userland.md#mail)).
 - `tests/slip` boots it with `/etc/rc.conf` giving `sl0` COM2, whose
   other end is the harness (`runtest.py --slip`): it sends back each
   packet with its source and destination swapped, so that the system
@@ -625,6 +638,7 @@ are from single runs with an 86Box that has the automation socket.
 | the quotas, in the kernel or the programs | `tests/quota` | 2½ minutes |
 | UUCP, its programs or its files in `/etc` | `tests/uucp` | 2¼ minutes |
 | SLIP, `slattach`, or the serial ports' driver | `tests/slip` | 3½ minutes |
+| `sendmail.MX`, or what `sendmail.cf` does with mail for another machine | `tests/mx` | 2½ minutes |
 
 The build here makes what the system makes of the same Makefiles, to
 the byte but for the few files `tests/self/differs` names, which are

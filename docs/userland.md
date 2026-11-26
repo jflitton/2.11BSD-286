@@ -1177,7 +1177,12 @@ given on; to a program, for an alias such as `msgs`'s; or by SMTP to
 another machine. `sendmail.cf` is upstream's: mail for a user here is
 delivered here, and the rest goes to a relay it calls
 `RELAY.EXAMPLE.COM`, to be set for the machine's network. `/etc/aliases`
-is upstream's too.
+is upstream's too. A bug in `sendmail.cf`: the rule of its TCP mailer
+that writes an address of this host with this host's name, `R$+<@$=w>`,
+made what it then matched again, when the name has no dots, and
+`sendmail` rewrote the sender of the first letter for another machine
+for ever. It is applied once (`$:`), as upstream's `cf` files have such
+rules.
 
 sendmail looks an alias up in a database, `aliases.dir` and
 `aliases.pag`, which `newaliases` makes. Until the database is there
@@ -1284,8 +1289,44 @@ not name it, and its `services` has no `pop3`. This system's
 `inetd.conf` has the line, commented out, and says what `services`
 needs. `comsat` is started by `inetd` as upstream's has it.
 
-Left out: `sendmail.MX`, which asks a name server for a domain's mail
-exchanger. `calendar`, which runs the C preprocessor, `/lib/cpp`, came
+`sendmail.MX` is a later `sendmail`, 5.59, which asks a name server
+for the MX records of where a letter goes and sends it to the mail
+exchanger they prefer that answers. Upstream has it and does not make
+it: `usr.sbin`'s Makefile leaves it out, and `named`'s README points to
+it. Here the build makes it and does not install it either, and
+`tests/mx` installs it where it tests it. Its Makefile installs it in
+place of `sendmail`, which it reads the same `/etc/sendmail.cf` as:
+
+```sh
+cd /usr/src/usr.sbin/sendmail.MX
+make
+make install
+```
+
+It is ported as `sendmail` is: medium-model with a stack of 16K, linked
+without `libstubs`, its functions that pass on a message's arguments
+variadic, and its frozen configuration written and read in two parts.
+Its Makefile runs `${WHAT}`, which it never set, to list the objects'
+versions when it writes `Version.c` anew; it is set to `what`. Bugs,
+none of which upstream met, never having made it:
+
+- Its Makefile made `str.o`, the table of the strings `xstr` takes out
+  of each object, in the middle of the objects, and those made after it
+  found their strings past its end: `readcf`'s `fopen` was given no
+  `"r"`, and `sendmail` could not open its configuration. It is made
+  last, as `sendmail`'s is.
+- `deliver.c` called `getmxrr` with the arguments of another version's,
+  the most records to take and this host's name, where `domain.c`'s
+  takes this host's name and where to put the error. So it never found
+  this host among the exchangers, and a relay that was no host was
+  tried for two days (`sendmail.cf`'s `T`) before the letter came back.
+- `clock.c` declared `tick` `int`, and `main.c` defined `intsig` so,
+  where each is `void`.
+- The check that a list of recipients would not overflow its buffer
+  subtracted from `sizeof`, which is unsigned here, so the difference
+  never came out below 0. `sendmail`'s takes `sizeof` as an `int`.
+
+`calendar`, which runs the C preprocessor, `/lib/cpp`, came
 with [the compiler](#the-compiler), and `rmail`, for mail by UUCP,
 later ([printers, and the rest of
 upstream's](#printers-and-the-rest-of-upstreams)).

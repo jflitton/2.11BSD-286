@@ -20,7 +20,7 @@
 **	There shouldn't be much need to change these....
 */
 
-#ifdef pdp11
+#if	defined(pdp11) || defined(i286)
 # define MAXLINE	256		/* max line length */
 # define MAXNAME	128		/* max length of a name */
 # define MAXFIELD	1024		/* max total length of a hdr field */
