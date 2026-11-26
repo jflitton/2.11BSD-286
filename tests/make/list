@@ -280,6 +280,8 @@
 /sbin/routed f 755 0.0
 /sbin/savecore f 755 0.10
 /sbin/shutdown f 4750 0.5
+/sbin/slattach f 755 0.10
+/sbin/testnet f 755 0.10
 /sbin/umount f 755 0.10
 /sys l usr/src/sys
 /tmp d 1777 0.0
@@ -1950,6 +1952,7 @@
 /usr/man/cat8/savecore.0 f 444 0.10
 /usr/man/cat8/sendmail.0 f 444 0.10
 /usr/man/cat8/shutdown.0 f 444 0.10
+/usr/man/cat8/slattach.0 f 444 0.10
 /usr/man/cat8/sync.0 f 444 0.10
 /usr/man/cat8/sysctl.0 f 444 0.10
 /usr/man/cat8/syslogd.0 f 444 0.10

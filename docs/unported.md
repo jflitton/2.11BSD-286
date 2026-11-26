@@ -18,7 +18,6 @@ Some programs wait on more than themselves:
 
 | what | for |
 |---|---|
-| SLIP (`sys/net/if_sl.c`; `NSL` is 0) | `slattach` |
 | A driver for the parallel port | a printer on it; `lpr` and the rest are ported, for a printer on a serial port or across the network |
 | A tape driver | `mt`, `tcopy`, `ansitape`, `vmsbackup`, and `dump` and `restor` to a tape |
 
@@ -141,8 +140,6 @@ All are ported: `nroff` and `troff`, with `tbl`, `eqn`, `neqn`, `refer`,
 |---|---|---|
 | `sendmail.MX` (*medium*) | `usr.sbin/sendmail.MX` | a `sendmail` that looks up MX records with `named` |
 | `mkhosts` | `usr.sbin/mkhosts` | `/etc/hosts` as a database. Its Makefile is run, as upstream's is, and installs nothing: `mkhosts` needs `gethostent`, which the C library has only when it reads the table of hosts itself, and it asks `named`, as upstream's does (`HOSTLOOKUP` in `lib/libc/Makefile`) |
-| `slattach` | `sbin/slattach` | waits on SLIP |
-| `testnet` | `sbin/testnet` | upstream's `netstart` asks it whether the kernel has a network; the port's does not |
 
 ## Tapes
 

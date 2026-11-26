@@ -24,6 +24,7 @@
 
         extern  _uptr:wrt DGROUP, _spending:wrt DGROUP
         extern  _time:wrt DGROUP, _lbolt:wrt DGROUP, _selwait:wrt DGROUP
+        extern  _cfreecount:wrt DGROUP
 
         segment NET_DATA public align=2 class=FAR_DATA
         segment NET_BSS public align=2 class=FAR_DATA
@@ -33,10 +34,11 @@
 ; addresses in the kernel's data segment, which the network's own code
 ; cannot name (net_mac.h).
         segment NET_DATA
-        global  _ktime, _klbolt, _kselwait
+        global  _ktime, _klbolt, _kselwait, _kcfreecount
 _ktime:         dw      _time
 _klbolt:        dw      _lbolt
 _kselwait:      dw      _selwait
+_kcfreecount:   dw      _cfreecount
 
         segment NET_BSS
         global  _netuptr

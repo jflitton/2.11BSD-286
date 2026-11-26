@@ -251,6 +251,12 @@ slot with the fewest processes.
 `swtch` goes from one process to another by way of the swapper, as
 2.11BSD does everywhere. That is what makes the copying safe: it is done
 by the swapper, whose stack is in a slot nothing is ever copied over.
+It comes there at the level `sleep` raised, which holds every interrupt
+off, and the copying takes a millisecond and more, longer than a
+character takes to come to a serial port at 9600, which keeps only one;
+so the terminals' and the clock's interrupts are let in while it is
+done. Their handlers run on a stack of their own and touch neither the
+slot nor the memory the process is copied to or from.
 
 Switching is `setjmp` and `longjmp` (`sys/i286/mch_swtch.s`), which save
 and restore SI, DI, BP, SP and a return address. `longjmp` to another

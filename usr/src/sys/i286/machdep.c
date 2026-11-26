@@ -303,13 +303,20 @@ sureg()
  * That is what makes it safe to copy over a slot here.  If the slot is
  * to be copied over, it is not the swapper's, so the stack this is
  * running on is not in it.
+ *
+ * swtch comes here at the level sleep raised, splhigh, and copying two
+ * pieces of up to 3.5K each takes a millisecond and more, longer than a
+ * character takes to come to a serial port at 9600, which keeps one:
+ * the terminals' interrupts and the clock's are let in meanwhile.
+ * Their handlers run on a stack of their own, and touch neither the
+ * slot nor the memory at p_addr.
  */
 uswitch(p, off)
 	register struct proc *p;
 	u_int off;
 {
 	register struct user *nu;
-	int s;
+	int s, x;
 	long base;
 
 	if (p == u.u_procp)
@@ -317,10 +324,12 @@ uswitch(p, off)
 	s = p->p_slot;
 	nu = (struct user *)uslot[s];
 	if (slotproc[s] != p) {
+		x = _splimp();
 		if (slotproc[s])
 			usave(slotproc[s]);
 		uload(p, off);
 		slotproc[s] = p;
+		splx(x);
 	}
 	s = intsoff();
 	uptr = nu;

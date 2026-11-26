@@ -39,6 +39,7 @@ int	setsoftnet();		/* mch_net.s */
 #define	NETISR_RAW	0		/* same as AF_UNSPEC */
 #define	NETISR_IP	2		/* same as AF_INET */
 #define	NETISR_IMP	3		/* same as AF_IMPLINK */
+#define	NETISR_SL	4		/* serial lines' frames (if_sl.c) */
 #define	NETISR_NS	6		/* same as AF_NS */
 #define	NETISR_CLOCK	15		/* protocol timeout */
 

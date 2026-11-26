@@ -1,1 +1,1 @@
-#define NSL	0
+#define NSL	1

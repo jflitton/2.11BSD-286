@@ -6,6 +6,7 @@ usage: runtest.py NAME SOURCE...
                   [--hd2 IMAGE,CYLINDERS,HEADS,SECTORS[,ID]]
                   [--fda IMAGE[,SIZE]] [--fdb IMAGE[,SIZE]] [--until TEXT]
                   [--resets N] [--net CARD[:PORT:IRQ]] [--term TYPE:COLSxROWS]
+                  [--slip]
                   [--mark TEXT] [--profile KERNEL[:MS]]
                   [--type AFTER TEXT | --key AFTER TEXT | --telnet AFTER TEXT]...
                   --boot NAME [EXECUTABLE [FILESYSTEM]]
@@ -75,6 +76,15 @@ writes on it is printed after what it wrote to the serial port, under a
 line "telnet:".  86Box with the automation socket only.  The connection
 refuses to give a terminal type or a window size unless --term is
 given, and then gives TYPE, and a window COLS wide and ROWS high.
+
+With --slip COM2 is a serial line whose far end speaks SLIP, and sends
+back each packet the machine sends it with its source and destination
+addresses swapped: a packet for the far end's address comes back as one
+from it, so that the machine talks to itself across the line, at the
+speed it has set the port to.  The IP header's checksum and TCP's and
+UDP's are sums, which the swap does not change.  How many packets came
+back is printed after what the machine wrote, under a line "slip:".
+86Box with the automation socket only.
 
 With --mark, each time the machine writes TEXT to the serial port, the
 emulated time, to the millisecond, goes to marks.txt as a line: the time
@@ -249,6 +259,8 @@ UNTIL = None            # --until: what must follow the "@exit" line
 RESETS = 0              # --resets: how many resets are not failures
 TYPE = []               # --type, --key, --telnet: [kind, after, text]
 NET = None              # --net: (card, port, irq, the host's port)
+SLIP = False            # --slip: COM2 is a SLIP line that sends packets back
+SLIPSAID = None         # and what it did
 TERM = None             # --term: (type, columns, rows)
 MARK = None             # --mark: the text whose every writing is timed
 PROFILE = None          # --profile: (kernel, milliseconds between samples)
@@ -651,6 +663,52 @@ def start_86box(box, img, out, com1, args=(), env=None):
     return p, vm
 
 
+class SlipMirror:
+    """The far end of --slip's line: takes the SLIP frames the machine
+    sends and gives back each IP packet with its addresses swapped."""
+    END, ESC, ESC_END, ESC_ESC = 0xc0, 0xdb, 0xdc, 0xdd
+
+    def __init__(self):
+        self.frame = bytearray()
+        self.escaped = False
+        self.back = 0           # packets sent back
+        self.bad = 0            # frames that were not IP, or escaped wrong
+
+    def take(self, data):
+        """What the machine sent; returns what goes back to it."""
+        out = bytearray()
+        for c in data:
+            if self.escaped:
+                self.escaped = False
+                if c not in (self.ESC_END, self.ESC_ESC):
+                    self.bad += 1
+                    self.frame = None
+                elif self.frame is not None:
+                    self.frame.append(self.END if c == self.ESC_END else self.ESC)
+            elif c == self.ESC:
+                self.escaped = True
+            elif c == self.END:
+                f = self.frame
+                if f is None or (f and (len(f) < 20 or f[0] >> 4 != 4)):
+                    self.bad += 1
+                elif f:
+                    f[12:16], f[16:20] = f[16:20], f[12:16]
+                    out.append(self.END)
+                    for b in f:
+                        if b == self.END:
+                            out += bytes((self.ESC, self.ESC_END))
+                        elif b == self.ESC:
+                            out += bytes((self.ESC, self.ESC_ESC))
+                        else:
+                            out.append(b)
+                    out.append(self.END)
+                    self.back += 1
+                self.frame = bytearray()
+            elif self.frame is not None:
+                self.frame.append(c)
+        return bytes(out)
+
+
 class Automation:
     """86Box's automation socket: a request is a line of words and the
     reply a line of JSON.  doc/specifications/automation.md in 86Box's
@@ -756,8 +814,10 @@ def run_86box_socket(box, img, out):
     env = dict(os.environ)
     env.setdefault("QT_QPA_PLATFORM", "offscreen")      # no window
     # Held, the machine runs only when asked to, and then unpaced.
-    p, vm = start_86box(box, img, out, "serial1_device = automation\n",
+    p, vm = start_86box(box, img, out, "serial1_device = automation\n"
+                        + ("serial2_device = automation\n" if SLIP else ""),
                         ["--automation", "unix:" + path, "--automation-hold"], env)
+    mirror = SlipMirror() if SLIP else None
     raw = b""
     seen = None
     try:
@@ -811,11 +871,19 @@ def run_86box_socket(box, img, out):
         screens = open(os.path.join(out, "screen.txt"), "w", encoding="utf-8")
         def keep(rows):
             screens.write("".join(r.rstrip() + "\n" for r in rows) + "=" * 80 + "\n")
+        slippos = 0
         while not seen and not ended(raw.decode("latin-1")):
-            late = advance(200) >= TIMEOUT * 1000
+            # A packet on the SLIP line comes back within 20 ms.
+            late = advance(20 if mirror else 200) >= TIMEOUT * 1000
             r = auto.ask("serial read 1 %d" % pos)
             raw += bytes.fromhex(r["data"])
             pos = r["next"]
+            if mirror:
+                r = auto.ask("serial read 2 %d" % slippos)
+                slippos = r["next"]
+                back = mirror.take(bytes.fromhex(r["data"]))
+                if back:
+                    auto.ask("serial write 2 %s" % back.hex())
             # A character at a time, as a slow typist would: what reads
             # it may be echoing each with the BIOS.
             for c in typist.next(raw.decode("latin-1")) or b"":
@@ -877,6 +945,10 @@ def run_86box_socket(box, img, out):
     if tel:
         tel.poll()
         tel.close()
+    if mirror:
+        global SLIPSAID
+        SLIPSAID = ("%d packets sent back, %d frames not IP or escaped wrong\n"
+                    % (mirror.back, mirror.bad))
     return raw.decode("latin-1"), seen, tel.text if tel else None
 
 
@@ -936,6 +1008,8 @@ def run_86box_pty(box, img, out):
 def run_86box(img, out):
     box = find_86box()
     run = run_86box_socket if has_automation(box) else run_86box_pty
+    if SLIP and run is run_86box_pty:
+        sys.exit("--slip: needs 86Box with the automation socket")
     text, seen, teltext = run(box, img, out)
     with open(os.path.join(out, "serial.txt"), "w", newline="") as f:
         f.write(text)
@@ -946,7 +1020,7 @@ def run_86box(img, out):
 
 
 def main():
-    global HD, HD2, UNTIL, RESETS, NET, TERM, MARK, PROFILE
+    global HD, HD2, UNTIL, RESETS, NET, SLIP, TERM, MARK, PROFILE
     emu = os.environ.get("EMU", "86box")
     if emu not in ("86box", "qemu"):
         sys.exit("EMU must be 86box or qemu")
@@ -1010,6 +1084,11 @@ def main():
         if emu != "86box":
             sys.exit("--net: needs 86Box")
         del sys.argv[1:3]
+    if len(sys.argv) > 1 and sys.argv[1] == "--slip":
+        if emu != "86box":
+            sys.exit("--slip: needs 86Box")
+        SLIP = True
+        del sys.argv[1]
     if len(sys.argv) > 2 and sys.argv[1] == "--term":
         try:
             name, size = sys.argv[2].rsplit(":", 1)
@@ -1066,6 +1145,8 @@ def main():
     sys.stdout.write(text.replace("\r", ""))
     if teltext is not None:
         sys.stdout.write("\ntelnet:\n" + teltext.replace("\r", ""))
+    if SLIPSAID is not None:
+        sys.stdout.write("\nslip:\n" + SLIPSAID)
     sys.stdout.flush()
     if seen:
         print("\n" + seen, file=sys.stderr)

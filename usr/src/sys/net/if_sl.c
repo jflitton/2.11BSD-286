@@ -35,6 +35,28 @@
 /* $Header: /usr/src/sys/net/RCS/if_sl.c,v 1.1 88/08/18 00:28:00 bin Exp Locker: bin $ */
 /* from if_sl.c,v 1.11 84/10/04 12:54:47 rick Exp */
 
+/*
+ * On the 286 (docs/network.md): the driver is in the network, which has
+ * a data segment of its own, and the terminal it is given is the
+ * kernel's, which it reaches through SS with a KSPACE pointer where the
+ * PDP-11's has mfkd and mtkd.  The kernel's routines on the terminal's
+ * queues it calls through SKcall (net_mac.h).
+ *
+ * A PC's serial port holds one character, where the PDP-11's terminal
+ * multiplexers have silos of 64, so nothing may hold the terminals'
+ * interrupts off for long, and splimp does not: it is below spltty.  So
+ * what upstream's driver does with the network's mbufs and queues at a
+ * terminal's interrupt is done at the network's software interrupt, as
+ * NetBSD's later driver does.  At the interrupt the kernel puts each
+ * character on the terminal's raw queue, as the terminal's own line
+ * discipline does, and asks for slintr when a frame has ended
+ * (tty_conf.c); slstart sends what the terminal's output queue holds
+ * and asks for more.  slintr gives the characters to slinput, and puts
+ * the packets waiting to go on the output queue, where, called at the
+ * interrupt, a new packet could have gone in among the characters of one
+ * that sloutput was putting there.
+ */
+
 #include "sl.h"
 #if NSL > 0
 
@@ -68,17 +90,23 @@
 #define	SLIP_HIWAT	500	/* don't start a new packet if HIWAT on queue */
 #define	CLISTRESERVE	200	/* Can't let clists get too low */
 
+#define	SLIP_LOWAT	64	/* ask for more when the queue is down to this */
+
 struct sl_softc {
 	struct	ifnet sc_if;	/* network-visible interface */
 	short	sc_flags;	/* see below */
 	short	sc_ilen;	/* length of input-packet-so-far */
-	struct	tty *sc_ttyp;	/* pointer to tty structure */
+	struct	tty *sc_ttyp;	/* pointer to tty structure: the kernel's */
 	char	*sc_mp;		/* pointer to next available buf char */
 	char	*sc_buf;	/* input buffer */
+	char	sc_ostart;	/* slintr has been asked to send */
 } sl_softc[NSL];
 
 /* flags */
 #define	SC_ESCAPED	0x0001	/* saw a FRAME_ESCAPE */
+
+/* The terminal, through SS. */
+#define	SLTTY(sc)	((struct tty KSPACE *)(int)(sc)->sc_ttyp)
 
 #define FRAME_END	 	0300		/* Frame End */
 #define FRAME_ESCAPE		0333		/* Frame Esc */
@@ -87,7 +115,8 @@ struct sl_softc {
 
 #define t_sc T_LINEP
 
-int sloutput(), slioctl(), slopen(), sltioctl();
+int sloutput(), slioctl();
+struct mbuf *sl_btom();
 
 /*
  * Called from boot code to establish sl interfaces.
@@ -116,7 +145,7 @@ slattach()
 /* ARGSUSED */
 slopen(dev, tp)
 	dev_t dev;
-	register struct tty *tp;
+	register struct tty KSPACE *tp;
 {
 	struct sl_softc *sc;
 	register int nsl;
@@ -134,8 +163,8 @@ slopen(dev, tp)
 			sc->sc_ilen = 0;
 			if (slinit(sc) == 0)
 				return (ENOBUFS);
-			mtkd(&tp->t_sc, sc);
-			sc->sc_ttyp = tp;
+			tp->t_sc = (caddr_t)sc;
+			sc->sc_ttyp = (struct tty *)(int)tp;
 #ifdef DONE_IN_KERNEL_STUB
 			ttyflush(tp, FREAD | FWRITE);
 #endif
@@ -151,7 +180,7 @@ slopen(dev, tp)
  * Mimics part of ttyclose().
  */
 slclose(tp)
-	struct tty *tp;
+	struct tty KSPACE *tp;
 {
 	register struct sl_softc *sc;
 	int s;
@@ -161,11 +190,11 @@ slclose(tp)
 	tp->t_line = 0;
 #endif
 	s = splimp();		/* paranoid; splnet probably ok */
-	sc = (struct sl_softc *)mfkd(&tp->t_sc);
+	sc = (struct sl_softc *)tp->t_sc;
 	if (sc != NULL) {
 		if_down(&sc->sc_if);
 		sc->sc_ttyp = NULL;
-		mtkd(&tp->t_sc, 0);
+		tp->t_sc = 0;
 		MCLFREE((struct mbuf *)sc->sc_buf);
 		sc->sc_buf = 0;
 	}
@@ -178,13 +207,13 @@ slclose(tp)
  */
 /* ARGSUSED */
 sltioctl(tp, cmd, data, flag)
-	struct tty *tp;
-	caddr_t data;
+	struct tty KSPACE *tp;
+	char KSPACE *data;
 {
 
 	if (cmd == TIOCGETD) {
-		mtkd(data,
-		    ((struct sl_softc *)mfkd(&tp->t_sc))->sc_if.if_unit);
+		*(int KSPACE *)data =
+		    ((struct sl_softc *)tp->t_sc)->sc_if.if_unit;
 		return (0);
 	}
 	return (-1);
@@ -199,7 +228,6 @@ sloutput(ifp, m, dst)
 	struct sockaddr *dst;
 {
 	register struct sl_softc *sc;
-	long lval;
 	int s;
 
 	/*
@@ -218,8 +246,7 @@ sloutput(ifp, m, dst)
 		m_freem(m);
 		return (ENETDOWN);	/* sort of */
 	}
-	cpfromkern(&sc->sc_ttyp->t_state, &lval, 4);
-	if ((lval & TS_CARR_ON) == 0) {
+	if ((SLTTY(sc)->t_state & TS_CARR_ON) == 0) {
 		m_freem(m);
 		return (EHOSTUNREACH);
 	}
@@ -232,55 +259,71 @@ sloutput(ifp, m, dst)
 		return (ENOBUFS);
 	}
 	IF_ENQUEUE(&ifp->if_snd, m);
-	if (mfkd(&sc->sc_ttyp->t_outq.c_cc) == 0) {
-		splx(s);
-		slstart(sc->sc_ttyp);
-	} else
-		splx(s);
+	splx(s);
+	slpump(sc);
 	return (0);
+}
+
+/*
+ * The terminal's interrupt has sent a character (l_start).  We are
+ * being called in lieu of ttstart and must do what it would; and if the
+ * queue is running out and packets wait, slintr is to put more in.
+ */
+slstart(tp)
+	register struct tty KSPACE *tp;
+{
+	register struct sl_softc *sc;
+
+	if (tp->t_outq.c_cc > 0)
+		TTSTART(tp);
+	sc = (struct sl_softc *)tp->t_sc;
+	if (sc && tp->t_outq.c_cc <= SLIP_LOWAT && sc->sc_if.if_snd.ifq_head &&
+	    !sc->sc_ostart) {
+		sc->sc_ostart = 1;
+		schednetisr(NETISR_SL);
+	}
 }
 
 /*
  * Start output on interface.  Get another datagram
  * to send from the interface queue and map it to
- * the interface before starting output.
+ * the interface before starting output.  At splnet, from sloutput and
+ * slintr, which so put one packet in the queue at a time.
  */
-slstart(tp)
-	register struct tty *tp;
-{
+slpump(sc)
 	register struct sl_softc *sc;
+{
+	register struct tty KSPACE *tp;
 	register struct mbuf *m;
 	register int len;
 	register u_char *cp;
-	int nd, np, n, s, t, c_cc;
+	int nd, np, n, s, t, c_cc, ns;
 	char sup_clist[MLEN];
 	struct mbuf *m2;
-	extern int cfreecount;
 
-	sc = (struct sl_softc *)mfkd(&tp->t_sc);
+	ns = splnet();
 	for (;;) {
-		/*
-		 * If there is more in the output queue, just send it now.
-		 * We are being called in lieu of ttstart and must do what
-		 * it would.
-		 */
-		if ((c_cc = mfkd(&tp->t_outq.c_cc)) > 0)
-			TTSTART(tp);
-		if (c_cc > SLIP_HIWAT)
-			return;
-
 		/*
 		 * This happens briefly when the line shuts down.
 		 */
-		if (sc == NULL)
-			return;
+		if (sc->sc_ttyp == NULL)
+			break;
+		tp = SLTTY(sc);
+
+		/*
+		 * If there is more in the output queue, just send it now.
+		 */
+		if ((c_cc = tp->t_outq.c_cc) > 0)
+			TTSTART(tp);
+		if (c_cc > SLIP_HIWAT)
+			break;
 
 		/*
 		 * If system is getting low on clists
 		 * and we have something running already, stop here.
 		 */
-		if (mfkd(&cfreecount) < CLISTRESERVE + SLMTU && c_cc)
-			return;
+		if (*kcfreecount < CLISTRESERVE + SLMTU && c_cc)
+			break;
 
 		/*
 		 * Get a packet and send it to the interface.
@@ -289,7 +332,7 @@ slstart(tp)
 		IF_DEQUEUE(&sc->sc_if.if_snd, m);
 		splx(s);
 		if (m == NULL)
-			return;
+			break;
 
 		/*
 		 * The extra FRAME_END will start up a new packet, and thus
@@ -363,6 +406,7 @@ slstart(tp)
 		} else
 			sc->sc_if.if_opackets++;
 	}
+	splx(ns);
 }
 
 slinit(sc)
@@ -385,7 +429,8 @@ slinit(sc)
 }
 
 /*
- * Copy data buffer to mbuf chain; add ifnet pointer ifp.
+ * Copy data buffer to mbuf chain; add ifnet pointer ifp.  mp starts at
+ * a local, top, and so is far (ANYSPACE).
  */
 struct mbuf *
 sl_btom(sc, len, ifp)
@@ -394,7 +439,7 @@ sl_btom(sc, len, ifp)
 	struct ifnet *ifp;
 {
 	register caddr_t cp;
-	register struct mbuf *m, **mp;
+	register struct mbuf *m, * ANYSPACE *mp;
 	register unsigned count;
 	struct mbuf *top = NULL;
 
@@ -451,11 +496,12 @@ nocopy:
 }
 
 /*
- * tty interface receiver interrupt.
+ * tty interface receiver interrupt.  Here, a character slintr has taken
+ * from the terminal's raw queue.
  */
 slinput(c, tp)
 	register int c;
-	register struct tty *tp;
+	register struct tty KSPACE *tp;
 {
 	register struct sl_softc *sc;
 	register struct mbuf *m;
@@ -464,7 +510,7 @@ slinput(c, tp)
 #ifdef notdef
 	tk_nin++;
 #endif
-	sc = (struct sl_softc *)mfkd(&tp->t_sc);
+	sc = (struct sl_softc *)tp->t_sc;
 	if (sc == NULL)
 		return;
 
@@ -525,6 +571,41 @@ slinput(c, tp)
 		return;
 	}
 	*sc->sc_mp++ = c;
+}
+
+/*
+ * A frame has ended on a line: slintr is to take it.  At the terminal's
+ * interrupt (tty_conf.c).
+ */
+slframe()
+{
+
+	schednetisr(NETISR_SL);
+}
+
+/*
+ * The network's software interrupt for the serial lines (net_sys.c),
+ * which slframe and slstart ask for: the characters that have come go to
+ * slinput, and the packets waiting go on the terminal's queue.  The
+ * characters come in chunks to buf, on the kernel's stack.
+ */
+slintr()
+{
+	register struct sl_softc *sc;
+	register struct tty KSPACE *tp;
+	register int i, n;
+	char buf[MLEN];
+
+	for (sc = sl_softc; sc < &sl_softc[NSL]; sc++) {
+		if (sc->sc_ttyp == NULL)
+			continue;
+		tp = SLTTY(sc);
+		sc->sc_ostart = 0;
+		while ((n = Q_TO_B(&tp->t_rawq, buf, sizeof (buf))) > 0)
+			for (i = 0; i < n; i++)
+				slinput(buf[i], tp);
+		slpump(sc);
+	}
 }
 
 /*

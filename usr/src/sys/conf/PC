@@ -84,6 +84,7 @@ NCOM		2		# serial ports, COM1 and COM2: at most 2
 INET		YES		# TCP/IP
 NETHER		1		# ether pseudo-device
 NNE		1		# NE1000/NE2000 Ethernet
+NSL		1		# Serial Line IP, on a serial port (slattach)
 
 # PTYs are for logins over the network (telnet, rlogin), script and
 # the like.

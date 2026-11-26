@@ -55,7 +55,7 @@ if [ "$PDP11" ]; then
 	echo "$0: $MACHINE is a PDP-11's, and this is the 286's config."
 	exit 1
 fi
-for i in MAXUSERS LINEHZ NBUF NSLOT NWD NSD NFL NRD NCOM NETHER NNE NPTY
+for i in MAXUSERS LINEHZ NBUF NSLOT NWD NSD NFL NRD NCOM NETHER NNE NSL NPTY
 do
 	eval v=\$$i
 	if [ ! "$v" ]; then
@@ -124,6 +124,7 @@ echo "#define NNE	$NNE"		> ../$MACHINE/ne.h
 echo "#define NPTY	$NPTY"		> ../$MACHINE/pty.h
 echo "#define NRD	$NRD"		> ../$MACHINE/rd.h
 echo "#define NSD	$NSD"		> ../$MACHINE/sd.h
+echo "#define NSL	$NSL"		> ../$MACHINE/sl.h
 echo "#define NWD	$NWD"		> ../$MACHINE/wd.h
 
 # What the code the 286 shares with the PDP-11 asks of drivers the 286
@@ -131,7 +132,6 @@ echo "#define NWD	$NWD"		> ../$MACHINE/wd.h
 echo "#define NIMP	0"		> ../$MACHINE/imp.h
 echo "#define NINGRES	0"		> ../$MACHINE/ingres.h
 echo "#define NRAM	0"		> ../$MACHINE/ram.h
-echo "#define NSL	0"		> ../$MACHINE/sl.h
 echo "#define NTB	0"		> ../$MACHINE/tb.h
 
 echo "Creating Makefile for $MACHINE".

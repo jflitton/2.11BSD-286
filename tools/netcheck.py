@@ -95,6 +95,8 @@ BARE = {
     "_unp_mark": 1,         # &xf, for FPFETCH
     "_netprintf": 1,        # &fmt: the arguments, KSPACE
     "_printn": 2,           # buf, through a KSPACE pointer
+    "_slpump": 1,           # sup_clist, for B_TO_Q: the kernel's near pointer
+    "_slintr": 1,           # buf, for Q_TO_B, likewise
 }
 
 # The system's compiler's: functions with pointers into SS that are made
@@ -122,6 +124,12 @@ SSNEAR = {
     "_unp_connect": 2,      # &so2, &ip, for UNPCONN
     "_unp_gc": 5,           # &file, &fileNFILE for unpgc1; &xf for FPFETCH
     "_unp_mark": 1,         # &xf, for FPFETCH
+    "_slopen": 1,           # tp, the kernel's tty, kept as its near pointer
+    "_slstart": 1,          # tp, for TTSTART
+    "_slpump": 10,          # tp and its t_outq, for TTSTART, PUTC, UNPUTC
+                            # and B_TO_Q; sup_clist for B_TO_Q
+    "_slintr": 3,           # tp's t_rawq and buf, for Q_TO_B; tp, to
+                            # slinput's KSPACE tp
 }
 
 # (lea sp,N[bp] is an epilogue putting the stack pointer back.)

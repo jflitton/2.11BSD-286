@@ -2,9 +2,9 @@
 
 2.11BSD's networking is compiled into the kernel: sockets, the Internet
 protocols (IP, ICMP, UDP and TCP), ARP, raw sockets, the routing table
-and Unix-domain sockets, with the loopback interface, eight
-pseudo-terminals, and a driver for NE1000 and NE2000 Ethernet cards and
-the many that copy them. `tests/system` configures the loopback
+and Unix-domain sockets, with the loopback interface, SLIP on a
+serial port, eight pseudo-terminals, and a driver for NE1000 and NE2000
+Ethernet cards and the many that copy them. `tests/system` configures the loopback
 interface, pings it, and logs in over it with `telnet`, to `telnetd`
 started by `inetd`; then it sets up the Ethernet interface, pings the
 network's gateway, and logs in from the host with `telnet`, sending a
@@ -179,11 +179,16 @@ Its first run found three protocols calling the kernel's `sysctl_int`,
 whose arguments would have been in the wrong segment, and the count found
 the places listed above.
 
-Two more mistakes of the same kind that it does not catch, met on the
-way: `caddr_t KSPACE p` declares a based variable of type `caddr_t`, not
-a based pointer, which is `char KSPACE *p`; and assembly that reads its
+Three more mistakes of the same kind that it does not catch, met on
+the way: `caddr_t KSPACE p` declares a based variable of type `caddr_t`,
+not a based pointer, which is `char KSPACE *p`; assembly that reads its
 arguments with BX, which defaults to DS, reads them from the wrong
-segment when the network calls it.
+segment when the network calls it; and the cross compiler passes a
+`KSPACE` pointer to a function with no prototype, as `SKcall` is, as a
+far pointer, four bytes, so the macros that give the kernel one of its
+own structures through `SKcall` make it near with `(int)` first. SLIP's
+`q_to_b` was given the segment for its buffer and the offset for its
+count, and wrote over the interrupt table.
 
 ## The loopback interface and pseudo-terminals
 
@@ -311,6 +316,84 @@ read once are what emulations derived from Bochs's NE2000 do, as on the
 PicoMEM, an 8-bit card whose data port is a byte wide however the
 controller is set; the driver has not run on one, nor on any real card.
 
+## SLIP
+
+`sl0` carries IP over a serial port to one other machine, by upstream's
+driver, `usr/src/sys/net/if_sl.c` (`NSL` is 1 in `sys/conf/PC`).
+`slattach` gives it the port: it sets the port's speed, turns the line
+over to SLIP's line discipline, and waits, keeping it open.
+`/etc/rc.conf` names the port, its speed and the two ends' addresses,
+and `/etc/netstart` runs `ifconfig` and `slattach` with them, as the
+comment in upstream's has it:
+
+    slline=tty01
+    slspeed=9600
+    sladdress=192.168.1.1
+    sldest=192.168.1.2
+
+`/etc/ttys` must have the port off. The far end can be any SLIP of the
+time: a frame ends with 0300, with 0300 and 0333 in it escaped by 0333,
+headers are not compressed, and a frame holds at most 1006 bytes, IP
+dividing a longer packet to fit.
+
+The driver is in the network and the terminal is the kernel's. It
+reaches the terminal's structure through SS, with `KSPACE` pointers,
+where the PDP-11's has `mfkd` and `mtkd`, and calls `putc`, `b_to_q`,
+`q_to_b`, `unputc` and `ttstart` on its queues through `SKcall`. The
+kernel's table of line disciplines calls it through `KScall`
+(`sys/tty_conf.c`). `locc`, which it uses to find the characters to
+escape, is the network's, in `net_sys.c`, as the PDP-11's is in
+`net_xxx.s`.
+
+What changed for the 286 is where the work is done. Upstream's driver
+takes each character in the serial port's interrupt, through `KScall`,
+makes a frame that has ended into mbufs and puts it on IP's queue, and
+in the same interrupt takes the next packet from its own queue and puts
+it on the terminal's. Those queues and the mbufs are guarded by
+`splimp`, which on the PDP-11, as on the VAX, is above the terminals'
+level. Here it is below, so that a port's interrupt is put off only
+briefly while the Ethernet card's driver copies whole frames at
+`splimp`: a PC's serial port holds one character, where the PDP-11's
+multiplexers held 64. So the interrupt does only what needs neither
+queue:
+
+- the kernel puts each character on the terminal's raw queue, as the
+  terminal's own line discipline does, up to 2048 of them, and when a
+  frame has ended asks for the network's software interrupt;
+- `slstart`, which the port's interrupt calls when a character has
+  gone, sends the next, and when the terminal's queue is down to 64
+  characters and packets wait, asks for it too.
+
+The rest is done in that interrupt, at `splnet`, by `slintr`: it gives
+the characters on the raw queue to upstream's `slinput`, which makes
+each frame into mbufs on IP's queue, and puts the waiting packets on
+the terminal's queue, until it holds 500 characters, one at a time.
+That also shuts a window that upstream's has, where a packet the
+interrupt started could go in among the characters of one that
+`sloutput` was putting on the queue. NetBSD's later driver does its
+work in a software interrupt in the same way.
+
+At 9600 the line loses nothing. Faster, a port that holds one
+character, as a PS/2's 16450 does, loses characters: something keeps
+the terminals' interrupts off for longer than the next character takes
+to come, and IP drops the packet as damaged, for TCP to send again. In
+the emulator, with `tests/slip`'s work, 2 of 6 pings came back at
+19200, while `rcp` still got its file there and back; at 38400 none
+did, and `rcp` lost its connection. What holds them off is not found
+yet; one thing that did, at any speed, was the copying of a process into
+its slot ([processes](processes.md#slots-the-user-structure-and-kernel-stack)).
+A 16550's FIFO holds 16 characters; the serial driver does not use it
+yet.
+
+`tests/slip` boots the system with `sl0` on COM2 at 9600, and the
+harness at the line's other end. It sends back each packet with its
+source and destination addresses swapped, which leaves the checksums
+right, so that what the system sends to the far end's address comes
+back as from it and the system talks to itself across the line. The
+system pings the far end, with packets that fit a frame and packets IP
+divides in two, and copies `sh` there and back with `rcp`; neither the
+interface nor IP may count an error.
+
 ## Not done
 
 - Two transmit buffers, so that one frame is copied to the card while
@@ -331,7 +414,6 @@ controller is set; the driver has not run on one, nor on any real card.
   streams have not been tried.
 - `recvmsg` and `sendmsg` in the C library: the kernel's `struct
   msghdr` holds far pointers now, as `struct iovec` does.
-- The serial line interface, whose calls are left out of `net_mac.h`.
 - Mbuf copies and the network card's transfers in assembly, as the
   checksum is ([memory model](memory-model.md)).
 - Most of it has run in the emulator only. The system has also been

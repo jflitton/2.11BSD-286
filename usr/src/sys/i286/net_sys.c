@@ -24,6 +24,7 @@
 
 #include "loop.h"
 #include "ne.h"
+#include "sl.h"
 
 int	soaccept(), sogetnam(), sogetpeer(), putchar();
 
@@ -51,6 +52,9 @@ netstart()
 #if NNE > 0
 	neattach();
 #endif
+#if NSL > 0
+	slattach();
+#endif
 	s = splimp();
 	ifinit();
 	domaininit();			/* must follow interfaces */
@@ -74,6 +78,10 @@ netintr()
 		splx(s);
 		if (bits == 0)
 			break;
+#if NSL > 0
+		if (bits & (1 << NETISR_SL))	/* first: it schedules IP */
+			slintr();
+#endif
 #ifdef INET
 		if (bits & (1 << NETISR_IP))
 			ipintr();
@@ -82,6 +90,24 @@ netintr()
 			rawintr();
 	}
 }
+
+#if NSL > 0
+/*
+ * How many of the size characters at str are left from the first that
+ * is c, or 0 if none is: the VAX's instruction, which the PDP-11's
+ * network has in assembly (net_xxx.s), for if_sl.c.
+ */
+locc(c, size, str)
+	int c;
+	register u_int size;
+	register u_char *str;
+{
+	for (; size; size--)
+		if (*str++ == (u_char)c)
+			break;
+	return (size);
+}
+#endif
 
 /*
  * Panic is called on fatal errors.  It prints "net panic: mesg" and

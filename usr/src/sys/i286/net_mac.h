@@ -22,8 +22,7 @@
  * pointers here.
  *
  * Taken from the PDP-11's (pdp/net_mac.h), where both sides could read
- * the kernel's stack.  The serial line interface's calls are left out
- * (it is not configured).
+ * the kernel's stack.
  */
 
 int	KScall(), SKcall();
@@ -34,7 +33,7 @@ int	KScall(), SKcall();
  * are one declaration, which the compiler holds the definition to.
  */
 struct	socket; struct mbuf; struct uio; struct file; struct inode;
-struct	proc; struct stat;
+struct	proc; struct stat; struct tty; struct clist;
 int	netintr(void);
 int	net_sysctl(int KSPACE *name, u_int namelen, void __far *oldp,
 	    size_t KSPACE *oldlenp, void __far *newp, size_t newlen);
@@ -70,11 +69,17 @@ struct	timeval;
 extern struct timeval KSPACE *ktime;
 extern int KSPACE *klbolt;
 extern caddr_t kselwait;
+extern int KSPACE *kcfreecount;
 #endif
 
 struct socket *asoqremque(struct socket *so, int n);
 #define	ASOQREMQUE(so, n) \
 	KScall(asoqremque, sizeof(struct socket *) + sizeof(int), so, n)
+
+int b_to_q();
+#define	B_TO_Q(cp, cc, q) \
+	SKcall(b_to_q, sizeof(char *) + sizeof(int) + sizeof(struct clist *), \
+	    (char *)(cp), cc, (struct clist *)(int)(q))
 
 int connwhile(struct socket *so);
 #define	CONNWHILE(so) \
@@ -130,6 +135,16 @@ void netsethz(int ticks);
 int netstart(void);
 #define	NETSTART() \
 	KScall(netstart, 0)
+
+int putc();
+#define	PUTC(c, p) \
+	SKcall(putc, sizeof(int) + sizeof(struct clist *), c, \
+	    (struct clist *)(int)(p))
+
+int q_to_b();
+#define	Q_TO_B(q, cp, cc) \
+	SKcall(q_to_b, sizeof(struct clist *) + sizeof(char *) + sizeof(int), \
+	    (struct clist *)(int)(q), (char *)(cp), cc)
 
 int selwakeup();
 #define	SELWAKEUP(p, coll) \
@@ -233,6 +248,28 @@ int ksosetopt(struct socket *so, int level, int optname,
 int soshutdown(struct socket *so, int how);
 #define	SOSHUTDOWN(so, how) \
 	KScall(soshutdown, sizeof(struct socket *) + sizeof(int), so, how)
+
+int ttstart();
+#define	TTSTART(tp) \
+	SKcall(ttstart, sizeof(struct tty *), (struct tty *)(int)(tp))
+
+int unputc();
+#define	UNPUTC(p) \
+	SKcall(unputc, sizeof(struct clist *), (struct clist *)(int)(p))
+
+/*
+ * The serial line interface's line discipline (net/if_sl.c), whose
+ * routines the kernel's linesw calls through KScall (sys/tty_conf.c).
+ * The terminal is the kernel's, which the network reaches through SS.
+ * The macros above that hand the kernel its terminal or a queue of it
+ * make the network's KSPACE pointer near with (int): the cross compiler
+ * would pass it to SKcall, which has no prototype, as far, four bytes.
+ */
+int slopen(dev_t dev, struct tty KSPACE *tp);
+int slclose(struct tty KSPACE *tp);
+int sltioctl(struct tty KSPACE *tp, int cmd, char KSPACE *data, int flag);
+int slstart(struct tty KSPACE *tp);
+int slframe(void);
 
 /*
  * A network function the clock is to call: SUPERFUN marks it, and

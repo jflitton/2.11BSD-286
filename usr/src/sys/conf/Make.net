@@ -12,13 +12,13 @@
 #	Make.net 2.0 (2.11BSD) 1996/6/8
 #
 # The 286's: the Internet's protocols, its interface drivers (../i286if)
-# and the sockets.  Not the IMP's, Xerox NS, the serial line's, nor the
-# PDP-11's interfaces; sys_net.c is the 286's net_sys.c (Make.i286net).
+# and the sockets.  Not the IMP's, Xerox NS, nor the PDP-11's
+# interfaces; sys_net.c is the 286's net_sys.c (Make.i286net).
 #
 N1=	../net
-N1C=	${N1}/af.c ${N1}/if.c ${N1}/if_loop.c				\
+N1C=	${N1}/af.c ${N1}/if.c ${N1}/if_loop.c ${N1}/if_sl.c		\
 	${N1}/raw_cb.c ${N1}/raw_usrreq.c ${N1}/route.c
-N1O=	af.o if.o if_loop.o raw_cb.o raw_usrreq.o route.o
+N1O=	af.o if.o if_loop.o if_sl.o raw_cb.o raw_usrreq.o route.o
 
 N3=	../netinet
 N3C=	${N3}/if_ether.c ${N3}/in.c ${N3}/in_pcb.c ${N3}/in_proto.c	\

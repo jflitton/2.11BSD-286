@@ -1,7 +1,7 @@
 #!/bin/sh -
 # The network, as /etc/rc.conf describes it; /etc/rc runs this after
-# reading that.  From upstream's, without its
-# PDP-11 interfaces and SLIP.
+# reading that.  From upstream's, without its PDP-11 interfaces, and
+# with its SLIP example made rc.conf's.
 
 if [ -n "$hostname" ]
 then
@@ -17,4 +17,12 @@ then
 	then
 		route add default $gateway 1		>/dev/console 2>&1
 	fi
+fi
+
+# SLIP (Serial Line Internet Protocol): the first address is this end's,
+# the second the far end's.
+if [ -n "$sladdress" ]
+then
+	ifconfig sl0 inet $sladdress $sldest			>/dev/console 2>&1
+	slattach $slline $slspeed				>/dev/console 2>&1
 fi

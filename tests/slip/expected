@@ -1,0 +1,29 @@
+== attach
+sl0: flags=11<UP,POINTOPOINT>
+        inet 10.0.3.1 --> 10.0.3.2 netmask 0xff000000 
+10.0.3.2 10.0.3.1 UH
+== ping
+PING sloop (10.0.3.2): 56 data bytes
+64 bytes from 10.0.3.2: icmp_seq=0 ttl=255
+64 bytes from 10.0.3.2: icmp_seq=1 ttl=255
+--- sloop ping statistics ---
+2 packets transmitted, 2 packets received, 0% packet loss
+PING sloop (10.0.3.2): 900 data bytes
+908 bytes from 10.0.3.2: icmp_seq=0 ttl=255
+908 bytes from 10.0.3.2: icmp_seq=1 ttl=255
+--- sloop ping statistics ---
+2 packets transmitted, 2 packets received, 0% packet loss
+PING sloop (10.0.3.2): 1400 data bytes
+1408 bytes from 10.0.3.2: icmp_seq=0 ttl=255
+1408 bytes from 10.0.3.2: icmp_seq=1 ttl=255
+--- sloop ping statistics ---
+2 packets transmitted, 2 packets received, 0% packet loss
+== tcp
+sh sent
+sh fetched
+hello from rsh
+== errors
+sl0 1006 10 10.0.3.1 0 0 0
+        0 bad header checksums
+                0 discarded for bad checksums
+== end

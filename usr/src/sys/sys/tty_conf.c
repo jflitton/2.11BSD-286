@@ -80,7 +80,7 @@ SLOPEN(dev, tp)
 	dev_t dev;
 	struct tty *tp;
 {
-	int error, slopen();
+	int error;
 
 	if (!suser())
 		return (EPERM);
@@ -96,7 +96,6 @@ SLCLOSE(tp, flag)
 	struct tty *tp;
 	int flag;
 {
-	int slclose();
 
 	ttywflush(tp);
 	tp->t_line = 0;
@@ -108,32 +107,40 @@ SLTIOCTL(tp, cmd, data, flag)
 	int cmd, flag;
 	caddr_t data;
 {
-	int sltioctl();
 
 	return(KScall(sltioctl, sizeof(struct tty *) + sizeof(int) +
 	    sizeof(caddr_t) + sizeof(int), tp, cmd, data, flag));
 }
 
+/*
+ * At the terminal's interrupt.  The PDP-11's saves its mapping of the
+ * kernel's data around the call; on the 286 KScall puts DS back.
+ */
 SLSTART(tp)
 	struct tty *tp;
 {
-	mapinfo map;
-	void slstart();
 
-	savemap(map);
 	KScall(slstart, sizeof(struct tty *), tp);
-	restormap(map);
 }
 
-SLINPUT(c, tp)
-	int c;
-	struct tty *tp;
-{
-	mapinfo map;
-	void slinput();
+/*
+ * The PDP-11's gives the network each character here.  The 286's puts
+ * it on the raw queue, as ttyinput does, for the network to take at its
+ * software interrupt, which it asks for when a frame has ended
+ * (net/if_sl.c).  At most SLRAWQ characters wait.
+ */
+#define	SLRAWQ		2048
+#define	SLFRAME_END	0300
 
-	savemap(map);
-	KScall(slinput, sizeof(int) + sizeof(struct tty *), c, tp);
-	restormap(map);
+SLINPUT(c, tp)
+	register int c;
+	register struct tty *tp;
+{
+
+	c &= 0377;
+	if (tp->t_rawq.c_cc < SLRAWQ)
+		(void) putc(c, &tp->t_rawq);
+	if (c == SLFRAME_END)
+		KScall(slframe, 0);
 }
 #endif

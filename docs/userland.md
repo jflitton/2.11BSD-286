@@ -1073,10 +1073,13 @@ Left out of these: `comsat`, `biff` and `popper`, which came with
 [mail](#mail); `rmt`, which came with [the administrator's
 programs](#backups-and-the-rest-of-the-administrators); `named`,
 `identd` and `rdist`, which came later ([below](#named-identd-and-rdist)),
-and `tip` ([below](#less-jove-and-tip)). Not ported: `mkhosts`, for a
-table of hosts that the library here does not read; and `slattach`,
-since the kernel has no serial line interface ([what is not
-ported](unported.md)). `trpt` and `trsp` came later ([printers, and the
+and `tip` ([below](#less-jove-and-tip)). `slattach`, which gives SLIP
+its serial port, came with SLIP ([the network](network.md#slip)), and
+with it `testnet`, which says whether the kernel has the network, as
+upstream's `netstart` asks; the port's kernel always has it. Not
+ported: `mkhosts`, for a table of hosts that the library here does not
+read ([what is not ported](unported.md)). `trpt` and `trsp` came
+later ([printers, and the
 rest of upstream's](#printers-and-the-rest-of-upstreams)), `tn3270`
 with [troff](#troff-graph-and-plot), and `uucp` ([UUCP](#uucp)).
 
@@ -2647,8 +2650,9 @@ and `/usr/libexec` `atrun` and `acctd`, and in `find` `updatedb` and
 the `bigram` and `code` it runs. `/usr/adm` has `daily`, `weekly` and
 `monthly` ([the log, and what the clock
 runs](#the-log-and-what-the-clock-runs)). `/usr/local` has the port's
-own, `adduser`, `bench` and `ve`. For the network there are `ifconfig`, `ping` and `route` in
-`/sbin`, `inetd` and `arp` in `/usr/sbin`, `telnetd` in `/usr/libexec`,
+own, `adduser`, `bench` and `ve`. For the network there are `ifconfig`,
+`ping`, `route`, `slattach` and `testnet` in `/sbin`, `inetd` and
+`arp` in `/usr/sbin`, `telnetd` in `/usr/libexec`,
 and `telnet` and `netstat` in `/usr/ucb`. The Makefiles make these
 other names as links, and also `[` and `halt`, and install everything
 as root's unless they say otherwise, as they do for `at`, `atq`,
