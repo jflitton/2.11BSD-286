@@ -2,9 +2,9 @@
 .\" All rights reserved.  The Berkeley software License Agreement
 .\" specifies the terms and conditions for redistribution.
 .\"
-.\"	@(#)adb.1	6.1.1 (2.11BSD) 1996/10/21
+.\"	@(#)adb.1	6.2 (2.11BSD) 2026/11/25
 .\"
-.TH ADB 1 "October 21, 1996"
+.TH ADB 1 "November 25, 2026"
 .UC 2
 .SH NAME
 adb \- debugger (2BSD)
@@ -39,6 +39,10 @@ the default for
 .I corfil
 is
 .B  core.
+The system writes a program's core image as
+.IR prog .core
+(see
+.IR core (5)).
 .PP
 Requests to
 .I  adb
@@ -54,8 +58,9 @@ so that files can be modified using
 .IR adb .
 .PP
 The \fB\-k\fP option makes \fIadb\fP do UNIX kernel memory
-mapping; it should be used when \fIcore\fP is a UNIX crash dump
-or \fI/dev/mem\fP.
+mapping; it should be used when \fIcorfil\fP is \fI/dev/kmem\fP
+and \fIobjfil\fP the kernel, \fI/unix\fP (see
+.SM ADDRESSES\*S).
 .PP
 The \fB\-I\fP option specifies a directory where files to be read
 with $< or $<< (see below) will be sought; the default is
@@ -121,14 +126,21 @@ The last
 typed.
 .TP 7.2n
 .I integer
-An octal number if
-.I integer
-begins with a 0;
-a hexadecimal number if preceded by
-.BR # ;
-otherwise a decimal number.
-This default interpretation of integers may be changed via the $o and $d
-commands.
+A hexadecimal number, unless the $o or $d command has made
+integers octal or decimal.
+One that begins with
+.B #
+or
+.B 0x
+is hexadecimal whatever the radix, and while it is decimal one that
+begins with 0 is octal.
+A number begins with a digit or
+.BR # :
+.B ff
+is a symbol, and the number is
+.B 0ff
+or
+.BR #ff .
 .TP 7.2n
 .IB integer . fraction
 A 32 bit floating point number.
@@ -150,7 +162,8 @@ If
 is a register name then the value of the register is obtained from
 the system header in
 .IR corfil .
-The register names are those printed by the $r command.
+The register names are those printed by the $r command:
+ax, bx, cx, dx, si, di, bp, sp, ip, cs, ds, es, ss and fl.
 .TP 7.2n
 .I symbol
 A
@@ -162,30 +175,16 @@ may be used to escape other characters.  The value of the
 .I symbol
 is taken from the symbol table in
 .IR objfil .
-An initial \_ or \*(TW will be prepended to
+An initial \_ will be prepended to
 .I symbol
 if needed.
-If the symbol is a text symbol and
-.I objfil
-is an overlay type, the default is
-.IR \*(TWsymbol ,
-which is the subroutine itself, not the entry interface in the base segment.
+Its value is its address, with the selector of its segment (see
+.SM ADDRESSES\*S).
 .TP
 .I _ symbol
 In C, the `true name' of an external symbol begins with _.
 It may be necessary to utter this name to distinguish it
 from internal or hidden variables of a program.
-For a subroutine in an overlay,
-.I \*(TWsymbol 
-is the actual subroutine,
-and
-.I _symbol
-is the entry point in the base segment (the "thunk").
-Note that to explicitly specify the local name,
-the \*(TW must be preceeded by a backslash, since \*(TW is the
-bitwise complement operator:
-.I \e\*(TWsymbol
-must be typed.
 .TP 7.2n
 .IB routine . name
 The address of the variable
@@ -214,12 +213,21 @@ The contents of the location addressed by
 .I exp
 in
 .IR corfil .
+Taken as an address, the word is in the segment of that location,
+as a near pointer kept there is, unless that is the segment `/' takes
+by default; 0 stays 0.
 .TP 7.2n
 .RI @ exp
 The contents of the location addressed by
 .I exp
 in
-.IR objfil .
+.IR objfil ,
+the segment taken as for \*(ST.
+.TP 7.2n
+.RI # exp
+Logical negation, where
+.I exp
+does not begin with a hexadecimal digit.
 .TP 7.2n
 .RI \- exp
 Integer negation.
@@ -287,10 +295,6 @@ The value of
 .I address
 itself is printed in the styles indicated by the format
 .IR f .
-(For
-.B i 
-format `?' is printed for the parts of the instruction that reference
-subsequent words.)
 .PP
 A
 .I format
@@ -367,6 +371,14 @@ Print double floating point.
 .br
 .ns
 .TP
+.BR P "	4"
+Print the addressed far pointer, the selector in its high word,
+in symbolic form as
+.B p
+does, with the symbols of its segment.
+.br
+.ns
+.TP
 .BR b "	1"
 Print the addressed byte in octal.
 .br
@@ -404,11 +416,13 @@ Print 4 bytes in date format (see
 .ns
 .TP
 .BR i "	n"
-Print as machine instructions.
+Print as 80286 and 80287 instructions, in the syntax of
+.IR as (1),
+with numbers in hexadecimal.
 .I n
 is the number of bytes occupied by the instruction.
-This style of printing causes variables 1 and 2 to be set
-to the offset parts of the source and destination respectively.
+A byte that begins no instruction is printed as
+.BR db .
 .br
 .ns
 .TP
@@ -509,16 +523,23 @@ Write the 2-byte
 .I value
 into the addressed location.  If the command is
 .BR W ,
-write 4 bytes.
-Odd addresses are not allowed when writing to the subprocess address space.
+write 4 bytes, the low word first.
+The old and new values are printed in hexadecimal.
 .TP
-[\fB?/\fR]\fBm\fI b1 e1 f1\fR[\fB?/\fR]
+[\fB?/\fR]\fBm\fI b e f\fR[\fB?/\fR]
 .br
 New values for
-.RI ( b1,\ e1,\ f1 )
-are recorded.  If less than three expressions are given then
+.RI ( b,\ e,\ f )
+of the segment of
+.I dot
+in the map are recorded; a segment the map has not is added to it.
+If less than three expressions are given then
 the remaining map parameters are left unchanged.
-If the `?' or `/' is followed by `\*(ST' then
+In the map of a file of no format
+.I adb
+knows, the values are
+.RI ( b1,\ e1,\ f1 ),
+and if the `?' or `/' is followed by `\*(ST' then
 the last segment (\fIb2\fR\|,\|\fIe2\fR\|,\|\fIf2\fR)
 of the mapping is changed.
 If the list is terminated by `?' or `/' then the file (\fIobjfil\fR or
@@ -589,19 +610,17 @@ as well as the registers as \fB$r\fR.  This is the default if
 .TP
 .B r
 Print the general registers and the instruction addressed by
-.BR pc .
+.B cs
+and
+.BR ip .
 .I Dot
-is set to \fBpc\fR.
+is set to that address.
 .br
 .ns
 .TP
 .B f
-Print the floating registers in
-single or double length.
-If the floating point status of
-.B ps
-is set to double (0200 bit)
-then double length is used anyway.
+Print the 80287's registers: its control, status and tag words, and
+st0 to st7, each as a number or as empty.
 .br
 .ns
 .TP
@@ -610,29 +629,16 @@ Print all breakpoints and their associated counts and commands.
 .br
 .ns
 .TP
-.B a
-ALGOL 68 stack backtrace.
-If
-.I address
-is given then it is taken to be the
-address of the current frame (instead of
-.BR r4 ).
-If
-.I count
-is given then only the first
-.I count
-frames are printed.
-.br
-.ns
-.TP
 .B c
-C stack backtrace.  If
+C stack backtrace: for each function, its frame, its arguments as
+words, as many as the call takes off the stack after, and where it
+returns to.  If
 .I address
 is given then it is taken as the address of the current frame 
-instead of the contents of the frame\-pointer register.  If
-.B C 
-is used then the names and (16 bit) values of all automatic
-and static variables are printed for each active function.
+instead of the contents of the frame\-pointer register,
+.BR bp .
+.B C
+is the same.
 If
 .I count
 is given then only the first
@@ -666,8 +672,13 @@ All integers input are regarded as octal.
 .ns
 .TP
 .B d
-Reset integer input as described in
-.SM EXPRESSIONS.
+All integers input are regarded as decimal, but for those that begin
+with 0, which are octal.
+.br
+.ns
+.TP
+.B x
+All integers input are regarded as hexadecimal, as they are at first.
 .br
 .ns
 .TP
@@ -678,7 +689,7 @@ Exit from
 .ns
 .TP
 .B v
-Print all non zero variables in octal.
+Print all non zero variables in hexadecimal.
 .br
 .ns
 .TP
@@ -692,17 +703,8 @@ Manage a subprocess.  Available modifiers are:
 .TP
 .BI b c
 Set breakpoint at
-.IR address .
-If
-.I objfil
-is overlaid and
-.I address
-is in the overlay region,
-the breakpoint is set in the overlay of the symbol mentioned
-if 
-.I address
-was given symbolically, otherwise it is set
-in the current overlay (that in variable c).
+.IR address ,
+an INT 3 in place of the first byte of the instruction there.
 The breakpoint is executed
 .IR count \-1
 times before causing a stop.
@@ -762,21 +764,11 @@ The current subprocess, if any, is terminated.
 provides a number of variables.
 Named variables are set initially by
 .I  adb
-but are not used subsequently (except for c).
+but are not used subsequently.
 Numbered variables are reserved for communication as follows.
 .TP
 0
 The last value printed.
-.br
-.ns
-.TP
-1
-The last offset part of an instruction source.
-.br
-.ns
-.TP
-2
-The previous value of variable 1.
 .br
 .ns
 .TP
@@ -797,18 +789,6 @@ The base address of the data segment.
 .br
 .ns
 .TP
-c
-The current overlay.  This is set from
-.IR corfil ,
-and in turn sets the overlay map.
-This variable and the map may be changed
-by referring to other overlays symbolically
-(e.g. by examining text in subroutines in other overlays),
-using the $r command (which resets c from the core file),
-or explicitly (with the command >c).
-.br
-.ns
-.TP
 d
 The data segment size.
 .br
@@ -820,13 +800,9 @@ The entry point.
 .ns
 .TP
 m
-The `magic' number (0405, 0407, 0410, 0411, 0430 or 0431).
-The object is overlaid if m is 0430 or 0431.
-.br
-.ns
-.TP
-o
-The sum of the overlay segment sizes (if overlaid).
+The `magic' number, 0286, or 0 for a file of no format
+.I adb
+knows.
 .br
 .ns
 .TP
@@ -838,33 +814,73 @@ The stack segment size.
 t
 The text segment size.
 .SH ADDRESSES
-The address in a file associated with
-a written address is determined by a mapping associated with that file.
-Each mapping is represented by two or three triples
-.RI ( "b1, e1, f1" ),
-.RI ( "bo, eo, fo" )
-for overlaid object files,
+On the 80286 an address is 32 bits, as a far pointer is: the selector of
+a segment in the high 16 and the offset in it in the low.
+One whose selector is 0 is in the segment that its command takes by
+default: `?' the program's code segment, that of
+.B cs
+when there is a process or a core file, and `/' its data segment;
+`?\*(ST' takes the data segment and `/\*(ST' the stack's,
+.BR ss .
+So in a small-model program a 16-bit address means what it does on the
+PDP-11 with separate instruction and data space, and an address in
+another segment is printed with its selector: 17023a is offset 023a of
+selector 17.
+The low two bits of a selector, its privilege level, do not change the
+segment.
+.PP
+The map of each file, which $m prints, has its segments: for each, its
+selector and kind, and that offsets
+.I b
+to
+.I e
+of it are in the file from
+.I f
+on.
+For
+.I objfil
+they are the program's segments, from its header (see
+.IR a.out (5)).
+For a core file they are the process's segments that the core holds,
+which are all but its shared code; that is read from
+.IR objfil .
+With
+.B \-k
+they are the kernel's: its segment
+.I N
+has selector 0x80 + 8(\fIN\fP\-1) and is at
+.IR N \(mu0x10000
+in
+.IR /dev/kmem .
+.PP
+The file address of offset
+.I a
+in a segment is then
+.IR a + f\-b
+where
+.IR b \*(LE a < e .
+From
+.I e
+to
+.I z
+the segment reads as zeros, as the part of a data segment that is
+not in the program does, and any other
+.I a
+is not legal.
+.PP
+A file of no format
+.I adb
+knows has no segments, and the map has two triples
+.RI ( "b1, e1, f1" )
 and
-.RI ( "b2, e2, f2" )
-and the
-.I file address
-corresponding to a written
-.I address
-is calculated as follows.
+.RI ( "b2, e2, f2" ),
+as on the PDP-11:
 .PP
 .if t .ti 1.5i
 .if n .ti 8
 .IR b1 \*(LE address < e1
 \*(IM
 .IR "file address" = address + f1\-b1,
-otherwise,
-.PP
-if overlaid,
-.if t .ti 1.5i
-.if n .ti 8
-.IR bo \*(LE address < eo
-\*(IM
-.IR "file address" = address + fo\-bo,
 otherwise,
 .PP
 .if t .ti 1.5i
@@ -875,26 +891,20 @@ otherwise,
 .PP
 otherwise, the requested
 .I address
-is not legal.  In some cases (e.g. for programs with separated I and D
-space) the two segments for a file may overlap.  If a
+is not legal.
+If a
 .B ? 
 or
 .B / 
 is followed by an
 .B \*(ST 
 then only the last triple is used.
-.PP
-The initial setting of both mappings is suitable for normal
-.B a.out 
-and
-.B core 
-files.  If the object file is not of the kind expected then, for both files,
-.I b1
+.I B1
 is set to 0,
 .I e1
-is set to the maximum file size and
+to the maximum file size and
 .I f1
-is set to 0; in this way the whole
+to 0; in this way the whole
 file can be examined with no address translation.
 .PP
 So that
@@ -902,10 +912,16 @@ So that
 may be used on large files all appropriate values are kept as
 signed 32 bit integers.
 .SH FILES
+.ta \w'/usr/share/adb  'u
 a.out
 .br
 core
+.br
+/dev/kmem
+.br
+/usr/share/adb	scripts for $< that print the kernel's structures
 .SH SEE\ ALSO
+as(1),
 cc(1),
 ptrace(2),
 a.out(5),
@@ -924,7 +940,9 @@ executed instruction.
 Local variables whose names are the same as an external
 variable may foul up the accessing of the external.
 .br
-Local variables cannot be accessed in routines that are in overlays.
+A function that keeps no frame in
+.B bp
+is not in a backtrace.
 .br
 Since no shell is invoked to interpret the arguments of the
 .B :r

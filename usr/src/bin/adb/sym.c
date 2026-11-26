@@ -7,10 +7,7 @@
 	char	localok;
 	int	lastframe;
 	u_int	maxoff;
-	long	maxstor;
 	MAP	txtmap;
-	char	curov;
-	int	overlay;
 	long	localval;
 	char	*errflg;
 	u_int	findsym();
@@ -40,6 +37,8 @@ extern	off_t	symoff, stroff;
 /* symbol table and file handling service routines */
 
 valpr(v,idsp)
+	long	v;
+	int	idsp;
 {
 	u_int	d;
 
@@ -52,24 +51,13 @@ valpr(v,idsp)
 	FI
 }
 
+/*
+ * The variables of a function, on its stack.  The 286's symbol table
+ * has none.
+ */
 localsym(cframe)
 	long	cframe;
 {
-	int symflg;
-
-	WHILE symget() && localok && (symflg= (int)symbol->type) != N_FN
-		&& *no_cache_sym(symbol) != '~'
-	DO IF symflg>=2 ANDF symflg<=4
-	   THEN localval=symbol->value;
-		return(TRUE);
-	   ELIF symflg==1
-	   THEN localval=leng(shorten(cframe)+symbol->value);
-		return(TRUE);
-	   ELIF symflg==20 ANDF lastframe
-	   THEN localval=leng(lastframe+2*symbol->value - (overlay?12:10));
-		return(TRUE);
-	   FI
-	OD
 	return(FALSE);
 }
 
@@ -80,7 +68,7 @@ psymoff(v,type,s)
 {
 	u_int	w;
 
-	w = findsym(shorten(v),type);
+	w = findsym(v,type);
 	IF w >= maxoff
 	THEN printf(LPRMODE,v);
 	ELSE printf("%s", cache_sym(symbol));
@@ -89,31 +77,37 @@ psymoff(v,type,s)
 	printf(s);
 }
 
+/*
+ * The symbol of the type nearest below an address, in its segment, in
+ * symbol, or NULL; and how far below the address it is, which is -1
+ * for none.
+ */
 u_int
 findsym(svalue,type)
-	u_int	svalue;
+	long	svalue;
 	int	type;
 	{
 	long	diff, value, symval;
 	register struct SYMbol	*sp;
 	struct	SYMbol *symsav;
+	register u_int sel;
 	int	i;
-	char	ov = 0;
 
-	if	(txtmap.bo && type==ISYM && svalue>=txtmap.bo)
-		ov=curov;
-	value = svalue;
+	svalue = fulladr(svalue, type == ISYM ? ISP : type == DSYM ? DSP : NSP);
+	sel = ASEL(svalue);
+	value = AOFF(svalue);
 	diff = 0377777L;
+	symsav = NULL;
 
 	if	(type != NSYM && symnum)
 		{
 		for	(i = 0, sp = symtab; diff && i < symnum; i++, sp++)
 			{
-			if	(SYMTYPE(sp->type) == type && 
-					(!ov || ov == sp->ovno))
+			if	(SYMTYPE(sp->type) == type &&
+					SAMESEG(segsel(sp->ovno), sel))
 				{
 				symval = leng(sp->value);
-				if	((value - symval) < diff && 
+				if	((value - symval) < diff &&
 						value >= symval)
 					{
 					diff = value - symval;
@@ -125,7 +119,7 @@ findsym(svalue,type)
 	if	(symsav)
 		symcnt =  symsav - symtab;
 	symbol = symsav;
-	return(shorten(diff));
+	return(symsav ? (u_int)diff : (u_int)-1);
 	}
 
 /* sequential search through table */
@@ -247,7 +241,7 @@ out:
 	if	(globals_only)
 		printf("%s: could only do global symbols\n", myname);
 	symset(-1);
-	return(0);
+	return;
 	}
 
 /*
@@ -305,7 +299,7 @@ no_cache_sym(symp)
 		return("?");
 	for	( ; sc < endcache; sc++)
 		{
-		if	(sc == symp)
+		if	(sc->syment == symp)
 			{
 			sc->used++;
 			if	(sc->used >= 30000)

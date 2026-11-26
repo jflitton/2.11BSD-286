@@ -10,7 +10,7 @@ LDFLAGS= -i
 
 # Programs that live in subdirectories, and have makefiles of their own.
 #
-SUBDIR=	ar as awk chflags chpass csh diff disklabel hostname ld login \
+SUBDIR=	adb ar as awk chflags chpass csh diff disklabel hostname ld login \
 	ls make mkdir nm passwd ps ping sed sh stty sysctl tcsh test
 
 # Shell scripts that need only be installed and are never removed.

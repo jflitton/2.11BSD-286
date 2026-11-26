@@ -2365,6 +2365,110 @@ twice.c:
 hello from cc: 42 300000
 large: large model executable not stripped
 ld: hello.o is for another model
+=file fault.c
+#include <stdio.h>
+
+int	count = 5;
+char	msg[] = "hello";
+
+sub(a, b)
+{
+	return (a + b);
+}
+
+deep(p, n)
+int *p;
+{
+	return (*p + n);
+}
+
+mid(x)
+{
+	return (deep((int *)0xfff0, x) + 1);
+}
+
+main(argc, argv)
+char **argv;
+{
+	count = sub(3, 4);
+	if (argc > 1)
+		count = mid(count);
+	printf("%s %d\n", msg, count);
+	return (0);
+}
+== adb
+cp /mnt/d/fault.c .
+cc -o fault fault.c
+sh -c './fault 1' 2>/dev/null
+adb fault fault.core <<'E' | sed 's/[0-9a-f]*: _/_/'
+$c
+_count/d
+_msg/s
+_deep,3?ia
+E
+cp fault patched
+adb -w patched <<'E' >/dev/null
+_msg?w 4948
+E
+./patched
+adb fault <<'E' | sed -e 's/[0-9a-f]*: _/_/' -e 's/[0-9]*: killed/killed/'
+_sub:b
+:r
+$c
+:s
+:k
+E
+adb -k /unix /dev/kmem <<'E' | sed 's/.*:[ 	]*//'
+_hz/d
+**_ifnet/s
+E
+cc -ml -o faultl fault.c
+sh -c './faultl 1' 2>/dev/null
+adb faultl faultl.core <<'E' | sed 's/[0-9a-f]*: _/_/'
+$c
+E
+adb faultl <<'E' | sed -e 's/[0-9a-f]*: _/_/' -e 's/[0-9]*: killed/killed/'
+_printf:b
+:r
+$c
+:k
+E
+adb -k /unix /dev/kmem <<'E' | sed -e 's/[0-9a-f]*: _/_/' -e 's/([^)]*)/()/' -e 's/)[ 	]*from/) from/' -e 's/+[0-9a-f]*$//'
+*(_uslot+118)$c
+E
+--
+adb> _deep(fff0,7) from _mid+b
+_mid(7) from _main+1d
+_main() from f003f
+adb> _count:		7
+adb> _msg:		hello
+adb> _deep:		push	bp
+_deep+1:	mov	bp,sp
+_deep+3:	mov	bx,[bp+4]
+_deep+6:
+HIllo 7
+adb> adb> fault: running
+breakpoint	_sub:		push	bp
+adb> _sub(3,4)	from _main+a
+_main() from f003f
+adb> fault: running
+stopped	at	_sub+1:		mov	bp,sp
+adb> killed
+60
+lo
+adb> _deep(fff0,0,7) from _mid+e
+_mid(7) from _main+21
+_main() from f005f
+adb> adb> faultl:	running
+breakpoint	_printf:	enter	6,0
+adb> _printf(12,17,c,17,7) from _main+3e
+_main() from f005f
+adb> killed
+adb> _swtch() from _tsleep
+_tsleep() from _sleep
+_sleep() from _sched
+_sched() from _main
+_main() from pmode
 =file sum.y
 %token NUM
 %%

@@ -1,1 +1,1 @@
-./"type"8t"opt"8t"linger"8t"state"8t"pcb"8t"proto"nxxdxxxn"head"8t"q0"8t"q0len"nxxdn"q"8t"qlen"8t"qlimit"nxddn"cc"8t"hi"8t"mbcnt"8t"mbmax"8t"mb"8t"sel"8t"flags"n4u2+xxxi++n4u2+xxxn"timeo"8t"error"8t"oobmark"8t"pgrp"tnududn
+./"type"8t"options"8t"linger"8t"state"8t"pcb"8t"proto"nxxdxxxn"head"8t"q0"8t"q"8t"q0len"8t"qlen"8t"qlimit"n3x3dn"timeo"8t"error"8t"pgrp"8t"oobmark"ndudun"rcv cc"8t"hiwat"8t"mbcnt"8t"mbmax"8t"lowat"n5un"rcv mb"8t"sel"8t"timeo"8t"flags"n2xdxn"snd cc"8t"hiwat"8t"mbcnt"8t"mbmax"8t"lowat"n5un"snd mb"8t"sel"8t"timeo"8t"flags"n2xdxn

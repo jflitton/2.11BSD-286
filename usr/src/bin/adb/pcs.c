@@ -18,8 +18,6 @@
 	int	pid;
 	long	cntval;
 	long	loopcnt;
-	int	overlay;
-	char	curov, symov;
 
 /* sub process control */
 
@@ -36,9 +34,7 @@ subpcs(modif)
 
 	    /* delete breakpoint */
 	    case 'd': case 'D':
-		if (symov && symov!=curov)
-			setovmap(symov);
-		IF (bkptr=scanbkpt(shorten(dot)))
+		IF (bkptr=scanbkpt(fulladr(dot, ISP)))
 		THEN bkptr->flag=0;
 		     if (pid) del1bp(bkptr);
 		     return;
@@ -47,9 +43,7 @@ subpcs(modif)
 
 	    /* set breakpoint */
 	    case 'b': case 'B':
-		if (symov && symov!=curov)
-			setovmap(symov);
-		IF (bkptr=scanbkpt(shorten(dot)))
+		IF (bkptr=scanbkpt(fulladr(dot, ISP)))
 		THEN bkptr->flag=0;
 		     if (pid) del1bp(bkptr);
 		FI
@@ -65,12 +59,10 @@ subpcs(modif)
 			  bkpthead=bkptr;
 		     FI
 		FI
-		bkptr->loc = dot;
+		bkptr->loc = fulladr(dot, ISP);
 		bkptr->initcnt = bkptr->count = cntval;
 		bkptr->flag = BKPTSET;
-		if (overlay && dot>txtmap.bo)
-			bkptr->ovly = symov ? symov : curov;
-		else bkptr->ovly = 0;		/* base seg */
+		bkptr->inproc = 0;
 		check=MAXCOM-1; comptr=bkptr->comm; rdc(); lp--;
 		REP *comptr++ = readchar();
 		PER check-- ANDF lastc!=EOR DONE

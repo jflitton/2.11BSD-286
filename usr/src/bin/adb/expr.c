@@ -10,23 +10,20 @@
 	MSG	BADLOC;
 
 extern	struct	SYMbol	*symbol, *cache_by_string();
-	int	lastframe;
 	int	kernel;
-	int	savlastf;
 	long	savframe;
-	char	svlastov;
-	int	savpc;
-	int	callpc;
 	char	*lp;
-	int	octal;
+	int	radix;
 	char	*errflg;
 	long	localval;
 	static	char	isymbol[MAXSYMLEN + 2];
 	char	lastc;
 	u_int	*uar0;
 	u_int	corhdr[];
-	char	curov, startov, lastsymov;
-	int	overlay;
+	u_int	frame;		/* findfn.c */
+	u_int	ssel;
+	MAP	txtmap;
+	MAP	datmap;
 	long	dot;
 	long	ditto;
 	int	dotinc;
@@ -38,7 +35,6 @@ expr(a)
 	int		rc;
 	long		lhs;
 
-	lastsymov = 0;
 	rdc(); lp--; rc=term(a);
 
 	WHILE rc
@@ -78,22 +74,54 @@ expr(a)
 	return(rc);
 }
 
+/*
+ * The word at an address.  Taken as an address it is in the same
+ * segment, as a near pointer kept in a segment points into it, unless
+ * that is the segment the space has by default.
+ */
+static long
+indir(adr, space)
+	long	adr;
+	int	space;
+{
+	register u_int w, sel;
+
+	w = chkget(adr, space);
+	sel = ASEL(adr);
+	IF w == 0 ORF sel == 0
+	    ORF SAMESEG(sel, space == ISP ? txtmap.def1 : datmap.def1)
+	THEN	return(leng(w));
+	FI
+	return(ADDR(sel, w));
+}
+
 term(a)
 {	/* item | monadic item | (expr) | */
 
 	switch (readchar()) {
 
 		    case '*':
-			term(a|1); expv=chkget(expv,DSP); return(1);
+			term(a|1); expv=indir(expv,DSP); return(1);
 
 		    case '@':
-			term(a|1); expv=chkget(expv,ISP); return(1);
+			term(a|1); expv=indir(expv,ISP); return(1);
 
 		    case '-':
 			term(a|1); expv = -expv; return(1);
 
 		    case '~':
 			term(a|1); expv = ~expv; return(1);
+
+		    /*
+		     * Logical negation, as 4.3BSD's adb has it and the
+		     * scripts take it (callout.next); before a hex digit
+		     * the # is a number's.
+		     */
+		    case '#':
+			IF isxdigit(*lp)
+			THEN	lp--; return(item(a));
+			FI
+			term(a|1); expv = !expv; return(1);
 
 		    case '(':
 			expr(2);
@@ -113,10 +141,8 @@ item(a)
 	int		base, d, frpt, regptr;
 	char		savc;
 	char		hex;
-	long		frame;
 	union {float r; long i;} real;
 	register struct SYMbol	*symp;
-	char		savov;
 
 	hex=FALSE;
 
@@ -124,41 +150,27 @@ item(a)
 	IF symchar(0)
 	THEN	readsym();
 		IF lastc=='.'
-		THEN	frame=(kernel?corhdr[KR5]:uar0[R5])&EVEN;
-			lastframe=0; callpc=kernel?(-2):uar0[PC];
-			if (overlay){
-				savov = curov;
-				setovmap(startov);
-			}
-			WHILE errflg==0
-			DO  savpc=callpc;
-			    findroutine(frame);
-			    if  (eqsym(cache_sym(symbol), isymbol,'~'))
-			    	break;
-			    lastframe=frame;
-			    frame=get(frame,DSP)&EVEN;
-			    IF frame==0
-			    THEN error(NOCFN);
-			    FI
+		THEN	/* the frame of the routine's latest call */
+			firstframe(0L, 0);
+			WHILE !eqsym(cache_sym(symbol), isymbol, '_')
+			DO	IF !nextframe() THEN error(NOCFN); FI
 			OD
-			savlastf=lastframe; savframe=frame;
-			svlastov = curov;
+			savframe = ADDR(ssel, frame);
+			expv = savframe;
 			readchar();
 			IF symchar(0)
-			THEN	chkloc(expv=frame);
+			THEN	chkloc(expv);
 			FI
-			if (overlay)
-				setovmap(savov);
 		ELIF (symp=lookupsym(isymbol))==0 THEN error(BADSYM);
-		ELSE expv = symp->value; lastsymov=symp->ovno;
+		ELSE expv = ADDR(segsel(symp->ovno), symp->value);
 		FI
 		lp--;
 
 
 	ELIF isdigit(lastc) ORF (hex=TRUE, lastc=='#' ANDF isxdigit(readchar()))
 	THEN	expv = 0;
-		base = (lastc == '0' ORF octal ? 8 : (hex ? 16 : 10));
-		WHILE (hex ? isxdigit(lastc) : isdigit(lastc))
+		base = (hex ? 16 : (lastc == '0' ANDF radix == 10 ? 8 : radix));
+		WHILE (base == 16 ? isxdigit(lastc) : isdigit(lastc))
 		DO  expv *= base;
 		    IF (d=convdig(lastc))>=base THEN error(BADSYN); FI
 		    expv += d; readchar();
@@ -181,12 +193,7 @@ item(a)
 	ELIF lastc=='.'
 	THEN	readchar();
 		IF symchar(0)
-		THEN	savov = curov;
-			curov = svlastov;
-			lastframe=savlastf; callpc=savpc; findroutine(savframe);
-			chkloc(savframe);
-			if(overlay)
-				setovmap(savov);
+		THEN	chkloc(savframe);
 		ELSE	expv=dot;
 		FI
 		lp--;
@@ -250,20 +257,10 @@ lookupsym(symstr)
 	symset(-1);
 	while	(symp = symget())
 		{
-	   	if	(overlay && (symp->type == ISYM))
-			{
-			if	(sc = cache_by_string(symstr, 1))
-				return(sc);
-			if	(eqsym(no_cache_sym(symp), symstr,'~'))
-				break;
-			}
-		else
-			{
-			if	(sc = cache_by_string(symstr, 0))
-				return(sc);
-			if	(eqsym(no_cache_sym(symp), symstr,'_'))
-				break;
-			}
+		if	(sc = cache_by_string(symstr, 0))
+			return(sc);
+		if	(eqsym(no_cache_sym(symp), symstr,'_'))
+			break;
 		}
 /*
  * We did not enter anything into the cache (no sense inserting hundreds
@@ -282,7 +279,7 @@ char c;
 	IF isdigit(c)
 	THEN	return(c-'0');
 	ELIF isxdigit(c)
-	THEN	return(c-'a'+10);
+	THEN	return((isupper(c) ? tolower(c) : c)-'a'+10);
 	ELSE	return(17);
 	FI
 }

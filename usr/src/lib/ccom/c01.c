@@ -1109,6 +1109,19 @@ union tree *p2;
 		unsignf |= p2->c.type==UNLONG;
 	}
 	v1 = p1->c.value;
+	/*
+	 * The arithmetic is the 286's, in 16 bits, where the compiler's own
+	 * int is wider (tools/ncc), as Xconst has it in the next pass.
+	 */
+	if (unsignf) {
+		v1 = (unsigned short)v1;
+		if (p2 && op!=LSHIFT && op!=RSHIFT)
+			v2 = (unsigned short)v2;
+	} else {
+		v1 = (short)v1;
+		if (p2)
+			v2 = (short)v2;
+	}
 	switch (op) {
 
 	case PLUS:
@@ -1236,7 +1249,7 @@ union tree *p2;
 	default:
 		return(0);
 	}
-	p1->c.value = v1;
+	p1->c.value = (short)v1;
 	*cp++ = p1;
 	if (unsignf)
 		p1->t.type = UNSIGN;

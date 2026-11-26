@@ -8,6 +8,9 @@ static  char    sccsid[] = "@(#)format.c 2.0 (2.11BSD) 2026/9/21";
 	MSG	BADMOD;
 	MSG	NOFORK;
 	MSG	ADWRAP;
+	MAP	txtmap;
+	MAP	datmap;
+	int	pid;
 extern	struct	SYMbol	*symbol;
 	int	mkfault;
 	char	*lp;
@@ -32,7 +35,7 @@ scanform(icount,ifp,itype,ptype)
 
 	WHILE icount
 	DO  fp=ifp;
-	    IF init==0 ANDF findsym(shorten(dot),ptype)==0 ANDF maxoff
+	    IF init==0 ANDF findsym(dot,ptype)==0 ANDF maxoff
 	    THEN printf("\n%s:%16t", cache_sym(symbol));
 	    FI
 	    savdot=dot; init=0;
@@ -128,6 +131,13 @@ exform(fcount,ifp,itype,ptype)
 		    case 'p':
 			psymoff(var[0],ptype,"%16t"); break;
 
+		    case 'P':	/* a far pointer: its selector says which */
+			IF wx == 0
+			THEN printf("%-16X", wx);
+			ELSE psymoff(wx,segtype(ASEL(wx)),"%16t");
+			FI
+			break;
+
 		    case 'u':
 			printf("%-8u",w); break;
 
@@ -157,9 +167,11 @@ exform(fcount,ifp,itype,ptype)
 			dotinc=dot-savdot+1; dot=savdot; break;
 
 		    case 'x':
+		    case 'w':	/* what ?w writes: hex, as on the PDP-11 octal */
 			printf("%-8x",w); break;
 
 		    case 'X':
+		    case 'W':
 			printf("%-16X", wx); break;
 
 		    case 'Y':
@@ -172,11 +184,9 @@ exform(fcount,ifp,itype,ptype)
 			printf("%-16Q", wx); break;
 
 		    case 'o':
-		    case 'w':
 			printf("%-8o", w); break;
 
 		    case 'O':
-		    case 'W':
 			printf("%-16O", wx); break;
 
 		    case 'i':
@@ -189,9 +199,12 @@ exform(fcount,ifp,itype,ptype)
 			printf("%-16D", wx); break;
 
 		    case 'f':
-			*(double *)&fw = 0.0;
-			fw.sa = wx;
-			printf("%-16.9f", *(double *)&fw);
+			{
+			union { float f; long l; } fl;
+
+			fl.l = wx;
+			printf("%-16.9f", (double)fl.f);
+			}
 			dotinc=4; break;
 
 		    case 'F':
@@ -258,12 +271,21 @@ printesc(c)
 	FI
 }
 
+/*
+ * dot moved on.  A segment's offsets do not carry into its selector; a
+ * file of no format adb knows is up to 16M long.
+ */
 long
 inkdot(incr)
+	int	incr;
 {
 	long	newdot;
 
 	newdot=dot+incr;
-	IF (dot ^ newdot) >> 24 THEN error(ADWRAP); FI
+	IF txtmap.nseg ORF datmap.nseg ORF pid
+	THEN	IF (dot ^ newdot) >> 16 THEN error(ADWRAP); FI
+	ELIF (dot ^ newdot) >> 24
+	THEN	error(ADWRAP);
+	FI
 	return(newdot);
 }

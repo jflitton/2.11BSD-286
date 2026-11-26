@@ -1,65 +1,227 @@
 #include "defs.h"
 
-	MSG	NOCFN;
-	int	callpc;
+	MSG	NOPCS;
 	char	localok;
 extern	struct	SYMbol	*symbol;
 	char	*errflg;
-	char	curov;
-	int	overlay;
-	long	var[36];
+	u_int	*uar0;
+	int	model;
+	int	kernel;
+	MAP	txtmap;
+	MAP	datmap;
 
-findroutine(cframe)
-	long	cframe;
+/*
+ * The stack, a frame at a time.  A function of the compiler's begins
+ * with ENTER, or with PUSH BP and MOV BP,SP (lib/ccom/i286/c11.c), and
+ * BP is then its frame: at [bp] its caller's BP, at [bp+2] where it
+ * returns to, with the segment of that at [bp+4] where calls are far, as
+ * in the medium and large models and the kernel, and its arguments
+ * above.  The cross compiler's (tools/cc) may push SI and DI before
+ * BP, and then where it returns to is above them.  A function made
+ * without a frame, as the cross compiler may make one that needs none,
+ * is not seen.
+ */
+	u_int	frame;		/* the frame, an offset in the stack segment */
+	u_int	nextbp;		/* its caller's */
+	long	callpc;		/* where in its function, 0 if not known */
+	long	retpc;		/* where it returns to */
+	u_int	argp;		/* where its arguments are */
+	int	narg;		/*   and how many words of them */
+	u_int	ssel;		/* the stack segment */
+
+static	int	far;		/* calls are far */
+
+static u_int
+sget(off)
+	u_int	off;
 {
-	register int	narg, inst;
-	int	lastpc, back2;
-	char	v;
-	char	savov, curovl;
+	return(get(ADDR(ssel, off), DSP));
+}
 
-	v=FALSE; localok=FALSE; lastpc=callpc;
-	if(overlay) {
-		/*
-		 *  Save the previous overlay. Don't restore it,
-		 *  so that the next call will have the correct previous
-		 *  overlay.  The caller must save and restor the original
-		 *  overlay if needed.
-		 */
-		savov = curov;
-		curovl=get(cframe-2, DSP);
-		setovmap(curovl);
-	}
-	callpc=get(cframe+2, DSP); back2=get(leng(callpc-2), ISP);
-	IF (inst=get(leng(callpc-4), ISP)) == 04737	/* jsr pc,*$... */
-	THEN	narg = 1;
-	ELIF (inst&~077)==04700			/* jsr pc,... */
-	THEN	narg=(get(cframe, DSP) ? 0 : 2); /* top fp? main(argc, argv)? */
-		v=(inst!=04767);
-	ELIF (back2&~077)==04700
-	THEN	narg=0; v=TRUE;
-	ELSE	errflg=NOCFN;
-		return(0);
+static int
+iget(adr)
+	long	adr;
+{
+	return(get(adr, ISP) & LOBYTE);
+}
+
+/* the address a frame's function returns to, kept at off */
+static long
+getret(off)
+	u_int	off;
+{
+	IF far
+	THEN	return(ADDR(sget(off + 2), sget(off)));
 	FI
-	if (overlay)
-		setovmap(savov);	/* previous overlay, for findsym */
-	if (findsym((v ? lastpc : ((inst==04767?callpc:0) + back2)),ISYM) == -1
-	    && !v)
-		symbol = NULL;
-	else
-		localok=TRUE;
-	if (overlay)
-		setovmap(curovl);
-	inst = get(leng(callpc), ISP);
-	IF inst == 062706		/* add $n,sp */
-	THEN
-		narg += get(leng(callpc+2), ISP)/2;
-		return(narg);
+	return(ADDR(ASEL(callpc) ? ASEL(callpc) : txtmap.def1, sget(off)));
+}
+
+/* how many words of arguments the caller takes off the stack after */
+static
+nargs(ret)
+	long	ret;
+{
+	register int op;
+
+	op = iget(ret);
+	IF (op == 0x83 ORF op == 0x81) ANDF iget(ret + 1) == 0xc4
+	THEN	return((op == 0x83 ? iget(ret + 2) : get(ret + 2, ISP)) / 2);
+	ELIF op >= 0x59 ANDF op <= 0x5b		/* pop cx, dx or bx */
+	THEN	op = iget(ret + 1);
+		return(op >= 0x59 ANDF op <= 0x5b ? 2 : 1);
+	ELIF op == 0x44 ANDF iget(ret + 1) == 0x44	/* inc sp twice */
+	THEN	return(1);
 	FI
-	if (inst == 05726 || inst == 010026)	/* tst (sp)+ or mov r0,(sp)+ */
-		return(narg+1);
-	IF inst == 022626		/* cmp (sp)+,(sp)+ */
-	THEN
-		return(narg+2);
+	return(0);
+}
+
+/* the function the call before ret called, if it says; else 0 */
+static long
+calltarget(ret)
+	long	ret;
+{
+	IF far ANDF iget(ret - 5) == 0x9a
+	THEN	return(ADDR(get(ret - 2, ISP), get(ret - 4, ISP)));
+	ELIF iget(ret - 3) == 0xe8 ANDF (!far ORF iget(ret - 4) == 0x0e)
+	THEN	return(ADDR(ASEL(ret), AOFF(ret) + get(ret - 2, ISP)));
 	FI
-	return(narg);
+	return(0L);
+}
+
+/*
+ * How many words the function at pc pushes before its frame: SI and DI,
+ * where the cross compiler saves them first.
+ */
+static
+saved(pc)
+	long	pc;
+{
+	register int n, op;
+	long	f;
+
+	n = findsym(pc, ISYM);
+	IF symbol == NULL THEN return(0); FI
+	f = fulladr(pc, ISP) - (u_int)n;
+	FOR n = 0; n < 2; n++
+	DO	op = iget(f + n);
+		IF op != 0x56 ANDF op != 0x57 THEN break; FI
+	OD
+	return(n);
+}
+
+/*
+ * The rest of a frame, from where it keeps its caller's BP, its function
+ * having pushed k words before it.
+ */
+static
+fillframe(f, k)
+	u_int	f;
+	int	k;
+{
+	frame = f;
+	nextbp = sget(f);
+	retpc = getret(f + 2 + 2 * k);
+	argp = f + 2 * k + (far ? 6 : 4);
+}
+
+/*
+ * How many words the function of the frame at f pushed before it, when
+ * only the frame is known: as many as put where it returns to after a
+ * call of a function that pushes that many, or else none.
+ */
+static
+framesaved(f)
+	u_int	f;
+{
+	register int k;
+	long	pc;
+
+	FOR k = 0; k <= 2; k++
+	DO	errflg = 0;
+		fillframe(f, k);
+		IF errflg == 0 ANDF segtype(ASEL(retpc)) == ISYM
+		THEN	pc = calltarget(retpc);
+			IF pc ANDF saved(pc) == k ANDF errflg == 0
+			THEN	return(k);
+			FI
+		FI
+	OD
+	errflg = 0;
+	return(0);
+}
+
+/* the function of the frame, in symbol, from what is known of it */
+static
+framesym()
+{
+	long	pc;
+
+	localok = FALSE;
+	pc = callpc ? callpc : calltarget(retpc);
+	IF pc == 0
+	THEN	symbol = NULL;
+	ELSE	findsym(pc, ISYM);
+	FI
+	narg = nargs(retpc);
+}
+
+/*
+ * The innermost frame.  With an address it is the frame there, whose
+ * function is the one its caller's call names.  Else it is the
+ * registers': a function at its first instruction has not pushed BP,
+ * and one at MOV BP,SP has not made BP its frame, and its frame is at
+ * SP.
+ */
+firstframe(adr, given)
+	long	adr;
+	int	given;
+{
+	register u_int sp;
+	register int w;
+
+	far = model != A_SMALL;
+	ssel = datmap.def2;
+	IF given
+	THEN	IF ASEL(adr) THEN ssel = ASEL(adr); FI
+		callpc = 0;
+		fillframe(AOFF(adr), framesaved(AOFF(adr)));
+		framesym();
+		return;
+	FI
+	IF kernel THEN error(NOPCS); FI
+	callpc = pcaddr();
+	sp = uar0[RSP];
+	w = findsym(callpc, ISYM);
+	IF symbol ANDF w == 0
+	THEN	frame = sp - 2;
+		nextbp = uar0[BP];
+		retpc = getret(sp);
+		argp = sp + (far ? 4 : 2);
+	ELIF (w = get(callpc, ISP)) == 0xe589 ORF w == 0xec8b
+	THEN	fillframe(sp, saved(callpc));
+	ELSE	fillframe(uar0[BP], saved(callpc));
+	FI
+	framesym();
+}
+
+/*
+ * The caller's frame: 0 at the end of the stack, or where the frames do
+ * not go up the stack as they must.  Its function is the one where the
+ * return goes, by the byte before, which is the call's.
+ */
+nextframe()
+{
+	IF nextbp == 0 ORF nextbp <= frame ORF errflg
+	THEN	return(0);
+	FI
+	callpc = retpc - 1;
+	fillframe(nextbp, saved(callpc));
+	/*
+	 * The start-up's frame, whose return address is no code's: the
+	 * large model's crt0 keeps the arguments it passes main at BP.
+	 */
+	IF errflg ORF segtype(ASEL(retpc)) != ISYM THEN return(0); FI
+	framesym();
+	IF errflg THEN return(0); FI
+	return(1);
 }

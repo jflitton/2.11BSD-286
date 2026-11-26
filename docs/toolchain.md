@@ -387,6 +387,11 @@ byte first. `cpp` there is given the tree's `usr/include` for the
 system's headers, a type of 32 bits for what `#if` reckons in, which is
 a `long` on the 286, and its buffers and tables as large as they are
 there (`lib/cpp/i286`), so that it writes what `/lib/cpp` writes.
+The compiler works a constant expression out in the 286's 16 bits
+wherever it runs, its first pass (`fold`, `c01.c`) as its second does
+(`Xconst`, `i286/c12.c`). Where the system is built its `int` is
+wider, and `((unsigned)-1)>>1`, which `adb` has, was 0xffff there
+where it ought to be 0x7fff.
 
 ## The system makes its own compiler
 

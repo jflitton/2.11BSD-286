@@ -106,10 +106,12 @@ procxmt()
 		break;
 
 	/* read u */
+	/* the 287's registers are there only once fpsync has put them */
 	case PT_READ_U:
 		i = UOFF(ipc.ip_addr);
 		if (i<0 || i >= UBYTES)
 			goto error;
+		fpsync();
 		ipc.ip_data = ((physadr)&u)->r[i/sizeof(int)];
 		break;
 
@@ -162,8 +164,10 @@ procxmt()
 		if (i<0 || i >= UBYTES)
 			goto error;
 		p = (int *)&((physadr)&u)->r[i/sizeof(int)];
-		if (p >= (int *)&u.u_fps && p < (int *)(&u.u_fps + 1))
+		if (p >= (int *)&u.u_fps && p < (int *)(&u.u_fps + 1)) {
+			fpsync();	/* the 287 takes them back from u */
 			goto ok;
+		}
 		if (p < u.u_ar0 || p > &u.u_ar0[SS])
 			goto error;
 		switch (p - u.u_ar0) {

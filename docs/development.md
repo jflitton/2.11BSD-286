@@ -352,11 +352,12 @@ tests/programs/run.sh   # the programs that work on text and files, on the
                         # and /usr/adm's scripts, disklabel, fsck and
                         # the other checkers, dump and restor on a second
                         # disk, cc and what goes with it compiling a
-                        # program there, yacc and lex with their libraries, mkdep,
-                        # calendar and learn, the games, segalloc and
-                        # ve: 164 checks, each a few
-                        # lines for the shell and what they must write,
-                        # and more, man, script, lock, tset, five games,
+                        # program there and adb on its core, yacc and
+                        # lex with their libraries, mkdep, calendar and
+                        # learn, the games, segalloc and ve: 184 checks,
+                        # each a few lines for the shell and what they
+                        # must write,
+                        # and more, man, script, lock, tset, six games,
                         # window, ve and shutdown at a terminal
 tests/system/run.sh     # the system, booted from a hard disk to multi-user:
                         # checks its root with fsck and starts again,
@@ -498,7 +499,7 @@ and so on).
   ([the C library and programs](userland.md),
   [the console](console.md), [the network](network.md)).
 - `tests/programs` boots that system too, with a file system of checks
-  beside the root: 157 of them, each a few lines for the shell and what
+  beside the root: 184 of them, each a few lines for the shell and what
   they must write, to the byte, for `sort`, `sed`, `diff`, `tar`,
   `patch`, `m4`, `compress` and the other programs that work on text and
   files, for `nroff`, which must format three of the manual's pages
@@ -507,7 +508,8 @@ and so on).
   `/usr/adm`'s `daily`, `weekly` and `monthly`, for `disklabel`, `fsck`
   and its elders, `dump`, `restor`, `rdump`, `gcore`, `chflags` and
   `fstat`, with a second disk to write labels, file systems and dumps
-  on, and for the games that can be played from a file. Then it uses
+  on, for `adb` on a program's core, the program running and the
+  kernel, and for the games that can be played from a file. Then it uses
   the ones that need a terminal, `more`, `man`, `script`, `lock` and
   `tset`, `battlestar`, `hack`, `rogue`, `robots` and `hangman`, and
   `window`, and stops the system with `shutdown` ([the C library and

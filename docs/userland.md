@@ -2685,6 +2685,59 @@ accounts that `/usr/adm/daily` keeps being 832 blocks by themselves
 own disk is made with as many as it has room for (`make root
 ROOTSIZE=...`, or `tools/mkfs.py -s`).
 
+## adb
+
+`adb` is upstream's, with what it knew of the PDP-11 written again for
+the 286: the disassembler (`opset.c`), which prints the 286's and the
+287's instructions in `as`'s syntax, NASM's, and was compared with
+`ndisasm` over every opcode with each form of operand; the registers,
+from the trap frame at the top of the process's user structure
+(`machine/frame.h`), and the 287's, which `$f` prints; breakpoints, an
+INT 3 in place of an instruction's first byte; the stack, which `$c`
+follows by BP, the frame every function of the system's compiler keeps,
+with far returns in the medium and large models, and the cross
+compiler's frames too, whose functions may save SI and DI before BP;
+and the maps of a program, a core file and the kernel, which are of
+segments. Overlays, and `$a`, ALGOL 68's backtrace, went with the
+PDP-11.
+
+An address is as a far pointer has it, the selector in its high word and
+the offset in its low. One whose selector is 0 is in the segment its
+command takes by default, the code segment for `?` and the data segment
+for `/`, so in a small-model program a 16-bit address means what it did
+on the PDP-11 with separate I and D; a symbol's value carries its
+segment. Numbers are hexadecimal, read and printed, where upstream's
+were octal: `$o` and `$d` make what is typed octal or decimal, and `$x`
+hexadecimal again. `P` prints a far pointer by its symbol. `*`, the word
+at an address, keeps that address's segment when it is not the default
+one, as a near pointer kept in the network's data segment points into it
+([the network](network.md)): `*_ifnet$<ifnet` prints the first
+interface. A selector's low two bits, its privilege level, do not change
+its segment; the kernel marks the network's functions among the
+callouts with one (`SUPERFUN`).
+
+A core file is the user structure, the process's table of segments, and
+each segment of its own (`core(5)`), and is named `prog.core`, as
+upstream's kernel names it; upstream's `adb` still looks for `core`, and
+so does this one: `adb prog prog.core`. `adb -k /unix /dev/kmem` reads
+the running kernel, whose segment N is at N × 64K in `/dev/kmem`. The
+scripts in `/usr/share/adb` print the kernel's structures as the 286's
+compiler lays them out: `*_uptr$<u` the running process's user
+structure, `_proc$<proc` the first slot of the process table, `$<callout`
+the clock's callouts, `*_mfreelist$<mbuf.nxt` the free mbufs.
+`$c` follows a stack in the kernel from a frame given it:
+`*(_uslot+118)$c` is the swapper's, from the BP in its `u_rsave`, the
+first slot of user structures being the swapper's alone
+(`machine/machdep.c`).
+`callout.next` ends its list with `#` as 4.3BSD's `adb` has it, logical
+negation, which 2.11BSD's had not, so it printed only the first callout;
+`#` before anything but a hexadecimal digit is now negation.
+
+The kernel's side: `ptrace` takes the address in the traced process as a
+far pointer, whatever the caller's model (`syscalls.tab`), and has the
+287 save its registers in the user structure (`fpsync`) before it reads
+or writes them there, as a core dump has.
+
 ## Following a program
 
 The kernel's `sctrace`, set with `tools/kpatch.py obj/PC/unix sctrace=1`,

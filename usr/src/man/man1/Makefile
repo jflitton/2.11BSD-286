@@ -19,7 +19,7 @@
 # The 286's: the pages of the programs it has.  as(1) is its own, which
 # bin/as's Makefile installs.
 MDIR=	/usr/man/cat1
-SRCS=	addbib.1 apply.1 apropos.1 at.1 atq.1 atrm.1 \
+SRCS=	adb.1 addbib.1 apply.1 apropos.1 at.1 atq.1 atrm.1 \
 	awk.1 basename.1 bc.1 biff.1 binmail.1 cal.1 calendar.1 cat.1 \
 	cb.1 cc.1 cd.1 checknr.1 chgrp.1 chmod.1 clear.1 cmp.1 col.1 \
 	colcrt.1 colrm.1 comm.1 compress.1 cp.1 csh.1 ctags.1 date.1 dc.1 \
@@ -46,7 +46,7 @@ SRCS1=	nroff.1 nslookup.1 od.1 pagesize.1 \
 	vacation.1 vgrind.1 vi.1 vmstat.1 w.1 wait.1 wall.1 wc.1 \
 	what.1 whatis.1 which.1 who.1 whois.1 window.1 \
 	write.1 xstr.1 yacc.1 yes.1
-OBJS1=	addbib.0 apply.0 apropos.0 at.0 atq.0 atrm.0 \
+OBJS1=	adb.0 addbib.0 apply.0 apropos.0 at.0 atq.0 atrm.0 \
 	awk.0 basename.0 bc.0 biff.0 binmail.0 cal.0 calendar.0 cat.0 \
 	cb.0 cc.0 cd.0 checknr.0 chgrp.0 chmod.0 clear.0 cmp.0 col.0 \
 	colcrt.0 colrm.0 comm.0 compress.0 cp.0 csh.0 ctags.0 date.0 dc.0 \

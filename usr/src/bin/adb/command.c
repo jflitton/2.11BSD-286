@@ -4,10 +4,11 @@
 	MSG	NOMATCH;
 	MSG	BADVAR;
 	MSG	BADCOM;
+	MSG	BADVAL;
+	MSG	BADSYN;
 	MAP	txtmap;
 	MAP	datmap;
 
-	char	symov, lastsymov, curov;
 	int	executing;
 	char	*lp;
 	int	fcor;
@@ -15,8 +16,8 @@
 	int	mkfault;
 	char	*errflg;
 	char	lastc;
-	char	eqformat[512] = "o";
-	char	stformat[512] = "o\"= \"^i";
+	char	eqformat[512] = "x";
+	char	stformat[512] = "x\"= \"^i";
 	u_int	corhdr[], *uar0;
 	long	dot;
 	long	ditto;
@@ -32,6 +33,7 @@
 	long	cntval;
 	int	cntflg;
 extern	char	*myname;
+extern	int	errno;
 
 /* command decoding */
 
@@ -55,7 +57,7 @@ command(buf,defcom)
 
 	REP
 	IF adrflg=expr(0)
-	THEN dot=expv; ditto=dot; symov=lastsymov;
+	THEN dot=expv; ditto=dot;
 	FI
 	adrval=dot;
 	IF rdc()==',' ANDF expr(0)
@@ -98,16 +100,33 @@ command(buf,defcom)
 			    int		fcount;
 			    MAPPTR	smap;
 			    long	*mp;
+			    struct	seg *sp;
 
 			    IF eqcom THEN error(BADEQ); FI
 			    smap=(itype&DSP?&datmap:&txtmap);
 			    fcount=3;
-			    IF itype&STAR
+			    IF smap->nseg
+			    THEN /* the segment of dot, or one more */
+				 w = ASEL(fulladr(dot, itype));
+				 FOR sp = smap->seg; sp < &smap->seg[smap->nseg]; sp++
+				 DO IF SAMESEG(sp->sel, w) THEN break; FI OD
+				 IF sp == &smap->seg[smap->nseg]
+				 THEN IF smap->nseg == NSEG THEN error(BADSYN); FI
+				      smap->nseg++;
+				      bzero(sp, sizeof (*sp));
+				      sp->sel = w;
+				      sp->type = itype&DSP ? XS_DATA : XS_CODE;
+				 FI
+				 mp = &sp->b;
+			    ELIF itype&STAR
 			    THEN mp = &(smap->b2);
 			    ELSE mp = &(smap->b1);
 			    FI
 			    WHILE fcount-- ANDF expr(0)
 			    DO *(mp)++ = expv; OD
+			    IF smap->nseg ANDF sp->z < sp->e
+			    THEN sp->z = sp->e;
+			    FI
 			    IF rdc()=='?' THEN smap->ufd=fsym;
 			    ELIF lastc == '/' THEN smap->ufd=fcor;
 			    ELSE lp--;
@@ -143,10 +162,10 @@ command(buf,defcom)
 			    wformat[0]=lastc; expr(1);
 			    REP  savdot=dot; psymoff(dot,ptype,":%16t"); exform(1,wformat,itype,ptype);
 				 errflg=0; dot=savdot;
+				 put(dot,itype,shorten(expv));
 				 IF longpr
-				 THEN put(dot,itype,expv);
+				 THEN put(inkdot(2),itype,shorten(expv >> 16));
 				 FI
-				 put((longpr?inkdot(2):dot),itype,shorten(expv));
 				 savdot=dot;
 				 printf("=%8t"); exform(1,wformat,itype,ptype);
 				 printc(EOR);
@@ -159,12 +178,7 @@ command(buf,defcom)
 			    lp--;
 			    getformat(eqcom ? eqformat : stformat);
 			    IF !eqcom
-			    THEN IF symov ANDF symov!=curov ANDF
-				ptype == ISYM ANDF dot>=txtmap.bo
-				 THEN setovmap(symov);
-				      var[VARC]=symov;
-				 FI
-				 IF *stformat!='a'
+			    THEN IF *stformat!='a'
 				 THEN psymoff(dot,ptype,":%16t");
 				 FI
 			    FI
@@ -176,13 +190,17 @@ command(buf,defcom)
 		lastcom=0; savc=rdc();
 		IF (regptr=getreg(savc)) != NOREG
 		THEN uar0[regptr]=shorten(dot);
-		     ptrace(PT_WRITE_U,pid,(int)&uar0[regptr]-(int)&corhdr,
-			uar0[regptr]);
-		     IF (uar0+regptr) == &(((U*)corhdr)->u_ovdata.uo_curov)
-		     THEN var[VARC]=dot; setovmap((char)dot); FI
+		     IF pid
+		     THEN errno = 0;
+			  ptrace(PT_WRITE_U,pid,
+			      (long)((UAR0 + regptr) * sizeof (u_int)),
+			      uar0[regptr]);
+			  IF errno THEN error(BADVAL); FI
+		     FI
+		     IF regptr == CS THEN txtmap.def1 = uar0[CS]; FI
+		     IF regptr == SS THEN datmap.def2 = uar0[SS]; FI
 		ELIF (modifier=varchk(savc)) != -1
 		THEN	var[modifier]=dot;
-			IF modifier == VARC THEN setovmap((char)dot); FI
 		ELSE	error(BADVAR);
 		FI
 		break;

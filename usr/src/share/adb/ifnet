@@ -1,2 +1,1 @@
-
-./"if_unit"8t"if_mtu"8t"if_flags"8t"if_timer"n2+2dx8tdnn"metric"8t"if_addrlist"ndonn"ifq_head"16t"ifq_tail"16t"ifq_len"16t"ifq_drops"nx8tx8td2+8tdn"if_init"16t"if_output"16t"if_ioctl"n3pnn"if_reset"16t"if_watchdog"16tn2pnn"if_ipackets"16t"if_ierrors"16t"if_opackets"n3Dnn"if_oerrors"16t"if_collisions"n2Dnn"if_next"np
+./"if_name"8t"if_unit"8t"if_mtu"8t"if_flags"8t"if_timer"nx2dxdn"metric"8t"addrlist"ndxn"ifq_head"8t"ifq_tail"8t"ifq_len"8t"ifq_maxlen"8t"ifq_drops"n2x3dn"if_init"16t"if_output"16t"if_ioctl"n3Pn"if_reset"16t"if_watchdog"n2Pn"if_ipackets"16t"if_ierrors"16t"if_opackets"n3Dn"if_oerrors"16t"if_collisions"n2Dn"if_next"nxn

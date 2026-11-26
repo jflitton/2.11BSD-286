@@ -498,8 +498,32 @@ incdec()
 	CK(b, 'h' + 'e' + 'l' + 'l' + 'o');
 }
 
+/*
+ * Constants the compiler works out itself, as the 286 would, in 16
+ * bits, wherever it runs: built for the machine the system is built on
+ * (tools/ncc), its int is wider.
+ */
+static unsigned fu[] = { U(-1) >> 1, U(-1) / 7, U(-1) % 7, U(-7) / 3 };
+
+static
+folded()
+{
+	CK(fu[0], U(0x7fff));
+	CK(fu[1], U(0x2492));
+	CK(fu[2], 1);
+	CK(fu[3], U(0x5553));
+	CK(U(-1) >> 1, U(0x7fff));
+	CK(U(-1) / 7, U(0x2492));
+	CK(U(-1) % 7, 1);
+	CK(U(0xfff0) >> 4, U(0xfff));
+	CK(U(40000) + U(40000), U(14464));
+	CK(U(40000) + U(40000) < U(20000), 1);
+	CK(-1 >> 4, -1);
+}
+
 t_int()
 {
+	folded();
 	addsub();
 	logic();
 	shifts();

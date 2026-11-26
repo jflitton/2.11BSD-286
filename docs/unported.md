@@ -42,7 +42,6 @@ ported yet:
 
 | program | where |
 |---|---|
-| `adb` and its scripts | `bin/adb`, `share/adb` |
 | `f77` (*medium*), `efl` (*medium*), `ratfor`, `struct`, `pascal` | `usr.bin`, `ucb/pascal` |
 | `libF77`, `libI77`, `libU77` | `usr.lib` |
 

@@ -11,12 +11,11 @@
 	MSG	NOADR	=  "address expected";
 	MSG	NOPCS	=  "no process";
 	MSG	BADVAR	=  "bad variable";
+	MSG	BADVAL	=  "bad value for the register";
 	MSG	BADTXT	=  "text address not found";
 	MSG	BADDAT	=  "data address not found";
 	MSG	ODDADR	=  "odd address";
 	MSG	EXBKPT	=  "too many breakpoints";
-	MSG	A68BAD	=  "bad a68 frame";
-	MSG	A68LNK	=  "bad a68 link";
 	MSG	ADWRAP	=  "address wrap around";
 	MSG	BADEQ	=  "unexpected `='";
 	MSG	BADWAIT	=  "wait error: process disappeared!";

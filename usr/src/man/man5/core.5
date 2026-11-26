@@ -2,9 +2,9 @@
 .\" All rights reserved.  The Berkeley software License Agreement
 .\" specifies the terms and conditions for redistribution.
 .\"
-.\"	@(#)core.5	2.3 (Berkeley) 1/26/87
+.\"	@(#)core.5	2.4 (2.11BSD) 2026/11/25
 .\"
-.TH CORE 5 "January 26, 1987"
+.TH CORE 5 "November 25, 2026"
 .UC 2
 .SH NAME
 core \- format of memory image file
@@ -16,46 +16,47 @@ process when any of various errors occur.  See
 .IR sigvec (2)
 for the list of reasons; the most common are memory violations, illegal
 instructions, bus errors, and user-generated quit signals.
-The memory image is called `core' and is written in the process's
+The memory image is called
+.IR prog .core,
+.I prog
+being the name of the program, and is written in the process's
 working directory (provided it can be; normal access controls apply).
 .PP
-The core file consists of the
+On the 80286 the core file consists of the
 .I u.
-area, whose size (in 64 byte `clicks') is
-defined by the USIZE manifest in the
-.RI < sys/param.h >
-file.  The 
+area, USIZE pages of 512 bytes (UBYTES, in
+.RI < sys/param.h >).
+The
 .I u.
-area starts with a 
+area starts with a
 .I user
 structure as given in
-.RI < sys/user.h >.
+.RI < sys/user.h >,
+which holds the 80287's registers in
+.IR u_fps .
 The rest of the
 .I u.
-area consists of the kernel stack for the terminated process which includes
-(among other things) the processor registers at the time of the fault;
-see the system listings for the format of this area.
-The remainder of the core file consists first of the data pages and then
-the stack pages of the process image.
-The amount of data space image in the core file is given (in clicks) by the
-variable
-.I u_dsize
-in the
-.I u.
-area.
-If the text segment was not write-only and and shared it is included
-as the first
-.I etext
-bytes of the data image where
-.I etext
-is taken from the symbol table of the object file which generated the
-memory image.
-The amount of stack image in the core file is given (in clicks) by the
-variable 
-.I u_ssize
-in the 
-.I u.
-area.
+area is the kernel stack for the terminated process, at whose top is
+the trap frame, with the processor's registers at the time of the fault
+.RI ( struct
+.I trapframe
+in
+.RI < machine/frame.h >).
+.PP
+Next is the process's table of segments, NSEG
+.I pseg
+structures as given in
+.RI < machine/seg.h >.
+Slot
+.I n
+of the table is the segment whose selector is 8\fIn\fP+7 in the process.
+Last are the contents of each segment in the table that is in use
+(PS_USED) and is not the program's shared code (PS_TEXT), in the order
+of the table, each
+.I ps_limit
++ 1 bytes.
+The shared code is not in the core file: it is the same as in the
+program.
 .PP
 In general the debugger
 .IR adb (1)

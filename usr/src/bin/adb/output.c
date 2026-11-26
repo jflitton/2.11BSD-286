@@ -102,11 +102,11 @@ printf(fmat,a1)
 		    case 'u':
 			printnum(x,c,10); break;
 		    case 'o':
-			printoct(0,x,0); break;
+			printoct((long)(u_int)x,0); break;
 		    case 'q':
 			lx=x; printoct(lx,-1); break;
 		    case 'x':
-			printdbl(0,x,c,16); break;
+			printdbl((long)(u_int)x,'U',16); break;
 		    case 'Y':
 			printdate(lx); vptr++; break;
 		    case 'D':
@@ -117,14 +117,14 @@ printf(fmat,a1)
 		    case 'Q':
 			printoct(lx,-1); vptr++; break;
 		    case 'X':
-			printdbl(lx,'x',16); vptr++; break;
+			printdbl(lx,'U',16); vptr++; break;
 		    case 'c':
 			printc(x); break;
 		    case 's':
 			s=(char *)x; break;
 		    case 'f':
 		    case 'F':
-			vptr += 7;
+			vptr += sizeof (double) / sizeof (int) - 1;
 			s=ecvt(*rptr, prec, &decpt, &n);
 			*digitptr++=(n?'-':'+');
 			*digitptr++ = (decpt<=0 ? '0' : *s++);
@@ -238,31 +238,31 @@ printoct(o,s)
 	DO *digitptr++=digs[i]+'0'; OD
 }
 
-printdbl(lx,ly,fmat,base)
-	int	lx, ly;
-	char	fmat;
+/*
+ * A long in a base, signed with D.  Hex has no # before it: it is adb's
+ * radix on the 286.
+ */
+printdbl(lx,fmat,base)
+	long	lx;
+	int	fmat;
 	int	base;
 {
-	int digs[20], *dptr;
-	char k;
-	double	f ,g;
-	long q;
+	char	digs[34];
+	register char *dp;
+	register int k;
+	u_long	q;
 
-	dptr=digs;
-	IF fmat!='D'
-	THEN	f=leng(lx); f *= itol(1,0); f += leng(ly);
-		IF fmat=='x' THEN *digitptr++='#'; FI
-	ELSE	f=itol(lx,ly);
-		IF f<0 THEN *digitptr++='-'; f = -f; FI
+	dp=digs;
+	IF fmat=='D' ANDF lx<0
+	THEN	*digitptr++='-';
+		q = -lx;
+	ELSE	q = lx;
 	FI
-	WHILE f
-	DO  q=f/base; g=q;
-	    *dptr++ = f-g*base;
-	    f=q;
-	OD
-	IF dptr==digs THEN *dptr++=0; FI
-	WHILE dptr!=digs
-	DO  k = *--dptr;
+	REP	*dp++ = q % base;
+		q /= base;
+	PER q DONE
+	WHILE dp!=digs
+	DO  k = *--dp;
 	    *digitptr++ = (k+(k<=9 ? '0' : 'a'-10));
 	OD
 }

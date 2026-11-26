@@ -6,20 +6,17 @@
 	MSG     A68BAD;
 	MSG     A68LNK;
 	MSG     BADMOD;
+	MSG	NOPCS;
 	MAP     txtmap;
 	MAP     datmap;
-	char	curov;
-	int	overlay;
 extern	struct	SYMbol	*symbol;
-	int	lastframe;
 	int     kernel;
-	int	callpc;
 	int	infile;
 	int	outfile;
 	char	*lp;
 	int	maxoff;
 	int	maxpos;
-	int	octal;
+	int	radix = 16;
 	long	localval;
 	BKPTR   bkpthead;
 	char    lastc;
@@ -37,44 +34,39 @@ extern	struct	SYMbol	*symbol;
 	int	adrflg;
 	long	cntval;
 	int	cntflg;
-	int     overlay;
+	int	model;
+	u_int	frame;		/* findfn.c */
+	long	retpc;
+	u_int	argp;
+	int	narg;
+	u_int	ssel;
 
 	REGLIST reglist [] = {
-		"ps", RPS,
-		"pc", PC,
-		"sp", R6,
-		"r5", R5,
-		"r4", R4,
-		"r3", R3,
-		"r2", R2,
-		"r1", R1,
-		"r0", R0
+		"ax", AX,
+		"bx", BX,
+		"cx", CX,
+		"dx", DX,
+		"si", SI,
+		"di", DI,
+		"bp", BP,
+		"sp", RSP,
+		"ip", IP,
+		"cs", CS,
+		"ds", DS,
+		"es", ES,
+		"ss", SS,
+		"fl", FLAGS
 		};
-
-	REGLIST kregs[] = {
-		"sp", KSP,
-		"r5", KR5,
-		"r4", KR4,
-		"r3", KR3,
-		"r2", KR2,
-		"r1", KR1,
-		"r0", KR0
-	};
 
 
 /* general printing routines ($) */
 
 printtrace(modif)
 {
-	int	narg, i, stat, name, limit;
-	u_int	dynam;
+	int	i, stack;
 	register BKPTR       bkptr;
-	char	hi, lo;
-	int	word, stack;
 	char	*comptr;
-	long	argp, frame, link;
 	register struct	SYMbol	*symp;
-	char	savov;
 
 	IF cntflg==0 THEN cntval = -1; FI
 
@@ -141,10 +133,13 @@ printtrace(modif)
 		break;
 
 	    case 'o':
-		octal = TRUE; break;
+		radix = 8; break;
 
 	    case 'd':
-		octal = FALSE; break;
+		radix = 10; break;
+
+	    case 'x':
+		radix = 16; break;
 
 	    case 'q': case 'Q': case '%':
 		done();
@@ -162,7 +157,7 @@ printtrace(modif)
 		FOR i=0;i<=35;i++
 		DO IF var[i]
 		   THEN printc((i<=9 ? '0' : 'a'-10) + i);
-			printf(" = %Q\n",var[i]);
+			printf(" = %X\n",var[i]);
 		   FI
 		OD
 		break;
@@ -188,62 +183,32 @@ printtrace(modif)
 		return;
 
 	    case 'c': case 'C':
-		frame=(adrflg?adrval:(kernel?corhdr[KR5]:uar0[R5]))&EVEN;
-		lastframe=0;
-		savov = curov;
-		callpc=(adrflg?get(frame+2,DSP):(kernel?(-2):uar0[PC]));
+		firstframe(adrval, adrflg);
 		WHILE cntval--
 		DO      chkerr();
- 			printf("%07O: ", frame); /* Add frame address info */
-			narg = findroutine(frame);
+			printf("%4x: ", frame);
 			printf("%s(", cache_sym(symbol));
-			argp = frame+4;
-			IF --narg >= 0
-			THEN    printf("%o", get(argp, DSP));
-			FI
-			WHILE --narg >= 0
-			DO      argp += 2;
-				printf(",%o", get(argp, DSP));
+			FOR i = 0; i < narg; i++
+			DO	IF i THEN printc(','); FI
+				printf("%x", get(ADDR(ssel, argp + 2 * i), DSP));
 			OD
  			/* Add return-PC info.  Force printout of
  			 * symbol+offset (never just a number! ) by using
- 			 * max possible offset.  Overlay has already been set
- 			 * properly by findfn.
+ 			 * max possible offset.
  			 */
  			printf(") from ");
  			{
 				int	savmaxoff = maxoff;
-				int	save_symcnt;
-
-				/* we need to save symcnt variable as psymoff
-				** is going to change it and then the local
-				** symbol dump is going to be off by a frame */
-
-				save_symcnt = sympos();
 
  				maxoff = ((unsigned)-1)>>1;
- 				psymoff((long)callpc,ISYM,"");
+ 				psymoff(retpc,ISYM,"");
  				maxoff = savmaxoff;
-				symset(save_symcnt);
  			}
  			printc('\n');
-
-			IF modif=='C'
-			THEN WHILE localsym(frame)
-			     DO word=get(localval,DSP);
-				printf("%8t%s:%10t", cache_sym(symbol));
-				IF errflg THEN printf("?\n"); errflg=0; ELSE printf("%o\n",word); FI
-			     OD
-			FI
-
-			lastframe=frame;
-			frame=get(frame, DSP)&EVEN;
-			IF kernel? ((u_int)frame>((u_int)0140000+ctob(USIZE))):
-			    (frame==0)
-				THEN break; FI
+			errflg = 0;
+			IF !nextframe() THEN break; FI
 		OD
-		if (overlay)
-			setovmap(savov);
+		errflg = 0;
 		break;
 
 	    /*print externals*/
@@ -252,66 +217,24 @@ printtrace(modif)
 		WHILE (symp=symget())
 		DO chkerr();
 		   IF (symp->type == (N_EXT|N_DATA)) || (symp->type == (N_EXT|N_BSS))
-		   THEN printf("%s:%16t%o\n", no_cache_sym(symp),
-				get(leng(symp->value),DSP));
+		   THEN printf("%s:%16t%x\n", no_cache_sym(symp),
+				get(ADDR(segsel(symp->ovno), symp->value),DSP));
 		   FI
 		OD
-		break;
-
-	    case 'a': case 'A':
-		frame=(adrflg ? adrval : uar0[R4]);
-
-		WHILE cntval--
-		DO chkerr();
-		   stat=get(frame,DSP); dynam=get(frame+2,DSP); link=get(frame+4,DSP);
-		   IF modif=='A'
-		   THEN printf("%8O:%8t%-8o,%-8o,%-8o",frame,stat,dynam,link);
-		   FI
-		   IF stat==1 THEN break; FI
-		   IF errflg THEN error(A68BAD); FI
-
-		   IF get(link-4,ISP)!=04767
-		   THEN IF get(link-2,ISP)!=04775
-			THEN error(A68LNK);
-			ELSE /*compute entry point of routine*/
-			     printf(" ? ");
-			FI
-		   ELSE printf("%8t");
-			valpr(name=shorten(link)+get(link-2,ISP),ISYM);
-			name=get(leng(name-2),ISP);
-			printf("%8t\""); limit=8;
-			REP word=get(leng(name),DSP); name += 2;
-			    lo=word&LOBYTE; hi=(word>>8)&LOBYTE;
-			    printc(lo); printc(hi);
-			PER lo ANDF hi ANDF limit-- DONE
-			printc('"');
-		   FI
-		   limit=4; i=6; printf("%24targs:%8t");
-		   WHILE limit--
-		   DO printf("%8t%o",get(frame+i,DSP)); i += 2; OD
-		   printc(EOR);
-
-		   frame=dynam;
-		OD
-		errflg=0;
-		flushbuf();
 		break;
 
 	    /*set default c frame*/
 	    /*print breakpoints*/
 	    case 'b': case 'B':
 		printf("breakpoints\ncount%8tbkpt%24tcommand\n");
-		savov = curov;
 		FOR bkptr=bkpthead; bkptr; bkptr=bkptr->nxtbkpt
 		DO IF bkptr->flag
 		   THEN printf("%-8.8d",bkptr->count);
-			curov = bkptr->ovly;
-			psymoff(leng(bkptr->loc),ISYM,"%24t");
+			psymoff(bkptr->loc,ISYM,"%24t");
 			comptr=bkptr->comm;
 			WHILE *comptr DO printc(*comptr++); OD
 		   FI
 		OD
-		curov = savov;
 		break;
 
 	    default: error(BADMOD);
@@ -324,44 +247,91 @@ printmap(s,amap)
 	MAP	*amap;
 {
 	int file;
+	register struct seg *sp;
+
 	file=amap->ufd;
 	printf("%s%12t`%s'\n",s,(file<0 ? "-" : (file==fcor ? corfil : symfil)));
-	printf("b1 = %-16Q",amap->b1);
-	printf("e1 = %-16Q",amap->e1);
-	printf("f1 = %-16Q",amap->f1);
-	IF amap->bo
-	THEN    printf("\n\t{ bo = %-16Q",amap->bo);
-		printf("eo = %-16Q",amap->eo);
-		printf("fo = %-16Q}",amap->fo);
+	IF amap->nseg
+	THEN	FOR sp = amap->seg; sp < &amap->seg[amap->nseg]; sp++
+		DO	printf("%4x %s%8tb = %-8xe = %-8xf = %-16X",
+			    sp->sel, sp->type == XS_CODE ? "code" : "data",
+			    (u_int)sp->b, (u_int)sp->e, sp->f);
+			IF sp->z > sp->e
+			THEN	printf("z = %X", sp->z);
+			FI
+			printc(EOR);
+		OD
+		return;
 	FI
-	printf("\nb2 = %-16Q",amap->b2);
-	printf("e2 = %-16Q",amap->e2);
-	printf("f2 = %-16Q",amap->f2);
+	printf("b1 = %-16X",amap->b1);
+	printf("e1 = %-16X",amap->e1);
+	printf("f1 = %-16X",amap->f1);
+	printf("\nb2 = %-16X",amap->b2);
+	printf("e2 = %-16X",amap->e2);
+	printf("f2 = %-16X",amap->f2);
 	printc(EOR);
 }
 
 /*
- * ARGH.  Completely incorrect.  Apparently the way the FP regs were stored
- * in the U area changed between V7 and 2.10/2.11BSD and adb was never fixed.
- * The kernel always saves the FP regs as 'double' and saves the registers in
- * order (0 thru 5) now.  Tended to 1998/4/21
-*/
+ * A register of the 287's, as FSAVE leaves it: ten bytes, the
+ * fraction's 64 bits from the lowest word, then the sign and the
+ * exponent.  As a double, which is all of it but the last bits of the
+ * fraction.
+ */
+double
+extended(w)
+	register u_short *w;
+{
+	union {
+		double	d;
+		u_short	s[4];
+	} u;
+	register int e;
 
+	e = w[4] & 0x7fff;
+	IF e == 0 ANDF (w[0] | w[1] | w[2] | w[3]) == 0
+	THEN	u.s[3] = w[4] & 0x8000;
+		u.s[0] = u.s[1] = u.s[2] = 0;
+		return(u.d);
+	FI
+	IF e == 0x7fff
+	THEN	e = 0x7ff;
+	ELSE	e = e - 16383 + 1023;
+		IF e >= 0x7ff THEN e = 0x7ff; FI
+		IF e <= 0 THEN e = 0; FI
+	FI
+	u.s[3] = (w[4] & 0x8000) | (e << 4) | ((w[3] >> 11) & 0xf);
+	u.s[2] = (w[3] << 5) | (w[2] >> 11);
+	u.s[1] = (w[2] << 5) | (w[1] >> 11);
+	u.s[0] = (w[1] << 5) | (w[0] >> 11);
+	return(u.d);
+}
+
+/*
+ * The 287: its control, status and tag words, and its stack, st0 at its
+ * top.  FSAVE puts seven words and then the eight registers in the
+ * order of the stack.
+ */
 printfregs(longpr)
 	int	longpr;
 	{
-	register int i;
-	int	prec;
-	register struct fps *pfp;
+	register int i, tag;
+	register u_short *st;
+	int	top;
 
-	pfp = (struct fps *)&((U*)corhdr)->u_fps;
-	printf("fpsr\t%o\n", pfp->u_fpsr);
-	if	(longpr || (pfp->u_fpsr & 0200))
-		prec = 16;
-	else
-		prec = 8;
-	for	(i = 0; i < 6; i++)
-		printf("fr%d\t%-24.*f\n", i, prec, pfp->u_fpregs[i]);
+	st = (u_short *)((U*)corhdr)->u_fps.u_fpstate;
+	printf("cw%8t%x\nsw%8t%x\ntw%8t%x\n", st[0], st[1], st[2]);
+	top = (st[1] >> 11) & 07;
+	for	(i = 0; i < 8; i++)
+		{
+		tag = (st[2] >> (2 * ((top + i) & 07))) & 03;
+		printf("st%d%8t", i);
+		if	(tag == 3)
+			printf("empty\n");
+		else
+			printf("%-24.*f\n", longpr ? 18 : 9,
+			    extended(&st[7 + 5 * i]));
+		}
 	}
 
 printregs()
@@ -369,24 +339,18 @@ printregs()
 	register REGPTR      p;
 	int	v;
 
-	IF kernel
-	THEN    FOR p=kregs; p<&kregs[7]; p++
-		DO      printf("%s%8t%o%8t", p->rname, v=corhdr[p->roffs]);
-			valpr(v,DSYM);
-			printc(EOR);
-		OD
-	ELSE    FOR p=reglist; p < &reglist[NREG]; p++
-		DO      printf("%s%8t%o%8t", p->rname, v=uar0[p->roffs]);
-			valpr(v,(p->roffs==PC?ISYM:DSYM));
-			printc(EOR);
-		OD
-		IF overlay
-		THEN    setovmap(((U *)corhdr)->u_ovdata.uo_curov);
-			var[VARC] = curov;
-			printf("ov%8t%o\n", curov);
+	IF kernel THEN error(NOPCS); FI
+	FOR p=reglist; p < &reglist[NREG]; p++
+	DO      printf("%s%8t%x%8t", p->rname, v=uar0[p->roffs]);
+		IF p->roffs == IP
+		THEN	valpr(pcaddr(), ISYM);
+		ELIF p->roffs != CS ANDF p->roffs != DS ANDF p->roffs != ES
+		    ANDF p->roffs != SS ANDF p->roffs != FLAGS
+		THEN	valpr(leng(v), DSYM);
 		FI
-		printpc();
-	FI
+		printc(EOR);
+	OD
+	printpc();
 }
 
 getreg(regnam)
@@ -403,16 +367,13 @@ getreg(regnam)
 		THEN    return(p->roffs);
 		FI
 	OD
-	IF regnam == 'o' && regnxt == 'v'
-	THEN    return((u_int *)&(((U *)corhdr)->u_ovdata.uo_curov) - uar0);
-	FI
 	lp--;
 	return(NOREG);
 }
 
 printpc()
 {
-	dot=uar0[PC];
+	dot=pcaddr();
 	psymoff(dot,ISYM,":%16t"); printins(ISP,chkget(dot,ISP));
 	printc(EOR);
 }

@@ -81,7 +81,8 @@ open		pii
 pipe		p	pair
 profil		piii
 pselect		ippppp
-ptrace		iipi	errno0
+# ptrace's address is in the traced process, not the caller: far always.
+ptrace		iiPi	errno0
 quota		iiip
 read		ipi
 readlink	ppi

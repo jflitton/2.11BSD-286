@@ -1,5 +1,5 @@
 #if     !defined(lint) && defined(DOSCCS)
-static  char    sccsid[] = "@(#)main.c 2.0 (2.11BSD) 2026/9/21";
+static  char    sccsid[] = "@(#)main.c 3.0 (2.11BSD) 2026/11/25";
 #endif
 
 #include "defs.h"
@@ -18,13 +18,10 @@ static  char    sccsid[] = "@(#)main.c 2.0 (2.11BSD) 2026/9/21";
 	int	wtflag;
 	int	kernel;
 	long	maxfile;
-	long	maxstor;
 	long	txtsiz;
 	long	datsiz;
 	long	datbas;
 	long	stksiz;
-	long	ovlsiz;
-	int	overlay;
 	char	*errflg;
 	int	exitflg;
 	int	magic;
@@ -80,7 +77,6 @@ main(argc, argv)
 	short	mynamelen;		/* length of program name */
 
 	maxfile = 1L << 24;
-	maxstor = 1L << 16;
 	if	(isatty(0))
 		myname = *argv;
 	else
@@ -113,10 +109,6 @@ main(argc, argv)
 	var[VARM] = magic;
 	var[VARS] = stksiz;
 	var[VART] = txtsiz;
-	/* if text overlay, enter total overlay area size */
-	IF overlay
-	THEN	var[VARO] = ovlsiz;
-	FI
 
 	IF (sigint=signal(SIGINT, SIG_IGN))!=SIG_IGN
 	THEN	sigint=fault; signal(SIGINT,fault);
