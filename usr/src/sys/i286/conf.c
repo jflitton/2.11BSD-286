@@ -31,7 +31,7 @@ daddr_t	rdsize();
 
 #include "wd.h"
 #if NWD > 0
-int	wdopen(), wdclose(), wdstrategy(), wdioctl();
+int	wdopen(), wdclose(), wdstrategy(), wdioctl(), wddump();
 daddr_t	wdsize();
 #else
 #define	wdopen		nodev
@@ -39,11 +39,12 @@ daddr_t	wdsize();
 #define	wdstrategy	nodev
 #define	wdioctl		nodev
 #define	wdsize		NULL
+#define	wddump		NULL
 #endif
 
 #include "sd.h"
 #if NSD > 0
-int	sdopen(), sdclose(), sdstrategy(), sdioctl();
+int	sdopen(), sdclose(), sdstrategy(), sdioctl(), sddump();
 daddr_t	sdsize();
 #else
 #define	sdopen		nodev
@@ -51,6 +52,7 @@ daddr_t	sdsize();
 #define	sdstrategy	nodev
 #define	sdioctl		nodev
 #define	sdsize		NULL
+#define	sddump		NULL
 #endif
 
 #include "fl.h"
@@ -71,19 +73,28 @@ daddr_t	flsize();
  */
 dev_t	diskroot = makedev(1, 0);
 
+/*
+ * Where a crash dump goes (machdep.c, dumpsys): the swap area, when its
+ * driver can write one, which init_main.c makes it, and dumplo sectors
+ * into it, which leaves the start of it to what is swapped out before
+ * savecore has saved the dump.  NODEV takes none.
+ */
+dev_t	dumpdev = NODEV;
+daddr_t	dumplo = 512;
+
 struct bdevsw	bdevsw[] = {
 /* rd = 0 */
 	rdopen,		nulldev,	rdstrategy,	rdroot,		rdsize,
-	0,
+	0,		NULL,
 /* wd = 1 */
 	wdopen,		wdclose,	wdstrategy,	nulldev,	wdsize,
-	0,
+	0,		wddump,
 /* sd = 2 */
 	sdopen,		sdclose,	sdstrategy,	nulldev,	sdsize,
-	D_RUNS,
+	D_RUNS,		sddump,
 /* fl = 3 */
 	flopen,		flclose,	flstrategy,	nulldev,	flsize,
-	0,
+	0,		NULL,
 };
 int	nblkdev = sizeof(bdevsw) / sizeof(bdevsw[0]);
 

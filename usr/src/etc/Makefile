@@ -14,9 +14,9 @@
 # each), as 4.4BSD's distribution makes them first, so that what the
 # Makefiles of /usr/src install has where to go; and after the files,
 # the devices, by MAKEDEV, which makes what the machine has (all), as
-# 4.4BSD's runs it.  Not the files of autoconfig, savecore and uucp,
-# which the 286 has not: dtab, shutdownlog and uucp's (SUBDIR); nor
-# rc.local, whose work its rc does.  /usr/adm, /var/run
+# 4.4BSD's runs it.  Not the files of autoconfig and uucp, which the
+# 286 has not: dtab and uucp's (SUBDIR); nor rc.local, whose work its
+# rc does.  /usr/adm, /var/run
 # and /var/db are 755, where the owner may search them, and not 655.
 # cron's log is made, and the database of the aliases, as newaliases
 # makes it, without which each sendmail waits for someone to make it.
@@ -83,6 +83,8 @@ distribution:
 	    ${DESTDIR}/usr/adm/daemonlog
 	install -c -o ${OWN} -g ${GRP} -m 644 /dev/null \
 	    ${DESTDIR}/usr/adm/debuglog
+	install -c -o ${OWN} -g operator -m 664 /dev/null \
+	    ${DESTDIR}/usr/adm/shutdownlog
 	install -c -o ${OWN} -g ${GRP} -m 644 /dev/null \
 	    ${DESTDIR}/usr/spool/mqueue/syslog
 	install -c -o ${OWN} -g ${GRP} -m 644 /dev/null \

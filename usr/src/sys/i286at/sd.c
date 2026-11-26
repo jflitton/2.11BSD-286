@@ -413,6 +413,54 @@ sdintr(how)
 	sdstart();
 }
 
+/*
+ * Write count sectors, from memory at the physical address addr, to
+ * sector blkno of a partition, with the processor: a crash dump
+ * (machdep.c, dumpsys), when interrupts are off and a command may be
+ * out, so that the adapter and the bus are reset first.  A target
+ * refuses the first command after that, and each is tried SDTRIES
+ * times.  Returns 0, or an error number.
+ */
+sddump(dev, blkno, addr, count)
+	dev_t dev;
+	daddr_t blkno;
+	long addr;
+	int count;
+{
+	register struct sd *sp = &sd[dkunit(dev)];
+	register struct ccb *cp = &ahaccb;
+	register int i;
+	struct partition *pp;
+	daddr_t sect;
+	static char reset;
+
+	if (dkunit(dev) >= nsd || (sp->sd_dk.dk_flags & DKF_ALIVE) == 0)
+		return (ENXIO);
+	pp = &sp->sd_dk.dk_parts[dkpart(dev)];
+	if (blkno < 0 || blkno + count > pp->p_size)
+		return (EINVAL);
+	if (!reset) {
+		reset = 1;
+		if (ahadumpreset())
+			return (EFAULT);
+	}
+	sect = blkno + sp->sd_start + pp->p_offset;
+	for (i = 0; i < SDTRIES; i++) {
+		ahafill(sp->sd_target, CCB_DATAOUT, 10, addr,
+		    (u_int)count << 9);
+		cp->cc_cdb[0] = SC_WRITE10;
+		cp->cc_cdb[2] = sect >> 24;
+		cp->cc_cdb[3] = sect >> 16;
+		cp->cc_cdb[4] = sect >> 8;
+		cp->cc_cdb[5] = sect;
+		cp->cc_cdb[7] = count >> 8;
+		cp->cc_cdb[8] = count;
+		if (ahapoll() == MBI_OK)
+			return (0);
+	}
+	return (EIO);
+}
+
 sdstrategy(bp)
 	register struct buf *bp;
 {

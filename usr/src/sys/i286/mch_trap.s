@@ -154,11 +154,18 @@ allintr:
 ;
 ; The network calls these too, with DS its own data segment, so they
 ; reach the kernel's data through SS, which is always the kernel's.
+;
+; Those with an underscore before the name, _splnet() and the rest in
+; C, set the level, lower as well as higher, as the PDP-11's do: upstream
+; calls them where it means that, to let the disks' interrupts in as
+; the disks are brought up to date after a panic (boot, tsleep).
 %macro  SPL 2
 ENTRY %1
-ENTRY _%1
         mov     ax, %2
         jmp     short raise
+ENTRY _%1
+        mov     ax, %2
+        jmp     lower
 %endmacro
 
         SPL     splsoftclock, IPL_SOFTCLOCK

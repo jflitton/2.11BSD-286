@@ -7,6 +7,7 @@ extern	struct	SYMbol	*symbol;
 	u_int	*uar0;
 	int	model;
 	int	kernel;
+	u_int	kframe;
 	MAP	txtmap;
 	MAP	datmap;
 
@@ -17,9 +18,10 @@ extern	struct	SYMbol	*symbol;
  * returns to, with the segment of that at [bp+4] where calls are far, as
  * in the medium and large models and the kernel, and its arguments
  * above.  The cross compiler's (tools/cc) may push SI and DI before
- * BP, and then where it returns to is above them.  A function made
- * without a frame, as the cross compiler may make one that needs none,
- * is not seen.
+ * BP, and then where it returns to is above them; it calls a static
+ * function near, in any model, and leaves it out of the symbols.  A
+ * function made without a frame, as the cross compiler may make one
+ * that needs none, is not seen.
  */
 	u_int	frame;		/* the frame, an offset in the stack segment */
 	u_int	nextbp;		/* its caller's */
@@ -30,6 +32,7 @@ extern	struct	SYMbol	*symbol;
 	u_int	ssel;		/* the stack segment */
 
 static	int	far;		/* calls are far */
+static	int	nearret;	/* but this frame's function was called near */
 
 static u_int
 sget(off)
@@ -50,7 +53,7 @@ static long
 getret(off)
 	u_int	off;
 {
-	IF far
+	IF far ANDF !nearret
 	THEN	return(ADDR(sget(off + 2), sget(off)));
 	FI
 	return(ADDR(ASEL(callpc) ? ASEL(callpc) : txtmap.def1, sget(off)));
@@ -80,28 +83,56 @@ static long
 calltarget(ret)
 	long	ret;
 {
-	IF far ANDF iget(ret - 5) == 0x9a
+	IF far ANDF !nearret ANDF iget(ret - 5) == 0x9a
 	THEN	return(ADDR(get(ret - 2, ISP), get(ret - 4, ISP)));
-	ELIF iget(ret - 3) == 0xe8 ANDF (!far ORF iget(ret - 4) == 0x0e)
+	ELIF iget(ret - 3) == 0xe8
+	    ANDF (!far ORF nearret ORF iget(ret - 4) == 0x0e)
 	THEN	return(ADDR(ASEL(ret), AOFF(ret) + get(ret - 2, ISP)));
 	FI
 	return(0L);
 }
 
 /*
- * How many words the function at pc pushes before its frame: SI and DI,
- * where the cross compiler saves them first.
+ * Is what is before ret a call, which returns there: near or far as
+ * this frame's function was called?  Through a pointer it is FF with
+ * the operation in bits 3 to 5 of the next byte, 2 near and 3 far, and
+ * the operand's length in that byte's mode.
  */
 static
-saved(pc)
-	long	pc;
+aftercall(ret)
+	long	ret;
+{
+	register int n, m, len;
+	int	near = !far ORF nearret;
+
+	IF calltarget(ret) THEN return(1); FI
+	FOR n = 2; n <= 4; n++
+	DO	m = iget(ret - n + 1);
+		IF iget(ret - n) != 0xff ORF (m >> 3 & 7) != (near ? 2 : 3)
+		THEN	continue;
+		FI
+		len = m >> 6;
+		IF len == 0
+		THEN	len = (m & 7) == 6 ? 4 : 2;
+		ELIF len == 3
+		THEN	len = near ? 2 : 0;
+		ELSE	len += 2;
+		FI
+		IF len == n THEN return(1); FI
+	OD
+	return(0);
+}
+
+/*
+ * How many words the function that begins at f pushes before its
+ * frame: SI and DI, where the cross compiler saves them first.
+ */
+static
+savedat(f)
+	long	f;
 {
 	register int n, op;
-	long	f;
 
-	n = findsym(pc, ISYM);
-	IF symbol == NULL THEN return(0); FI
-	f = fulladr(pc, ISP) - (u_int)n;
 	FOR n = 0; n < 2; n++
 	DO	op = iget(f + n);
 		IF op != 0x56 ANDF op != 0x57 THEN break; FI
@@ -109,42 +140,108 @@ saved(pc)
 	return(n);
 }
 
-/*
- * The rest of a frame, from where it keeps its caller's BP, its function
- * having pushed k words before it.
- */
-static
-fillframe(f, k)
-	u_int	f;
-	int	k;
+/* where the function that pc is in begins, by its symbol; 0 if none */
+static long
+funcstart(pc)
+	long	pc;
 {
-	frame = f;
-	nextbp = sget(f);
-	retpc = getret(f + 2 + 2 * k);
-	argp = f + 2 * k + (far ? 6 : 4);
+	register int n;
+
+	n = findsym(pc, ISYM);
+	IF symbol == NULL THEN return(0L); FI
+	return(fulladr(pc, ISP) - (u_int)n);
+}
+
+/* savedat for the function that pc is in */
+static
+saved(pc)
+	long	pc;
+{
+	long	f;
+
+	f = funcstart(pc);
+	return(f ? savedat(f) : 0);
 }
 
 /*
- * How many words the function of the frame at f pushed before it, when
- * only the frame is known: as many as put where it returns to after a
- * call of a function that pushes that many, or else none.
+ * The rest of a frame, from where it keeps its caller's BP, its function
+ * having pushed k words before it, and been called near if near.
  */
 static
-framesaved(f)
+fillframe(f, k, near)
 	u_int	f;
+	int	k, near;
 {
-	register int k;
-	long	pc;
+	frame = f;
+	nextbp = sget(f);
+	nearret = far ANDF near;
+	retpc = getret(f + 2 + 2 * k);
+	argp = f + 2 * k + (far ANDF !near ? 6 : 4);
+}
 
-	FOR k = 0; k <= 2; k++
-	DO	errflg = 0;
-		fillframe(f, k);
+/*
+ * Does the function that begins at f push n words, and then BP for its
+ * frame?
+ */
+static
+hasframe(f, n)
+	long	f;
+	int	n;
+{
+	register int op;
+
+	IF savedat(f) != n THEN return(0); FI
+	op = iget(f + n);
+	return(op == 0x55 ORF op == 0xc8);	/* push bp, enter */
+}
+
+/*
+ * The frame at f: its function having pushed k words before it, as its
+ * code says, if that has it return to just after a call.  Else as many
+ * as the function pushes that the call before where the frame returns
+ * to is to, the frame being that function's, called far or near: the
+ * function the frame within it returned to made no frame of its own,
+ * or has no symbol, as the cross compiler's static functions have none
+ * and are called near.  The frame's function is then the one the call
+ * is to (callpc is 0); so too when the call names a function that is
+ * not the one returned to, the frame within having been an exception's
+ * and not a call's.  k is -1 when no code says.  Returns 0 if neither
+ * finds a frame.
+ */
+static
+pickframe(f, k)
+	u_int	f;
+	int	k;
+{
+	register int n, near;
+	long	pc, start;
+
+	IF k >= 0
+	THEN	errflg = 0;
+		fillframe(f, k, 0);
 		IF errflg == 0 ANDF segtype(ASEL(retpc)) == ISYM
+		    ANDF aftercall(retpc) ANDF errflg == 0
 		THEN	pc = calltarget(retpc);
-			IF pc ANDF saved(pc) == k ANDF errflg == 0
-			THEN	return(k);
+			start = funcstart(callpc);
+			IF pc ANDF (AOFF(pc) != AOFF(start)
+			    ORF !SAMESEG(ASEL(pc), ASEL(start)))
+			THEN	callpc = 0;
 			FI
+			errflg = 0;
+			return(1);
 		FI
+	FI
+	FOR near = 0; near <= far; near++
+	DO	FOR n = 0; n <= 2; n++
+		DO	errflg = 0;
+			fillframe(f, n, near);
+			IF errflg == 0 ANDF segtype(ASEL(retpc)) == ISYM
+			    ANDF (pc = calltarget(retpc)) ANDF hasframe(pc, n)
+			    ANDF errflg == 0
+			THEN	callpc = 0;
+				return(1);
+			FI
+		OD
 	OD
 	errflg = 0;
 	return(0);
@@ -167,10 +264,11 @@ framesym()
 
 /*
  * The innermost frame.  With an address it is the frame there, whose
- * function is the one its caller's call names.  Else it is the
- * registers': a function at its first instruction has not pushed BP,
- * and one at MOV BP,SP has not made BP its frame, and its frame is at
- * SP.
+ * function is the one its caller's call names; in a crash dump of the
+ * kernel without one it is the frame of the routine that took the dump
+ * (kframe).  Else it is the registers': a function at its first
+ * instruction has not pushed BP, and one at MOV BP,SP has not made BP
+ * its frame, and its frame is at SP.
  */
 firstframe(adr, given)
 	long	adr;
@@ -180,11 +278,16 @@ firstframe(adr, given)
 	register int w;
 
 	far = model != A_SMALL;
+	nearret = 0;
 	ssel = datmap.def2;
+	IF !given ANDF kernel ANDF kframe
+	THEN	adr = kframe;
+		given = TRUE;
+	FI
 	IF given
 	THEN	IF ASEL(adr) THEN ssel = ASEL(adr); FI
 		callpc = 0;
-		fillframe(AOFF(adr), framesaved(AOFF(adr)));
+		IF !pickframe(AOFF(adr), -1) THEN fillframe(AOFF(adr), 0, 0); FI
 		framesym();
 		return;
 	FI
@@ -198,8 +301,8 @@ firstframe(adr, given)
 		retpc = getret(sp);
 		argp = sp + (far ? 4 : 2);
 	ELIF (w = get(callpc, ISP)) == 0xe589 ORF w == 0xec8b
-	THEN	fillframe(sp, saved(callpc));
-	ELSE	fillframe(uar0[BP], saved(callpc));
+	THEN	fillframe(sp, saved(callpc), 0);
+	ELSE	fillframe(uar0[BP], saved(callpc), 0);
 	FI
 	framesym();
 }
@@ -215,12 +318,12 @@ nextframe()
 	THEN	return(0);
 	FI
 	callpc = retpc - 1;
-	fillframe(nextbp, saved(callpc));
 	/*
-	 * The start-up's frame, whose return address is no code's: the
-	 * large model's crt0 keeps the arguments it passes main at BP.
+	 * Not one at the start-up's frame, whose return address is no
+	 * code's: the large model's crt0 keeps the arguments it passes
+	 * main at BP.
 	 */
-	IF errflg ORF segtype(ASEL(retpc)) != ISYM THEN return(0); FI
+	IF !pickframe(nextbp, saved(callpc)) THEN return(0); FI
 	framesym();
 	IF errflg THEN return(0); FI
 	return(1);

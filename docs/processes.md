@@ -302,6 +302,14 @@ requested and run the same way. A device's handler is given to
 network, the Ethernet card's, is marked as `timeout`'s are, and called
 through `KScall`, which gives it the network's data segment.
 
+`splnet()` and the others raise the level and never lower it. Those
+named with an underscore, `_splnet()` and the rest, set it, lower as
+well as higher, as the PDP-11's do: upstream calls them where it means
+that. After a panic, `boot` and `tsleep` lower the level so that the
+disks' interrupts come in while the disks are brought up to date, and
+`boot` turns the processor's interrupts on as well, since an exception
+in the kernel arrives with them off.
+
 A process runs at level 0. The PDP-11 makes it so by restoring the PS on
 the way back to user mode; here `userret`, which every way back to a
 process passes through, lowers the level. Without that a process went on

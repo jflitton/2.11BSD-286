@@ -553,6 +553,19 @@ ahapoll()
 	return (st == MBI_FREE ? AHA_LOST : st);
 }
 
+/*
+ * Make the adapter ready for ahapoll whatever it was doing, for a crash
+ * dump: it and the SCSI bus are reset, and a command that was out is
+ * lost.  Returns 0 if it is ready.  Called with interrupts off.
+ */
+ahadumpreset()
+{
+	if (aha.a_state != A_PRESENT)
+		return (-1);
+	aha.a_busy = 0;
+	return (ahasetup(CTRL_SCRST));
+}
+
 /* Take what the mailboxes in have.  Called at splbio. */
 static
 ahadone()

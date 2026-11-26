@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """Change a variable in an executable file.
 
-usage: kpatch.py EXECUTABLE NAME=VALUE ...
+usage: kpatch.py EXECUTABLE NAME[+OFFSET]=VALUE ...
 
 EXECUTABLE is in the system's format (docs/executable-format.md) and has
 its symbol table; NAME is a C variable in it, 16 bits, with a value in the
 file, which is to say one that the program gives an initial value other
 than zero.  The kernel marks the variables meant for this "(patchable)".
+With OFFSET it is the 16 bits that many bytes into the variable, a member
+of a structure or an array: sysent+310 is the segment of the function
+of the kernel's system call 51 (tests/crash).
 """
 import struct
 import sys
@@ -39,9 +42,11 @@ def main():
         syms[b[stroff + strx:end].decode()] = (seg, value)
     for arg in sys.argv[2:]:
         name, _, value = arg.partition("=")
+        name, _, off = name.partition("+")
         if "_" + name not in syms:
             sys.exit("%s: no symbol %s" % (path, name))
         seg, at = syms["_" + name]
+        at += int(off or "0", 0)
         base, filesz = where[seg - 1]
         if at + 2 > filesz:
             sys.exit("%s: %s has no value in the file" % (path, name))

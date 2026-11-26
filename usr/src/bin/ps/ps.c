@@ -59,6 +59,12 @@
 #define	X_PSEG		5
 #endif
 
+#ifdef i286
+off_t	kmemoff();
+#else
+#define	kmemoff(off)	(off)	/* a dump is laid out as /dev/kmem is */
+#endif
+
 /*
  * This is no longer the size of a symbol's name, symbols can be much
  * larger now.  This define says how many characters of a symbol's name
@@ -279,9 +285,12 @@ main (argc, argv)
 		perrexit(memf);
 	if	(swap < 0)
 		perrexit(swapf);
+#ifdef i286
+	dumpinit();
+#endif
 
 	getkvars();
-	lseek(kmem,(off_t)nl[X_PROC].n_value,0);
+	lseek(kmem,kmemoff((off_t)nl[X_PROC].n_value),0);
 	uid = getuid();
 	euid = geteuid();
 	mytty = ttyname(0);
@@ -474,13 +483,14 @@ getu286x()
 		return(0);
 	}
 	kp = (struct proc *)nl[X_PROC].n_value + mprocx;
-	lseek(kmem, (off_t)nl[X_SLOTPROC].n_value +
-	    procp->p_slot * sizeof (inslot), 0);
+	lseek(kmem, kmemoff((off_t)nl[X_SLOTPROC].n_value +
+	    procp->p_slot * sizeof (inslot)), 0);
 	if (read(kmem, (char *)&inslot, sizeof (inslot)) != sizeof (inslot))
 		return(1);
 	if (inslot == kp) {
 		file = kmem;
-		addr = (off_t)nl[X_USLOT].n_value + procp->p_slot * UBYTES;
+		addr = kmemoff((off_t)nl[X_USLOT].n_value +
+		    procp->p_slot * UBYTES);
 	} else {
 		file = mem;
 		addr = ctob((off_t)procp->p_addr);
@@ -489,8 +499,9 @@ getu286x()
 	if (read(file, (char *)&u, sizeof (u)) != sizeof (u))
 		return(1);
 
-	lseek(kmem, ((off_t)nl[X_PSEG].n_ovly << 16) + nl[X_PSEG].n_value +
-	    (mprocx * NSEG + u.u_dseg) * (off_t)sizeof (ps), 0);
+	lseek(kmem, kmemoff(((off_t)nl[X_PSEG].n_ovly << 16) +
+	    nl[X_PSEG].n_value + (mprocx * NSEG + u.u_dseg) *
+	    (off_t)sizeof (ps)), 0);
 	if (read(kmem, (char *)&ps, sizeof (ps)) != sizeof (ps))
 		return(1);
 	if (procp->p_flag & SLOAD) {
@@ -504,6 +515,53 @@ getu286x()
 	datmap.e1 = (off_t)ps.ps_limit + 1;
 	datmap.b2 = datmap.e2 = datmap.f2 = 0;
 	return(0);
+}
+
+/*
+ * With -k, a crash dump that savecore(8) saved is read in place of the
+ * memory files, as upstream's ps reads one.  The dump is the machine's
+ * memory from address 0, so an address in /dev/mem is the same place in
+ * the dump.  The kernel's segments are elsewhere than in /dev/kmem, which
+ * has a segment's number in the high word: each is where the global
+ * descriptor table saved in the dump says, and the header at the start
+ * of the dump has the table's address (<machine/seg.h>).
+ */
+	struct	segdesc kseg[NKSEG];	/* those of the kernel's segments */
+	int	isdump;			/* and kmem is a dump */
+
+dumpinit()
+{
+	struct	dumphdr dh;
+	struct	stat st;
+
+	if (fstat(kmem, &st) < 0 || (st.st_mode & S_IFMT) != S_IFREG)
+		return;
+	if (read(kmem, (char *)&dh, sizeof (dh)) != sizeof (dh) ||
+	    dh.dh_magic != DH_MAGIC)
+		return;
+	lseek(kmem, dh.dh_gdt + GDT_KERNEL * sizeof (struct segdesc), 0);
+	if (read(kmem, (char *)kseg, sizeof (kseg)) == sizeof (kseg))
+		isdump = 1;
+}
+
+/*
+ * The place in kmem of off in /dev/kmem, where segment 0 is the data
+ * segment, whose number _proc's symbol has.
+ */
+off_t
+kmemoff(off)
+	off_t	off;
+{
+	register struct segdesc *sd;
+	register u_int n;
+
+	n = (u_int)(off >> 16);
+	if (n == 0)
+		n = nl[X_PROC].n_ovly;
+	if (!isdump || n == 0 || n > NKSEG)
+		return(off);
+	sd = &kseg[n - 1];
+	return(((off_t)sd->sd_basehi << 16 | sd->sd_base) + (u_int)off);
 }
 #endif
 
@@ -824,7 +882,7 @@ getkvars()
 
 	/* find number of procs */
 	if (nl[X_NPROC].n_value) {
-		lseek(kmem,(off_t)nl[X_NPROC].n_value,0);
+		lseek(kmem,kmemoff((off_t)nl[X_NPROC].n_value),0);
 		if (read(kmem,(char *)&nproc,sizeof(nproc)) != sizeof(nproc)) {
 			perror(kmemf);
 			exit(1);
@@ -841,7 +899,7 @@ getkvars()
 	}
 
 	/* find value of hz */
-	lseek(kmem,(off_t)nl[X_HZ].n_value,0);
+	lseek(kmem,kmemoff((off_t)nl[X_HZ].n_value),0);
 	read(kmem,(char *)&hz,sizeof(hz));
 }
 

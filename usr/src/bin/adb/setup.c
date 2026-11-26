@@ -28,6 +28,7 @@
 	struct	xexec	xhdr;
 	struct	pseg	pseg[NSEG];
 	off_t	symoff, stroff;
+	u_int	kframe;
 
 /*
  * The selector of segment n of the program, counting from 1: the slot of
@@ -123,6 +124,11 @@ setsym()
  * from the program.
  *
  * /dev/kmem takes the kernel's segment N, counting from 1, at N << 16.
+ * A crash dump that savecore saved is the memory from address 0, and
+ * the header it begins with says where the global descriptor table is,
+ * whose slot for each segment of the kernel says where it is
+ * (machine/seg.h), and where the frame was when the dump was taken,
+ * for $c (kframe).
  */
 setcor()
 {
@@ -131,18 +137,36 @@ setcor()
 	register struct pseg *ps;
 	long	off;
 	struct	stat st;
+	struct	dumphdr dh;
+	struct	segdesc sd;
 
 	fcor=getfile(corfil,2);
 	bzero(&datmap, sizeof (datmap));
 	datmap.ufd=fcor;
 	datmap.def1 = datmap.def2 = txtmap.def2;
 	IF kernel ANDF magic
-	THEN	FOR n = 0; n < txtmap.nseg; n++
+	THEN	IF fcor < 0 ORF fstat(fcor, &st)
+		    ORF (st.st_mode & S_IFMT) != S_IFREG
+		    ORF read(fcor, &dh, sizeof dh) != sizeof dh
+		    ORF dh.dh_magic != DH_MAGIC
+		THEN	dh.dh_magic = 0;
+		ELSE	kframe = dh.dh_regs.val[2];
+		FI
+		FOR n = 0; n < txtmap.nseg; n++
 		DO	sp = &datmap.seg[n];
 			*sp = txtmap.seg[n];
 			sp->b = 0;
 			sp->e = sp->z;
 			sp->f = (long)(n + 1) << 16;
+			IF dh.dh_magic
+			THEN	IF lseek(fcor, dh.dh_gdt + (GDT_KERNEL + n) *
+				    sizeof sd, 0) == -1
+				    ORF read(fcor, &sd, sizeof sd) != sizeof sd
+				THEN	sp->e = 0;
+				ELSE	sp->f = (long)sd.sd_basehi << 16 |
+					    sd.sd_base;
+				FI
+			FI
 		OD
 		datmap.nseg = n;
 		stksiz = 0;

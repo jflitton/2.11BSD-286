@@ -2584,8 +2584,8 @@ root's prompt and paths, and with the same erase character on the
 console's screens.
 
 Upstream's `rc` is the PDP-11's, with its buses and network interfaces,
-and calls some things that are not built yet: the quota programs and
-`savecore`. This port's checks the file
+and calls some things that are not built yet: the quota programs. This
+port's checks the file
 systems as upstream's does. At an automatic boot `fsck -p` checks each
 in `fstab` that was not unmounted cleanly, the root first and alone; if
 it had to change the root, which is mounted, `rc` starts the system
@@ -2602,8 +2602,10 @@ Ethernet interface's address, netmask and gateway, and runs
 gives an address, the Ethernet interface and the default route, as
 upstream's `rc.conf` and `netstart` do for the PDP-11's interfaces; as
 shipped there is no address, to be set for the machine. Then, in
-upstream's order, it starts `syslogd`; has `expreserve` save what `ex`
-was editing when the system went down; clears `/tmp`; starts `update`,
+upstream's order, it starts `syslogd`; has `savecore` save the dump a
+panic left, if `/etc/crash` is a directory ([crash dumps](#crash-dumps));
+has `expreserve` save what `ex` was editing when the system went down;
+clears `/tmp`; starts `update`,
 which has the kernel write what it holds for the disks every 30
 seconds, and `cron`; turns accounting on ([the log, and what the clock
 runs](#the-log-and-what-the-clock-runs)); and starts `inetd`, `lpd`
@@ -2696,7 +2698,11 @@ from the trap frame at the top of the process's user structure
 INT 3 in place of an instruction's first byte; the stack, which `$c`
 follows by BP, the frame every function of the system's compiler keeps,
 with far returns in the medium and large models, and the cross
-compiler's frames too, whose functions may save SI and DI before BP;
+compiler's frames too, whose functions may save SI and DI before BP,
+and whose static functions are called near and have no symbols: a
+frame is taken to be where a call returns to, by the instruction
+before it, and when its function's code does not say how many words it
+saved, the function the call is to does;
 and the maps of a program, a core file and the kernel, which are of
 segments. Overlays, and `$a`, ALGOL 68's backtrace, went with the
 PDP-11.
@@ -2728,7 +2734,8 @@ the clock's callouts, `*_mfreelist$<mbuf.nxt` the free mbufs.
 `$c` follows a stack in the kernel from a frame given it:
 `*(_uslot+118)$c` is the swapper's, from the BP in its `u_rsave`, the
 first slot of user structures being the swapper's alone
-(`machine/machdep.c`).
+(`machine/machdep.c`). `adb -k` reads a crash dump as well, and `$c`
+there starts where the dump was taken ([crash dumps](#crash-dumps)).
 `callout.next` ends its list with `#` as 4.3BSD's `adb` has it, logical
 negation, which 2.11BSD's had not, so it printed only the first callout;
 `#` before anything but a hexadecimal digit is now negation.
@@ -2737,6 +2744,50 @@ The kernel's side: `ptrace` takes the address in the traced process as a
 far pointer, whatever the caller's model (`syscalls.tab`), and has the
 287 save its registers in the user structure (`fpsync`) before it reads
 or writes them there, as a core dump has.
+
+## Crash dumps
+
+Upstream's `savecore` saves the dump a panic leaves in the swap area
+([disks](disks.md#crash-dumps)), and the kernel that took it, when
+`/etc/rc` runs it at the next start, which it does if `/etc/crash` is a
+directory or a link to one, as upstream's does:
+
+```sh
+mkdir /usr/crash
+ln -s /usr/crash /etc/crash
+```
+
+It copies `/unix` to `unix.N` and the dump to `core.N`, N being the
+number in `bounds` there, which it then makes one more; writes in
+`/usr/adm/shutdownlog`, which `etc`'s Makefile installs as upstream's
+does, when the system started again and after what panic; and clears
+the time in the dump, so that the next start does not save it again.
+A dump is as big as the memory, the hole from 640K to 1M with it: 4.4
+MB on a machine of 4 MB. If there is a number in `minfree`, it saves
+nothing when the file system has fewer kilobytes free than that.
+Upstream's found what it reads in the dump, the time, the panic's
+message and the kernel's version, at the addresses of their symbols,
+the PDP-11's kernel's data being at the start of memory; this one goes
+by the kernel's segments, whose places the global descriptor table
+saved in the dump has, and takes the dump's length from the dump's
+header (`machine/seg.h`), where upstream's took the size of the memory.
+
+```
+adb -k /usr/crash/unix.0 /usr/crash/core.0
+*_panicstr/s	the panic's message
+$c		the stack, from where the dump was taken: _dumpsys, _boot,
+		_panic and what called it, back to the system call
+*_uptr$<u	the user structure of the process that was running
+```
+
+`ps` and `pstat` read a dump with `-k`, as upstream's do: `ps -alx -k
+/usr/crash/core.0:/usr/crash/unix.0` lists the processes there were,
+and `pstat -p -k /usr/crash/unix.0:/usr/crash/core.0` the process
+table. On the PDP-11 a dump has the kernel's data where `/dev/kmem` has
+it, at its start; here `adb`, `ps` and `pstat` know a dump by its
+header and read each of the kernel's segments where the descriptors
+saved in the dump say. `crash(8)` is upstream's with the PDP-11's
+traps, registers and console switches written again for the 286.
 
 ## Following a program
 

@@ -1,0 +1,45 @@
+== dump 0
+bounds core.0 unix.0
+1
+unix.0 is /unix
+4587520
+Reboot after panic:  trap
+_dumpsys() from _boot
+_boot() from _panic
+_panic() from _childret
+_childret() from _trap
+_trap() from alltraps
+_syscall() from allsys
+trap
+(init)
+-sh
+/tmp/crash
+[swapper]
+sh /root/panic.sh
+n/ 96 files
+n/ 96 inodes
+n/ 52 processes
+n/ 32 texts active
+n/ 46 swapmap entries
+n/ 52 coremap entries
+== end
+== dump 1
+bounds core.0 core.1 unix.0 unix.1
+2
+unix.1 is /unix
+4587520
+Reboot after panic:  trap
+Reboot
+_dumpsys() from _boot
+_boot() from _reboot
+_syscall() from allsys
+(init)
+[swapper]
+reboot -d
+n/ 96 files
+n/ 96 inodes
+n/ 52 processes
+n/ 32 texts active
+n/ 46 swapmap entries
+n/ 52 coremap entries
+== end

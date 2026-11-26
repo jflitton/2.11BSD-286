@@ -16,7 +16,7 @@ When the system crashes voluntarily it prints a message of the form
 .IP
 panic: why i gave up the ghost
 .LP
-on the console, takes a dump on a mass storage peripheral,
+on the console, takes a dump in the swap area,
 and then invokes an automatic reboot procedure as
 described in
 .IR reboot (8).
@@ -50,15 +50,17 @@ or the system is attempting to use the wrong device as root filesystem.
 Usually, an alternate copy of the system binary or an alternate root
 filesystem can be used to bring up the system to investigate.
 .TP
-.B Can't exec /etc/init
-This is not a panic message, as reboots are likely to be futile.
-Late in the bootstrap procedure, the system was unable to locate
-and execute the initialization process,
-.IR init (8).
-The root filesystem is incorrect or has been corrupted, or the mode
-or type of /etc/init forbids execution.
+.B swsiz
+.ns
 .TP
-.B hard IO err in swap
+.B swtyp
+The swap area, partition b of the disk the system was started from,
+is not there, or its type in the disk's label is not swap
+(see
+.IR disklabel (8));
+the system will not swap over what may be a file system.
+.TP
+.B hard err: swap
 The system encountered an error trying to write to the swap device
 or an error in reading critical information from a disk drive.
 The offending disk should be fixed if it is broken or unreliable.
@@ -70,63 +72,57 @@ involved is made to be extensible, running out of entries causes a crash.
 If this happens, make the timeout table bigger.
 (NCALL in param.c)
 .TP
-.B trap type %o
-An unexpected trap has occurred within the system; the trap types are:
+.B trap
+An unexpected trap has occurred within the system, and it has printed
+.RS
+.IP
+trap type \fIt\fP err \fIe\fP in the kernel
+.PP
+and the registers, as they were when it occurred, on two lines.
+The trap types are the processor's exceptions, in decimal:
 .PP
 .nf
-0	bus error
-1	illegal instruction trap
-2	BPT/trace trap
-3	IOT
-4	power fail trap (if autoreboot fails)
-5	EMT
-6	recursive system call (TRAP instruction)
-7	programmed interrupt request
-11	protection fault (segmentation violation)
-12	parity trap
+0	divide error
+1	single step
+3	breakpoint
+4	overflow (INTO)
+5	BOUND
+6	invalid instruction
+8	double fault
+10	invalid task state segment
+11	segment not present
+12	stack segment
+13	general protection
+16	287 error
 .fi
 .PP
-In some of these cases it is possible for octal 020 to be added into the
-trap type; this indicates that the processor was in user mode when the
-trap occurred.
+The error code is what the processor gave with the exception: for 10
+to 13 the selector it could not use, or 0.
+Then the code segment and instruction pointer,
+.IR cs : ip ,
+the flags and the data segment registers, and the other registers.
 .PP
-In addition to the trap type, the system will have
-printed out three (or four) other numbers:
-.IR ka6 ,
-which is the contents of the segmentation
-register for the area in which the system's stack is kept;
-.IR aps ,
-which is the location where the hardware stored
-the program status word during the trap;
-.IR pc ,
-which was the system's program counter when
-it faulted (already incremented to the next word);
-.IR __ovno ,
-the overlay number of the currently loaded kernel overlay when the trap
-occurred.
-.PP
-The favorite trap types in system crashes are trap types 0 and 11,
-indicating
-a wild reference.  The code is the referenced address, and the pc at the
-time of the fault is printed.  These problems tend to be easy to track
+The favorite trap type in system crashes is 13, general protection,
+indicating a wild reference: an offset past the end of a segment, or
+a selector that is not one.  These problems tend to be easy to track
 down if they are kernel bugs since the processor stops cold, but random
 flakiness seems to cause this sometimes.
 The debugger can be used to locate the instruction and subroutine
-corresponding to the PC value.
+corresponding to
+.IR cs : ip ,
+which it takes as one number, the selector in its upper 16 bits.
 If that is insufficient to suggest the nature of the problem,
 more detailed examination of the system status at the time of the trap
 usually can produce an explanation.
+.RE
 .TP
 .B init died
-The system initialization process has exited.  This is bad news, as no new
+The system initialization process has exited, or could not be started:
+.I /etc/init
+is not there, or its mode or type forbids execution.
+This is bad news, as no new
 users will then be able to log in.  Rebooting is the only fix, so the
 system just does it right away.
-.TP
-.B out of mbufs: map full
-The network has exhausted its private page map for network buffers.
-This usually indicates that buffers are being lost, and rather than
-allow the system to slowly degrade, it reboots immediately.
-The map may be made larger if necessary.
 .TP
 out of swap space
 This really shouldn't be panics but there's no other
@@ -135,53 +131,15 @@ The size of the swap area must be increased.
 The system attempts to avoid running out of swap by refusing to
 start new processes when short of swap space (resulting in
 ``No more proceses'' messages from the shell).
-.TP
-&remap_area > SEG5
-.ns
-.TP
-_end > SEG5
-The kernel detected at boot time that an unacceptable portion of
-its data space extended into the region controlled by KDSA5.
-In the case of the first message, the size of the kernel's data
-segment (excluding the file, proc, and text tables) must be
-decreased.  In the latter case, there are two possibilities:
-if &remap_area is not greater than 0120000, the kernel must be
-recompiled without defining the option NOKA5.  Otherwise, as
-above, the size of the kernel's data segment must be decreased.
 .PP
 That completes the list of panic types you are likely to see.
 There are many other panic messages which are less likely to occur;
 most of them detect logical inconsistencies within the kernel
 and thus ``cannot happen'' unless some part of the kernel has been modified.
 .PP
-If the system stops or hangs without a panic, it is possible to stop
-it and take a dump of memory before rebooting.
-A panic can be forced from the console,
-which will allow a dump, automatic reboot and file system check.
-This is accomplished by halting the CPU,
-putting the processor in kernel mode,
-loading the PC with 40,
-and continuing without a reset (use continue, not start).
-To put the processor in kernel mode, make sure the two high
-bits in the processor status word are zero.
-(you'll need to consult the procesor handbook describing your
-processor to determine how to access the PC and PS ...)
-The message ``panic:  forced from console'' should print, and the
-automatic reboot will start.
-.PP
-If this fails
-a dump of memory can be made on magtape:
-mount a tape (with write ring!), halt the CPU, load address 044,
-and perform a start (which does a reset).
-This should write a copy of all of core
-on the tape with an EOF mark.
-Caution:
-Any error is taken to mean the end of core has been reached.
-This means that you must be sure the ring is in,
-the tape is ready, and the tape is clean and new.
-If the dump fails, you can try again,
-but some of the registers will be lost.
-After this completes, halt again and reboot.
+A PC has no console switches with which to force a panic: if the
+system stops or hangs without one, no dump can be taken, and the
+machine is started again with its reset button or its power switch.
 .PP
 After rebooting, or after an automatic file system check fails,
 check and fix the file systems with
@@ -191,72 +149,85 @@ from a backup medium after verifying that the hardware is functioning normally.
 A damaged root file system should be patched while running with an alternate
 root if possible.
 .PP
-When the system crashes if crash dumping was enabled
-it writes (or at least attempts to write)
-an image of memory into the back end of the dump device,
-usually the same as the primary swap
-area.  After the system is rebooted, the program
+When the system crashes it writes (or at least attempts to write)
+an image of memory into the swap area of the disk it was started
+from, 512 sectors in, so that what is swapped out as it starts again
+does not write over it.
+The image is the memory from address 0 to its end, the hole from 640K
+to 1M with it, and as much of that as the swap area has room for;
+the system's own tables are in the first 640K.
+The disk's driver writes it, which
+.I wd
+and
+.I sd
+do: a system started from the RAM disk of the diskette it is
+installed from takes no dump.
+.I "reboot \-d"
+takes one too, without a panic.
+After the system is rebooted, the program
 .IR savecore (8)
 runs and preserves a copy of this core image and the current
-system in a specified directory for later perusal.  See
+system in a specified directory for later perusal, if
+.I /etc/crash
+is that directory or a symbolic link to it.  See
 .IR savecore (8)
 for details.
-A magtape dump can be read onto disk with
-.IR dd (1).
 .PP
 To analyze a dump you should begin by running
 .IR adb (1)
-with the 
+with the
 .B \-k
-flag on the system load image and core dump.
-If the core image is the result of a panic,
-the panic message is printed.
-Normally the command
+flag on the system load image and core dump that
+.I savecore
+saved, such as
+.I "adb \-k /usr/crash/unix.0 /usr/crash/core.0" .
+The command
+``*_panicstr/s''
+prints the panic message, if the core image is the result of a panic,
+and
 ``$c'' or ``$C''
 will provide a stack trace from the point of
-the crash and this will provide a clue as to
+the crash, back through
+.I panic
+to what called it, and this will provide a clue as to
 what went wrong.
+The scripts in
+.I /usr/share/adb
+print the system's structures:
+``*_uptr$<u''
+the user structure of the process that was running, and
+``_proc$<proc''
+the first entry of the process table.
 .IR ps (1)
 and
-.IR pstat (8) can also be used
+.IR pstat (8)
+can also be used
 to print the process table at the time of the crash via:
-.I "ps\ \-alxk"
+.I "ps \-alx \-k /usr/crash/core.0:/usr/crash/unix.0"
 and
-.IR "pstat\ \-p" .
-If the mapping or the stack frame are incorrect, the following
-magic locations may be examined in an attempt to find out what went wrong.
-The registers R0, R1, R2, R3, R4, R5, SP, and KDSA6 (or KISA6 for machines
-without separate instruction and data)
-are saved at location 04.
-If the core dump was taken on disk, these values also appear
-at 0300.
-The value of KDSA6 (KISA6) multiplied by 0100 (8) gives the address
-of the user structure and kernel stack for the running process.
-Relabel these addresses 0140000 through 0142000.
-R5 is C's frame or display pointer.
-Stored at (R5) is the old R5 pointing to the previous
-stack frame.
-At (R5)+2
-is the saved PC of the calling procedure.
-Trace
-this calling chain
-to an R5 value of 0141756 (0141754 for overlaid kernels), which
-is where the user's R5 is stored.
-If the chain is broken,
-look for a plausible
-R5, PC pair and continue from there.
-In most cases this procedure will give
-an idea of what is wrong.
+.IR "pstat \-p \-k /usr/crash/unix.0:/usr/crash/core.0" .
+.PP
+The image begins with a header that says where the global descriptor
+table is in it, whose slots for the system's segments say where each
+of them is, and where the frame of the routine that took the dump was,
+from which $c starts
+.RI ( <machine/seg.h> ).
+The selector of each segment, and an address in it, are as in
+.IR /dev/kmem
+(see
+.IR adb (1)).
+The stack of the process that was running is in its slot of the
+system's data segment, and at
+``_tsleep'' or ``_swtch''
+the stack of another process whose user structure is in a slot shows
+where it is waiting.
 .PP
 A more complete discussion
 of system debugging is impossible here.
 See, however,
 ``Using ADB to Debug the UNIX Kernel''.
 .SH "SEE ALSO"
-adb(1), ps(1), pstat(1), boot(8), fsck(8), reboot(8), savecore(8)
-.br
-.I "PDP-11 Processor Handbook"
-for various processors for more information about PDP-11 memory management
-and general architecture.
+adb(1), ps(1), pstat(8), boot(8), disklabel(8), fsck(8), reboot(8),
+savecore(8)
 .br
 .I "Using ADB to Debug the UNIX Kernel"

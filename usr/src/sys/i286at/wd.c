@@ -54,6 +54,7 @@
 #define	WDC_IDENTIFY	0xEC
 
 #define	WDCTL_HD15	0x08	/* a WD1003 wants this for heads 8 to 15 */
+#define	WDCTL_RESET	0x04
 #define	WDCTL_NOINTR	0x02
 
 #define	WDTRIES		4	/* times a transfer is tried */
@@ -304,6 +305,40 @@ wdout(wp)
 }
 
 /*
+ * Name a drive's sector sect to the controller, counted from the
+ * drive's first, for the command that follows, ctl being what else its
+ * control register is to have.  Returns -1 if the drive is not ready.
+ */
+static int
+wdsect(unit, sect, ctl)
+	int unit, ctl;
+	daddr_t sect;
+{
+	register struct wd *wp = &wd[unit];
+	u_int cyl, r;
+
+	outb(WD_CTL, (wp->wd_heads > 8 ? WDCTL_HD15 : 0) | ctl);
+	if (wp->wd_lba) {
+		outb(WD_SDH, WDSD_LBA | unit << 4 | (int)(sect >> 24) & 0x0F);
+		if (wdwait(WDS_READY, WDPATIENCE) < 0)
+			return (-1);
+		outb(WD_SECTOR, (int)sect);
+		outb(WD_CYLLO, (int)(sect >> 8));
+		outb(WD_CYLHI, (int)(sect >> 16));
+	} else {
+		cyl = sect / wp->wd_spc;
+		r = sect % wp->wd_spc;
+		outb(WD_SDH, WDSD_CHS | unit << 4 | r / wp->wd_sects);
+		if (wdwait(WDS_READY, WDPATIENCE) < 0)
+			return (-1);
+		outb(WD_SECTOR, r % wp->wd_sects + 1);
+		outb(WD_CYLLO, cyl);
+		outb(WD_CYLHI, cyl >> 8);
+	}
+	return (0);
+}
+
+/*
  * Give the drive the command for what is left of the transfer at the
  * head of the queue.  Returns -1 if the drive does not take it.
  */
@@ -312,28 +347,10 @@ wdcmd(bp)
 	register struct buf *bp;
 {
 	register struct wd *wp = &wd[dkunit(bp->b_dev)];
-	int unit = dkunit(bp->b_dev), s;
-	u_int cyl, r;
+	int s;
 
-	outb(WD_CTL, wp->wd_heads > 8 ? WDCTL_HD15 : 0);
-	if (wp->wd_lba) {
-		outb(WD_SDH, WDSD_LBA | unit << 4 |
-		    (int)(wdx.x_sect >> 24) & 0x0F);
-		if (wdwait(WDS_READY, WDPATIENCE) < 0)
-			return (-1);
-		outb(WD_SECTOR, (int)wdx.x_sect);
-		outb(WD_CYLLO, (int)(wdx.x_sect >> 8));
-		outb(WD_CYLHI, (int)(wdx.x_sect >> 16));
-	} else {
-		cyl = wdx.x_sect / wp->wd_spc;
-		r = wdx.x_sect % wp->wd_spc;
-		outb(WD_SDH, WDSD_CHS | unit << 4 | r / wp->wd_sects);
-		if (wdwait(WDS_READY, WDPATIENCE) < 0)
-			return (-1);
-		outb(WD_SECTOR, r % wp->wd_sects + 1);
-		outb(WD_CYLLO, cyl);
-		outb(WD_CYLHI, cyl >> 8);
-	}
+	if (wdsect(dkunit(bp->b_dev), wdx.x_sect, 0) < 0)
+		return (-1);
 	outb(WD_SECCNT, wdx.x_left);
 	if (bp->b_flags & B_READ) {
 		outb(WD_COMMAND, wp->wd_multi > 1 ? WDC_READM : WDC_READ);
@@ -448,6 +465,58 @@ bad:
 	bp->b_resid = bp->b_bcount;
 done:
 	iodone(bp);
+}
+
+/*
+ * Write count sectors, from memory at the physical address addr, to
+ * sector blkno of a partition, with the processor: a crash dump
+ * (machdep.c, dumpsys), when interrupts are off and the controller may
+ * be in the middle of a transfer: it is reset first, and the drive told
+ * again how it counts sectors.  Returns 0, or an error number.
+ */
+wddump(dev, blkno, addr, count)
+	dev_t dev;
+	daddr_t blkno;
+	long addr;
+	int count;
+{
+	register int unit = dkunit(dev);
+	register struct wd *wp = &wd[unit];
+	register int s;
+	struct partition *pp;
+	static char reset;
+
+	if (unit >= NWD || (wp->wd_dk.dk_flags & DKF_ALIVE) == 0)
+		return (ENXIO);
+	pp = &wp->wd_dk.dk_parts[dkpart(dev)];
+	if (blkno < 0 || blkno + count > pp->p_size)
+		return (EINVAL);
+	if (!reset) {
+		reset = 1;
+		outb(WD_CTL, WDCTL_RESET | WDCTL_NOINTR);
+		for (s = 0; s < 10; s++)	/* 5 us and more */
+			(void) inb(WD_CTL);
+		outb(WD_CTL, WDCTL_NOINTR);
+		if (wdwait(0, WDPATIENCE) < 0)
+			return (EFAULT);
+		(void) wdsimple(unit, WDC_SETGEOM, wp->wd_sects,
+		    wp->wd_heads - 1);
+	}
+	if (wdsect(unit, blkno + wp->wd_start + pp->p_offset,
+	    WDCTL_NOINTR) < 0)
+		return (EFAULT);
+	outb(WD_SECCNT, count);
+	outb(WD_COMMAND, WDC_WRITE);
+	for (; count > 0; count--, addr += 512) {
+		s = wdwait(WDS_DRQ | WDS_ERR | WDS_WRFAULT, WDPATIENCE);
+		if (s < 0 || (s & (WDS_ERR | WDS_WRFAULT)))
+			return (EIO);
+		poutsw(WD_DATA, addr, 256);
+	}
+	s = wdwait(0, WDPATIENCE);
+	if (s < 0 || (s & (WDS_ERR | WDS_WRFAULT)))
+		return (EIO);
+	return (0);
 }
 
 /*

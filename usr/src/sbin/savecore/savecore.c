@@ -8,6 +8,7 @@
 #include	<sys/stat.h>
 #include	<sys/fs.h>
 #include	<sys/time.h>
+#include	<machine/seg.h>
 
 #define	CLICK	ctob(1)		/* size of core units */
 #define	REGLOC	0300		/* offset of saved registers in disk dump */
@@ -17,7 +18,6 @@
 #define	LEEWAY		(3*DAY)
 
 #define	eq(a,b)		(!strcmp(a,b))
-#define	ok(number)	((off_t) ((number)&0177777))
 
 #define	SHUTDOWNLOG	"/usr/adm/shutdownlog"
 
@@ -30,11 +30,9 @@ struct nlist nl[] = {
 	{ "_time" },
 #define	X_PANICSTR	3
 	{ "_panicstr" },
-#define	X_PHYSMEM	4
-	{ "_physmem" },
-#define	X_BOOTIME	5
+#define	X_BOOTIME	4
 	{ "_boottime" },
-#define	X_VERSION	6
+#define	X_VERSION	5
 	{ "_version" },
 	{ 0 },
 };
@@ -47,7 +45,8 @@ dev_t	dumpdev;			/* dump device */
 time_t	dumptime;			/* time the dump was taken */
 time_t	boottime;			/* time we were rebooted */
 daddr_t	dumplo;				/* where dump starts on dumpdev */
-size_t	physmem;			/* amount of memory in machine */
+struct	dumphdr	dumphdr;		/* the dump's first bytes */
+struct	segdesc	kseg[NKSEG];		/* the kernel's segments in it */
 time_t	now;				/* current date */
 char	*path();
 extern	char	*malloc();
@@ -59,6 +58,7 @@ int	panicstr;
 extern	off_t	lseek();
 extern	char	*devname();
 off_t	Lseek();
+off_t	dumpoff();
 int	debug;
 
 main(argc, argv)
@@ -132,10 +132,6 @@ read_kmem()
 		fprintf(stderr, "/unix:  time not in namelist\n");
 		exit(1);
 	}
-	if (nl[X_PHYSMEM].n_value == 0) {
-		fprintf(stderr, "/unix:  physmem not in namelist\n");
-		exit(1);
-	}
 	if (nl[X_VERSION].n_value == 0) {
 		fprintf(stderr, "/unix:  version not in namelist\n");
 		exit(1);
@@ -154,8 +150,6 @@ read_kmem()
 	}
 	Lseek(kmem, (off_t)nl[X_DUMPLO].n_value, 0);
 	Read(kmem, (char *)&dumplo, sizeof dumplo);
-	Lseek(kmem, (off_t)nl[X_PHYSMEM].n_value, 0);
-	Read(kmem, (char *)&physmem, sizeof physmem);
 	if (nl[X_BOOTIME].n_value != 0) {
 		Lseek(kmem, (off_t)nl[X_BOOTIME].n_value, 0);
 		Read(kmem, (char *)&boottime, sizeof boottime);
@@ -163,6 +157,8 @@ read_kmem()
 	dumplo *= (long)NBPG;
 	ddname = find_dev(dumpdev, S_IFBLK);
 	if (ddname == NULL)
+		return(0);
+	if (!read_hdr())
 		return(0);
 	if (system)
 		return(1);
@@ -177,7 +173,7 @@ read_kmem()
 		perror(ddname);
 		exit(1);
 	}
-	fseek(fp, (off_t)(dumplo + ok(nl[X_VERSION].n_value)), 0);
+	fseek(fp, dumpoff(&nl[X_VERSION], nl[X_VERSION].n_value), 0);
 	fgets(core_vers, sizeof core_vers, fp);
 	fclose(fp);
 	if (!eq(vers, core_vers)) {
@@ -187,10 +183,10 @@ read_kmem()
 		return(0);
 	}
 	fp = fopen(ddname, "r");
-	fseek(fp, (off_t)(dumplo + ok(nl[X_PANICSTR].n_value)), 0);
+	fseek(fp, dumpoff(&nl[X_PANICSTR], nl[X_PANICSTR].n_value), 0);
 	fread((char *)&panicstr, sizeof panicstr, 1, fp);
 	if (panicstr) {
-		fseek(fp, dumplo + ok(panicstr), 0);
+		fseek(fp, dumpoff(&nl[X_PANICSTR], panicstr), 0);
 		cp = panic_mesg;
 		do
 			*cp = getc(fp);
@@ -210,10 +206,10 @@ get_crashtime()
 	if (system)
 		return (1);
 	dumpfd = Open(ddname, 2);
-	Lseek(dumpfd, (off_t)(dumplo + ok(nl[X_TIME].n_value)), 0);
+	Lseek(dumpfd, dumpoff(&nl[X_TIME], nl[X_TIME].n_value), 0);
 	Read(dumpfd, (char *)&dumptime, sizeof dumptime);
 	if (!debug) {
-		Lseek(dumpfd, (off_t)(dumplo + ok(nl[X_TIME].n_value)), 0);
+		Lseek(dumpfd, dumpoff(&nl[X_TIME], nl[X_TIME].n_value), 0);
 		Write(dumpfd, (char *)&clobber, sizeof clobber);
 	}
 	close(dumpfd);
@@ -239,6 +235,46 @@ get_crashtime()
 		}
 	}
 	return (1);
+}
+
+/*
+ * Is there a dump?  It is the machine's memory from address 0, which
+ * begins with a header that says so and where the global descriptor
+ * table is, whose slots for the kernel's segments say where each is in
+ * the memory (machine/seg.h).
+ */
+read_hdr()
+{
+	register int fd;
+
+	fd = Open(ddname, 0);
+	Lseek(fd, (off_t)dumplo, 0);
+	Read(fd, (char *)&dumphdr, sizeof dumphdr);
+	if (dumphdr.dh_magic != DH_MAGIC) {
+		if (debug)
+			fprintf(stderr, "no dump on %s\n", ddname);
+		close(fd);
+		return(0);
+	}
+	Lseek(fd, (off_t)(dumplo + dumphdr.dh_gdt +
+	    GDT_KERNEL * sizeof (struct segdesc)), 0);
+	Read(fd, (char *)kseg, sizeof kseg);
+	close(fd);
+	return(1);
+}
+
+/*
+ * Where on the dump device the byte at off is, in the segment of the
+ * kernel's that the symbol np is in.
+ */
+off_t
+dumpoff(np, off)
+	struct nlist *np;
+	u_int off;
+{
+	register struct segdesc *sd = &kseg[np->n_ovly - 1];
+
+	return(dumplo + ((long)sd->sd_basehi << 16 | sd->sd_base) + off);
 }
 
 char *
@@ -297,9 +333,10 @@ read_number(fn)
 save_core()
 {
 	register int n;
-	char buffer[BLOCK*CLICK];
+	static char buffer[BLOCK*CLICK];
 	char *cp = buffer;
 	register int ifd, ofd, bounds;
+	long left;
 	FILE *fp;
 
 	bounds = read_number("bounds");
@@ -315,9 +352,10 @@ save_core()
 	ofd = Create(path(cp), 0666);
 	Lseek(ifd, (off_t)dumplo, 0);
 	printf("Saving %D bytes of image in core.%d\n",
-		(long)CLICK*physmem, bounds);
-	while (physmem) {
-		n = Read(ifd, cp, (physmem>BLOCK? BLOCK: physmem) * CLICK);
+		dumphdr.dh_size, bounds);
+	for (left = dumphdr.dh_size; left > 0; left -= n) {
+		n = Read(ifd, cp, left > sizeof buffer ? sizeof buffer :
+			(int)left);
 		if (n<0) {
 			perror("Read");
 			break;
@@ -330,7 +368,6 @@ save_core()
 		if (n == 0)
 		   break;
 		Write(ofd, cp, n);
-		physmem -= n/CLICK;
 	}
 	close(ifd);
 	close(ofd);

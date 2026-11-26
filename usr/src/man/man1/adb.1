@@ -59,8 +59,13 @@ so that files can be modified using
 .PP
 The \fB\-k\fP option makes \fIadb\fP do UNIX kernel memory
 mapping; it should be used when \fIcorfil\fP is \fI/dev/kmem\fP
-and \fIobjfil\fP the kernel, \fI/unix\fP (see
-.SM ADDRESSES\*S).
+and \fIobjfil\fP the kernel, \fI/unix\fP, or when \fIcorfil\fP is a
+crash dump and \fIobjfil\fP the kernel that took it, as
+.IR savecore (8)
+saves them (see
+.SM ADDRESSES\*S
+and
+.IR crash (8)).
 .PP
 The \fB\-I\fP option specifies a directory where files to be read
 with $< or $<< (see below) will be sought; the default is
@@ -636,7 +641,11 @@ returns to.  If
 .I address
 is given then it is taken as the address of the current frame 
 instead of the contents of the frame\-pointer register,
-.BR bp .
+.BR bp ;
+with
+.B \-k
+there is none, and in a crash dump the current frame is that of the
+routine that took the dump.
 .B C
 is the same.
 If
@@ -851,7 +860,9 @@ they are the kernel's: its segment
 has selector 0x80 + 8(\fIN\fP\-1) and is at
 .IR N \(mu0x10000
 in
-.IR /dev/kmem .
+.IR /dev/kmem ;
+a crash dump is the machine's memory, and the segment is where the
+global descriptor table in it says.
 .PP
 The file address of offset
 .I a
@@ -919,13 +930,17 @@ core
 .br
 /dev/kmem
 .br
+/usr/crash	crash dumps, as /etc/rc has savecore save them
+.br
 /usr/share/adb	scripts for $< that print the kernel's structures
 .SH SEE\ ALSO
 as(1),
 cc(1),
 ptrace(2),
 a.out(5),
-core(5)
+core(5),
+crash(8),
+savecore(8)
 .br
 \fIADB - A Tutorial\fR, S. R. Bourne
 .SH DIAGNOSTICS

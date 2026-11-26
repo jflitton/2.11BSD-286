@@ -92,7 +92,8 @@ has how it decides, which begins with whether the disk's label calls it
 a SCSI disk. The diskette's boot sector does not say, and then the root
 is `diskroot` (`sys/i286/conf.c`): the first IDE drive's partition `a`
 unless the kernel file is changed with `tools/kpatch.py`, where 512
-makes it the first SCSI disk's.
+makes it the first SCSI disk's. A crash dump goes to that swap area
+too, if its driver can write one ([crash dumps](#crash-dumps)).
 
 ## The AT disk controller (`sys/i286at/wd.c`)
 
@@ -284,6 +285,46 @@ from the 1.44 MB one with `/boot` and the kernel it was given; the
 diskettes were then as `tools/fsck.py` wants them. A diskette of 1.2 MB
 has been made in the emulator only.
 
+## Crash dumps
+
+After a panic the kernel brings the disks up to date, writes its memory
+to the swap area and starts the machine again, as upstream's does
+(`dumpsys`, `sys/i286/machdep.c`); `reboot -d` does the same without a
+panic. At the next start `/etc/rc` has `savecore` save the dump
+([crash dumps](userland.md#crash-dumps)).
+
+- The dump goes 512 sectors into the swap area (`dumplo`,
+  `sys/i286/conf.c`), so that what is swapped out as the system starts
+  again does not write over it before `savecore` has saved it. Upstream
+  configures the device (`DUMPDEV`); this kernel finds its disks as it
+  starts, and takes the swap area of the one it came from when its
+  driver can write a dump, which the driver's `d_dump` in `bdevsw` says
+  (`sys/sys/init_main.c`). The RAM disk's cannot: the system on the
+  installation diskette takes none.
+- The dump is the memory from address 0 to its end, the hole from 640K
+  to 1M with it, so that where a byte is in the dump is its address:
+  4,587,520 bytes on the emulator's machine of 4 MB. What does not fit
+  in the swap area is left out; the kernel is in the first 640K.
+- The first bytes of memory, the vectors of real mode that the kernel
+  does not use, are a header first (`struct dumphdr`, `machine/seg.h`),
+  as the PDP-11's kernel puts its registers in low memory for a dump:
+  where the global descriptor table is, through which `savecore` and
+  `adb` find the kernel's segments; how much was dumped; and the
+  registers where the dump was taken, from which `adb`'s `$c` starts.
+- The driver writes it 32K at a time with the processor, with
+  interrupts off and the controller as the panic left it. `wd` resets
+  the controller first, tells the drive again how it counts sectors,
+  and moves each sector when the drive asks for it. `sd` resets the
+  adapter and the SCSI bus, so that a command that was out is gone, and
+  sends each piece as one command and waits for it (`ahapoll`); the
+  disk refuses the first command after the reset, and each is tried
+  four times.
+- The disks' interrupts must come in while the buffers are written after
+  a panic: an exception in the kernel arrives with them off, and `boot`
+  turns them on, and `tsleep` lowers the level for them ([interrupts and
+  their priority](processes.md#interrupts-and-their-priority)). Before,
+  a panic from an exception stopped at "syncing disks".
+
 ## Tools
 
 `tools/mkdisk.py` makes a disk image: a geometry, a partition table or
@@ -361,7 +402,9 @@ Not done, or not tested:
   and otherwise ignored.
 - The drivers do nothing about bad sectors. `badsect` keeps one out of
   a file system's use.
-- No crash dump is written to a disk.
+- `tests/crash` has the kernel panic and `reboot -d` take a dump on an
+  IDE disk and on a SCSI disk, each 4.4 MB. No dump has been taken on a
+  real machine.
 - `disklabel -B` installs the boot block, and `/boot` is a file, but
   only `tools/mkdisk.py` writes the first sector of a shared disk, with
   its table and `mbr.s`. A disk booted from after `disklabel -B` has

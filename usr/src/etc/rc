@@ -5,8 +5,8 @@
 #
 # Upstream's is the PDP-11's (its buses, its network
 # interfaces) and calls some things that are not built here yet: the
-# quota programs and savecore.  What this does of it, it does as that
-# does.  sendmail it starts as upstream's rc.local does.
+# quota programs.  What this does of it, it does as that does.
+# sendmail it starts as upstream's rc.local does.
 
 HOME=/; export HOME
 PATH=/bin:/sbin:/usr/sbin:/usr/bin; export PATH
@@ -82,6 +82,13 @@ fi
 echo 'starting system logger'			>/dev/console 2>&1
 rm -f /dev/log
 syslogd
+
+# /etc/crash should be a symbolic link to the crash directory
+# if core dumps are to be saved.
+if [ -d /etc/crash ]; then
+	echo 'checking for core dump... '	>/dev/console 2>&1
+	savecore /etc/crash			>/dev/console 2>&1
+fi
 
 echo preserving editor files			>/dev/console 2>&1
 (cd /tmp; /usr/sbin/expreserve -a)

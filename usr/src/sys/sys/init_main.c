@@ -51,7 +51,6 @@ struct callout	calltodo;
 int	cfreecount;
 struct cblock	CLSPACE *cfreelist;
 char	curpri;
-dev_t	dumpdev;
 size_t	freemem;
 struct proc	*freeproc;
 long	hostid;
@@ -177,6 +176,12 @@ main()
  * the swap area.  In that case do not switch the dump device.
 */
 		if	((dumpdev != NODEV) && major(dumpdev) == i)
+			dumpdev = swapdev;
+/*
+ * With none configured, as the 286's kernel has none, the swap area
+ * takes the dump if its driver can write one.
+*/
+		else if	(dumpdev == NODEV && bdevsw[i].d_dump)
 			dumpdev = swapdev;
 		}
 

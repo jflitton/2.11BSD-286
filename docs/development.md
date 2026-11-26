@@ -244,7 +244,7 @@ driver talks to.
 | `tools/mkfs.py` | makes a file system image from a list of files, with their modes, owners and groups |
 | `tools/mkdisk.py` | makes a hard disk image: a partition table or none, a label, partitions, and the sectors that boot it |
 | `tools/fsck.py` | checks a file system in an image without changing it, prints a file from it, or lists what is in it |
-| `tools/kpatch.py` | changes a variable in an executable file, by name |
+| `tools/kpatch.py` | changes a variable in an executable file, or a word of one, by name |
 | `tools/kprof.py` | says where the system spent its time: the functions, in the kernel and in programs, that the samples `runtest.py --profile` took of the emulated processor fell in |
 | `tools/strip.py` | copies an executable file without its symbol table, as `strip` leaves one: the programs in the root file system are such copies, unless it is made with `STRIP=no` |
 | `tools/farlint.py` | looks for far pointers that kernel code truncates without the compiler noticing |
@@ -370,6 +370,10 @@ tests/system/run.sh     # the system, booted from a hard disk to multi-user:
                         # who gives cron and at something to run, and
                         # from the host over an emulated NE2000, as an
                         # xterm in a big window
+tests/crash/run.sh      # crash dumps: the kernel made to panic, and
+                        # reboot -d, on an IDE disk and a SCSI one, each
+                        # dump saved by savecore and read with adb, ps
+                        # and pstat
 tests/vt/run.sh         # the console's terminal emulator, on the machine
                         # the system is built on: 302 checks
 tests/ve/run.sh         # the editor ve, built for that machine too: 115
@@ -378,7 +382,7 @@ tests/ve/run.sh         # the editor ve, built for that machine too: 115
 ```
 
 The tests that boot the system as a machine has it, `tests/system`,
-`tests/network`, `tests/programs`, `tests/bench`, `tests/libc` and
+`tests/network`, `tests/programs`, `tests/crash`, `tests/bench`, `tests/libc` and
 `tests/ccom` with `self.sh`, boot either build of it:
 with `TOOLS=cross` the cross compiler's, and with `TOOLS=native` the system's
 own compiler's, assembler's and linker's throughout, the kernel, the
@@ -525,6 +529,21 @@ and so on).
   with `talk` to a user whom the host has logged in with `telnet`, and
   whom `comsat` tells of a letter ([the C library and
   programs](userland.md#the-networks-programs)).
+- `tests/crash` boots it from a hard disk whose swap area has room for a
+  dump, with `/etc/crash` a link to `/usr/crash`, and a kernel in which
+  `tools/kpatch.py` has given a system call no program makes a function
+  in no segment. A program that makes it faults the kernel, which
+  panics, brings the disks up to date, writes its memory to the swap
+  area and starts again, and `/etc/rc` has `savecore` save the dump and
+  the kernel. Then `reboot -d` takes a dump without a panic. For each,
+  what `savecore` saved and wrote in `/usr/adm/shutdownlog`, the stack
+  `adb` finds in the dump and the panic's message, the processes `ps`
+  finds there and the sizes of the tables `pstat` does must be as
+  `expected` has them, or `expected-cross` for the cross compiler's kernel, whose
+  stack differs. It does this on an IDE disk and on a SCSI disk on the
+  Adaptec, whose drivers each write the dump
+  ([disks](disks.md#crash-dumps), [the C library and
+  programs](userland.md#crash-dumps)).
 - `tests/bench` boots it and runs `bench`, this port's benchmark, while
   the harness times each test by the marks it writes and samples where
   the processor is. It prints what each test took and leaves
@@ -560,6 +579,7 @@ are from single runs with an 86Box that has the automation socket.
 | `login`, the shells, `telnetd`, `vi`, `top` | `tests/system` | 1¼ minutes, 7 when the build makes every program again |
 | a header, or the tools every program is made with | the build that `tests/programs` or `tests/system` starts with, which makes everything again | 7 minutes and more |
 | a Makefile, a large source, the compiler or the other tools | `tests/self/changed.sh` | |
+| a panic, the disks' dump routines, `savecore`, `adb -k`, `ps -k`, `pstat -k` | `tests/crash` | 3½ minutes |
 
 The build here makes what the system makes of the same Makefiles, to
 the byte but for the few files `tests/self/differs` names, which are

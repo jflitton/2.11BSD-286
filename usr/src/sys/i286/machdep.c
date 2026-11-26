@@ -14,6 +14,7 @@
 #include "user.h"
 #include "proc.h"
 #include "buf.h"
+#include "conf.h"
 #include "map.h"
 #include "text.h"
 #include "inode.h"
@@ -951,6 +952,12 @@ boot(dev, howto)
 		printf("syncing disks... ");
 		(void) _splnet();
 		/*
+		 * Interrupts, for the disks: a trap in the kernel comes
+		 * here without them (trap.c), and the level alone does
+		 * not let them in.
+		 */
+		enable();
+		/*
 		 * Release inodes held by texts before update.
 		 */
 		xumount(NODEV);
@@ -977,8 +984,74 @@ boot(dev, howto)
 		halt();
 		/*NOTREACHED*/
 	}
+	if (howto & RB_DUMP)
+		dumpsys();
 	doboot();
 	/*NOTREACHED*/
+}
+
+#define	DUMPCHUNK	64		/* sectors to each write of a dump */
+
+/*
+ * A crash dump: the memory, from address 0 to its end, with the header
+ * in its first bytes that says how to read it (seg.h), written to
+ * dumpdev dumplo sectors in, a piece at a time, by its driver's d_dump,
+ * for savecore to save at the next start.  What does not fit in the
+ * partition is left out: the kernel's own segments are in the first
+ * 640K.  Once only, should the dump itself panic.
+ */
+dumpsys()
+{
+	static struct dumphdr dh;
+	static int dumping;
+	register int (*dump)();
+	register int n, error;
+	long addr, size;
+	daddr_t bn;
+
+	if (dumpdev == NODEV || dumping++)
+		return;
+	dump = bdevsw[major(dumpdev)].d_dump;
+	printf("\ndumping to dev %o off %D\ndump ", dumpdev, dumplo);
+	size = extmem ? 0x100000L + ((long)extmem << 10) : (long)basemem << 10;
+	bn = (*bdevsw[major(dumpdev)].d_psize)(dumpdev) - dumplo;
+	if (bn <= 0)
+		error = EINVAL;
+	else {
+		if (size > ctob(bn))
+			size = ctob(bn);
+		(void) setjmp(&dh.dh_regs);
+		dh.dh_magic = DH_MAGIC;
+		dh.dh_gdt = fartophys(gdt);
+		dh.dh_size = size;
+		pcopy(fartophys(&dh), 0L, sizeof (dh));
+		error = 0;
+		for (addr = 0, bn = dumplo; addr < size; addr += ctob(n),
+		    bn += n) {
+			n = size - addr < ctob(DUMPCHUNK) ?
+			    (int)btoc(size - addr) : DUMPCHUNK;
+			if (error = (*dump)(dumpdev, bn, addr, n))
+				break;
+		}
+	}
+	switch (error) {
+
+	case EFAULT:
+		printf("dev !ready:EFAULT\n");
+		break;
+	case EINVAL:
+		printf("args:EINVAL\n");
+		break;
+	case EIO:
+		printf("err:EIO\n");
+		break;
+	default:
+		printf("unknown err:%d\n", error);
+		break;
+	case 0:
+		printf("succeeded\n");
+		break;
+	}
 }
 
 /*

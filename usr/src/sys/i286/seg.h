@@ -74,6 +74,25 @@ struct segdesc {
 #define	SD_TRAPGATE	0x87		/* gate that leaves them as they were */
 
 /*
+ * A crash dump (machdep.c, dumpsys) is the memory from address 0, the
+ * hole from 640K to 1M with it, so that where a byte is in the dump is
+ * its address.  The kernel has no use for the first bytes, the vectors
+ * of real mode, and this is put there first, as the PDP-11's kernel
+ * puts its registers in low memory for a dump.  A symbol of the kernel's
+ * segment N is in the dump at the base of the descriptor in slot
+ * GDT_KERNEL + N - 1 of the table there, plus its offset (savecore, adb).
+ */
+struct dumphdr {
+	long	dh_magic;	/* DH_MAGIC */
+	long	dh_gdt;		/* the global descriptor table's address */
+	long	dh_size;	/* bytes in the dump */
+	label_t	dh_regs;	/* dumpsys's registers, as setjmp keeps
+				   them: the frame there is where adb's $c
+				   starts */
+};
+#define	DH_MAGIC	0x55AA0286L
+
+/*
  * The task state segment.  The kernel has one and never switches tasks;
  * the processor takes the kernel stack pointer from it when a process
  * traps into the kernel.

@@ -22,7 +22,6 @@ Some programs wait on more than themselves:
 | SLIP (`sys/net/if_sl.c`; `NSL` is 0) | `slattach` |
 | A driver for the parallel port | a printer on it; `lpr` and the rest are ported, for a printer on a serial port or across the network |
 | A tape driver | `mt`, `tcopy`, `ansitape`, `vmsbackup`, and `dump` and `restor` to a tape |
-| Crash dumps written to the swap area | `savecore` |
 
 ## The compiler and object files
 
@@ -151,7 +150,6 @@ All are ported: `nroff` and `troff`, with `tbl`, `eqn`, `neqn`, `refer`,
 
 | program | where | notes |
 |---|---|---|
-| `savecore` | `sbin` | waits on crash dumps |
 | `quota`, `quotacheck`, `quotaon`, `edquota`, `repquota` | `ucb`, `sbin`, `usr.sbin` | wait on quotas |
 
 ## Tapes

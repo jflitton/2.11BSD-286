@@ -33,6 +33,7 @@ static char sccsid[] = "@(#)pstat.c	5.11 (2.11BSD) 2026/1/27";
 #include <sys/conf.h>
 #include <sys/vm.h>
 #ifdef i286
+#include <sys/stat.h>
 #include <machine/seg.h>
 #endif
 #include <nlist.h>
@@ -130,6 +131,11 @@ int	ubmapf;
 int	totflg;
 int	allflg;
 u_short	pgetw();
+#ifdef i286
+off_t	kmemoff();
+#else
+#define	kmemoff(off)	(off)	/* a dump is laid out as /dev/kmem is */
+#endif
 
 extern	char	*__progname;
 
@@ -219,6 +225,9 @@ char **argv;
 		fprintf(stderr, "Can't open %s\n", fmem);
 		exit(1);
 	}
+#ifdef i286
+	dumpinit();
+#endif
 
 	nlist(fnlist, nl);
 	if (nl[0].n_type == 0) {
@@ -275,7 +284,7 @@ doinode()
 		fprintf(stderr, "%s: can't allocate inode memory\n", __progname);
 		return;
 	}
-	lseek(fc, (off_t)ainode, 0);
+	lseek(fc, kmemoff((off_t)ainode), 0);
 	read(fc, xinode, ninode * sizeof(struct inode));
 	for (ip = xinode; ip < &xinode[ninode]; ip++)
 		if (ip->i_count)
@@ -328,7 +337,7 @@ pgetw(loc)
 {
 	u_short word;
 
-	lseek(fc, loc, 0);
+	lseek(fc, kmemoff(loc), 0);
 	read(fc, &word, sizeof (word));
 	return (word);
 }
@@ -363,7 +372,7 @@ dotext()
 		fprintf(stderr, "%s: can't allocate text table memory\n", __progname);
 		return;
 	}
-	lseek(fc, (off_t)atext, 0);
+	lseek(fc, kmemoff((off_t)atext), 0);
 	read(fc, xtext, ntext * sizeof (struct text));
 	for (xp = xtext; xp < &xtext[ntext]; xp++) {
 		if (xp->x_iptr != NULL)
@@ -419,7 +428,7 @@ doproc()
 		fprintf(stderr, "%s: can't allocate proc table memory\n", __progname);
 		return;
 	}
-	lseek(fc, (off_t)aproc, 0);
+	lseek(fc, kmemoff((off_t)aproc), 0);
 	read(fc, xproc, nproc * sizeof (struct proc));
 	np = 0;
 	for (pp=xproc; pp < &xproc[nproc]; pp++)
@@ -507,7 +516,7 @@ char *name;
 	int ntty;
 	register struct tty *tp;
 
-	lseek(fc, (long)nl[number].n_value, 0);
+	lseek(fc, kmemoff((long)nl[number].n_value), 0);
 	read(fc, &ntty, sizeof(ntty));
 	printf("%d %s lines\n", ntty, name);
 	if (ntty > ttyspace) {
@@ -517,7 +526,7 @@ char *name;
 			return;
 		}
 	}
-	lseek(fc, (long)nl[type].n_value, 0);
+	lseek(fc, kmemoff((long)nl[type].n_value), 0);
 	read(fc, tty, ntty * sizeof(struct tty));
 	printf(mesg);
 	for (tp = tty; tp < &tty[ntty]; tp++)
@@ -777,7 +786,7 @@ dousr()
  * ubase is a process's p_addr, as ps -l shows it.  Its user structure
  * is there unless the process is the one in its slot, in the kernel's
  * data segment (docs/processes.md); if it is, *uaddr is made the
- * place in /dev/kmem, and the answer is 1.
+ * place in fc, /dev/kmem or a dump, and the answer is 1.
  */
 uslot286(uaddr)
 	off_t *uaddr;
@@ -787,20 +796,69 @@ uslot286(uaddr)
 
 	nproc = pgetw((off_t)nl[SNPROC].n_value);
 	for (i = 0; i < nproc; i++) {
-		lseek(fc, (off_t)nl[SPROC].n_value + i * sizeof (p), 0);
+		lseek(fc, kmemoff((off_t)nl[SPROC].n_value + i * sizeof (p)),
+		    0);
 		if (read(fc, &p, sizeof (p)) != sizeof (p))
 			break;
 		if (p.p_stat == 0 || p.p_stat == SZOMB || p.p_addr != ubase)
 			continue;
-		lseek(fc, (off_t)nl[SSLOTPROC].n_value +
-		    p.p_slot * sizeof (inslot), 0);
+		lseek(fc, kmemoff((off_t)nl[SSLOTPROC].n_value +
+		    p.p_slot * sizeof (inslot)), 0);
 		read(fc, &inslot, sizeof (inslot));
 		if (inslot != (struct proc *)nl[SPROC].n_value + i)
 			return(0);
-		*uaddr = (off_t)nl[SUSLOT].n_value + p.p_slot * UBYTES;
+		*uaddr = kmemoff((off_t)nl[SUSLOT].n_value +
+		    p.p_slot * UBYTES);
 		return(1);
 	}
 	return(0);
+}
+
+/*
+ * With -k, a crash dump that savecore(8) saved is read in place of the
+ * memory files, as upstream's pstat reads one.  The dump is the
+ * machine's memory from address 0, so an address in /dev/mem is the same
+ * place in the dump.  The kernel's segments are elsewhere than in
+ * /dev/kmem, which has a segment's number in the high word: each is where
+ * the global descriptor table saved in the dump says, and the header at
+ * the start of the dump has the table's address (<machine/seg.h>).
+ */
+struct	segdesc kseg[NKSEG];	/* those of the kernel's segments */
+int	isdump;			/* and fc is a dump */
+
+dumpinit()
+{
+	struct	dumphdr dh;
+	struct	stat st;
+
+	if (fstat(fc, &st) < 0 || (st.st_mode & S_IFMT) != S_IFREG)
+		return;
+	if (read(fc, (char *)&dh, sizeof (dh)) != sizeof (dh) ||
+	    dh.dh_magic != DH_MAGIC)
+		return;
+	lseek(fc, dh.dh_gdt + GDT_KERNEL * sizeof (struct segdesc), 0);
+	if (read(fc, (char *)kseg, sizeof (kseg)) == sizeof (kseg))
+		isdump = 1;
+}
+
+/*
+ * The place in fc of off in /dev/kmem, where segment 0 is the data
+ * segment, whose number _proc's symbol has.
+ */
+off_t
+kmemoff(off)
+	off_t	off;
+{
+	register struct segdesc *sd;
+	register u_int n;
+
+	n = (u_int)(off >> 16);
+	if (n == 0)
+		n = nl[SPROC].n_ovly;
+	if (!isdump || n == 0 || n > NKSEG)
+		return(off);
+	sd = &kseg[n - 1];
+	return(((off_t)sd->sd_basehi << 16 | sd->sd_base) + (u_int)off);
 }
 #endif
 
@@ -837,7 +895,7 @@ dofile()
 		return;
 	}
 	afile = nl[SFIL].n_value;
-	lseek(fc, (off_t)afile, 0);
+	lseek(fc, kmemoff((off_t)afile), 0);
 	read(fc, xfile, nfile * sizeof (struct file));
 	for (fp=xfile; fp < &xfile[nfile]; fp++)
 		if (fp->f_count)
@@ -921,7 +979,7 @@ int nlind;
 
 	if (nl[nlind].n_type == 0) return;
 
-	lseek(fc, (off_t)nl[nlind].n_value, 0);
+	lseek(fc, kmemoff((off_t)nl[nlind].n_value), 0);
 	read(fc, &maphdr, sizeof (maphdr));
 
 	num = (maphdr.m_limit - maphdr.m_map);
@@ -931,7 +989,7 @@ int nlind;
 		return;
 	}
 
-	lseek(fc, (off_t)maphdr.m_map, 0);
+	lseek(fc, kmemoff((off_t)maphdr.m_map), 0);
 	read(fc, maptbl, num * sizeof (*maptbl));
 
 
@@ -1001,7 +1059,7 @@ dobuf()
 	}
 
 	abuf = nl[SBUF].n_value;
-	lseek(fc, (off_t)abuf, 0);
+	lseek(fc, kmemoff((off_t)abuf), 0);
 	read(fc, xbuf, nbuf * sizeof (struct buf));
 	abufe = abuf + nbuf * sizeof (struct buf);
 

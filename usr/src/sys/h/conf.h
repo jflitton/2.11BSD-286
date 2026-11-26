@@ -23,6 +23,8 @@ struct bdevsw
 	int	(*d_root)();		/* XXX root attach routine */
 	daddr_t	(*d_psize)();
 	int	d_flags;
+	int	(*d_dump)();		/* writes a crash dump; NULL if it
+					   cannot (dumpsys) */
 };
 
 /*

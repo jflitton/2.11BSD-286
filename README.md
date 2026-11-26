@@ -51,11 +51,11 @@ The PDP-11 and the 286 are close enough that the tree carries over:
   ([the compiler](docs/toolchain.md)). They can build every program and
   library, themselves included, on the 286, and the kernel where the
   system is built ([the kernel](docs/toolchain.md#the-kernel)): the
-  system is built with them. `adb` debugs programs, their core files
-  and the running kernel ([adb](docs/userland.md#adb)).
-- Not there yet: UUCP and `f77`; quotas, SLIP, crash dumps and a tape
-  driver in the kernel. [What is not ported](docs/unported.md)
-  has the whole list.
+  system is built with them. `adb` debugs programs, their core files,
+  the running kernel and the dumps a panic leaves
+  ([adb](docs/userland.md#adb)).
+- Not there yet: UUCP and `f77`; quotas, SLIP and a tape driver in the
+  kernel. [What is not ported](docs/unported.md) has the whole list.
 - Upstream's programs are kept as 2.11BSD has them, changed only for
   bugs, the compiler and each machine's settings. Newer behaviour goes
   in programs of the port's own, in `/usr/local` as 2.11BSD has a site's
