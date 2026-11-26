@@ -104,9 +104,11 @@ compiler for the machine it runs on, `cc` unless `HOSTCC` names another,
 for the system's compiler and the tree's `yacc`, `lex` and `nroff`
 ([grammars](#grammars-yacc-and-lex)), which it runs there.
 
-Nine programs are medium-model so far: `csh`, `ex` and `tcsh`, here,
-`sendmail` ([mail](#mail)), `jove` ([below](#less-jove-and-tip)), and
-the games `hack`, `phantasia`, `rogue` and `warp` ([games](#games)).
+Nine programs are medium-model so far, and UUCP's: `csh`, `ex` and
+`tcsh`, here, `sendmail` ([mail](#mail)), `jove`
+([below](#less-jove-and-tip)), the games `hack`, `phantasia`, `rogue`
+and `warp` ([games](#games)), and `uucico` and the rest of UUCP
+([UUCP](#uucp)).
 `csh` was linked with two overlays on the PDP-11; here its 67K of code
 is in two segments, and its
 data segment has 11K of data and 8K of stack, leaving about 45K for its
@@ -647,9 +649,10 @@ totals each user's time logged in with `ac -p` and keeps six months of
 `/usr/libexec/find` with it.
 
 The scripts are the port's, made from upstream's, in `usr/adm` in the
-tree in place of those of the tape. Upstream's `daily`
-also cleans up after UUCP, and `weekly` too, which is not on the system
-([what is not ported](unported.md)). And upstream's move each log's older copies
+tree in place of those of the tape. `daily` cleans up after UUCP
+itself, where upstream's has `su` run the script as `uucp`, which never
+ran it, and `weekly` has not UUCP's report, whose script upstream's
+tree lacks ([UUCP](#uucp)). And upstream's move each log's older copies
 along with a fixed list of `mv` commands, which on a new system mail
 root an error for each copy not made yet, 27 the first night. The
 port's move only the copies there are.
@@ -1071,10 +1074,11 @@ Left out of these: `comsat`, `biff` and `popper`, which came with
 programs](#backups-and-the-rest-of-the-administrators); `named`,
 `identd` and `rdist`, which came later ([below](#named-identd-and-rdist)),
 and `tip` ([below](#less-jove-and-tip)). Not ported: `mkhosts`, for a
-table of hosts that the library here does not read; `slattach`, since
-the kernel has no serial line interface; `trpt` and `trsp`, since it
-does not keep the traces they print; and `tn3270` and `uucp`
-([what is not ported](unported.md)).
+table of hosts that the library here does not read; and `slattach`,
+since the kernel has no serial line interface ([what is not
+ported](unported.md)). `trpt` and `trsp` came later ([printers, and the
+rest of upstream's](#printers-and-the-rest-of-upstreams)), `tn3270`
+with [troff](#troff-graph-and-plot), and `uucp` ([UUCP](#uucp)).
 
 `tests/network` has the system run these, on the loopback interface
 and, for the daemons that speak to the whole network, on the Ethernet
@@ -1277,9 +1281,11 @@ not name it, and its `services` has no `pop3`. This system's
 `inetd.conf` has the line, commented out, and says what `services`
 needs. `comsat` is started by `inetd` as upstream's has it.
 
-Left out: `calendar`, which runs the C preprocessor, `/lib/cpp`, and
-came with [the compiler](#the-compiler); `rmail`, for mail by UUCP; and
-`sendmail.MX`, which asks a name server for a domain's mail exchanger.
+Left out: `sendmail.MX`, which asks a name server for a domain's mail
+exchanger. `calendar`, which runs the C preprocessor, `/lib/cpp`, came
+with [the compiler](#the-compiler), and `rmail`, for mail by UUCP,
+later ([printers, and the rest of
+upstream's](#printers-and-the-rest-of-upstreams)).
 
 `tests/network` has the system run 12 checks of mail after the others:
 `newaliases`; `/bin/mail` and `Mail` sending to a user, `Mail` and
@@ -1921,7 +1927,7 @@ the lock now. Accounting (`af`) is in a file that must be made, owned by
 `daemon`, which the filters run as.
 
 `rmail` hands `sendmail` a letter that came by UUCP, with the address
-it came by; it is ported though UUCP is not. `error` reads a compiler's
+it came by ([UUCP](#uucp)). `error` reads a compiler's
 messages and puts each into the source file it is about, as a comment,
 or says which it could not. `sendbug` mails a report of a bug, made with
 the editor from a form, to the maintainer of the 286's port,
@@ -2598,14 +2604,16 @@ that having been done by hand. `mount -a` mounts the rest of `fstab`,
 it says `rq` for ([quotas](#quotas)), and `dev_mkdb` and `ps -U` make the databases of devices and of the
 kernel's symbols that `ps` reads ([programs that read the
 kernel](#programs-that-read-the-kernel)), and the locks that `tip`
-leaves in `/usr/spool/uucp` are taken away. Then `rc` reads
+and `uucp` leave in `/usr/spool/uucp`, and `uucico`'s notes of each
+call, are taken away. Then `rc` reads
 `/etc/rc.conf`, which names the machine and gives the
 Ethernet interface's address, netmask and gateway, and runs
 `/etc/netstart`, which sets up the loopback interface and, if `rc.conf`
 gives an address, the Ethernet interface and the default route, as
 upstream's `rc.conf` and `netstart` do for the PDP-11's interfaces; as
-shipped there is no address, to be set for the machine. Then, in
-upstream's order, it starts `syslogd`; has `savecore` save the dump a
+shipped there is no address, to be set for the machine. It makes
+uucp's two spool directories for the name the machine has, if they are
+not there ([UUCP](#uucp)). Then, in upstream's order, it starts `syslogd`; has `savecore` save the dump a
 panic left, if `/etc/crash` is a directory ([crash dumps](#crash-dumps));
 has `expreserve` save what `ex` was editing when the system went down;
 clears `/tmp`; starts `update`,
@@ -2883,6 +2891,99 @@ gives a user limits there and fills them, logs in as the user until the
 warnings are gone, counts again with `quotacheck` and starts the system
 again.
 
+## UUCP
+
+UUCP is upstream's, 4.3BSD's with 2.11BSD's changes (`usr.bin/uucp`),
+installed as upstream installs it, set-user `uucp` and group `daemon`:
+`uucp`, `uux`, `uulog`, `uuname`, `uusnap`, `uupoll`, `uuq`, `uusend`
+and `ruusend` in `/usr/bin`; `uucico` and `uuclean` in `/usr/sbin`;
+`uuxqt` and `uucpd` in `/usr/libexec`; and `uuencode` and `uudecode`,
+whose sources are UUCP's, in `/usr/bin`. Not `acucntrl`, which turns a
+DZ11's or a DH11's line between dialling in and out through `/dev/kmem`
+and which `uucico` runs only when `uucp.h` sets `DIALINOUT`, as it does
+not ([not to be ported](unported.md#not-to-be-ported)). All are of the
+medium model, where the PDP-11 had `uucico` in overlays: its code is
+63K in the small model with the cross compiler, and a tenth more with
+the system's own, and the rest are linked with the same library of its
+objects, `uulib.a`.
+
+What it calls, and how, is in `/etc/uucp`, upstream's files, whose
+examples are to be replaced:
+
+```
+L.sys		each system: its name, when to call, and how: TCP, a
+		direct line (DIR) or a modem (ACU), and what to say to log in
+L-devices	the lines and modems: a Hayes modem on tty01, COM2, which
+		tip and cu use too, is ACU tty01 unused 2400 hayestone
+USERFILE	which files each login and system may read and write; as
+		shipped, everyone /usr/spool/uucppublic alone
+L.cmds		what another system may run here: rmail, who, uucp, uucico
+```
+
+A system that calls this one logs in as a user of its own whose shell
+is `/usr/sbin/uucico`, `Uname:...:/usr/spool/uucppublic:/usr/sbin/uucico`
+in `master.passwd`: on a serial line through `getty` and `login`, or by
+TCP through `uucpd`, which `inetd` starts when the `uucpd` line of
+`/etc/inetd.conf` is not commented out, as it is in upstream's.
+
+```
+uucp -r file 'sys!~/file'	queue a file for sys's uucppublic
+echo hi | uux - 'sys!rmail' user	a letter, by sys's rmail
+/usr/sbin/uucico -r1 -ssys	call sys now and do what is queued
+uusnap; uuq -l; uulog -ssys	what is queued, and what was done
+```
+
+Without `-r`, `uucp` and `uux` start a `uucico` to call at once. The
+spool, `/usr/spool/uucp`, keeps what this system sends in two
+directories named by the first seven characters of its name, as
+`uuname -l` gives it, `D.name` and `D.nameX`, which uucp's Makefile
+makes when it installs. Where the system is built that name is not
+known: the build's `uuname` prints uucp's own, `example`, the name the
+system has until `/etc/rc.conf` gives it one, and `/etc/rc` makes the
+two for whatever name it has as it starts. `rc` also takes away the
+locks of lines and systems and `uucico`'s notes of each call, as
+upstream's does. `sendmail.cf` is upstream's, which has no mailer for
+UUCP: `rmail` takes a letter that comes by it, and a site that sends
+mail by UUCP makes a `.cf` with the mailer of upstream's
+`cf.hosttable/uucpm.m4`.
+
+`/usr/adm/daily` cleans the spool with `/etc/uucp/clean.daily` and
+shows the queue with `uusnap`, as upstream's does, but runs the script
+itself: upstream's has `su` make it `uucp`, and `su` runs `uucp`'s
+shell, `uucico`, so that the script never ran. The uucp programs make
+themselves `uucp` when root runs them. `weekly` has not upstream's
+report of the week's calls, whose awk script, `/etc/uucp/sys_awk`,
+upstream's tree has not.
+
+Fixed:
+
+- `clean.daily` made its archive of the logs where it was run, and
+  then moved them into one in the spool that was never made; it moved
+  along copies that a new system has not yet, with an error for each;
+  and it named the spool's directories of this system by the whole of
+  its name. All are as the rest of uucp has them now.
+- Three of `uucico`'s functions for signals, and one of `uuname`'s,
+  were declared `void` and defined `int`, and `uucp` gave a string the
+  initial value 0, which the cross compiler takes as errors.
+
+Not fixed: the `uucico` that answers a call by TCP is to look up the
+caller's address and refuse a system that is not where `L.sys` says it
+is, but it takes the call to be on a terminal whatever it is on, as
+the test is `isatty(0) < 0`, which is never true; so it does not, as
+upstream's does not.
+
+`tests/uucp` has the system call itself both ways: by TCP, to `uucpd`,
+where the two `uucico`s talk the `t` protocol; and by a direct line
+that is a pty, `ptyp7`, with a `uucico` at `ttyp7`, where they talk `g`,
+the protocol of serial lines. By TCP it sends a file, copied to the
+spool first, and a program, and a letter by `uux`, which `uuxqt` gives
+`rmail` and `sendmail` delivers; by the pty it sends a program and
+fetches a file. Then `clean.daily` archives the logs, as `daily` runs
+it, and `uucp` writes the new one. By TCP `/bin/sh`, 19K, takes a
+fraction of a second; by the pty `/bin/csh`, 80K, takes 75 seconds, as
+on a line of 9600 baud, the speed `L.sys` gives it, since `g` waits
+before each read for as long as that speed would take to bring it.
+
 ## Following a program
 
 The kernel's `sctrace`, set with `tools/kpatch.py obj/PC/unix sctrace=1`,
@@ -3098,9 +3199,9 @@ Not done, or not tested:
   the kernel's structures with pointers in them, as `top`, `ps` and
   `w` do, cannot be moved: the kernel's pointers are two bytes.
 - `csh`, `ex`, `tcsh`, `sendmail`, `jove`, `hack`, `phantasia`,
-  `rogue` and `warp` are the medium-model programs so far. The others
-  that the PDP-11 overlays (`uucp`, `kermit`, `rn` and the rest [not
-  ported](unported.md)) are the ones meant for it. `csh`'s file name
+  `rogue`, `warp` and UUCP's programs are the medium-model programs so
+  far. The others that the PDP-11 overlays (`kermit`, `rn` and the
+  rest [not ported](unported.md)) are the ones meant for it. `csh`'s file name
   completion, and `tcsh` as a login shell, have not been tried.
 - `ex`'s saving of what it was editing when its terminal hangs up has
   not been tried, only its `preserve` command, which runs the same

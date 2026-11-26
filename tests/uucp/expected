@@ -1,0 +1,37 @@
+== names
+loop
+ploop
+example
+AUDIT       CORRUPT     D.example   LCK         STST        X.
+C.          D.          D.exampleX  LOG         TM.         XTMP
+== tcp
+loop   3 Cmds    ---      ---   
+motd sent
+sh sent
+From example!root
+hello by uux and rmail
+== g
+csh sent
+motd fetched
+== log
+root loop OK (conversation complete)
+root loop OK (startup)
+root loop QUE'D (C.loopn3Qg1)
+root loop QUE'D (C.loopn3Qh0)
+root loop REQUEST (S /bin/sh ~/sh root)
+root loop REQUEST (S /etc/motd ~/motd root)
+root loop REQUEST (S D.exampleB3Qi2 D.exampleS3Qi2 root)
+root loop REQUEST (S D.exampleX3Qi0 X.exampleA3Qi3 root)
+root loop SUCCEEDED (call to loop )
+root loop XQT QUE'D (rmail root)
+root ploop OK (conversation complete)
+root ploop OK (startup ptyp7 9600 baud)
+root ploop QUE'D (C.ploopn3Qj0)
+root ploop REQUEST (R ~/motd /usr/spool/uucppublic/motd.back root)
+root ploop REQUEST (S /bin/csh ~/csh root)
+root ploop SUCCEEDED (call to ploop )
+== clean
+LOGFILE.0  SYSLOG.0
+-rw-rw-r--  1 root     daemon          0
+root loop QUE'D (C.loopn3Ql0)
+== end

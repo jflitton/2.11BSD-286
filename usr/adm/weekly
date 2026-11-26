@@ -1,8 +1,9 @@
 #! /bin/sh -
 # /usr/adm/weekly, which cron runs each Sunday night, mailing root what
-# it prints (/etc/crontab).  Upstream's,
-# without UUCP, which is not on the system; and it moves a log's older
-# copies along only if they are there.
+# it prints (/etc/crontab).  Upstream's, without uucp's clean.weekly,
+# whose report is made by an awk script, /etc/uucp/sys_awk, that
+# upstream's tree has not; and it moves a log's older copies along only
+# if they are there.
 #
 PATH=/usr/sbin:/usr/ucb:/bin:/usr/bin
 echo "Subject: weekly run output"

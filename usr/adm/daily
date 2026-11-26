@@ -1,9 +1,11 @@
 #! /bin/sh -
 # /usr/adm/daily, which cron runs each night, mailing root what it
-# prints (/etc/crontab).  Upstream's, without
-# UUCP, which is not on the system; and it moves a log's older copies
-# along only if they are there, so that a new system does not mail root
-# an error for each it has not had time to make.
+# prints (/etc/crontab).  Upstream's, but that it runs uucp's
+# clean.daily itself, where upstream's has su make it uucp: su would run
+# uucp's shell, which is uucico, and the uucp programs make themselves
+# uucp when root runs them (uucpname.c).  And it moves a log's older
+# copies along only if they are there, so that a new system does not
+# mail root an error for each it has not had time to make.
 #
 PATH=/usr/sbin:/usr/ucb:/bin:/usr/bin
 echo "Subject: daily run output"
@@ -65,5 +67,13 @@ kill -1 `cat /var/run/syslog.pid`
 cd /
 
 echo ""
+echo "Cleaning up UUCP:"
+/etc/uucp/clean.daily
+
+echo ""
 echo "mail:"
 mailq
+
+echo ""
+echo "uucp:"
+uusnap

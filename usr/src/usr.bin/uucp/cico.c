@@ -682,6 +682,7 @@ register int code;
  *	on interrupt - remove locks and exit
  */
 
+void
 onintr(inter)
 register int inter;
 {
@@ -702,6 +703,7 @@ register int inter;
  * (SIGFPE, ugh), and toggle debugging between 0 and 30.
  * Handy for looking in on long running uucicos.
  */
+void
 dbg_signal()
 {
 	Debug = (Debug == 0) ? 30 : 0;
@@ -826,6 +828,7 @@ int parm;
 /*
  *	catch SIGALRM routine
  */
+void
 timeout()
 {
 	extern int HaveSentHup;

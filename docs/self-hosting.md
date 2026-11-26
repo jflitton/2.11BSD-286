@@ -115,8 +115,8 @@ says another. What was changed in them for the 286:
 
 - A program that is more than the small model has the model in its
   Makefile, `-mm` or `-ml`, where the PDP-11 had overlays (`ld -Z`):
-  `csh`, `tcsh`, `ex`, `sendmail`, `rogue`, `warp`, `hack` and
-  `phantasia` the medium, `make` and `window` the large.
+  `csh`, `tcsh`, `ex`, `sendmail`, `rogue`, `warp`, `hack`,
+  `phantasia` and UUCP's the medium, `make` and `window` the large.
 - One whose stack is more than the 8K a program is linked with has
   `-stack N`: `ftp`, `ftpd`, `rshd`, `rexecd`, `tcpd` and the others of
   its directory, `Mail`, `sendmail`, `refer`, `sortbib`, `syslogd`;
@@ -132,8 +132,8 @@ says another. What was changed in them for the 286:
   `libvmf`. `lib`'s list has not `libkern`, the PDP-11 kernel's, and
   `make build` makes neither that nor `libvmf`.
 - A directory's list of programs has not the ones the port does not
-  have: the PDP-11's debugger and tape formats, Fortran and Pascal,
-  `uucp`. `usr/src/local`'s list has the port's own
+  have: the PDP-11's debugger and tape formats, Fortran and Pascal.
+  `usr/src/local`'s list has the port's own
   programs, `adduser`, `bench` and `ve`, in place of upstream's, which
   all compile and are not made. Nor has `share`'s list `font` and
   `fontinfo`, the typesetter's and the Versatec's, which the port has no `troff` nor

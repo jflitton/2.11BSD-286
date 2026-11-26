@@ -378,6 +378,9 @@ tests/quota/run.sh      # disk quotas: limits given with edquota, filled
                         # past the soft ones to the hard ones, the
                         # warnings at login used up, counted again with
                         # quotacheck and kept as the system starts again
+tests/uucp/run.sh       # UUCP: the system calls itself by TCP, through
+                        # uucpd, and by a pty, the t protocol and the g,
+                        # and sends and fetches files and a letter
 tests/vt/run.sh         # the console's terminal emulator, on the machine
                         # the system is built on: 302 checks
 tests/ve/run.sh         # the editor ve, built for that machine too: 115
@@ -386,11 +389,12 @@ tests/ve/run.sh         # the editor ve, built for that machine too: 115
 ```
 
 The tests that boot the system as a machine has it, `tests/system`,
-`tests/network`, `tests/programs`, `tests/crash`, `tests/quota`, `tests/bench`,
-`tests/libc` and `tests/ccom` with `self.sh`, boot either build of it:
-with `TOOLS=cross` the cross compiler's, and with `TOOLS=native` the system's
-own compiler's, assembler's and linker's throughout, the kernel, the
-libraries, every program on the disk and the boot programs
+`tests/network`, `tests/programs`, `tests/crash`, `tests/quota`,
+`tests/uucp`, `tests/bench`, `tests/libc` and `tests/ccom` with
+`self.sh`, boot either build of it: with `TOOLS=cross` the cross
+compiler's, and with `TOOLS=native` the system's own compiler's,
+assembler's and linker's throughout, the kernel, the libraries, every
+program on the disk and the boot programs
 (`tests/harness/system.sh`). Without it they boot the default build,
 the system's own tools', which is one line of that file. `TOOLS_KERNEL`,
 `TOOLS_PROGRAMS` and `TOOLS_BOOT` choose for the kernel, the
@@ -559,6 +563,16 @@ and so on).
   `quotacheck` count it, and starts the system again. What `quota`,
   `repquota` and the kernel say must be as `expected` has it ([the C
   library and programs](userland.md#quotas)).
+- `tests/uucp` boots it with `/etc/uucp/L.sys` naming it twice, as
+  `loop`, called by TCP, where `inetd` starts `uucpd`, and as `ploop`,
+  called by a direct line that is a pty, with a `uucico` at its other
+  end, so that the system calls itself in both of UUCP's protocols, `t`
+  and `g`. Root queues a file and a program to send by TCP, with a
+  letter by `uux` to `rmail`, and a program to send and a file to fetch
+  by the pty, and runs `uucico` for each, and then `clean.daily`, as
+  `daily` does. What arrived, and what `uuname`, `uusnap` and `uulog`
+  say, must be as `expected` has it ([the C library and
+  programs](userland.md#uucp)).
 - `tests/bench` boots it and runs `bench`, this port's benchmark, while
   the harness times each test by the marks it writes and samples where
   the processor is. It prints what each test took and leaves
@@ -596,6 +610,7 @@ are from single runs with an 86Box that has the automation socket.
 | a Makefile, a large source, the compiler or the other tools | `tests/self/changed.sh` | |
 | a panic, the disks' dump routines, `savecore`, `adb -k`, `ps -k`, `pstat -k` | `tests/crash` | 3½ minutes |
 | the quotas, in the kernel or the programs | `tests/quota` | 2½ minutes |
+| UUCP, its programs or its files in `/etc` | `tests/uucp` | 2¼ minutes |
 
 The build here makes what the system makes of the same Makefiles, to
 the byte but for the few files `tests/self/differs` names, which are

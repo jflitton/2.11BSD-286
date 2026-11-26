@@ -41,6 +41,10 @@
 #			and FILE.dir and FILE.pag, its database
 #	newaliases	tools/mkaliases.py, for distribution's
 #			newaliases -oAFILE: FILE.dir and FILE.pag
+#	uuname		-l alone, uucp's name for the system, which uucp's
+#			Makefile names two of its spool's directories by:
+#			uucp.h's MYNAME, the name it has until rc.conf
+#			gives it one, and not this machine's
 #	mknod		mknod.py, which says in OUT/devices which files
 #			are devices, for MAKEDEV
 #	tar		this machine's, which says in OUT/meta that what
@@ -153,6 +157,12 @@ case \$* in
 *) echo "newaliases: only -oAfile here" >&2; exit 1 ;;
 esac
 exec python3 -I "$top/tools/mkaliases.py" "\$f" "\$(dirname "\$f")"
+END
+cat > "$b/uuname" <<END
+#!/bin/sh
+[ "\$*" = -l ] || { echo "uuname: only -l here" >&2; exit 1; }
+sed -n 's/^#define[[:space:]]*MYNAME[[:space:]]*"\(.*\)".*/\1/p' \
+    "$s/usr.bin/uucp/uucp.h"
 END
 for t in size ranlib; do
     printf '#!/bin/sh\nexit 0\n' > "$b/$t"

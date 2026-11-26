@@ -54,8 +54,8 @@ The PDP-11 and the 286 are close enough that the tree carries over:
   system is built with them. `adb` debugs programs, their core files,
   the running kernel and the dumps a panic leaves
   ([adb](docs/userland.md#adb)).
-- Not there yet: UUCP and `f77`; SLIP and a tape driver in the
-  kernel. [What is not ported](docs/unported.md) has the whole list.
+- Not there yet: `f77`; SLIP and a tape driver in the kernel. [What
+  is not ported](docs/unported.md) has the whole list.
 - Upstream's programs are kept as 2.11BSD has them, changed only for
   bugs, the compiler and each machine's settings. Newer behaviour goes
   in programs of the port's own, in `/usr/local` as 2.11BSD has a site's

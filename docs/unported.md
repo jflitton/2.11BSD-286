@@ -141,7 +141,6 @@ All are ported: `nroff` and `troff`, with `tbl`, `eqn`, `neqn`, `refer`,
 |---|---|---|
 | `sendmail.MX` (*medium*) | `usr.sbin/sendmail.MX` | a `sendmail` that looks up MX records with `named` |
 | `mkhosts` | `usr.sbin/mkhosts` | `/etc/hosts` as a database. Its Makefile is run, as upstream's is, and installs nothing: `mkhosts` needs `gethostent`, which the C library has only when it reads the table of hosts itself, and it asks `named`, as upstream's does (`HOSTLOOKUP` in `lib/libc/Makefile`) |
-| `uucp` (*medium*) | `usr.bin/uucp` | `rmail`, which hands mail from it to `sendmail`, is ported |
 | `slattach` | `sbin/slattach` | waits on SLIP |
 | `testnet` | `sbin/testnet` | upstream's `netstart` asks it whether the kernel has a network; the port's does not |
 
@@ -190,6 +189,7 @@ These are the PDP-11's, or are for what the PDP-11 needed:
 | `gt307` | a clock board for the PDP-11 |
 | `rxformat` | formats an RX02 diskette; `flformat` is it for a PC's |
 | `bad144` | DEC's table of bad sectors; neither driver forwards them |
+| `acucntrl` | turns a DZ11's or a DH11's line between dialling in and out through the driver's structures in `/dev/kmem`; `uucico` runs it only with `DIALINOUT`, which `uucp.h` does not set |
 | `sysgen` | gives Qbus and UNIBUS devices their addresses |
 | `tp` | DECtape's format |
 | `lib2648` | graphics on an HP 2648 terminal |

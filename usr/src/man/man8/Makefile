@@ -20,10 +20,10 @@
 MDIR=	/usr/man/cat8
 SRCS=	bugfiler.8 crash.8 dump.8 dumpdir.8 fsck.8 getty.8 intro.8 lpc.8 \
 	lpd.8 makekey.8 named.8 pac.8 rc.8 rdump.8 routed.8 sendmail.8 \
-	sync.8 timed.8 timedc.8
+	sync.8 timed.8 timedc.8 uucico.8 uuclean.8 uupoll.8 uusnap.8 uuxqt.8
 OBJS=	bugfiler.0 crash.0 dump.0 dumpdir.0 fsck.0 getty.0 intro.0 lpc.0 \
 	lpd.0 makekey.0 named.0 pac.0 rc.0 rdump.0 routed.0 sendmail.0 \
-	sync.0 timed.0 timedc.0
+	sync.0 timed.0 timedc.0 uucico.0 uuclean.0 uupoll.0 uusnap.0 uuxqt.0
 
 .SUFFIXES: .8 .0
 
@@ -39,5 +39,7 @@ clean: FRC
 
 install: _make_01
 	install -c -o root -g staff -m 444 ${OBJS} ${MDIR}
+	rm -f ${MDIR}/uucpd.0
+	ln ${MDIR}/uucico.0 ${MDIR}/uucpd.0
 
 FRC:

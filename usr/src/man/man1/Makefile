@@ -43,6 +43,7 @@ SRCS1=	nroff.1 nslookup.1 od.1 pagesize.1 \
 	tar.1 tbl.1 tc.1 tee.1 telnet.1 time.1 \
 	tip.1 tk.1 tn3270.1 tr.1 troff.1 true.1 \
 	tsort.1 tty.1 ul.1 unifdef.1 uniq.1 units.1 uptime.1 users.1 \
+	uucp.1 uuencode.1 uulog.1 uuname.1 uuq.1 uusend.1 uux.1 \
 	vacation.1 vgrind.1 vi.1 vmstat.1 w.1 wait.1 wall.1 wc.1 \
 	what.1 whatis.1 which.1 who.1 whois.1 window.1 \
 	write.1 xstr.1 yacc.1 yes.1
@@ -70,6 +71,7 @@ OBJS2=	nroff.0 nslookup.0 od.0 pagesize.0 \
 	tar.0 tbl.0 tc.0 tee.0 telnet.0 time.0 \
 	tip.0 tk.0 tn3270.0 tr.0 troff.0 true.0 \
 	tsort.0 tty.0 ul.0 unifdef.0 uniq.0 units.0 uptime.0 users.0 \
+	uucp.0 uuencode.0 uulog.0 uuname.0 uuq.0 uusend.0 uux.0 \
 	vacation.0 vgrind.0 vi.0 vmstat.0 w.0 wait.0 wall.0 wc.0 \
 	what.0 whatis.0 which.0 who.0 whois.0 window.0 \
 	write.0 xstr.0 yacc.0 yes.0
@@ -131,6 +133,8 @@ install: _make_01 _make_02
 	ln ${MDIR}/compress.0 ${MDIR}/uncompress.0
 	rm -f ${MDIR}/unexpand.0
 	ln ${MDIR}/expand.0 ${MDIR}/unexpand.0
+	rm -f ${MDIR}/uudecode.0
+	ln ${MDIR}/uuencode.0 ${MDIR}/uudecode.0
 	rm -f ${MDIR}/while.0
 	ln ${MDIR}/sh.0 ${MDIR}/while.0
 	rm -f ${MDIR}/zcat.0

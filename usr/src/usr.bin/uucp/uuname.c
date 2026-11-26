@@ -66,6 +66,7 @@ int argc;
  
 	exit(0);
 }
+void
 intrEXIT(inter)
 {
 	exit(inter);

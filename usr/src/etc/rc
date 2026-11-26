@@ -73,8 +73,11 @@ dev_mkdb
 ps -U						>/dev/console 2>&1
 
 rm -f /etc/nologin
-# The locks tip leaves on a serial line while it has it (uucplock.c).
+# The locks tip and uucp leave on a serial line or a system while they
+# have it (uucplock.c, ulockf.c), and what uucico last made of calling
+# each system, which would have it wait before it called again.
 rm -f /usr/spool/uucp/LCK.*
+rm -f /usr/spool/uucp/STST/*
 
 # The network, as /etc/rc.conf describes it (/etc/netstart).
 if [ -s /etc/rc.conf ]
@@ -82,6 +85,21 @@ then
 	. /etc/rc.conf
 fi
 . /etc/netstart
+
+# uucp keeps what this system sends in two directories of its spool
+# named for it (subdir.c), which uucp's Makefile makes by the name the
+# system has when uucp is installed; the root is made before rc.conf
+# names it, so they are made here for the name it has.
+n=`uuname -l | sed 's/\(.......\).*/\1/'`
+for d in D.${n}X D.$n
+do
+	if [ ! -d /usr/spool/uucp/$d ]
+	then
+		mkdir /usr/spool/uucp/$d
+		chmod 755 /usr/spool/uucp/$d
+		chown uucp.daemon /usr/spool/uucp/$d
+	fi
+done
 
 # The log, which programs write to through /dev/log and the kernel
 # through /dev/klog, and /etc/syslog.conf says where each kind goes.

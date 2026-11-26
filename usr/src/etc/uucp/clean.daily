@@ -3,18 +3,24 @@
 # Once a day, move the log files to the archive directory,
 # keep them for 30 days, and then get rid of them.
 #
+# The 286's: the archive directory is made in the spool, where the logs
+# are moved to, and not where the script is run; a log or an older copy
+# is moved along only if it is there, so that a new system does not
+# mail root an error for each; and the spool's directories of this
+# system are named by the first seven characters of its name, as uucp
+# names them (SYSNSIZE, uucp.h).
 set files=( SYSLOG LOGFILE ERRLOG )
 set days=30
 set spooldir=/usr/spool/uucp
 set archdir=uucplog.archives
 #
-if ( ! -e $archdir ) mkdir $archdir
 cd $spooldir
+if ( ! -e $archdir ) mkdir $archdir
 #
 # get today's files out of the way immediately
 #
 foreach file ( $files )
-	mv $file o$file
+	if (-e $file) mv $file o$file
 	cp /dev/null $file
 	chmod 664 $file
 end
@@ -25,11 +31,11 @@ foreach file ( $files )
 	set x=$days
 	while($x > 0)
 		@ y = $x - 1
-		if ($x == $days) rm $archdir/$file.$x
-		mv -f $archdir/$file.$y $archdir/$file.$x
+		if ($x == $days) rm -f $archdir/$file.$x
+		if (-e $archdir/$file.$y) mv -f $archdir/$file.$y $archdir/$file.$x
 		@ x --
 	end
-	mv o$file $archdir/$file.0
+	if (-e o$file) mv o$file $archdir/$file.0
 end
 
 # this assumes you have subdirectories.
@@ -42,5 +48,5 @@ end
 /usr/sbin/uuclean -d/usr/spool/uucp/X. -pX. -n240
 /usr/sbin/uuclean -d/usr/spool/uucp/C. -pC. -n240
 /usr/sbin/uuclean -d/usr/spool/uucp/D. -pD. -n240
-/usr/sbin/uuclean -d/usr/spool/uucp/D.`uuname -l` -pD. -n240
-/usr/sbin/uuclean -d/usr/spool/uucp/D.`uuname -l`X -pD. -n240
+/usr/sbin/uuclean -d/usr/spool/uucp/D.`uuname -l | colrm 8` -pD. -n240
+/usr/sbin/uuclean -d/usr/spool/uucp/D.`uuname -l | colrm 8`X -pD. -n240

@@ -5,8 +5,12 @@
 #
 # Common object files are assembled into a library {uulib.a}
 #
+# The 80286: not acucntrl, which turns a DZ11's or a DH11's line between
+# dialling in and dialling out through the driver's structures in
+# /dev/kmem, the PDP-11's and the VAX's, and which uucico runs only when
+# DIALINOUT is set in uucp.h, as it is not.
 ALL=	uucico uucp uux uuxqt uulog uuclean uuname uupoll uusnap \
-	uuencode uudecode uusend uucpd uuq acucntrl
+	uuencode uudecode uusend uucpd uuq
 # Common object files placed in uulib.a
 COMMON=	anlwrk.o anyread.o cfgets.o chkpth.o \
 	cpmv.o expfile.o gename.o getargs.o getprm.o \
@@ -25,14 +29,14 @@ LSRCS=	anlwrk.c anyread.c assert.c cfgets.c chkpth.c \
 	lastpart.c logent.c mailst.c prefix.c \
 	subdir.c systat.c ulockf.c \
 	uucpdefs.c uucpname.c versys.c xqt.c
-# Objects extracted from libc.a when building an overlaid uucico
-LIBOBJS= gethnamadr.o getsent.o getsbyname.o res_init.o res_send.o \
-	res_query.o res_mkquery.o res_comp.o
-
 OWNER=	uucp
 GROUP=	daemon
-CFLAGS=	-O
-LDFLAGS=-i
+# The 80286: uucp is of the medium model, uucico's code being more than
+# a segment of 64K, where the PDP-11 had it in overlays; the others are
+# linked with uulib.a, as uucico is, and so are of its model.
+MODEL=	-mm
+CFLAGS=	-O ${MODEL}
+LDFLAGS=-i ${MODEL}
 LIBS= 
 SBINDIR=	/usr/sbin
 LIBEXECDIR=	/usr/libexec
@@ -49,7 +53,7 @@ STST=	${SPOOL}/STST
 HOSTNAME=`uuname -l | sed 's/\(.......\).*/\1/'`
 SUBDIRS=C. D.${HOSTNAME}X D.${HOSTNAME} D. X. TM.
 
-all:	${ALL} acucntrl.0
+all:	${ALL}
 
 acucntrl.0: acucntrl.8
 	/usr/man/manroff acucntrl.8 > acucntrl.0
@@ -72,13 +76,9 @@ uuxqt:	uuxqt.o assert.o uulib.a
 # and uncomment the block below
 uucico: cico.o cntrl.o conn.o condevs.o gnsys.o pk0.o chksum.o pk1.o tio.o \
 	fio.o gio.o imsg.o assert.o uulib.a aculib/aculib.a
-	   ar x /lib/libc.a ${LIBOBJS}
-	   ${CC} -o uucico ${LDFLAGS} cico.o cntrl.o condevs.o \
-	            gnsys.o pk0.o chksum.o tio.o fio.o imsg.o \
-	            uulib.a aculib/aculib.a \
-		    -Z gio.o assert.o ${LIBOBJS} \
-		    -Z pk1.o conn.o \
-		    -Y ${LIBS}
+	${CC} -o uucico ${LDFLAGS} cico.o cntrl.o condevs.o \
+		gnsys.o pk0.o chksum.o tio.o fio.o imsg.o gio.o assert.o \
+		pk1.o conn.o uulib.a aculib/aculib.a ${LIBS}
 
 uulog:	uulog.o assert.o uulib.a
 	${CC} -o uulog ${LDFLAGS} uulog.o assert.o uulib.a ${LIBS}
@@ -114,17 +114,18 @@ acucntrl: acucntrl.o
 	${CC} -o acucntrl ${LDFLAGS} acucntrl.o ${LIBS}
 
 mkdirs:
-	-for i in ${SPOOL} ${PUBDIR} ${XQTDIR} ${CORRUPT} \
-		${AUDIT} ${LCK} ${LOG} ${STST} ; do \
+	-for i in ${DESTDIR}${SPOOL} ${DESTDIR}${PUBDIR} ${DESTDIR}${XQTDIR} \
+		${DESTDIR}${CORRUPT} ${DESTDIR}${AUDIT} ${DESTDIR}${LCK} \
+		${DESTDIR}${LOG} ${DESTDIR}${STST} ; do \
 		rm -f $$i ; mkdir $$i ; \
 		chmod 755 $$i; chown ${OWNER} $$i; chgrp ${GROUP} $$i ; \
 	done
-	chmod 777 ${PUBDIR} ${LCK}
-	-cd ${LOG}; for i in uucico uux uuxqt uucp xferstats; do\
+	chmod 777 ${DESTDIR}${PUBDIR} ${DESTDIR}${LCK}
+	-cd ${DESTDIR}${LOG}; for i in uucico uux uuxqt uucp xferstats; do\
 		rm -f $$i ; mkdir $$i ; \
 		chmod 755 $$i; chown ${OWNER} $$i; chgrp ${GROUP} $$i ; \
 	done
-	-cd ${SPOOL}; for i in ${SUBDIRS} ; do \
+	-cd ${DESTDIR}${SPOOL}; for i in ${SUBDIRS} ; do \
 		mkdir $$i; \
 		chown ${OWNER} $$i; chgrp ${GROUP} $$i; chmod 755 $$i; \
 	done
@@ -139,21 +140,19 @@ aculib/aculib.a:
 
 install: mkdirs ${ALL}
 	for i in uucico uuclean; do \
-		install -c -s -m 6555 -o ${OWNER} -g ${GROUP} $$i ${SBINDIR} ;\
+		install -c -s -m 6555 -o ${OWNER} -g ${GROUP} $$i ${DESTDIR}${SBINDIR} ;\
 	done
 	for i in uucp uux uulog uuname uusnap uupoll uuq uusend; do \
-		install -c -s -m 6555 -o ${OWNER} -g ${GROUP} $$i ${BIN} ;\
+		install -c -s -m 6555 -o ${OWNER} -g ${GROUP} $$i ${DESTDIR}${BIN} ;\
 	done
-	rm -f ${BIN}/ruusend
-	ln ${BIN}/uusend ${BIN}/ruusend
-	install -c -m 444 -o root -g staff acucntrl.0 /usr/man/cat8
-	install -c -s -m 6550 -o ${OWNER} -g ${GROUP} uuxqt ${LIBEXECDIR}
-	install -c -s -m 6550 -o root -g ${GROUP} acucntrl ${LIBEXECDIR}
-	install -c -s -m 500 -o uucp uucpd ${LIBEXECDIR}
+	rm -f ${DESTDIR}${BIN}/ruusend
+	ln ${DESTDIR}${BIN}/uusend ${DESTDIR}${BIN}/ruusend
+	install -c -s -m 6550 -o ${OWNER} -g ${GROUP} uuxqt ${DESTDIR}${LIBEXECDIR}
+	install -c -s -m 500 -o uucp uucpd ${DESTDIR}${LIBEXECDIR}
 	@echo Dont forget to fork off /usr/libexec/uucpd in /etc/rc.local
 	@echo if you are not running 'inetd'
-	install -s uuencode ${BIN}
-	install -s uudecode ${BIN}
+	install -s uuencode ${DESTDIR}${BIN}
+	install -s uudecode ${DESTDIR}${BIN}
 
 clean:
 	rm -f *.o ${ALL} uulib.a *.0
