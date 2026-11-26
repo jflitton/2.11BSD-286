@@ -137,6 +137,14 @@ a a
 b b
 a b
 c d
+== awk
+awk 'NR > 1 { $1 = $2 = $3 = ""; sub(/^ */, ""); print }' </dev/null 2>&1
+echo $?
+ls
+--
+awk: syntax error near line 1
+awk: illegal statement near line 1
+2
 == basename
 basename /usr/bin/sort
 basename /a/b/file.c .c

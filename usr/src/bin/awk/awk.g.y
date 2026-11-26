@@ -235,7 +235,12 @@ simple_stat:
 		{ PUTS("printf list"); $$ = stat3($1, $2, nullstat, nullstat); }
 	| expr	{ PUTS("expr"); $$ = exptostat($1); }
 	|		{ PUTS("null simple statement"); $$ = (hack)nullstat; }
-	| error		{ yyclearin; yyerror("illegal statement"); }
+	| error		{ yyclearin; yyerror("illegal statement");
+			  /*
+			   * No statement: what the error token left is not
+			   * one, and linkum went through it to the next.
+			   */
+			  $$ = (hack)nullstat; }
 	;
 
 statement:

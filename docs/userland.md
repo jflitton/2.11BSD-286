@@ -805,7 +805,12 @@ output.
 `sqrt`, `exp` and `log`. `libm` is `usr.lib/libom`, the older of
 upstream's two and the one in C, which is what upstream installs under
 that name on the PDP-11. As in the Seventh Edition, this `awk` reads its
-input even when the program is only a `BEGIN`.
+input even when the program is only a `BEGIN`. A statement it could not
+parse, followed by another, made it fault after it had said so: the
+grammar's rule for a statement in error left it the value of the error
+token, which `linkum` took for the next statement and followed, past the
+end of the data segment. That rule now makes no statement, as the empty
+statement's does.
 
 `bc` compiles its input for `dc`, which it runs, and `bc -l` reads its
 library of functions from `/usr/share/misc/lib.b`. `dc` could not copy a

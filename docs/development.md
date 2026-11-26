@@ -354,7 +354,7 @@ tests/programs/run.sh   # the programs that work on text and files, on the
                         # disk, cc and what goes with it compiling a
                         # program there and adb on its core, yacc and
                         # lex with their libraries, mkdep, calendar and
-                        # learn, the games, segalloc and ve: 184 checks,
+                        # learn, the games, segalloc and ve: 185 checks,
                         # each a few lines for the shell and what they
                         # must write,
                         # and more, man, script, lock, tset, six games,
@@ -503,7 +503,7 @@ and so on).
   ([the C library and programs](userland.md),
   [the console](console.md), [the network](network.md)).
 - `tests/programs` boots that system too, with a file system of checks
-  beside the root: 184 of them, each a few lines for the shell and what
+  beside the root: 185 of them, each a few lines for the shell and what
   they must write, to the byte, for `sort`, `sed`, `diff`, `tar`,
   `patch`, `m4`, `compress` and the other programs that work on text and
   files, for `nroff`, which must format three of the manual's pages
