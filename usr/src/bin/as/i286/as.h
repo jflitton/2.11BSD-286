@@ -232,6 +232,17 @@ extern	int	usedhere;
 
 #define	P_ADD	8		/* how tightly + and - bind (binary) */
 
+/*
+ * What a character may be of a name: the first of it, or any of it
+ * (idtab, as0.c).  These are looked up once for each character of every
+ * line, twice over, and a function each was a fifth of the time.
+ */
+#define	ID_START	01
+#define	ID_CHAR		02
+extern	char	idtab[];
+#define	idstart(c)	(idtab[(c) & 0377] & ID_START)
+#define	idchar(c)	(idtab[(c) & 0377] & ID_CHAR)
+
 struct	sym *lookup(), *symbol();
 struct	insn *findinsn();
 struct	jump __far *newjump(), __far *nextjump();

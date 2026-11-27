@@ -60,6 +60,14 @@ int lmods[] = { FLADJ, FPLUS, FSPC, FALT, FZERO, MLONG, 0, 0, 0, MCHAR, MLONG };
 int convtab[] = { 0, CDEC, CSGN+CDEC, CSGN+CDEC, CHEX, CHEX+CUC, FALT };
 char _hextab[] = "0123456789ABCDEF";
 
+/*
+ * Where each character is in matchtab, one past it, or 0 if it is not
+ * there, made by the first printf.  Going down matchtab took a printf
+ * of short conversions a third of its time: %s is the 31st.
+ */
+static char mplace[128];
+static int mready;
+
 int gnum(char **, struct prinfo *);
 void prstr(char *b, char *e, struct prinfo *pi);
 void putwth(register struct prinfo *pi);
@@ -79,6 +87,11 @@ __svfprintf(FILE *iob, const char *fmt, va_list ap)
 	if ((iob->_flags & (__SNBF|__SWR|__SRW)) == (__SNBF|__SWR) &&
 	    iob->_file >= 0)
 		return (sbprintf(iob, fmt, ap));
+	if (!mready) {
+		for (ch = 0; matchtab[ch]; ch++)
+			mplace[matchtab[ch]] = ch + 1;
+		mready = 1;
+	}
 	pri.nwrtn = 0;
 	pri.iob = iob;
 	pri.app = &ap;
@@ -97,9 +110,9 @@ loop:
 	pri.ndigit = 1;
 	pri.width = pri.flags = 0;
 	for (;;) {
-		for (ch = 0, mtab = matchtab; *mtab; mtab++, ch++)
-			if (*mtab == *fmt)
-				break;
+		ch = *fmt & 0200 ? 0 : mplace[*fmt];
+		ch = ch ? ch - 1 : sizeof matchtab - 1;	/* at its 0 if not */
+		mtab = &matchtab[ch];
 		fmt++;
 		if (*mtab == 0) {
 			prstr(fmt-1, fmt, &pri);
@@ -287,12 +300,15 @@ gnum(char **f, struct prinfo *pi)
 	return n;
 }
 
+/*
+ * putc, which fputc is, without a call for each character.
+ */
 static void
 prstr(register char *b, char *e, register struct prinfo *pi)
 {
 	pi->nwrtn += e - b;
 	while (b < e)
-		fputc(*b++, pi->iob);
+		putc(*b++, pi->iob);
 }
 
 static void
@@ -301,7 +317,7 @@ putwth(register struct prinfo *pi)
 	register int w = pi->width;
 
 	while (w-- > 0)
-		fputc(' ', pi->iob), pi->nwrtn++;
+		putc(' ', pi->iob), pi->nwrtn++;
 }
 
 /*

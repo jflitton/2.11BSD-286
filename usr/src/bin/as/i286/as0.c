@@ -158,6 +158,7 @@ char **argv;
 	if (source == NULL)
 		usage();
 	tabcheck();
+	setidtab();
 	for (pass = 1; pass <= 2; pass++) {
 		start();
 		while (nextline())
@@ -683,7 +684,8 @@ char *buf;
 		getname(name);
 		p = lp;
 		for (dp = defs; dp; dp = dp->d_next)
-			if (strcmp(dp->d_name, name) == 0)
+			if (dp->d_name[0] == name[0] &&
+			    strcmp(dp->d_name, name) == 0)
 				break;
 		s = name;
 		if (dp && dp->d_nparam >= 0) {
@@ -719,6 +721,9 @@ paste()
 	register char *p, *q;
 	register c;
 
+	for (p = line; *p != '%'; p++)		/* most lines have none */
+		if (*p == 0)
+			return;
 	for (p = q = line; (c = *p) != 0; ) {
 		if (c == '\'' || c == '"') {
 			do
@@ -1125,18 +1130,21 @@ skipb()
 		lp++;
 }
 
-idstart(c)
-register c;
-{
-	return(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c == '_' ||
-	    c == '.' || c == '?' || c == '@');
-}
+/*
+ * For idstart and idchar (as.h): a letter, _, ., ? and @ begin a name,
+ * and those, the digits, $, # and ~ go on with it.
+ */
+char	idtab[256];
 
-idchar(c)
-register c;
+setidtab()
 {
-	return(idstart(c) || c >= '0' && c <= '9' || c == '$' || c == '#' ||
-	    c == '~');
+	register char *s;
+
+	for (s = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_.?@";
+	    *s; s++)
+		idtab[*s & 0377] = ID_START|ID_CHAR;
+	for (s = "0123456789$#~"; *s; s++)
+		idtab[*s & 0377] = ID_CHAR;
 }
 
 /*

@@ -7,7 +7,7 @@
  */
 
 #if	!defined(lint) && defined(DOSCCS)
-static	char	sccsid[] = "@(#)c00.c	2.5 (2.11BSD) 2026/1/26";
+static	char	sccsid[] = "@(#)c00.c	2.6 (2.11BSD) 2026/11/27";
 #endif
 
 #include "c0.h"
@@ -214,7 +214,8 @@ findkw()
 	register struct kwtab *kp;
 
 	for (kp=kwtab; kp->kwname; kp++) {
-		if (strcmp(symbuf, kp->kwname) == 0) {
+		if (symbuf[0] == kp->kwname[0] &&
+		    strcmp(symbuf, kp->kwname) == 0) {
 			cval = kp->kwval;
 			return(1);
 		}

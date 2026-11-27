@@ -104,6 +104,7 @@ struct	xsym {
 	char	xdefd;
 	char	xinline;	/* an in-line function: the body follows */
 	char	xaddr;		/* the name is used but to be called */
+	char	xhash;		/* of the name, which xlook looks at first */
 	char	xname[1];
 };
 struct	xsym	*xsyms;
@@ -111,17 +112,34 @@ int	laststatic;		/* the last SYMDEF was of something static */
 char	statname[40];		/* the static function being compiled */
 char	*statfn;
 
+/*
+ * A file's names are many, and each is looked for by going down the
+ * list; the hash, compared first, spares most of them a strcmp.
+ */
+xhash(s)
+register char *s;
+{
+	register h;
+
+	for (h = 0; *s; s++)
+		h += *s;
+	return(h & 0377);
+}
+
 struct xsym *
 xlook(s)
 register char *s;
 {
 	register struct xsym *xp;
+	register h;
 
+	h = xhash(s);
 	for (xp = xsyms; xp; xp = xp->xnext)
-		if (strcmp(xp->xname, s)==0)
+		if ((xp->xhash & 0377) == h && strcmp(xp->xname, s)==0)
 			return(xp);
 	xp = (struct xsym *)getblk(sizeof(*xp) + strlen(s));
 	strcpy(xp->xname, s);
+	xp->xhash = h;
 	xp->xdefd = 0;
 	xp->xinline = 0;
 	xp->xaddr = 0;
@@ -165,6 +183,7 @@ char *s;
 	xp = (struct xsym *)getblk(sizeof(*xp) + strlen(s) + 1 + strlen(body));
 	strcpy(xp->xname, s);
 	strcpy(xp->xname + strlen(s) + 1, body);
+	xp->xhash = xhash(s);
 	xp->xdefd = 0;
 	xp->xinline = 1;
 	xp->xaddr = 0;
