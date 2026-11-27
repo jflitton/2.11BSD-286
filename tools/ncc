@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compile C with the system's own compiler, run here.
 
-usage: ncc [-E|-S] [-O] [-k] [-local] [-ms|-mm|-ml] [-nd=NAME] [-o OUT]
+usage: ncc [-E|-S] [-O] [-p] [-k] [-local] [-ms|-mm|-ml] [-nd=NAME] [-o OUT]
            [-Dname[=val]]
            [-Uname] [-Idir] FILE.c
 
@@ -31,6 +31,8 @@ compiler's linker does not.
     -S          stop at the assembly: OUT, or FILE.s
     -O          improve the code: jumps to jumps, what is the same on
                 two paths, what a register has already
+    -p          count each function's calls, for prof(1), as cc -p
+                has c0 told -P: the small model's alone
     -ms -mm -ml the small model, the default, or the medium, whose
                 functions are far: the file's are then in a segment of
                 its own, FILE_TEXT; or the large, the medium with every
@@ -77,6 +79,7 @@ def main():
     asm_only = False
     pre_only = False
     improve = False
+    prof = False
     model = "s"
     out = None
     cpp = []
@@ -94,6 +97,8 @@ def main():
             pre_only = True
         elif a == "-O":
             improve = True
+        elif a == "-p":
+            prof = True
         elif a in ("-ms", "-mm", "-ml"):
             model = a[2]
         elif a.startswith("-nd="):
@@ -171,6 +176,7 @@ def main():
         flag = {"s": None, "m": "-M", "l": "-L"}[model]
         raw = os.path.join(tmp, "t3") if improve else asm
         passes = [[os.path.join(HOST, "c0"), pre, t1, t2] +
+                  (["-P"] if prof else []) +
                   ([flag] if flag else []) + (["-S"] if nd else []),
                   [os.path.join(HOST, "c1"), t1, t2, raw] +
                   ([flag + seg] if flag else []) +

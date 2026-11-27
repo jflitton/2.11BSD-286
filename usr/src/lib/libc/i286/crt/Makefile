@@ -5,6 +5,9 @@
 # small's here, the medium's in m and the large's in l, with -DFAR for
 # both, which call far, and -DFARDATA for the large, whose pointers are
 # far.  The large model has pia too: arithmetic on __huge pointers.
+# The library for profiling, the small model's alone, has the small
+# model's in profiled: compiled code calls these with its operands in
+# registers, and they count no calls.
 #
 SRCS=	chp.s i4d.s i4m.s pia.s
 OBJS=	chp.o i4d.o i4m.o
@@ -14,8 +17,11 @@ AS=	as
 	${AS} -mm -DFAR -o m/$*.o $*.s
 	${AS} -ml -DFAR -DFARDATA -o l/$*.o $*.s
 	${AS} -ms -o $*.o $*.s
+	cp $*.o profiled/$*.o
 
-crtlib crtlib_m crtlib_l: ${OBJS} l/pia.o
+crtlib crtlib_p crtlib_m crtlib_l: ${OBJS} l/pia.o
+	@echo "building profiled crtlib"
+	@cd profiled; ar cru ../crtlib_p ${OBJS}
 	@echo "building medium model crtlib"
 	@cd m; ar cru ../crtlib_m ${OBJS}
 	@echo "building large model crtlib"
@@ -27,7 +33,7 @@ l/pia.o: pia.s DEFS.inc
 	${AS} -ml -DFAR -DFARDATA -o l/pia.o pia.s
 
 clean:
-	rm -f *.o m/*.o l/*.o crtlib crtlib_m crtlib_l
+	rm -f *.o profiled/*.o m/*.o l/*.o crtlib crtlib_p crtlib_m crtlib_l
 
 chp.o: chp.s DEFS.inc
 i4d.o: i4d.s DEFS.inc

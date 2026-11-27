@@ -9,6 +9,7 @@ program is compiled on the system as on any UNIX:
 cc -O -o prog prog.c sub.c -lm      # small model
 cc -mm -o big big.c                 # medium model: far code
 cc -ml -o bigger bigger.c           # large model: far data as well
+cc -p -o prog prog.c; ./prog; prof prog  # where prog's time went
 ```
 
 The system is built by these same tools, compiled for the machine
@@ -492,6 +493,6 @@ is given there as what the system's `f77 -O -S` makes of it,
 
 ## What is not there
 
-- Profiling (`cc -p`, `mcrt0.o`, `prof`) and `ld -r`.
+- Profiling of the medium and large models, and `ld -r`.
 - In the large model, a variable of more than 32K in a segment of its
   own, which the cross compiler makes, and `__huge` pointers.

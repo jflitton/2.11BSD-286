@@ -1,4 +1,4 @@
-#	Makefile	2.2 (2.11BSD) 2026/11/26
+#	Makefile	2.3 (2.11BSD) 2026/11/26
 #
 CFLAGS=	-O
 LDFLAGS= -i
@@ -8,7 +8,7 @@ LDFLAGS= -i
 
 SUBDIR=	at calendar dc diction diff3 efl eqn fstat f77 find graph id learn \
 	lex \
-	m4 neqn plot printf ranlib ratfor refer roff spell struct tbl \
+	m4 neqn plot printf prof ranlib ratfor refer roff spell struct tbl \
 	mkerrlst patch \
 	renice shar tip touch uucp uname whereis yacc xargs xinstall
 

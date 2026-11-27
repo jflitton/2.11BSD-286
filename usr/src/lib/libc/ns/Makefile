@@ -3,7 +3,7 @@
 # All rights reserved.  The Berkeley software License Agreement
 # specifies the terms and conditions for redistribution.
 #
-#	@(#)Makefile	6.2 (2.11BSD) 2025/11/29
+#	@(#)Makefile	6.3 (2.11BSD) 2026/11/26
 #
 
 SRCS=	ns_addr.c ns_ntoa.c
@@ -12,19 +12,24 @@ CFLAGS=	-O ${DEFS}
 TAGSFILE=tags
 
 # The 80286: each file is compiled for the three models, the medium's
-# object put in m and the large's in l, where the PDP-11's profiled one
-# went in profiled, and the small's left here; each model has a library
-# of its own.  The PDP-11's ld -x -r, which took out the local symbols,
-# is not done: the 286's ld makes nothing but a program.
+# object put in m and the large's in l, and the small's left here; and
+# for profiling, which is the small model's alone, with cc -p into
+# profiled, as the PDP-11's; each has a library of its own.  The
+# PDP-11's ld -x -r, which took out the local symbols, is not done: the
+# 286's ld makes nothing but a program.
 
 .c.o:
+	${CC} -p ${CFLAGS} -c $*.c
+	mv $*.o profiled/$*.o
 	${CC} -mm ${CFLAGS} -c $*.c
 	mv $*.o m/$*.o
 	${CC} -ml ${CFLAGS} -c $*.c
 	mv $*.o l/$*.o
 	${CC} ${CFLAGS} -c $*.c
 
-nslib nslib_m nslib_l: ${OBJS}
+nslib nslib_p nslib_m nslib_l: ${OBJS}
+	@echo "building profiled nslib"
+	@cd profiled; ar cru ../nslib_p ${OBJS}
 	@echo "building medium model nslib"
 	@cd m; ar cru ../nslib_m ${OBJS}
 	@echo "building large model nslib"
@@ -39,7 +44,7 @@ tags:
 	done
 
 clean:
-	rm -f nslib nslib_m nslib_l *.o m/*.o l/*.o errs a.out core \
+	rm -f nslib nslib_p nslib_m nslib_l *.o profiled/*.o m/*.o l/*.o errs a.out core \
 		tags Makefile.bak
 
 depend:	${SRCS}

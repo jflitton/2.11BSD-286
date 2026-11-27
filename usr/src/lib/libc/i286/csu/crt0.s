@@ -1,5 +1,9 @@
 ; C start-up (NASM): small model, with -DFAR medium, or with -DFAR and
-; -DFARDATA large.  This must be the first file linked.
+; -DFARDATA large.  This must be the first file linked.  With -DMCRT0,
+; the small model's for profiling, mcrt0.o, which cc -p links first, as
+; upstream's (../../pdp/csu/crt0.s): it has monstartup() (mon.c) make
+; room for a profile of the program's code after its own, and exit()
+; write it to mon.out, for prof(1).
 ;
 ; The kernel starts a program (docs/processes.md) with DS = ES = SS its
 ; data segment and the stack pointer at the count of arguments; after it
@@ -24,8 +28,14 @@
         segment _NULL
         dw      0, 0            ; a null pointer to a string finds ""
 
-        extern  _main, _exit, _strrchr
+        extern  _main, _strrchr
         global  _environ, ___progname, __curbrk, __minbrk
+%ifdef MCRT0
+        extern  _monstartup, _monitor, __cleanup, __exit, _etext
+        global  _exit
+%else
+        extern  _exit
+%endif
 
 %ifndef FARDATA
         segment _DATA
@@ -45,6 +55,14 @@ __minbrk:                       ; and where it started, below which it
 ..start:
         mov     [__curbrk], bx
         mov     [__minbrk], bx
+%ifdef MCRT0
+        mov     ax, _etext
+        push    ax
+        mov     ax, eprol
+        push    ax
+        call    _monstartup     ; monstartup(eprol, etext)
+        add     sp, 4
+%endif
         mov     bx, sp
         mov     ax, [bx]        ; argc
         lea     cx, [bx+2]      ; argv
@@ -74,6 +92,29 @@ __minbrk:                       ; and where it started, below which it
         push    ax
         CALLC   _exit           ; exit(main(argc, argv, envp))
 .hang:  jmp     .hang
+
+%ifdef MCRT0
+; exit(), which writes the profile to mon.out, monitor(0), and then does
+; what the C library's does (../../stdio/exit.c).
+_exit:
+        xor     ax, ax
+        push    ax
+        call    _monitor
+        pop     ax
+        call    __cleanup
+        pop     ax              ; the return: the status is _exit's
+        call    __exit
+eprol:                          ; where the profile begins
+%else
+%ifndef FAR
+; mcount and moncontrol(), which do nothing, for a program that has a
+; file compiled with cc -p but is not linked with it.
+        global  mcount, _moncontrol
+mcount:
+_moncontrol:
+        ret
+%endif
+%endif
 
 %else
 

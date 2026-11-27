@@ -78,7 +78,7 @@ made by itself the same way, `make; make install` in
 | `sys/PC` | `unix`, and `unix.map` | `/unix`, root's and `kmem`'s, 744; the one that was is `/unix.old` |
 | `lib` | the compiler and the C library, as `lib/ccom`, `lib/c2`, `lib/cpp` and `lib/libc` make them | |
 | `lib/ccom`, `lib/c2`, `lib/cpp` | `c0` and `c1`; `c2` and `c2l`; `cpp`, and `cpp.0` | `/lib`, the one that was as `oc0`, `oc1`, `oc2` and `oc2l`; `/usr/man/cat1/cpp.0` |
-| `lib/libc` | `libc.a`, `libc_m.a`, `libc_l.a`, and `crt0.o` of each model in `i286/csu` | `/lib`, `/lib/m`, `/lib/l` |
+| `lib/libc` | `libc.a`, `libc_m.a`, `libc_l.a`, and `crt0.o` of each model in `i286/csu`; `libc_p.a` and `mcrt0.o`, for profiling | `/lib`, `/lib/m`, `/lib/l`; `libc_p.a` in `/usr/lib` |
 | `usr.lib` | each library, of each model, beside its sources | `/usr/lib`, `/usr/lib/m`, `/usr/lib/l` |
 | `share` | `termcap`; `zic` and `zdump` ([what is not a program](#what-is-not-a-program)) | `/usr/share`: `misc`, `tmac`, `me`, `ms`, `tabset`, `learn`, `zoneinfo`; `/etc/termcap`, a symbolic link; `zic` and `zdump` in `/usr/sbin` |
 | `bin`, `sbin`, `libexec`, `ucb`, `usr.bin`, `usr.sbin`, `games`, `local`, `new` | each program, beside its sources, and its page of the manual | each where upstream's Makefile installs it, with the mode, owner and group it gives |
@@ -93,7 +93,8 @@ of them removes what was made.
 writes from that file already. The kernel's objects are made again
 when a header changes once `make depend` has said which headers each
 has, as upstream's are. The C library's stubs for the system calls are written as it
-is made, a file of assembly for each call and each model, from
+is made, a file of assembly for each call and each model, and for
+profiling, from
 `lib/libc/i286/sys/syscalls.tab`: by `mkstubs` (`sys/mkstubs.c` beside
 it), which both builds compile and run, and which has each agree with
 the kernel's table of calls.
@@ -154,7 +155,10 @@ was made a second time for profiling: a file is compiled three times,
 the medium model's object put in `m` and the large's in `l`, where the
 profiled one went in `profiled`, and each model has a library, which
 is installed where `cc` links a program of that model with it (`/lib`,
-`/lib/m`, `/lib/l`; `/usr/lib` and the same). Besides:
+`/lib/m`, `/lib/l`; `/usr/lib` and the same). The C library is made
+for profiling as well, as upstream's is: each of its C files a fourth
+time, with `cc -p`, into `profiled`, for `/usr/lib/libc_p.a`, which is
+the small model's ([profiling](userland.md#profiling)). Besides:
 
 - The PDP-11's `ld -x -r` of each object, which took out its local
   symbols, is not done: the 286's `ld` makes nothing but a program.
@@ -169,12 +173,17 @@ is installed where `cc` links a program of that model with it (`/lib`,
   other names in `index`'s assembly; the large model's `malloc` is
   `i286/gen/lmalloc.c`, which gets segments from the system where
   `malloc.c` moves the break.
-- No profiling, and so no `mon.o` and `mcrt0.o`. No `fakcu.o`, an empty
-  `_cleanup` for a program without `stdio`, which works by the order of
-  the library: the 286's `ld` once took it in place of `stdio`'s, and
-  the program did not flush at exit. No `fpfcom.o`, `printf` without
-  floating point, which is taken unless the compiler marks a program
-  that has it, and the 286's does not.
+- The monitor is two files, `mon.o` and `mcount.o`, in `libc.a` and
+  `libc_p.a`: the 286's `mcount` is assembly of its own, where
+  upstream's was put after `mon.c`'s. `mcrt0.o` is `crt0.s` made with
+  `MCRT0` alone, which upstream joined to `mon.o` with `ld -r`. The
+  stubs for `libc_p.a` count their calls (`mkstubs -p`); its other
+  assembly is the small model's.
+- No `fakcu.o`, an empty `_cleanup` for a program without `stdio`,
+  which works by the order of the library: the 286's `ld` once took it
+  in place of `stdio`'s, and the program did not flush at exit. No
+  `fpfcom.o`, `printf` without floating point, which is taken unless
+  the compiler marks a program that has it, and the 286's does not.
 - `usr.lib` makes the eight libraries the programs are linked with.
   `libwrap` is `tcpd`'s, which its Makefile makes and does not install.
 

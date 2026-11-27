@@ -1,0 +1,16 @@
+C     FOR TESTS/PROF: F77 -P, A SUBROUTINE CALLED FIVE TIMES.  NO
+C     PROGRAM STATEMENT: THE MAIN PROGRAM IS MAIN_ ALONE.
+      INTEGER I, N
+      N = 0
+      DO 10 I = 1, 5
+         CALL BUMP(N)
+   10 CONTINUE
+      WRITE (6, 100) N
+  100 FORMAT (' BUMPED', I3)
+      END
+C
+      SUBROUTINE BUMP(N)
+      INTEGER N
+      N = N + 1
+      RETURN
+      END

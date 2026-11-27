@@ -3,7 +3,7 @@
 # All rights reserved.  The Berkeley software License Agreement
 # specifies the terms and conditions for redistribution.
 #
-#	@(#)Makefile	5.4.3 (2.11BSD) 2026/7/29
+#	@(#)Makefile	5.4.4 (2.11BSD) 2026/11/26
 
 # The 80286 has no fpfcom.o, printf's floating point for a program that
 # has none, which is taken unless the compiler's mark of a program with
@@ -32,19 +32,24 @@ OBJS=	clrerr.o exit.o fclose.o fdopen.o findfp.o fflush.o fopen.o \
 TAGSFILE=tags
 
 # The 80286: each file is compiled for the three models, the medium's
-# object put in m and the large's in l, where the PDP-11's profiled one
-# went in profiled, and the small's left here; each model has a library
-# of its own.  The PDP-11's ld -x -r, which took out the local symbols,
-# is not done: the 286's ld makes nothing but a program.
+# object put in m and the large's in l, and the small's left here; and
+# for profiling, which is the small model's alone, with cc -p into
+# profiled, as the PDP-11's; each has a library of its own.  The
+# PDP-11's ld -x -r, which took out the local symbols, is not done: the
+# 286's ld makes nothing but a program.
 
 .c.o:
+	${CC} -p ${CFLAGS} -c $*.c
+	mv $*.o profiled/$*.o
 	${CC} -mm ${CFLAGS} -c $*.c
 	mv $*.o m/$*.o
 	${CC} -ml ${CFLAGS} -c $*.c
 	mv $*.o l/$*.o
 	${CC} ${CFLAGS} -c $*.c
 
-stdiolib stdiolib_m stdiolib_l: ${OBJS}
+stdiolib stdiolib_p stdiolib_m stdiolib_l: ${OBJS}
+	@echo "building profiled stdiolib"
+	@cd profiled; ar cru ../stdiolib_p ${OBJS}
 	@echo "building medium model stdiolib"
 	@cd m; ar cru ../stdiolib_m ${OBJS}
 	@echo "building large model stdiolib"
@@ -59,7 +64,7 @@ tags:
 	done
 
 clean:
-	rm -f stdiolib stdiolib_m stdiolib_l *.o m/*.o l/*.o tags Makefile.bak
+	rm -f stdiolib stdiolib_p stdiolib_m stdiolib_l *.o profiled/*.o m/*.o l/*.o tags Makefile.bak
 
 depend:
 	mkdep ${CFLAGS} ${SRCS}

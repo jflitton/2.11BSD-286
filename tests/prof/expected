@@ -1,0 +1,22 @@
+== cc -p
+fib(20) 6765, 3283526
+mon.out
+_main 1
+_fib 21891
+_sq 1000
+_abs 10
+_getpid 7
+_half none
+_fib had time
+_half 3
+== not linked with -p
+fib(20) 6765, 3283526
+no mon.out
+== medium
+cc: -p: profiling is of the small model alone
+exit 8
+== f77 -p
+ BUMPED  5
+_MAIN_ 1
+_bump_ 5
+== end

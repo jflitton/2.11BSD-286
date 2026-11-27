@@ -75,8 +75,14 @@
 # ../pdp/gen/nsym.c: what it reads is this system's format, which the
 # headers give it (sys/exec.h, a.out.h).
 #
-# Left out for now: profiling (mcrt0, gmon), and the PDP-11's
-# compat-2.9.
+# The small model's has the monitor, mon.c and mcount.s, which a
+# program linked with mcrt0.o for profiling has (csu, ../Makefile's
+# DFLMON).  mcrt0.o and the library for profiling, libc_p.a, are the
+# system's Makefiles' alone: nothing is profiled where the system is
+# built.
+#
+# Left out: gmon, the profiling of gprof, which upstream does not make
+# either; and the PDP-11's compat-2.9.
 
 TOP:=	$(abspath ../../../../..)
 # Whose tools make it: the system's own compiler, assembler and linker,
@@ -170,13 +176,15 @@ MDSYS=	brk execl execle execv iovec setlogin sigaction sigaltstack
 MDGENC=	nsym
 MDSYSS=	sigtramp
 MDGEN=	ldexp modf setjmp $(if $(CCOM),alloca)
+MDCSUC=	$(if $(filter s,$(MODEL)),mon)
+MDCSU=	$(if $(filter s,$(MODEL)),mcount)
 MDNET=	htons
 CRT=	i4m i4d chp $(if $(filter l,$(MODEL)),pia)
 
 COBJS=	$(GEN) $(GENC) $(PDPGEN) $(STDIO) $(STDLIB) $(STRING) $(COMPAT41) \
 	$(COMPAT43) $(COMPAT5) $(INET) $(NET) $(NAMED) $(NS) $(MDSYS) \
-	$(MDGENC)
-SOBJS=	$(MDSYSS) $(MDGEN) $(MDNET) $(CRT)
+	$(MDGENC) $(MDCSUC)
+SOBJS=	$(MDSYSS) $(MDGEN) $(MDNET) $(CRT) $(MDCSU)
 OBJS=	$(addprefix $(OBJ)/,$(addsuffix .o,$(COBJS) $(SOBJS)))
 
 all:	$(O)/crt0.o $(LIBC_A)
@@ -232,6 +240,8 @@ $(OBJ)/%.o: $(LIBC)/ns/%.c $(HDRS) | $(OBJ)
 	$(call compile)
 $(OBJ)/%.o: $(MD)/sys/%.c $(HDRS) | $(OBJ)
 	$(call compile)
+$(OBJ)/%.o: $(MD)/csu/%.c $(HDRS) | $(OBJ)
+	$(call compile)
 
 $(OBJ)/%.o: $(MD)/sys/%.s $(MD)/crt/DEFS.inc $(NCC) | $(OBJ)
 	@echo as $(notdir $<)
@@ -243,6 +253,9 @@ $(OBJ)/%.o: $(MD)/net/%.s $(MD)/crt/DEFS.inc $(NCC) | $(OBJ)
 	@echo as $(notdir $<)
 	@$(AS) -o $@ $<
 $(OBJ)/%.o: $(MD)/crt/%.s $(MD)/crt/DEFS.inc $(NCC) | $(OBJ)
+	@echo as $(notdir $<)
+	@$(AS) -o $@ $<
+$(OBJ)/%.o: $(MD)/csu/%.s $(MD)/crt/DEFS.inc $(NCC) | $(OBJ)
 	@echo as $(notdir $<)
 	@$(AS) -o $@ $<
 

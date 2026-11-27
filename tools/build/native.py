@@ -5,15 +5,16 @@ this machine, for cc.py, as.py and ld.py.
 
     lib, usr.lib    the libraries, which the root has of the system's
                     own objects whoever made its programs
-    usr.bin/f77, usr.bin/efl, usr.bin/struct, ucb/pascal
+    usr.bin/f77, usr.bin/efl, usr.bin/struct, usr.bin/prof, ucb/pascal
                     older C than the cross compiler takes, as the
-                    system's own compiler does; and pascal's px of the
+                    system's own compiler does (prof's unsigned UNIT,
+                    of a typedef); and pascal's px of the
                     system's assembler and its pi of the system's
                     linker, in what pi puts at the head of an object
 """
 
 NATIVE = ("lib", "usr.lib", "usr.bin/f77", "usr.bin/efl", "usr.bin/struct",
-          "ucb/pascal")
+          "usr.bin/prof", "ucb/pascal")
 
 
 def native(here):

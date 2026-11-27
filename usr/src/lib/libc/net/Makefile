@@ -9,7 +9,7 @@
 # software without specific prior written permission. This software
 # is provided ``as is'' without express or implied warranty.
 #
-#	@(#)Makefile	5.17 (2.11BSD) 2026/9/21
+#	@(#)Makefile	5.18 (2.11BSD) 2026/11/26
 #
 SRCS=	getnbyaddr.c getnbyname.c getnent.c getpent.c getpname.c	\
 	getproto.c getsbyname.c getsbyport.c getsent.c herror.c 	\
@@ -25,19 +25,24 @@ OBJS=	getnbyaddr.o getnbyname.o getnent.o getpent.o getpname.o	\
 CFLAGS=	-O ${DEFS}
 
 # The 80286: each file is compiled for the three models, the medium's
-# object put in m and the large's in l, where the PDP-11's profiled one
-# went in profiled, and the small's left here; each model has a library
-# of its own.  The PDP-11's ld -x -r, which took out the local symbols,
-# is not done: the 286's ld makes nothing but a program.
+# object put in m and the large's in l, and the small's left here; and
+# for profiling, which is the small model's alone, with cc -p into
+# profiled, as the PDP-11's; each has a library of its own.  The
+# PDP-11's ld -x -r, which took out the local symbols, is not done: the
+# 286's ld makes nothing but a program.
 
 .c.o:
+	${CC} -p ${CFLAGS} -c $*.c
+	mv $*.o profiled/$*.o
 	${CC} -mm ${CFLAGS} -c $*.c
 	mv $*.o m/$*.o
 	${CC} -ml ${CFLAGS} -c $*.c
 	mv $*.o l/$*.o
 	${CC} ${CFLAGS} -c $*.c
 
-netlib netlib_m netlib_l: ${OBJS}
+netlib netlib_p netlib_m netlib_l: ${OBJS}
+	@echo "building profiled netlib"
+	@cd profiled; ar cru ../netlib_p ${OBJS}
 	@echo "building medium model netlib"
 	@cd m; ar cru ../netlib_m ${OBJS}
 	@echo "building large model netlib"
@@ -46,7 +51,7 @@ netlib netlib_m netlib_l: ${OBJS}
 	@ar cru netlib ${OBJS}
 
 clean:
-	rm -f *.o m/*.o l/*.o errs a.out core netlib netlib_m netlib_l tags
+	rm -f *.o profiled/*.o m/*.o l/*.o errs a.out core netlib netlib_p netlib_m netlib_l tags
 
 depend:
 	mkdep ${CFLAGS} ${SRCS}

@@ -128,8 +128,8 @@ same, in `obj/PC`, `obj/stand` and `obj/build`, and the root is made of
 those: the cross compiler compiles the programs, which are linked with
 libraries of its objects that the libraries' own Makefiles make of
 them, and the root has the libraries and the compiler of the system's
-own tools, which make programs on it. `f77`, `efl`, `struct` and
-Pascal's programs are the system's own tools' work too: their C is
+own tools, which make programs on it. `f77`, `efl`, `struct`, `prof`
+and Pascal's programs are the system's own tools' work too: their C is
 older than the cross compiler takes, and `px` is of the system's
 assembler (`tools/build/native.py`).
 
@@ -398,6 +398,8 @@ tests/fortran/run.sh    # f77, ratfor, struct and efl: programs compiled
 tests/pascal/run.sh     # pi, px, pix and pxp: programs translated on
                         # the system and run, the errors px finds, and
                         # pxp's listings, and what they print
+tests/prof/run.sh       # cc -p, f77 -p and prof: programs profiled on
+                        # the system, and the calls prof counted
 tests/vt/run.sh         # the console's terminal emulator, on the machine
                         # the system is built on: 302 checks
 tests/ve/run.sh         # the editor ve, built for that machine too: 115
@@ -408,11 +410,11 @@ tests/ve/run.sh         # the editor ve, built for that machine too: 115
 The tests that boot the system as a machine has it, `tests/system`,
 `tests/network`, `tests/programs`, `tests/crash`, `tests/quota`,
 `tests/mx`, `tests/slip`, `tests/lp`, `tests/uucp`, `tests/fortran`,
-`tests/pascal`, `tests/bench`, `tests/libc` and `tests/ccom` with
-`self.sh`, boot either build of it: with `TOOLS=cross` the cross
-compiler's, and with `TOOLS=native` the system's own compiler's,
-assembler's and linker's throughout, the kernel, the libraries, every
-program on the disk and the boot programs
+`tests/pascal`, `tests/prof`, `tests/bench`, `tests/libc` and
+`tests/ccom` with `self.sh`, boot either build of it: with
+`TOOLS=cross` the cross compiler's, and with `TOOLS=native` the
+system's own compiler's, assembler's and linker's throughout, the
+kernel, the libraries, every program on the disk and the boot programs
 (`tests/harness/system.sh`). Without it they boot the default build,
 the system's own tools', which is one line of that file. `TOOLS_KERNEL`,
 `TOOLS_PROGRAMS` and `TOOLS_BOOT` choose for the kernel, the
@@ -636,6 +638,12 @@ and so on).
   often each part ran. What they print must be as `expected` has it,
   which was worked out from the programs and from how `px` prints
   ([the C library and programs](userland.md#pascal)).
+- `tests/prof` boots it with a C program and a Fortran one in `/root`,
+  which root compiles with `cc -p` and `f77 -p` and runs, and reads
+  what they leave in `mon.out` with `prof`: how many times each of
+  some functions was called, which must be as `expected` has it, and
+  not the times, but that the function that takes the most had some
+  ([profiling](userland.md#profiling)).
 - `tests/bench` boots it and runs `bench`, this port's benchmark, while
   the harness times each test by the marks it writes and samples where
   the processor is. It prints what each test took and leaves
@@ -676,6 +684,7 @@ are from single runs with an 86Box that has the automation socket.
 | UUCP, its programs or its files in `/etc` | `tests/uucp` | 2¼ minutes |
 | `f77`, its libraries, `ratfor`, `struct` or `efl`, or what `c1` does for Fortran | `tests/fortran` | 3¼ minutes, 9 when the build makes every program again |
 | `pi`, `px`, `pix`, `pxp` or `eyacc` | `tests/pascal` | 3 minutes, 17 when the build makes every program again |
+| `cc -p`, `mcrt0.o`, the monitor, `libc_p.a` or `prof` | `tests/prof` | 3 minutes, 16 when the build makes every program again |
 | SLIP, `slattach`, or the serial ports' driver | `tests/slip` | 3½ minutes |
 | the parallel port's driver, or `lpr` and `lpd` printing on it | `tests/lp` | 2 minutes |
 | `sendmail.MX`, or what `sendmail.cf` does with mail for another machine | `tests/mx` | 2½ minutes |

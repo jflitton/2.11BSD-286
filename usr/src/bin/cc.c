@@ -1,5 +1,5 @@
 #if !defined(lint) && defined(DOSCCS)
-static	char sccsid[] = "@(#)cc.c 5.2 (2.11BSD) 2026/8/29";
+static	char sccsid[] = "@(#)cc.c 5.3 (2.11BSD) 2026/11/26";
 #endif
 
 /*
@@ -26,6 +26,12 @@ static	char sccsid[] = "@(#)cc.c 5.2 (2.11BSD) 2026/8/29";
  * model by, and NULL as 0L, which is four bytes, as a pointer is, where
  * it is passed to a function that has no prototype; in the medium,
  * __MEDIUM__.
+ *
+ * Profiling, -p, is the small model's alone: the system's record of
+ * where a program spends its time is of IP (profil(2)), which does not
+ * say which segment of code it was in.  The start-up code is then
+ * /lib/mcrt0.o, whether -p comes before -ms or after, and the library
+ * /usr/lib/libc_p.a, as on the PDP-11.
  *
  * c2 has a function in memory whole, and one too long for its data
  * segment it says it has no space for: the file is then given to
@@ -170,13 +176,10 @@ main(argc, argv)
 			if (argv[i][2] == 'm' && argv[i][3] == 0) {
 				medium = 1;
 				large = 0;
-				crt0 = "/lib/m/crt0.o";
 			} else if (argv[i][2] == 'l' && argv[i][3] == 0) {
 				medium = large = 1;
-				crt0 = "/lib/l/crt0.o";
 			} else if (argv[i][2] == 's' && argv[i][3] == 0) {
 				medium = large = 0;
-				crt0 = "/lib/crt0.o";
 			} else {
 				error("%s: the models are -ms, -mm and -ml",
 				    argv[i]);
@@ -203,6 +206,15 @@ main(argc, argv)
 				nxo++;
 		}
 	}
+#ifdef i286
+	if (proflag && medium) {
+		error("-p: profiling is of the small model alone", (char *)0);
+		exit(8);
+	}
+	if (!proflag)
+		crt0 = large ? "/lib/l/crt0.o" : medium ? "/lib/m/crt0.o" :
+		    "/lib/crt0.o";
+#endif
 	if (npassname && chpass ==0)
 		chpass = "012p";
 	if (chpass && npassname==0)

@@ -3,7 +3,7 @@
 # All rights reserved.  The Berkeley software License Agreement
 # specifies the terms and conditions for redistribution.
 #
-#	@(#)Makefile	5.4.2 (2.11BSD) 2025/11/29
+#	@(#)Makefile	5.4.3 (2.11BSD) 2026/11/26
 #
 CFLAGS=	-O ${DEFS}
 SRCS=ftime.c gtty.c nice.c pause.c rand.c stty.c \
@@ -13,19 +13,24 @@ OBJS=	ftime.o gtty.o nice.o pause.o rand.o stty.o \
 TAGSFILE=tags
 
 # The 80286: each file is compiled for the three models, the medium's
-# object put in m and the large's in l, where the PDP-11's profiled one
-# went in profiled, and the small's left here; each model has a library
-# of its own.  The PDP-11's ld -x -r, which took out the local symbols,
-# is not done: the 286's ld makes nothing but a program.
+# object put in m and the large's in l, and the small's left here; and
+# for profiling, which is the small model's alone, with cc -p into
+# profiled, as the PDP-11's; each has a library of its own.  The
+# PDP-11's ld -x -r, which took out the local symbols, is not done: the
+# 286's ld makes nothing but a program.
 
 .c.o:
+	${CC} -p ${CFLAGS} -c $*.c
+	mv $*.o profiled/$*.o
 	${CC} -mm ${CFLAGS} -c $*.c
 	mv $*.o m/$*.o
 	${CC} -ml ${CFLAGS} -c $*.c
 	mv $*.o l/$*.o
 	${CC} ${CFLAGS} -c $*.c
 
-compat-4.1lib compat-4.1lib_m compat-4.1lib_l: ${OBJS}
+compat-4.1lib compat-4.1lib_p compat-4.1lib_m compat-4.1lib_l: ${OBJS}
+	@echo "building profiled compat-4.1lib"
+	@cd profiled; ar cru ../compat-4.1lib_p ${OBJS}
 	@echo "building medium model compat-4.1lib"
 	@cd m; ar cru ../compat-4.1lib_m ${OBJS}
 	@echo "building large model compat-4.1lib"
@@ -40,7 +45,7 @@ tags:
 	done
 
 clean:
-	rm -f compat-4.1lib compat-4.1lib_m compat-4.1lib_l *.o m/*.o l/*.o tags Makefile.bak
+	rm -f compat-4.1lib compat-4.1lib_p compat-4.1lib_m compat-4.1lib_l *.o profiled/*.o m/*.o l/*.o tags Makefile.bak
 
 depend:	${SRCS}
 	mkdep ${CFLAGS} ${SRCS}

@@ -12,8 +12,8 @@ upstream's, those of the directories usr/src's own Makefile names, which
 Makefiles name in turn; the kernel from the Makefile config writes in
 sys/PC (sys/conf/config); and /boot and the boot blocks from
 sys/i286stand's.  The directories a Makefile puts each model's objects
-in, m and l, as upstream's put the profiled ones in profiled, are there
-and empty.
+in, m and l, and the profiled ones in, profiled, as upstream's did, are
+there and empty.
 
 What make makes there is left where it is run, as upstream's Makefiles
 leave it.  Each is to be, to the byte, what is made of the same sources
@@ -45,16 +45,21 @@ LINKS = ["sys/machine"]
 WHOLE = ["lib/libc"]
 # A Makefile that puts the medium model's objects in m and the large's
 # in l, as upstream's put the profiled ones in profiled, which its
-# directory has.
+# directory has; and one that puts the profiled ones there, as the C
+# library's do.
 MODELS = re.compile(r"^\t.*(?:\bcd [ml];|[\s(][ml]/)", re.M)
+PROFILED = re.compile(r"^\t.*(?:\bcd profiled;|[\s(]profiled/)", re.M)
 
 
 def models(d):
-    """The directories D's Makefile puts each model's objects in."""
+    """The directories D's Makefile puts each model's objects in, and
+    the profiled ones."""
     p = makefile(d)
-    if p and MODELS.search(open(p, encoding="latin-1").read()):
-        return [d + "/m", d + "/l"]
-    return []
+    if not p:
+        return []
+    t = open(p, encoding="latin-1").read()
+    return ([d + "/profiled"] if PROFILED.search(t) else []) + \
+        ([d + "/m", d + "/l"] if MODELS.search(t) else [])
 
 
 def makefile(d):

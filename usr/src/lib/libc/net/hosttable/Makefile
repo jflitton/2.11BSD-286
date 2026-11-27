@@ -3,26 +3,31 @@
 # All rights reserved.  The Berkeley software License Agreement
 # specifies the terms and conditions for redistribution.
 #
-#	@(#)Makefile	5.5 (2.11BSD) 2025/11/29
+#	@(#)Makefile	5.6 (2.11BSD) 2026/11/26
 
 OBJS=	gethnamadr.o gethostent.o
 SRCS=	gethnamadr.c gethostent.c
 CFLAGS=	-O ${DEFS}
 
 # The 80286: each file is compiled for the three models, the medium's
-# object put in m and the large's in l, where the PDP-11's profiled one
-# went in profiled, and the small's left here; each model has a library
-# of its own.  The PDP-11's ld -x -r, which took out the local symbols,
-# is not done: the 286's ld makes nothing but a program.
+# object put in m and the large's in l, and the small's left here; and
+# for profiling, which is the small model's alone, with cc -p into
+# profiled, as the PDP-11's; each has a library of its own.  The
+# PDP-11's ld -x -r, which took out the local symbols, is not done: the
+# 286's ld makes nothing but a program.
 
 .c.o:
+	${CC} -p ${CFLAGS} -c $*.c
+	mv $*.o profiled/$*.o
 	${CC} -mm ${CFLAGS} -c $*.c
 	mv $*.o m/$*.o
 	${CC} -ml ${CFLAGS} -c $*.c
 	mv $*.o l/$*.o
 	${CC} ${CFLAGS} -c $*.c
 
-hostlib hostlib_m hostlib_l: ${OBJS}
+hostlib hostlib_p hostlib_m hostlib_l: ${OBJS}
+	@echo "building profiled hostlib"
+	@cd profiled; ar cru ../hostlib_p ${OBJS}
 	@echo "building medium model hostlib"
 	@cd m; ar cru ../hostlib_m ${OBJS}
 	@echo "building large model hostlib"
@@ -37,7 +42,7 @@ tags:
 	done
 
 clean:
-	rm -f *.o errs a.out core hostlib hostlib_m hostlib_l m/*.o l/*.o \
+	rm -f *.o errs a.out core hostlib hostlib_p hostlib_m hostlib_l profiled/*.o m/*.o l/*.o \
 		tags Makefile.bak
 
 depend:	${SRCS}

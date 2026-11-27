@@ -169,6 +169,7 @@ same order.
 | `gen/ldexp.s`, `modf.s` | on the 287 |
 | `net/htons.s` | byte order |
 | `crt/` | the routines compiled code calls for 32-bit arithmetic ([the ABI notes](abi.md)) |
+| `csu/mon.c`, `mcount.s`; `crt0.s` with `MCRT0` | profiling, of the small model: the monitor, and `mcrt0.o` ([below](#profiling)) |
 
 What `lib/libc/pdp/gen` has in assembly (the string routines, `bcopy` and
 the like, `frexp`) comes from the C in `lib/libc/gen` that it stood in
@@ -188,8 +189,8 @@ Left out:
   reference to `fltused`, which brings in the real `stdio/pfcom.c`; this
   one makes no such mark, so every program that formats has the real
   one, about 2K.
-- Profiling; `recvmsg` and `sendmsg`, whose structures need converting
-  and whose kernel side is not written; and the PDP-11's `compat-2.9`.
+- `recvmsg` and `sendmsg`, whose structures need converting and whose
+  kernel side is not written; and the PDP-11's `compat-2.9`.
 
 `nlist` is in it, reading this system's format ([programs that read the
 kernel](#programs-that-read-the-kernel)).
@@ -2632,8 +2633,9 @@ had overlays; `ratfor` and `struct`'s two passes, `structure` and
   linked with where the system is built, and whose calls pass a
   `char *` for what is declared otherwise, which it stops at.
 - The libraries are of the small model alone, as Fortran's programs
-  are, and their Makefiles make no profiled library and do not join
-  each object with `ld -x -r`, which the system has not.
+  are, and their Makefiles make no profiled library, which `f77 -p`
+  does not link a program with, and do not join each object with
+  `ld -x -r`, which the system has not.
 - `struct`'s first pass, `structure`, handed out each block of its
   memory from two bytes into the block's own header, so that the first
   thing kept there wrote over the header, and what came after went
@@ -2719,6 +2721,55 @@ names, a temporary one with a number at its end and no newline, and the
 input; Berkeley Pascal's own routines, `argv`, the clocks, `random` and
 `message`; and each error `px` finds, with the calls it was in. `pxp`
 prints one again, and with its profile.
+
+## Profiling
+
+`cc -p` compiles a program to count the calls of each of its functions,
+and links it with `/lib/mcrt0.o` and `/usr/lib/libc_p.a`, the C library
+compiled so. When it exits it writes `mon.out`, of which `prof` says,
+with the program's symbols, how much of its time each function took,
+from the clock's record of where it was each tick, how many times it was
+called, and how long a call took:
+
+```sh
+cc -p -O -o prog prog.c
+./prog
+prof prog
+```
+
+It is upstream's, with what the 286 needed:
+
+- It is of the small model alone. The kernel's record of where a
+  program is, `profil(2)`, is of IP, which does not say which segment
+  of code; `cc -p` with `-mm` or `-ml` says so and does nothing, and the
+  second pass refuses it too.
+- A function compiled with `-p` calls `mcount` once it has its frame,
+  with the address of its counter, two words of the data: where its
+  count is, which `mcount` finds it on the first call, and the
+  function's address (`lib/ccom/i286/c15.c`, `lib/libc/i286/csu/mcount.s`).
+  The address is pushed, as an argument is, where the PDP-11 had it in
+  r0: `c2` takes a register loaded before a call to be wasted. `prof`
+  finds a count's function at its address exactly, as the PDP-11's did.
+- `libc_p.a`'s C is compiled with `-p`, and its system calls' stubs
+  count their calls (`mkstubs -p`); its other assembly is the small
+  model's. The time a system call takes in the kernel is counted where
+  the program made it, its stub.
+- `mon.c` is upstream's, and `mcount` a file of its own, where upstream
+  put it after `mon.c`'s assembly; both are in `libc.a` too, as
+  upstream's `mon.o` is, for `f77 -p`, which links with it. `mcrt0.o`
+  is `crt0.s` made with `MCRT0` alone: upstream joined `mon.o` to it
+  with `ld -r`, which the 286's `ld` has not. `crt0.o` has an `mcount`
+  that does nothing, for a program with a file compiled with `-p` that
+  is not linked with it.
+- `f77 -p` gave the second pass a procedure's name without the `_` its
+  label has, and the counter named nothing, as upstream's `pdp11.c`
+  does; `usr.bin/f77/i286.c` gives it the label's.
+
+`tests/prof` has the system compile a program with `cc -p`, run it and
+check what `prof` counts of its functions, one of them static, of the
+library's `abs` and of the `getpid` stub, and that its longest
+function had time; that the same objects linked without `-p` write no
+`mon.out`; that `-mm` is refused; and `f77 -p`.
 
 ## The root file system
 

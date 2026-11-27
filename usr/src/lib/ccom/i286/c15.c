@@ -1,6 +1,6 @@
 /*
  *	C compiler, part 2, for the 80286: longs multiplied, divided and
- *	shifted
+ *	shifted; and a function's count of its calls, for profiling
  *
  * The 286 multiplies, divides and shifts words.  A long is shifted a
  * byte and then a place at a time, or by a loop if the count is not a
@@ -235,4 +235,29 @@ union tree *lv;
 	printf("\tloop\tL%d\n", lbl);
 	if (lbl2)
 		label(lbl2);
+}
+
+/*
+ * A function compiled for profiling (cc -p) counts its calls once it
+ * has its frame: mcount is called (lib/libc/i286/csu/mcount.s), with
+ * the address of the function's counter as its argument, which c2
+ * leaves alone as it would not a register loaded for it.  The counter
+ * is two words of the data: where the function's count is, which
+ * mcount finds it on the first call, and the function's address.  It
+ * is the small model's alone: the system's record of where a program
+ * spends its time is of IP (profil(2)), which does not say which of
+ * several segments of code it is in.
+ */
+profentry(lbl, name)
+char *name;
+{
+	if (mflag || ssflag) {
+		error("Profiling is of the small model alone");
+		return;
+	}
+	printf("\tpush\tL%d\n\tcall\tmcount\n\tpop\tcx\n", lbl);
+	xref("mcount");
+	sect(DATA);
+	printf("L%d:\n\tdw\t0,%s\n", lbl, name);
+	sect(PROG);
 }

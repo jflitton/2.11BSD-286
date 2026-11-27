@@ -3,7 +3,7 @@
 # All rights reserved.  The Berkeley software License Agreement
 # specifies the terms and conditions for redistribution.
 #
-#	@(#)Makefile	4.19.4 (2.11BSD) 2025/11/25
+#	@(#)Makefile	4.19.5 (2.11BSD) 2026/11/26
 #
 # The system has two monitoring schemes, utilizing either ``prof''
 # or ``gprof''. DFLMON determines the default profiler; mon.o
@@ -47,28 +47,42 @@ HOSTLOOKUP=	named
 # was made for profiling: libc.a for the small model, libc_m.a for the
 # medium, libc_l.a for the large, each of what the directories made for
 # that model (their Makefiles), and installed where cc links a program
-# of that model with it, /lib, /lib/m and /lib/l.  It has no profiling,
-# and so no monitor.  exit() and printf each have two of a function to
-# choose from by the order of the library, and the 286 has one of each
-# (gen, stdio): not fakcu.o and fpfcom.o, nor their moves after exit.o
-# and vfprintf.o.
+# of that model with it, /lib, /lib/m and /lib/l.  Profiling is the
+# small model's alone, and libc_p.a that model's, as the PDP-11's; the
+# monitor, DFLMON, is in it and in libc.a, as there, and not in the
+# others.  It is two files here, the 286's mcount being one of its own
+# (i286/csu/mcount.s).  exit() and printf each have two of a function
+# to choose from by the order of the library, and the 286 has one of
+# each (gen, stdio): not fakcu.o and fpfcom.o, nor their moves after
+# exit.o and vfprintf.o.
 #
 INSTALL=install -m 644
+DFLMON=	mon.o mcount.o
 MACHINE=i286
 DEFS=
 COMPAT=	compat-4.1 compat-sys5 compat-43
 ALL=	gen inet net ns stdio stdlib string ${MACHINE} ${COMPAT}
 TAGSFILE=tags
 
-libc.a libc_m.a libc_l.a: ${MACHINE}/csu ${ALL} net/${HOSTLOOKUP}
+libc.a libc_p.a libc_m.a libc_l.a: ${MACHINE}/csu ${ALL} net/${HOSTLOOKUP}
 	rm -rf tmp
 	mkdir tmp
 	cd tmp; \
 		for i in ${ALL}; do ar x ../$$i/$${i}lib; done; \
 		ar x ../net/${HOSTLOOKUP}/hostlib; \
+		for i in ${DFLMON}; do cp ../${MACHINE}/csu/$$i .; done; \
 		ar cr ../libc.a `lorder *.o | tsort`
 	ar ma findfp.o libc.a exit.o
 	ar ma pfcom.o libc.a vfprintf.o
+	rm -rf tmp
+	mkdir tmp
+	cd tmp; \
+		for i in ${ALL}; do ar x ../$$i/$${i}lib_p; done; \
+		ar x ../net/${HOSTLOOKUP}/hostlib_p; \
+		for i in ${DFLMON}; do cp ../${MACHINE}/csu/$$i .; done; \
+		ar cr ../libc_p.a `lorder *.o | tsort`
+	ar ma findfp.o libc_p.a exit.o
+	ar ma pfcom.o libc_p.a vfprintf.o
 	rm -rf tmp
 	mkdir tmp
 	cd tmp; \
@@ -93,9 +107,11 @@ ${MACHINE}/csu ${ALL} net/${HOSTLOOKUP}: FRC
 FRC:
 	@sleep 1
 
-install: libc.a libc_m.a libc_l.a
+install: libc.a libc_p.a libc_m.a libc_l.a
 	${INSTALL} libc.a /lib/libc.a
 	ranlib /lib/libc.a
+	${INSTALL} libc_p.a /usr/lib/libc_p.a
+	ranlib /usr/lib/libc_p.a
 	${INSTALL} libc_m.a /lib/m/libc.a
 	ranlib /lib/m/libc.a
 	${INSTALL} libc_l.a /lib/l/libc.a
@@ -112,7 +128,7 @@ tags:
 clean:
 	for i in ${MACHINE}/csu ${ALL} net/hosttable net/named; \
 		do (cd $$i; make ${MFLAGS} clean); done
-	rm -rf tmp libc.a libc_m.a libc_l.a
+	rm -rf tmp libc.a libc_p.a libc_m.a libc_l.a
 
 depend:
 	for i in ${MACHINE}/csu ${ALL} net/hosttable net/named; \

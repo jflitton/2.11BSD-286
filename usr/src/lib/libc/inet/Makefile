@@ -3,7 +3,7 @@
 # All rights reserved.  The Berkeley software License Agreement
 # specifies the terms and conditions for redistribution.
 #
-#	@(#)Makefile	5.5 (2.11BSDs) 2025/11/29
+#	@(#)Makefile	5.6 (2.11BSD) 2026/11/26
 #
 
 SRCS=	inet_addr.c inet_network.c \
@@ -16,19 +16,24 @@ CFLAGS=	-O ${DEFS}
 TAGSFILE=tags
 
 # The 80286: each file is compiled for the three models, the medium's
-# object put in m and the large's in l, where the PDP-11's profiled one
-# went in profiled, and the small's left here; each model has a library
-# of its own.  The PDP-11's ld -x -r, which took out the local symbols,
-# is not done: the 286's ld makes nothing but a program.
+# object put in m and the large's in l, and the small's left here; and
+# for profiling, which is the small model's alone, with cc -p into
+# profiled, as the PDP-11's; each has a library of its own.  The
+# PDP-11's ld -x -r, which took out the local symbols, is not done: the
+# 286's ld makes nothing but a program.
 
 .c.o:
+	${CC} -p ${CFLAGS} -c $*.c
+	mv $*.o profiled/$*.o
 	${CC} -mm ${CFLAGS} -c $*.c
 	mv $*.o m/$*.o
 	${CC} -ml ${CFLAGS} -c $*.c
 	mv $*.o l/$*.o
 	${CC} ${CFLAGS} -c $*.c
 
-inetlib inetlib_m inetlib_l: ${OBJS}
+inetlib inetlib_p inetlib_m inetlib_l: ${OBJS}
+	@echo "building profiled inetlib"
+	@cd profiled; ar cru ../inetlib_p ${OBJS}
 	@echo "building medium model inetlib"
 	@cd m; ar cru ../inetlib_m ${OBJS}
 	@echo "building large model inetlib"
@@ -43,7 +48,7 @@ tags:
 	done
 
 clean:
-	rm -f inetlib inetlib_m inetlib_l *.o m/*.o l/*.o errs a.out core \
+	rm -f inetlib inetlib_p inetlib_m inetlib_l *.o profiled/*.o m/*.o l/*.o errs a.out core \
 		tags Makefile.bak
 
 depend:	${SRCS}

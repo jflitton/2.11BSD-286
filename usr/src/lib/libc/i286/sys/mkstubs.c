@@ -2,7 +2,7 @@
  * mkstubs - write the C library's system call stubs, in assembly, from
  * a table.
  *
- * usage: mkstubs [-m s|m|l] [-k sysent] [-d dir] table syscall.h
+ * usage: mkstubs [-m s|m|l] [-p] [-k sysent] [-d dir] table syscall.h
  *
  * For the small memory model, the medium or the large (-m).  C calls a
  * stub, near in the small model and far in the others, with its
@@ -55,6 +55,10 @@
  * too, and each stub must pass as many words as the kernel takes for
  * its call.
  *
+ * With -p each stub counts its calls, for prof(1), as a C function
+ * compiled with cc -p does (../csu/mcount.s): the small model's alone,
+ * for the C library that cc -p links a program with, libc_p.a.
+ *
  * It is run both where the system is built, compiled for that machine,
  * and on the system, when it makes itself (docs/self-hosting.md): what
  * it writes is the same in both, to the byte.
@@ -99,6 +103,13 @@ char	*bss[] = {
 	"        group   DGROUP _BSS",
 	0
 };
+/* With -p, where the stubs' counters are as well. */
+char	*pbss[] = {
+	"        segment _DATA public align=2 class=DATA",
+	"        segment _BSS public align=2 class=BSS",
+	"        group   DGROUP _DATA _BSS",
+	0
+};
 
 /*
  * What differs between the models: the return, and so where the
@@ -106,6 +117,7 @@ char	*bss[] = {
  */
 int	farcode;
 int	fardata;
+int	prof;			/* -p */
 char	*ret;
 int	ra;			/* bytes of return address */
 char	*ss;			/* what the stack and the data are reached through */
@@ -243,6 +255,14 @@ stub(name, number, args, result)
 	put("");
 	sprintf(l(), "        global  _%s", name);
 	sprintf(l(), "_%s:", name);
+	if (prof) {
+		put("        push    .count");
+		put("        call    mcount");
+		put("        pop     cx");
+		put("        segment _DATA");
+		sprintf(l(), ".count: dw      0, _%s", name);
+		put("        segment _TEXT");
+	}
 	if (strcmp(result, "vfork") == 0) {
 		/*
 		 * The child runs on the parent's stack until it executes
@@ -418,7 +438,7 @@ cerror(f)
 	register FILE *f;
 {
 
-	outlines(f, bss);
+	outlines(f, prof ? pbss : bss);
 	fprintf(f, "        global  _errno, cerror, cnull\n\n");
 	fprintf(f, "        segment _BSS\n");
 	fprintf(f, "_errno: resw    1\n\n");
@@ -536,6 +556,12 @@ main(argc, argv)
 	model = "s";
 	kernel = dir = 0;
 	while (argc > 2 && argv[1][0] == '-' && argv[1][1] && !argv[1][2]) {
+		if (argv[1][1] == 'p') {
+			prof++;
+			argc--;
+			argv++;
+			continue;
+		}
 		switch (argv[1][1]) {
 		case 'm':
 			model = argv[2];
@@ -553,9 +579,10 @@ main(argc, argv)
 		argv += 2;
 	}
 	if (argc != 3 || !model[0] || model[1] ||
-	    model[0] != 's' && model[0] != 'm' && model[0] != 'l') {
+	    model[0] != 's' && model[0] != 'm' && model[0] != 'l' ||
+	    prof && model[0] != 's') {
 		fprintf(stderr,
-	"usage: mkstubs [-m s|m|l] [-k sysent] [-d dir] table syscall.h\n");
+"usage: mkstubs [-m s|m|l] [-p] [-k sysent] [-d dir] table syscall.h\n");
 		exit(1);
 	}
 	farcode = model[0] != 's';
@@ -585,6 +612,8 @@ main(argc, argv)
 	cerror(out);
 	if (dir)
 		fclose(out);
+	else if (prof)
+		fprintf(out, "        extern  mcount\n");
 
 	f = efopen(table, "r");
 	while (fgets(buf, sizeof buf, f) != NULL) {
@@ -632,8 +661,9 @@ main(argc, argv)
 			out = efopen(path, "w");
 			fprintf(out, "%s", made);
 			outlines(out, head);
-			outlines(out, bss);
-			fprintf(out, "        extern  cerror, cnull, _errno\n");
+			outlines(out, prof ? pbss : bss);
+			fprintf(out, "        extern  cerror, cnull, _errno%s\n",
+			    prof ? ", mcount" : "");
 			fprintf(out, "        segment _TEXT\n");
 		}
 		outstub(out);

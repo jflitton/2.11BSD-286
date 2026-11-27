@@ -30,7 +30,7 @@ upstream's goes with them is ported. What is left:
 
 | what | why |
 |---|---|
-| Profiling: `cc -p`, `mcrt0.o`, `prof` | the second pass does not do it for the 286, and the start-up code for it is not written |
+| Profiling of the medium and large models | the kernel's record of where a program is, `profil(2)`, is of IP, which does not say which segment of code it is in ([profiling](userland.md#profiling)) |
 | `ld -r`, and so objects joined into one | not written |
 | Fortran of the medium model | `f77` makes the small model's code alone, and its libraries are built so; a procedure's address would be two words |
 

@@ -1257,7 +1257,7 @@ getree()
 	case PROFIL:
 		t = geti();
 		outname(s);
-		error("Profiling is not done yet");
+		profentry(t, s);
 		break;
 
 	case ASSEM:

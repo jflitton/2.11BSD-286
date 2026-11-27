@@ -3,16 +3,17 @@
 # All rights reserved.  The Berkeley software License Agreement
 # specifies the terms and conditions for redistribution.
 #
-#	@(#)Makefile	5.6.2 (2.11BSD) 2025/11/29
+#	@(#)Makefile	5.6.3 (2.11BSD) 2026/11/26
 #
 # Machine dependent routines for the 286 are located here, as the
 # PDP-11's are in ../pdp, whose Makefile this is, and they are made for
 # each of the 286's three models: a library for the small, i286lib, the
-# medium, i286lib_m, and the large, i286lib_l.  ../Makefile puts each
-# in that model's C library, and in the large model's, gen's malloc.o
-# in place of ../gen's.  The start-up code, csu, ../Makefile makes and
-# installs.  GNUmakefile is the C library of each model as the system
-# is made where it is built, which GNU make reads before this.
+# medium, i286lib_m, and the large, i286lib_l; and for profiling, which
+# is the small model's alone, i286lib_p.  ../Makefile puts each in that
+# model's C library, and in the large model's, gen's malloc.o in place
+# of ../gen's.  The start-up code, csu, ../Makefile makes and installs.
+# GNUmakefile is the C library of each model as the system is made
+# where it is built, which GNU make reads before this.
 #
 #	crt	the routines compiled code calls for long arithmetic
 #	gen	setjmp and longjmp, alloca, and the PDP-11's floating-point
@@ -24,10 +25,13 @@
 ALL=	crt gen net sys
 TAGSFILE=tags
 
-i286lib i286lib_m i286lib_l: ${ALL}
+i286lib i286lib_p i286lib_m i286lib_l: ${ALL}
 	-mkdir tmp
 	for i in ${ALL}; do (cd tmp; ar x ../$$i/$${i}lib); done
 	ar cr i286lib `ls tmp/*.o | sort -t/ +1`
+	rm -f tmp/*
+	for i in ${ALL}; do (cd tmp; ar x ../$$i/$${i}lib_p); done
+	ar cr i286lib_p `ls tmp/*.o | sort -t/ +1`
 	rm -f tmp/*
 	for i in ${ALL}; do (cd tmp; ar x ../$$i/$${i}lib_m); done
 	ar cr i286lib_m `ls tmp/*.o | sort -t/ +1`
@@ -43,5 +47,5 @@ FRC:
 
 clean:
 	for i in ${ALL} csu; do (cd $$i; make ${MFLAGS} clean); done
-	rm -f i286lib i286lib_m i286lib_l tmp/*.o;
+	rm -f i286lib i286lib_p i286lib_m i286lib_l tmp/*.o;
 	-rmdir tmp

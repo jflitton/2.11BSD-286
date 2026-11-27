@@ -31,6 +31,12 @@ the object of, is compiled under a name of its own: the cross compiler
 names a medium or large program's code after the file, and its linker
 puts what has one name in one segment.
 
+-p, which compiles a file to count its calls for profiling, is the
+system's compiler's: the cross compiler, which has no such thing, is
+not told it, and makes what it makes without (the C library's
+Makefiles, in MODE xlib, make a library for profiling that nothing is
+linked with).
+
 Each C file it is given is written in OUT/sources, a line each, with the
 directory of usr/src it is compiled in: the directory, the file, named
 from usr/src (tests/self/select.py), and the model, s, m or l, and the
@@ -142,7 +148,8 @@ if what is None:
     if o:
         cmd += ["-o", o]
     sys.exit(subprocess.call(cmd))
-flags = [a for a in rest if a[:2] in ("-D", "-U", "-I", "-O", "-m", "-n")]
+flags = [a for a in rest if a[:2] in ("-D", "-U", "-I", "-O", "-m", "-n")
+         or a == "-p" and not cross]
 if cross:
     if what == "-S":
         sys.exit("cc: -S is not the cross compiler's")

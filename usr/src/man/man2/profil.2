@@ -2,7 +2,7 @@
 .\" All rights reserved.  The Berkeley software License Agreement
 .\" specifies the terms and conditions for redistribution.
 .\"
-.\"	@(#)profil.2	6.3 (Berkeley) 5/6/87
+.\"	@(#)profil.2	6.4 (2.11BSD) 2026/11/26
 .\"
 .TH PROFIL 2 "May 6, 1987"
 .UC 2
@@ -29,6 +29,10 @@ If the resulting number corresponds to a word
 inside
 .I buff,
 that word is incremented.
+.PP
+On the 80286 the pc is IP, which says where in a segment of code the
+program is and not which segment:
+a profile is of one, as the small model's code is.
 .PP
 The scale is interpreted as an unsigned,
 fixed-point fraction with 16 bits of fraction:

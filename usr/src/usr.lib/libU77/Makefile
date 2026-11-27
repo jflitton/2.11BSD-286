@@ -3,15 +3,16 @@
 # All rights reserved.  The Berkeley software License Agreement
 # specifies the terms and conditions for redistribution.
 #
-#	@(#)Makefile	5.3 (2.11BSD) 2026/11/26
+#	@(#)Makefile	5.4 (2.11BSD) 2026/11/26
 #
 # Makefile for f77 system lib, libU77.a
 #
 # The 80286: Fortran programs are of the small model alone (f77(1)),
 # and so is this library.  The PDP-11's profiled one, of cc -p, is not
-# made: the 286's compiler does not profile.  Nor is its ld -x -r done,
-# which took out the local symbols: the 286's ld makes nothing but a
-# program.
+# made: f77 -p links a program with this one, as the PDP-11's did, and
+# prof(1) has the time spent in it and not its calls.  Nor is its
+# ld -x -r done, which took out the local symbols: the 286's ld makes
+# nothing but a program.
 
 CFLAGS	      = -O
 DEST	      = /usr/lib

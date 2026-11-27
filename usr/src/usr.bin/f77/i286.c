@@ -260,7 +260,9 @@ if(profileflag)
 p2op(P2SAVE);
 p2op2(P2SETREG, ARGREG-MAXREGVAR);
 if(profileflag) {
+	/* the name as prentry gives it, with its _ */
 	p2op2(P2PROFIL, proflab);
+	putc('_', textfile);
 	p2str(funcname);
 }
 p2op2(P2SETSTK, ( (((int) autoleng)+1) & ~01) );

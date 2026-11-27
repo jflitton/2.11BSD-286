@@ -1,5 +1,5 @@
 #if	defined(DOSCCS) && !defined(lint)
-static	char *sccsid = "@(#)prof.c	4.4.2 (2.11BSD GTE) 1997/2/14";
+static	char *sccsid = "@(#)prof.c	4.4.3 (2.11BSD) 2026/11/26";
 #endif
 /*
  * prof
@@ -11,7 +11,11 @@ static	char *sccsid = "@(#)prof.c	4.4.2 (2.11BSD GTE) 1997/2/14";
 #include <sys/time.h>
 
 typedef	short UNIT;		/* unit of profiling */
-#ifdef pdp11
+/*
+ * The 286's counts are of a function's own address, as the PDP-11's are
+ * (lib/libc/i286/csu/mcount.s).
+ */
+#if defined(pdp11) || defined(i286)
 #define	PCFUDGE		0
 #else
 #define	PCFUDGE		11
