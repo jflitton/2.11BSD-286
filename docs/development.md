@@ -128,9 +128,10 @@ same, in `obj/PC`, `obj/stand` and `obj/build`, and the root is made of
 those: the cross compiler compiles the programs, which are linked with
 libraries of its objects that the libraries' own Makefiles make of
 them, and the root has the libraries and the compiler of the system's
-own tools, which make programs on it. `f77`, `efl` and `struct` are
-the system's own tools' work too: their C is older than the cross
-compiler takes (`tools/build/cc.py`).
+own tools, which make programs on it. `f77`, `efl`, `struct` and
+Pascal's programs are the system's own tools' work too: their C is
+older than the cross compiler takes, and `px` is of the system's
+assembler (`tools/build/native.py`).
 
 The last makes a bootable image of a 40 MB IDE disk with the root and
 2 MB of swap. The root file system is 24 MB, with 16 MB in it;
@@ -394,6 +395,9 @@ tests/uucp/run.sh       # UUCP: the system calls itself by TCP, through
                         # and sends and fetches files and a letter
 tests/fortran/run.sh    # f77, ratfor, struct and efl: programs compiled
                         # on the system and run, and what they print
+tests/pascal/run.sh     # pi, px, pix and pxp: programs translated on
+                        # the system and run, the errors px finds, and
+                        # pxp's listings, and what they print
 tests/vt/run.sh         # the console's terminal emulator, on the machine
                         # the system is built on: 302 checks
 tests/ve/run.sh         # the editor ve, built for that machine too: 115
@@ -404,7 +408,7 @@ tests/ve/run.sh         # the editor ve, built for that machine too: 115
 The tests that boot the system as a machine has it, `tests/system`,
 `tests/network`, `tests/programs`, `tests/crash`, `tests/quota`,
 `tests/mx`, `tests/slip`, `tests/lp`, `tests/uucp`, `tests/fortran`,
-`tests/bench`, `tests/libc` and `tests/ccom` with
+`tests/pascal`, `tests/bench`, `tests/libc` and `tests/ccom` with
 `self.sh`, boot either build of it: with `TOOLS=cross` the cross
 compiler's, and with `TOOLS=native` the system's own compiler's,
 assembler's and linker's throughout, the kernel, the libraries, every
@@ -623,6 +627,15 @@ and so on).
   `tools/build/ioinit.s`, which is what the build here is given of it.
   When it is not, the test puts the system's in `obj/tests/fortran` for
   `tools/build` ([the toolchain](toolchain.md#fortran)).
+- `tests/pascal` boots it with Pascal programs in `/root`, which root
+  translates with `pi` and runs: control, and arithmetic with how
+  numbers are written, by `px`; sets, arrays, records and pointers by
+  `pix`; files and the input as an object that runs itself; Berkeley
+  Pascal's own built in routines; each error `px` finds, with the calls
+  it was made in; and `pxp` printing a program again, and with how
+  often each part ran. What they print must be as `expected` has it,
+  which was worked out from the programs and from how `px` prints
+  ([the C library and programs](userland.md#pascal)).
 - `tests/bench` boots it and runs `bench`, this port's benchmark, while
   the harness times each test by the marks it writes and samples where
   the processor is. It prints what each test took and leaves
@@ -662,6 +675,7 @@ are from single runs with an 86Box that has the automation socket.
 | the quotas, in the kernel or the programs | `tests/quota` | 2½ minutes |
 | UUCP, its programs or its files in `/etc` | `tests/uucp` | 2¼ minutes |
 | `f77`, its libraries, `ratfor`, `struct` or `efl`, or what `c1` does for Fortran | `tests/fortran` | 3¼ minutes, 9 when the build makes every program again |
+| `pi`, `px`, `pix`, `pxp` or `eyacc` | `tests/pascal` | 3 minutes, 17 when the build makes every program again |
 | SLIP, `slattach`, or the serial ports' driver | `tests/slip` | 3½ minutes |
 | the parallel port's driver, or `lpr` and `lpd` printing on it | `tests/lp` | 2 minutes |
 | `sendmail.MX`, or what `sendmail.cf` does with mail for another machine | `tests/mx` | 2½ minutes |

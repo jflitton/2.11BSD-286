@@ -22,7 +22,7 @@ python3 tools/mkfs.py -s 64000 obj/src/proto obj/src.fs
 `obj/src.fs` is a file system to mount on `/usr/src`: a partition of
 the system's disk (`tools/mkdisk.py ... d=obj/src.fs`,
 [disks](disks.md)). It has the sources in the directories they have in
-the repository, 20 MB of them, and room for what is made of them, which
+the repository, 24 MB of them, and room for what is made of them, which
 is left beside them. The root file system has the directory, and `/sys`
 is a name for `/usr/src/sys`.
 
@@ -132,7 +132,7 @@ says another. What was changed in them for the 286:
   `libvmf`. `lib`'s list has not `libkern`, the PDP-11 kernel's, and
   `make build` makes neither that nor `libvmf`.
 - A directory's list of programs has not the ones the port does not
-  have: the PDP-11's debugger and tape formats, and Pascal.
+  have: the PDP-11's debugger and tape formats.
   `usr/src/local`'s list has the port's own
   programs, `adduser`, `bench` and `ve`, in place of upstream's, which
   all compile and are not made. Nor has `share`'s list `font` and

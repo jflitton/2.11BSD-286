@@ -13,9 +13,8 @@ is nothing to NASM: a file says FAR and FARDATA for it, which the
 library's Makefiles give it.  The C library's conventions,
 lib/libc/i286/crt/DEFS.inc, are found as the system's cc has the
 assembler find them, in /usr/include.  MODE is cross or xlib, as
-cc.py's: with cross, in lib and usr.lib, whose libraries the root has
-of the system's own objects, it is the system's as, as compiled for
-this machine.
+cc.py's: with cross, in the directories of native.py, whose objects are
+the system's own, it is the system's as, as compiled for this machine.
 """
 import os
 import sys
@@ -24,7 +23,9 @@ top, out, mode = sys.argv[1:4]
 args = sys.argv[4:]
 src = os.path.join(out, "root", "usr", "src")
 here = os.path.relpath(os.getcwd(), src)
-if mode == "cross" and here.split("/")[0] in ("lib", "usr.lib"):
+sys.path.insert(0, os.path.join(top, "tools/build"))
+from native import native  # noqa: E402
+if mode == "cross" and native(here):
     os.execv(top + "/obj/host/ccom/as", ["as"] + args)
 cmd = ["nasm", "-f", "obj",
        "-I" + top + "/usr/src/lib/libc/i286/crt/"]

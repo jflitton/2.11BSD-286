@@ -80,6 +80,7 @@
 /usr/share/me 755 root wheel
 /usr/share/misc 755 root wheel
 /usr/share/ms 755 root wheel
+/usr/share/pascal 755 root wheel
 /usr/share/tabset 755 root wheel
 /usr/share/term 755 root wheel
 /usr/share/tmac 755 root wheel

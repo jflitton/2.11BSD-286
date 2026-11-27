@@ -12,11 +12,12 @@ static	char sccsid[] = "@(#)version.c	(2.11BSD) 2.2 2025/12/26";
 
 #include	<time.h>
 
-long		clock;
 char		*cstring;
 
 main()
     {
+	long		clock;	/* here, where it is not the library's clock() */
+
 	time( &clock );
 	cstring = ctime( &clock );
 	cstring[ 24 ] = '\0';

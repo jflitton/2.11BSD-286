@@ -18,8 +18,9 @@ import sys
 top, out, mode, libroot = sys.argv[1:5]
 args = sys.argv[5:]
 here = os.path.relpath(os.getcwd(), out + "/root/usr/src")
-cross = mode == "xlib" or mode == "cross" and \
-    here.split("/")[0] not in ("lib", "usr.lib")
+sys.path.insert(0, os.path.join(top, "tools/build"))
+from native import native  # noqa: E402
+cross = mode == "xlib" or mode == "cross" and not native(here)
 if not cross:
     if mode == "cross":
         libroot = out + "/dest"

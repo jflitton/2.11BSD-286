@@ -3,7 +3,7 @@
 # All rights reserved.  The Berkeley software License Agreement
 # specifies the terms and conditions for redistribution.
 #
-#	@(#)Makefile	5.20 (2.11BSD) 2026/9/13
+#	@(#)Makefile	5.21 (2.11BSD) 2026/11/26
 #
 CFLAGS=	-O
 LDFLAGS= -i
@@ -11,7 +11,7 @@ LDFLAGS= -i
 # Programs that live in subdirectories, and have makefiles of their own.
 #
 SUBDIR=	Mail compress error ex finger ftp indent lock man mkstr \
-	more msgs netstat rdist rlogin sendbug talk tftp \
+	more msgs netstat pascal rdist rlogin sendbug talk tftp \
 	tn3270 top tset vgrind window
 
 # Shell scripts that need only be installed and are never removed.

@@ -20,7 +20,8 @@ as the system's: MAKEDEV's mknod.  Then COMMAND is the shell's, in the
 C locale, as the system has no other.  A FILE, a script, is read and its
 commands are seen to so, and it is run with its ARGs.
 
-A program a Makefile makes and then runs, ./proc in bin/awk, is the
+A program a Makefile makes and then runs, ./proc in bin/awk, or one
+made in another directory, ../eyacc/eyacc in ucb/pascal/pi, is the
 286's, and is run here as this machine has it, wherever the command
 names it: compiled for this machine from the sources in the directory
 it was made of, as they are when it is run (HOST, below), in
@@ -44,9 +45,9 @@ CMD = re.compile(r"(^\s*|[;|&(`]\s*)/(?:bin|sbin|usr/bin|usr/ucb|usr/sbin|"
                  r"lib|usr/lib|usr/man|usr/libexec|etc)/"
                  r"([A-Za-z0-9_.+-]+)(?=[\s;|&)`]|$)", re.M)
 ALONE = re.compile(r"\s*(\.?/[A-Za-z0-9_./+-]+)\s*$")
-# A program a Makefile makes and runs.
-MADE = re.compile(r"(^\s*|[;|&(`]\s*)\./([A-Za-z0-9_.+-]+)(?=[\s;|&)<>`]|$)",
-                  re.M)
+# A program a Makefile makes and runs, here or in another directory.
+MADE = re.compile(r"(^\s*|[;|&(`]\s*)(\.\.?/(?:[A-Za-z0-9_.+-]+/)*)"
+                  r"([A-Za-z0-9_.+-]+)(?=[\s;|&)<>`]|$)", re.M)
 # What each is compiled of here, in the directory of usr/src it is made
 # in, with the flags it needs where this machine's int and pointer are
 # not the 286's, or its headers declare what the program does (jove's
@@ -62,6 +63,8 @@ HOST = {
     "games/hack/makedefs": "makedefs.c",
     "games/warp/sm": "sm.c",
     "lib/libc/i286/sys/mkstubs": "mkstubs.c",
+    "ucb/pascal/eyacc/eyacc": "-DHUGE ey0.c ey1.c ey2.c ey3.c ey4.c ey5.c",
+    "ucb/pascal/pi/version": "version.c",
     "new/jove/setmaps": "-D_POSIX_C_SOURCE=200112L setmaps.c",
     "usr.lib/libF77/mkvers": "mkvers.c",
     "usr.lib/libI77/mkvers": "mkvers.c",
@@ -114,21 +117,26 @@ TOP = os.path.dirname(os.path.dirname(os.path.dirname(
 DIR = os.path.relpath(os.getcwd(), SRC)
 
 
-def host(name):
-    """The program NAME of this directory as this machine has it, or
-    None.  One of HOST is that, whether or not the 286's is there yet,
-    as nroff_term's is not until the command that runs it has made it."""
-    p = os.path.join(hostbin, DIR, name)
+def host(name, where="."):
+    """The program NAME of the directory WHERE, this one or one relative
+    to it, as this machine has it, or None.  One of HOST is that,
+    whether or not the 286's is there yet, as nroff_term's is not until
+    the command that runs it has made it."""
+    d0 = os.path.normpath(os.path.join(DIR, where))
+    p = os.path.join(hostbin, d0, name)
     for pattern, how in HOST.items():
         d, n = os.path.split(pattern)
-        if d != DIR or not fnmatch.fnmatchcase(name, n):
+        if d != d0 or not fnmatch.fnmatchcase(name, n):
             continue
         words = how.format(stem=name.split(".")[0]).split()
-        srcs = [w for w in words if not w.startswith("-")]
+        srcs = [os.path.join(where, w) for w in words
+                if not w.startswith("-")]
         if not os.path.isfile(p) or any(
                 os.path.getmtime(s) > os.path.getmtime(p) for s in srcs):
             os.makedirs(os.path.dirname(p), exist_ok=True)
-            subprocess.check_call(HOSTCC + ["-o", p] + words)
+            subprocess.check_call(HOSTCC + ["-o", p] + [
+                w if w.startswith("-") else os.path.join(where, w)
+                for w in words])
         return p
     return p if os.path.isfile(p) else None
 
@@ -153,9 +161,10 @@ def command(text):
 
 
 def here(m):
-    """./NAME, or the one of this machine."""
-    if theirs("./" + m.group(2)) or not os.path.exists("./" + m.group(2)):
-        p = host(m.group(2))
+    """./NAME or ../DIR/NAME, or the one of this machine."""
+    path = m.group(2) + m.group(3)
+    if theirs(path) or not os.path.exists(path):
+        p = host(m.group(3), m.group(2))
         if p:
             return m.group(1) + p
     return m.group(0)

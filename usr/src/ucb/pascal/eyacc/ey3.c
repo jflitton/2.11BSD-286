@@ -4,13 +4,16 @@
 cpres(){ /* conpute an array with the beginnings of  productions yielding given nonterminals
 	The array pres points to these lists */
 	int i,j,c;
-	pres = yalloc(nnonter+1);
+	pres = yalloc(PWORDS(nnonter+1));
 	for(i=0;i<=nnonter;i++){
 		c = i+NTBASE;
 		pres[i] = mem;
 		fatfl = 0;  /* make undefined  symbols  nonfatal */
 		for(j=0;j<nprod;j++)
-		if (*prdptr[j] == c) *mem++ =  prdptr[j]+1;
+		if (*prdptr[j] == c) {
+			*(int **)mem = prdptr[j]+1;
+			mem += sizeof(int *)/sizeof(int);
+			}
 		if(pres[i] == mem){
 			error("nonterminal %s not defined!", nontrst[i].name);
 			}
@@ -28,7 +31,7 @@ cpfir() {
   /* compute an array with the first of nonterminals */
   int i, ch, **s, **t, changes, *p;
 
-  pfirst = yalloc(nnonter+1);
+  pfirst = yalloc(PWORDS(nnonter+1));
   for (i=0;i<=nnonter;i++) {
     aryfil( wsets[i].ws, tbitset, 0 );
     t = pres[i+1];
@@ -70,7 +73,8 @@ cpfir() {
   }
 
 state(c){ /* sorts last state,and sees if it equals earlier ones. returns state number */
-	int s,size1,size2;
+	int *s,size1,size2;
+	struct looksets *sl;
 	_REGISTER i;
 	struct item *p1, *p2, *k, *l, *q1, *q2;
 	p1 = pstate[nstate];
@@ -82,9 +86,9 @@ state(c){ /* sorts last state,and sees if it equals earlier ones. returns state 
 			s = k->pitem;
 			k->pitem = l->pitem;
 			l->pitem = s;
-			s = k->look;
+			sl = k->look;
 			k->look = l->look;
-			l->look = s;
+			l->look = sl;
 			}
 		}
 	size1 = p2 - p1; /* size of state */

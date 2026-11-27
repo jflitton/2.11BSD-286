@@ -12,6 +12,14 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#ifdef i286
+/*
+ * The V6 library's fflush, of ../px/i286/putc.s, which the C library's
+ * stdio, that its ctime brings, has an fflush of its own beside
+ */
+#define	fflush	v6flush
+#endif
+
 /*
  * Option flags
  *

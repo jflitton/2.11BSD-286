@@ -1,0 +1,6 @@
+1,$s/^/#define /
+w E.h
+e
+1,$s/ / equ /
+w E.inc
+q

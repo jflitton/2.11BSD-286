@@ -51,8 +51,7 @@ pwrite(opc, subopc, av)
 			break;
 		case O_WRHEX2:
 		case O_WROCT2:
-			(&along)->pint = 0;
-			(&along)->p2int = ap->pint;
+			along = (unsigned)ap->pint;
 			ap += 2;
 			w = opc == O_WROCT2 ? 11 : 8;
 			break;
@@ -221,9 +220,8 @@ long l;
 {
 	register c;
 
-	c = (&l)->p2int & 07;
-	l >>= 3;
-	(&l)->pint &= 017777;
+	c = l & 07;
+	l = (l >> 3) & 03777777777L;
 	if (w > 1 || l != 0)
 		wro(l, w-1);
 	pputch(c | '0');
@@ -234,9 +232,8 @@ long l;
 {
 	register c;
 
-	c = (&l)->p2int & 017;
-	l >>= 4;
-	(&l)->pint &= 07777;
+	c = l & 017;
+	l = (l >> 4) & 01777777777L;
 	if (w > 1 || l != 0)
 		wrhex(l, w-1);
 	pputch(c <= 9 ? c | '0' : 'a' + (c - 10));

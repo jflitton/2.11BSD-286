@@ -1,5 +1,6 @@
 /* (c) 1979 Regents of the University of California */
 #include <stdio.h>
+#include <stdarg.h>
 /*  MANIFEST CONSTANT DEFINITIONS */
 
 # define NTBASE 010000
@@ -123,3 +124,11 @@ extern int machine;
 # define IBM 3
 
 struct looksets *flset();
+char *symnam(), *writem(), *chcopy();
+int *yalloc();
+FILE *copen();
+int error(char *, ...);
+
+  /* the words of mem that n+1 pointers take: n+1 where a pointer
+     is the size of an int */
+# define PWORDS(n) (((n)+1)*sizeof(int *)/sizeof(int)-1)

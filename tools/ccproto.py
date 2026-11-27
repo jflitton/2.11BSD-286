@@ -10,8 +10,9 @@ adds them): /usr/include as the tree has it, TOP/usr/include, as
 files, and the kernel's headers that it reaches through links, sys
 (sys/h), i286 with machine as another name for it (sys/i286), net,
 netimp, netinet and netns.  What is of the PDP-11 alone is left out
-(pdp, pdpif, pdpuba), and pascal's; netimp is not, netstat being
-compiled with it.  A header that is a link in the tree is one there.
+(pdp, pdpif, pdpuba), and pascal's, unixio.h, which declares routines
+external, as the VAX's Pascal compiler, pc, has them and pi has not;
+netimp is not, netstat being compiled with it.  A header that is a link in the tree is one there.
 DEFS.inc is there too, the C library's conventions for a file of
 assembly (usr/src/lib/libc/i286/crt), where cc has the assembler look
 for it.

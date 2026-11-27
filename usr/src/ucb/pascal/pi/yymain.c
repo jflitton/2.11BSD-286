@@ -113,6 +113,63 @@ copyfile()
 }
 #endif
 
+#ifdef i286
+/*
+ * On the 286 npx_header is a program of the small model (px_header.c),
+ * its header and the table of its two segments the first bytes of it.
+ * Its data segment is the last in the file, and what pi writes after
+ * the 1024 bytes of it is made part of that, so that px_header has the
+ * code in its memory.  Its data and BSS must end before that, which
+ * px_header's do by far: else it would find its variables there.
+ */
+#include <sys/exec.h>
+
+static
+struct {
+	struct	exec e;
+	struct	exseg x[2];
+} header;
+
+#ifdef PI
+magic()
+{
+
+#define	HEAD_BYTES	1024
+	short		buf[HEAD_BYTES / sizeof ( short )];
+	register int	hf, i;
+
+	hf = open("/usr/share/pascal/npx_header", 0);
+	if (hf >= 0 && read(hf, buf, HEAD_BYTES) > sizeof header) {
+		bcopy(buf, &header, sizeof header);
+		for (i = 0; i < HEAD_BYTES / sizeof ( short ); i++)
+			word(buf[i]);
+	}
+	close(hf);
+	word(0404);
+}
+
+magic2()
+{
+	short i;
+	unsigned at;
+
+	if (header.e.a_magic != A_MAGIC || header.e.a_nseg != 2 ||
+	    header.x[1].xs_type != XS_DATA)
+		panic ( "magic2" );
+	at = sizeof header + (((unsigned) header.x[0].xs_filesz + 1) & ~1);
+	if (header.x[1].xs_memsz > HEAD_BYTES - at)
+		panic ( "magic2" );
+	pflush();
+	lseek(ofil, 0l, 0);
+	header.x[1].xs_filesz = ( unsigned ) lc - at;
+	header.x[1].xs_memsz = header.x[1].xs_filesz;
+	write(ofil, &header, sizeof header);
+	lseek(ofil, ( long ) ( HEAD_BYTES - sizeof ( short ) ) , 0);
+	i = ( ( unsigned ) lc) - HEAD_BYTES;
+	write(ofil, &i, 2);
+}
+#endif
+#else
 static
 struct {
 	int		magic;
@@ -169,6 +226,7 @@ magic2()
 	i = ( ( unsigned ) lc) - HEAD_BYTES;
 	write(ofil, &i, 2);
 }
+#endif
 #endif
 
 #ifdef PXP

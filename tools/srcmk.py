@@ -79,16 +79,43 @@ def entered(t):
                           t, re.M))
 
 
+def named(t):
+    """The names of the directories that the Makefile T, as text() has
+    it, goes into by a rule's target, cd $@, where the targets are not
+    SUBDIR's but macros of their own, as ucb/pascal's ${ALL} is."""
+    macros = {m.group(1): m.group(2).split()
+              for m in re.finditer(r"^(\w+)\s*=(.*)$", t, re.M)}
+
+    def expand(words, depth=0):
+        out = []
+        for w in words:
+            m = re.fullmatch(r"\$[({](\w+)[)}]", w)
+            if m and depth < 8:
+                out += expand(macros.get(m.group(1), []), depth + 1)
+            else:
+                out.append(w)
+        return out
+
+    names = set()
+    for m in re.finditer(r"^([^\t#:=\n]+):[^\n]*\n\t@?\(?\s*cd \$@\s*[;&]",
+                         t, re.M):
+        names.update(expand(m.group(1).split()))
+    return names
+
+
 def subdirs(d):
     """The names of the directories D's Makefile has make run in: those
     it names in SUBDIR, or in DIRS as man's does, or in LIBDIR and SRCDIR
-    as usr/src's does, or those it enters; and the text of the
-    Makefile."""
+    as usr/src's does, or those it enters, by name or by a rule's target,
+    but for a directory given whole, whose own Makefile is what makes
+    what is below it; and the text of the Makefile."""
     t = text(d)
     names = set()
     for m in re.finditer(r"^(?:SUBDIRS?|DIRS|LIBDIR|SRCDIR)\s*=(.*)$", t,
                          re.M):
         names.update(m.group(1).split())
+    if d not in WHOLE:
+        names |= named(t)
     return names | entered(t), t
 
 

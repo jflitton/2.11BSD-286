@@ -32,12 +32,31 @@ setmem()
 	stklim();
 }
 
+#ifdef i286
+/*
+ * pfree, where the C library's free is, with the malloc of its stdio,
+ * which ctime brings (pdattim.c)
+ */
+pfree(cptr)
+#else
 free(cptr)
+#endif
 	char *cptr;
 {
 }
 
 stklim()
 {
+#ifdef i286
+	extern char end[];
+
+	/*
+	 * The 286's stack is not above what is allocated, as the PDP-11's
+	 * is, but below it, from the break the program was loaded with
+	 * down to end; 1024 bytes of it are kept for the C px calls.
+	 */
+	maxstk = end + 1024;
+#else
 	maxstk = (char *)((((unsigned)memptr + 07777) &~ 07777) + 512);
+#endif
 }

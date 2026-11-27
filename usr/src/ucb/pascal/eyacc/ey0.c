@@ -2,7 +2,14 @@
 #include <stdio.h>
 #ifndef SMALL
 # define _actsize 2500
+	/* HUGE, for the eyacc that the system is built with where a
+	   pointer is twice an int: the items of the states take twice
+	   the room in mem there */
+# ifdef HUGE
+# define _memsize 6000
+# else
 # define _memsize 3000
+# endif
 # define _nstates 700
 # define _nterms 95
 # define _nprod 300

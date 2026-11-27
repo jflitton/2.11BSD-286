@@ -28,9 +28,11 @@
 #	nroff, manroff	the system's nroff, as compiled for this machine
 #			(nroff.py, which puts each .so in its place)
 #	eqn		the same (host.mk makes both)
-#	ex		ex.py, for share/termcap's Makefile, which has it
-#			run reorder on termcap.src, and bin/awk's, which
-#			has it run tokenscript
+#	ex, ed		ex.py, for share/termcap's Makefile, which has ex
+#			run reorder on termcap.src, bin/awk's, which has
+#			it run tokenscript, and pascal's, whose scripts
+#			ex.py does as ex and ed do them: gram.ex, of
+#			eyacc's grammars, and px's Emake.ed
 #	spellin, tbl	the tree's, compiled here for this machine:
 #			spell's Makefile has the one the system has make
 #			its lists, and phantasia's has tbl
@@ -64,6 +66,8 @@
 #	size		nothing
 #	ln, rm, mv, cp, mkdir	this machine's, on OUT/dest where
 #			the name is one in the system's root
+#	dd		the same, for if= and of=: pi's Makefile has it
+#			write npx_header
 #	chmod		chmod.py, the same, which says in OUT/meta what
 #			mode it was to be: this machine may not set setuid
 #	chown, chgrp	chown.py, which says in OUT/meta whose a file
@@ -144,6 +148,7 @@ run ld python3 -I "$here/ld.py" "$top" "$out" "$mode" "$libroot"
 [ "$mode" = native ] || run as python3 -I "$here/as.py" "$top" "$out" "$mode"
 for t in yacc lex eqn; do run $t "$top/obj/host/$t"; done
 run ex python3 -I "$here/ex.py" "$top"
+run ed python3 -I "$here/ex.py" "$top" -ed
 run tar python3 -I "$here/tar.py" "$out"
 run makewhatis "$b/sh" "$s/usr.sbin/makewhatis/makewhatis.sh"
 for t in xstr mkstr tsort what spellin tbl; do run $t "$h/$t"; done
@@ -219,4 +224,21 @@ shift \$n
 exec /bin/$t "\$@"
 END
 done
+cat > "$b/dd" <<END
+#!/bin/sh
+n=\$#
+for a; do
+    case \$a in
+    [io]f=//*) a=\${a%%=*}=\${a#??=/} ;;
+    esac
+    case \$a in
+    [io]f=/bin/*|[io]f=/sbin/*|[io]f=/etc/*|[io]f=/lib/*|[io]f=/usr/*|\\
+    [io]f=/var/*|[io]f=/mdec/*)
+        a=\${a%%=*}=$out/dest\${a#??=} ;;
+    esac
+    set -- "\$@" "\$a"
+done
+shift \$n
+exec /bin/dd "\$@"
+END
 chmod +x "$b"/*

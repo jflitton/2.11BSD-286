@@ -1,0 +1,256 @@
+== control
+fact 3628800 479001600
+fib 6765
+width   36288005040 -5
+swap 4 3
+outer 5 30
+hanoi 1023
+for 55 9217
+abcde 3 2 1 0 -1 -2
+while 127 repeat 4
+zero small small three big big
+ex why zed
+minus fifty
+a hundred thousand
+boolean true false true false
+goto out of 6 calls
+49146 statements executed in N seconds cpu time
+== arithmetic
+div 3 -3 -3 3
+mod 2 2 -2
+short 293 307 -2100 -42 6
+short times short 900000000
+mixed 70300 21000000 69700 233 100
+maxint 2147483647 -2147483647
+long 123457776 123455802 125082 855 961504803
+abs 7 123456789 sqr 144 974169
+odd true false true
+succ 6 -6 ba 65 B
+real  1.250 1.750 -0.375 -6.00 0.0625
+compare true true false false true
+int to real  -3.40  18.50   1.25
+sqrt   1.414214 sin  0.479426 cos  0.877583
+exp  2.718282 ln  2.302585 arctan  0.785398
+trunc 2 -2 round 3 -3 2 0
+expo 4 0 1
+e   1.500000000000000e+00 -2.50000e-01  1.00000e+10 -1.00000e-10
+f      0    123.46  -0.001 100.00
+oct 377 177777 00000000377 hex ff ffff ffffff01 000a
+36 statements executed in N seconds cpu time
+== structures
+In program structures:
+  w - constant orange is never used
+  w - constant green is never used
+Execution begins...
+sets 2 4 +0 +2 +3 +4 +5 -0
+relations false true true true false
+digits 0 1 3 4 5 6 7 9
+letters true false true
+squares 385
+matrix 23 23
+record 25
+strings true true true
+[Pascal  ] [pascal  ]
+list 55 44 33 22 11 sum 165
+Execution terminated
+257 statements executed in N seconds cpu time
+== files
+read 15  22.50
+then 1 line of 7
+items 4  7.50
+data: in data
+scratch 12345
+input 42  2.500
+negative -7
+echo this line
+eof true
+192 statements executed in N seconds cpu time
+left items
+left data
+== builtins
+argc 3
+argv 0 [t5      ]
+argv 1 [one     ]
+argv 2 [two     ]
+date [  ] time [::]
+clocks true true true
+seed 7774755
+random 650446 415922 47755 936634 237403 836530
+again 650446 449108955
+undefined false
+to the message file
+done
+39 statements executed in N seconds cpu time
+== errors
+-- range
+Subscript out of range
+
+        Error at "deep"+4 near line 19
+        Called by "deep"+2 near line 17
+        Called by "deep"+2 near line 17
+        Called by "errors"+4 near line 34
+
+10 statements executed in N seconds cpu time
+-- div
+Div by zero
+
+        Error at "errors"+6 near line 36
+
+5 statements executed in N seconds cpu time
+-- mod
+Mod by zero
+
+        Error at "errors"+8 near line 38
+
+6 statements executed in N seconds cpu time
+-- real
+Floating divide by zero
+
+        Error at "errors"+10 near line 40
+
+7 statements executed in N seconds cpu time
+-- overflow
+Floating point overflow
+
+        Error at "errors"+13 near line 43
+
+9 statements executed in N seconds cpu time
+-- nil
+Reference through a nil pointer
+
+        Error at "errors"+16 near line 46
+
+10 statements executed in N seconds cpu time
+-- case
+Label not found in case
+
+        Error at "errors"+18 near line 48
+
+10 statements executed in N seconds cpu time
+-- subrange
+Value out of range
+
+        Error at "errors"+23 near line 53
+
+12 statements executed in N seconds cpu time
+-- chr
+Argument to chr out of range
+
+        Error at "errors"+25 near line 55
+
+12 statements executed in N seconds cpu time
+-- sqrt
+Negative argument to sqrt
+
+        Error at "errors"+27 near line 57
+
+13 statements executed in N seconds cpu time
+-- ln
+Non-positive argument to ln
+
+        Error at "errors"+29 near line 59
+
+14 statements executed in N seconds cpu time
+-- read
+Bad data found on integer read
+
+        Error at "errors"+31 near line 61
+
+15 statements executed in N seconds cpu time
+-- eof
+standard input: Tried to read past eof
+        Error at "errors"+36 near line 66
+
+18 statements executed in N seconds cpu time
+-- halt
+Call to procedure halt
+
+        Error at "errors"+38 near line 68
+
+17 statements executed in N seconds cpu time
+-- stlimit
+Statement count limit exceeded
+
+        Error at "errors"+41 near line 71
+
+20 statements executed in N seconds cpu time
+-- argv
+Argument to argv out of range
+
+        Error at "errors"+43 near line 73
+
+19 statements executed in N seconds cpu time
+-- none
+no error
+20 statements executed in N seconds cpu time
+-- stack
+Runtime stack overflow
+
+        Error at "forever"+2 near line 27
+        Called by "forever"+2 near line 27
+        Called by "errors"+45 near line 75
+
+N statements executed in N seconds cpu time
+== pxp
+program prof(output);
+{ for pxp: printed again as it is, and with how often each part ran }
+var
+    i, n, primes: integer;
+
+    function prime(n: integer): boolean;
+    var
+        d: integer;
+        p: boolean;
+    begin
+        p := n > 1;
+        d := 2;
+        while p and (d * d <= n) do begin
+            if n mod d = 0 then 
+                p := false;
+            d := d + 1
+        end;
+        prime := p
+    end; { prime }
+
+begin
+    primes := 0;
+    for i := 1 to 50 do 
+        if prime(i) then 
+            primes := primes + 1;
+    if primes > 10 then 
+        writeln(primes: 1, ' primes')
+    else 
+        writeln('few')
+end.
+
+     1        1.---|program prof(output);
+        { for pxp: printed again as it is, and with how often each part ran }
+     3             |var
+     4             |    i, n, primes: integer;
+
+     6           50.---|function prime(n: integer): boolean;
+     7                 |var
+     8                 |    d: integer;
+     9                 |    p: boolean;
+    10                 |begin
+    11                 |    p := n > 1;
+    12                 |    d := 2;
+    13                 |    while p and (d * d <= n) do begin
+    14               95.---|    if n mod d = 0 then 
+    14                   34.---|    p := false;
+    15                     |    d := d + 1
+    15                 |    end;
+    17                 |    prime := p
+    17                 |end; { prime }
+
+    20        1.---|begin
+    21             |    primes := 0;
+    22             |    for i := 1 to 50 do 
+    22           50.---|    if prime(i) then 
+    22               15.---|    primes := primes + 1;
+    23             |    if primes > 10 then 
+    23            1.---|    writeln(primes: 1, ' primes')
+    23        0.---|    else 
+    23            0.---|    writeln('few')
+    23        1.---|end.
+== end

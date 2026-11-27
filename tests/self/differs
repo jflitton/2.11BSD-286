@@ -8,3 +8,4 @@
 /usr/games/lib/adventure/*	# game; where the system is built, only the
 				# 286 can, and the root has a.out and what
 				# makes the game of it when first run
+/usr/ucb/pi			# its Makefile puts the time in Version.c

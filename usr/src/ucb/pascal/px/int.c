@@ -13,6 +13,9 @@
 #include "E.h"
 #include <sys/types.h>
 #include <sys/uio.h>
+#ifdef i286
+#include <sys/exec.h>
+#endif
 
 int	display[20]	= { display };
 
@@ -74,7 +77,12 @@ oops:
 	}
 	if (file) {
 		read(of, &i, 2);
+#ifdef i286
+		/* the object's header, npx_header, is a 286 program */
+		if (i == A_MAGIC) {
+#else
 		if (i == 0407) {
+#endif
 			size -= 1024;
 			lseek(of, (long)1024, 0);
 		} else

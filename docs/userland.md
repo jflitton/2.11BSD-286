@@ -2661,6 +2661,65 @@ as they have it.
 The manual has `f77`, `efl`, `ratfor` and `struct` as upstream wrote
 them, and section 3f, the libraries'.
 
+## Pascal
+
+Berkeley Pascal is on the system: `pi`, which translates a program into
+the code of an interpreter, in `obj`; `px`, the interpreter; `pix`,
+which does the two at once; and `pxp`, which prints a program again,
+and with `-z`, after `pi -z`, with how often each part of it ran. They
+and `eyacc`, the yacc their grammars are made with, are in
+`ucb/pascal`, of the small model. What they needed:
+
+- `px` is mostly assembly, written again for the 286 in `px/i286`, file
+  for file and routine for routine after the PDP-11's; `i286/as.s`
+  says what of the 286 each of the PDP-11's registers is. The
+  interpreter's stack is the machine's, as on the PDP-11, with what is
+  on it as it is in memory, a long's low word on top; a real is the
+  287's double, which is made an integer as the PDP-11 made one, cut
+  toward 0. A real too large for a double is the error the PDP-11's
+  overflow was.
+- An object starts with `/usr/share/pascal/npx_header`, 1024 bytes,
+  a 286 program that runs `px` on what follows it (`pi/px_header.c`);
+  `pi` gives it the data it needs and the length of the code, and `px`,
+  given the object, knows it by its magic number (`px/int.c`).
+- `px`'s stack is 16K, below what it allocates for the program, where
+  the PDP-11's grew down toward that (`px/palloc.c`); a program that
+  goes past it stops with `Runtime stack overflow`.
+- `px` and `pxp` have the V6 library's `getc` and `putc` of their own,
+  as on the PDP-11, for the 286 in `px/i286`. Their `fflush` is
+  `v6flush` there, and `px`'s `free` (which does nothing) `pfree`: the
+  C library has both, in what its `ctime` brings with `sprintf`.
+  `pxp`'s `printf`, `tree1` to `tree5` and `OYcopy` are of C in
+  `pxp/i286`, for the PDP-11's assembly.
+- Fixed on the way: `write(i:n hex)` of a short integer gave `pwrite`
+  0267, which is no operation of its, for `O_WRHEX2`; `remove` pushed
+  `unlink`'s argument over the last two characters of a name that
+  filled its string, before `unlink` read it; reading a number at the
+  end of a file that does not end in a newline read its last digit
+  again, and then past the end; `pwrite`'s octal and hexadecimal took a
+  long's words in the PDP-11's order; and `pi(1)` named the file of its
+  messages wrongly.
+- `pxp -c`, which takes the counts from a core of `px`'s, finds none
+  there: `px`'s data has not the structure it looks for, nor had the
+  PDP-11's, and `px` ends with an error, writing `pmon.out`, where it
+  would have left a core.
+- `eyacc` runs where the system is built, for `pi`'s and `pxp`'s
+  grammars: it kept pointers in `int`s, which a 64-bit machine's are
+  too small for, and its tables are larger there (`-DHUGE`); the
+  scripts its output is edited with, `gram.ex`, and `px`'s `Emake.ed`,
+  are run by `tools/build/ex.py`, which does what `ex` and `ed` do with
+  them.
+
+`tests/pascal` has the system translate and run six programs and
+checks what each prints: control, with a `goto` out of six calls;
+arithmetic of each width, the standard functions, and numbers written
+in each way; sets, arrays, records, strings, `pack` and `unpack`, and
+pointers; text files, files of records, a file the program's heading
+names, a temporary one with a number at its end and no newline, and the
+input; Berkeley Pascal's own routines, `argv`, the clocks, `random` and
+`message`; and each error `px` finds, with the calls it was in. `pxp`
+prints one again, and with its profile.
+
 ## The root file system
 
 It is what upstream's Makefiles install, as 2.11BSD's are made

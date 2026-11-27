@@ -1,21 +1,29 @@
 #
-#       #(@)Makefile    2.0 (2.11BSD) 2025/11/25
+#       #(@)Makefile    2.1 (2.11BSD) 2026/11/26
 #
+# The 80286: the interpreter is i286/as.s, the files of the PDP-11's
+# here written again for the 286 in i286, with the getc and putc of the
+# V6 library there too, which pxp has as well; E.inc is to it what E.s
+# was, of i286/Emake.ed.  The C library's atof is the interpreter's,
+# for 30atof.s.
 
-AS=	as -V -
+AS=	as
 
 DEFS=		-DHZ=60.0
 CFLAGS=		-O -w
 LDFLAGS=	-X -i
+STACK=		-stack 16384
 
-SRCS=	00int.s 02rel.s 02relset.s 03bool.s 04as.s 05lv.s  \
-	06add.s 07sub.s 10mul.s 12div.s 13mod.s 14neg.s  \
-	16dvd.s 17ind.s 17rv.s 20con.s 21rang.s 24case.s 24pxp.s 25set.s  \
-	26for.s 27conv.s 30atof.s 30getname.s 30io.s 30iosubs.s 30read.s  \
-	30write.s 34fun.s opcode.s
+SRCS=	i286/as.s i286/00int.s i286/02rel.s i286/02relset.s i286/03bool.s \
+	i286/04as.s i286/05lv.s i286/06add.s i286/07sub.s i286/10mul.s \
+	i286/12div.s i286/13mod.s i286/14neg.s i286/16dvd.s i286/17ind.s \
+	i286/17rv.s i286/20con.s i286/21rang.s i286/24case.s i286/24pxp.s \
+	i286/25set.s i286/26for.s i286/27conv.s i286/30getname.s \
+	i286/30io.s i286/30iosubs.s i286/30read.s i286/30write.s \
+	i286/34fun.s i286/opcode.s
 
-OTHERS= Edata Emake.ed exit.c int.c palloc.c pcttot.c pdattim.c perror.c \
-	pwrite.c gather.c
+OTHERS= Edata i286/Emake.ed exit.c int.c palloc.c pcttot.c pdattim.c \
+	perror.c pwrite.c gather.c
 
 OBJS=	exit.o int.o palloc.o pcttot.o pdattim.o perror.o pwrite.o \
 	getc.o putc.o
@@ -27,22 +35,25 @@ all: ${ALL}
 .c.o:
 	${CC} ${CFLAGS} ${DEFS} -c $*.c
 
-.s.o:
-	${AS} -o $*.o $*.s
-
 px: as.o ${OBJS}
-	ld ${LDFLAGS} -o px /lib/crt0.o as.o ${OBJS} -lm -lc
+	${CC} ${LDFLAGS} ${STACK} -o px as.o ${OBJS} -lm
 
 gather: gather.o
 	cc ${LDFLAGS} -o gather gather.o
 
-as.o: E.s ${SRCS}
-	${AS} -o as.o E.s ${SRCS}
+as.o: E.inc ${SRCS}
+	${AS} -o as.o i286/as.s
+
+getc.o: i286/getc.s
+	${AS} -o getc.o i286/getc.s
+
+putc.o: i286/putc.s
+	${AS} -o putc.o i286/putc.s
 
 int.c palloc.c pcttot.c perror.c: E.h
 
-E.s E.h: Edata Emake.ed
-	ed - Edata < Emake.ed
+E.inc E.h: Edata i286/Emake.ed
+	ed - Edata < i286/Emake.ed
 
 install: ${ALL}
 	install -c -s -m 755 px /usr/ucb/px
@@ -53,4 +64,4 @@ tags: FRC
 FRC:
 
 clean:
-	rm -f ${ALL} core E.h E.s *.o tags
+	rm -f ${ALL} core E.h E.inc *.o tags

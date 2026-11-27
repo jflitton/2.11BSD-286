@@ -18,7 +18,25 @@ struct header
     };
 
 #define	HEADER_BYTES	1024
+#ifdef i286
+/*
+ * On the 286 this is a program of the small model: its header and the
+ * table of its two segments, its code, and then its data, which pi
+ * makes go on to the end of the file (yymain.c), so that what follows
+ * these 1024 bytes is in its data segment.  The data begin after the
+ * code, etext's bytes made even: what is at N in the file is at N less
+ * that in the data segment.
+ */
+#include <sys/exec.h>
+
+extern	char etext[];
+
+#define	DATA_AT		(sizeof (struct exec) + 2 * sizeof (struct exseg) + \
+			    (((unsigned) etext + 1) & ~1))
+#define	ADDR_LC		(HEADER_BYTES - sizeof (short) - DATA_AT)
+#else
 #define	ADDR_LC		(HEADER_BYTES-sizeof (struct header))  - sizeof (short)
+#endif
 
 main(argc, argv)
 	register int argc;

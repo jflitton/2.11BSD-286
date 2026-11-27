@@ -1,9 +1,11 @@
 #
-#       #(@)Makefile    2.1 (2.11BSD) 2026/1/13
+#       #(@)Makefile    2.2 (2.11BSD) 2026/11/26
 #
+# The 80286: printf, treen and yycopy are of C, in i286, for the PDP-11's
+# printf.s, treen.s and yycopy.s; getc and putc are px's, for the 286.
 
 ED=	-ed
-AS=	as -V -
+AS=	as
 EYACC=	../eyacc/eyacc
 
 DEFS=		-DPXP
@@ -18,8 +20,8 @@ SRCS=	TRdata.c Version.c call.c case.c const.c cset.c error.c fdec.c \
 	yyerror.c yyget.c yyid.c yylex.c yymain.c yypanic.c yyparse.c \
 	yyprint.c yyput.c yyrecover.c yyseman.c yytree.c
 
-OTHERS=	gram.ex how_pxp pas.y printf.s treen.s yycopy.s \
-	../px/getc.s ../px/putc.s
+OTHERS=	gram.ex how_pxp pas.y i286/printf.c i286/treen.c i286/yycopy.c \
+	../px/i286/getc.s ../px/i286/putc.s
 
 OBJS=	TRdata.o Version.o call.o case.o const.o cset.o error.o fdec.o \
 	func.o hash.o lab.o lval.o main.o nl.o pmon.o pp.o proc.o rec.o \
@@ -29,15 +31,25 @@ OBJS=	TRdata.o Version.o call.o case.o const.o cset.o error.o fdec.o \
 
 OBJS2=	printf.o treen.o yycopy.o y.tab.o getc.o putc.o
 
-VPATH=.:../px
-
 all: pxp
 
 .c.o:
 	${CC} ${CFLAGS} ${DEFS} -c $*.c
 
-.s.o:
-	${AS} -o $*.o $*.s
+printf.o: i286/printf.c
+	${CC} ${CFLAGS} ${DEFS} -c i286/printf.c
+
+treen.o: i286/treen.c
+	${CC} ${CFLAGS} ${DEFS} -c i286/treen.c
+
+yycopy.o: i286/yycopy.c y.tab.h
+	${CC} ${CFLAGS} ${DEFS} -c i286/yycopy.c
+
+getc.o: ../px/i286/getc.s
+	${AS} -o getc.o ../px/i286/getc.s
+
+putc.o: ../px/i286/putc.s
+	${AS} -o putc.o ../px/i286/putc.s
 
 pxp: y.tab.h ${OBJS} ${OBJS2}
 	${CC} ${CFLAGS} ${DEFS} -c Version.c

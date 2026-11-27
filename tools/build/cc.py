@@ -17,12 +17,9 @@ MODE says whose compiler it is:
             of the root being made, OUT/dest, which is LIBROOT
     cross   the cross compiler (tools/cc), with the libraries of
             LIBROOT, the cross compiler's, which the same Makefiles
-            made with it (MODE xlib); but in lib and usr.lib, whose
-            libraries and compiler the root has of the system's own
-            objects whoever made its programs, and in usr.bin's f77,
-            efl and struct, older C than the cross compiler takes, as
-            the compiler's own is, the system's own, as for native,
-            with OUT/dest's
+            made with it (MODE xlib); but in the directories of
+            native.py, the system's own, as for native, with
+            OUT/dest's
     xlib    the cross compiler, for those libraries, with LIBROOT's
 
 The cross compiler is told what the system's preprocessor defines of
@@ -55,9 +52,9 @@ root = out + "/root"
 dest = out + "/dest"
 src = root + "/usr/src"
 here = os.path.relpath(os.getcwd(), src)
-NATIVE = ("lib", "usr.lib", "usr.bin/f77", "usr.bin/efl", "usr.bin/struct")
-cross = mode == "xlib" or mode == "cross" and \
-    not any(here == d or here.startswith(d + "/") for d in NATIVE)
+sys.path.insert(0, os.path.join(top, "tools/build"))
+from native import native  # noqa: E402
+cross = mode == "xlib" or mode == "cross" and not native(here)
 if mode == "cross" and not cross:
     libroot = dest
 what = None
@@ -130,7 +127,18 @@ if not here.startswith("..") and files:
 cc = [top + "/tools/cc"] + (["-Dunix=1", "-DBSD2_11=1", "-D__BSD2_11__=1"]
                             if cross else ["-ccom"])
 if what is None:
-    cmd = cc + ["-sysroot", libroot] + [found(lib(a)) for a in rest] + files
+    # An object is linked once, as the system's cc has it (nodup): one
+    # named again, or one a C file given too is compiled to, as pi's
+    # Makefile names Version.o and Version.c.
+    seen = set(os.path.splitext(os.path.basename(f))[0] + ".o" for f in files)
+    once = []
+    for a in rest:
+        if a.endswith(".o") and not a.startswith("-"):
+            if a in seen:
+                continue
+            seen.add(a)
+        once.append(a)
+    cmd = cc + ["-sysroot", libroot] + [found(lib(a)) for a in once] + files
     if o:
         cmd += ["-o", o]
     sys.exit(subprocess.call(cmd))

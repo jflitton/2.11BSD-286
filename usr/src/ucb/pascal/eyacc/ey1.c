@@ -234,14 +234,18 @@ summary(){ /* output the summary on the tty */
     }
   }
 
-error(s,a1){ /* write out error comment */
+/* VARARGS1 */
+error( char *s, ... ){ /* write out error comment */
+	va_list ap;
 	
 	int c;
 	++nerrors;
 	cflush( errfileno );
 	cout = errfileno;   /* set output to tty */
 	fprintf( cout , "\n fatal error: ");
-	fprintf( cout , s,a1);
+	va_start( ap, s );
+	vfprintf( cout , s, ap );
+	va_end( ap );
         fprintf( cout , ", line %d\n", lineno );
 	if( !fatfl ) return;
 	summary();
@@ -309,7 +313,7 @@ UNION( a, b, c ) int *a, *b, *c; {
 
 prlook( pp ) int *pp;{
 	int j;
-	pp = pp->lset;
+	pp = ((struct looksets *)pp)->lset;
 	if( pp == 0 ) fprintf( cout , "\tNULL");
 	else {
 		fprintf( cout , " { " );

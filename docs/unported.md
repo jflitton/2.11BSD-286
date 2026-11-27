@@ -34,13 +34,6 @@ upstream's goes with them is ported. What is left:
 | `ld -r`, and so objects joined into one | not written |
 | Fortran of the medium model | `f77` makes the small model's code alone, and its libraries are built so; a procedure's address would be two words |
 
-And this one of upstream's programs that work on programs, which is not
-ported yet:
-
-| program | where |
-|---|---|
-| `pascal` | `ucb/pascal` |
-
 Upstream has no `lint`: its `lint` is a script that says the old one
 did not understand prototypes and that another is to come, and that
 script is what the system has.
