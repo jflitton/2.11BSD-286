@@ -3,15 +3,20 @@
 # All rights reserved.  The Berkeley software License Agreement
 # specifies the terms and conditions for redistribution.
 #
-#	@(#)Makefile	5.2 (2.11BSD) 2025/11/27
+#	@(#)Makefile	5.3 (2.11BSD) 2026/11/26
 #
 # Makefile for f77 system lib, libU77.a
+#
+# The 80286: Fortran programs are of the small model alone (f77(1)),
+# and so is this library.  The PDP-11's profiled one, of cc -p, is not
+# made: the 286's compiler does not profile.  Nor is its ld -x -r done,
+# which took out the local symbols: the 286's ld makes nothing but a
+# program.
 
 CFLAGS	      = -O
 DEST	      = /usr/lib
 
 LIBRARY	      = libU77.a
-LIBRARY_P     = libU77_p.a
 
 OBJS	      = access_.o \
 		alarm_.o \
@@ -117,7 +122,7 @@ SRCS	      = access_.c \
 		unlink_.c \
 		wait_.c
 
-all:		$(LIBRARY) $(LIBRARY_P)
+all:		$(LIBRARY)
 
 $(LIBRARY):	$(OBJS) Version
 		@echo -n "Loading $(LIBRARY) ... "
@@ -125,49 +130,29 @@ $(LIBRARY):	$(OBJS) Version
 			`lorder $(OBJS) | tsort` ioinit.f Version
 		@echo "done"
 
-$(LIBRARY_P):	$(OBJS) Version
-		@echo -n "Loading $(LIBRARY_P) ... "
-		@cd profiled; ar cru ../$(LIBRARY_P) \
-			`lorder $(OBJS) | tsort` Version
-		@echo "done"
-
 Version:	$(SRCS) mkvers
 		@rm -f Version.c
 		./mkvers $(LIBRARY) $(SRCS) > Version.c
 		$(CC) -c Version.c
 		mv Version.o Version
-		@rm -f profiled/Version
-		ln Version profiled/Version
 
 mkvers:		mkvers.c
 		@$(CC) mkvers.c -o mkvers
 
-clean:;		@rm -f $(OBJS) Version mkvers profiled/* $(LIBRARY) $(LIBRARY_P)
+clean:;		@rm -f $(OBJS) Version mkvers $(LIBRARY)
 
 depend:;	@echo Construct dependencies manually
 
 index:;		@ctags -wx $(SRCS)
 
-install:	$(LIBRARY) $(LIBRARY_P)
+install:	$(LIBRARY)
 		install -c -m 644 $(LIBRARY) $(DEST)/$(LIBRARY)
 		ranlib $(DEST)/$(LIBRARY)
-		install -c -m 644 $(LIBRARY_P) $(DEST)/$(LIBRARY_P)
-		ranlib $(DEST)/$(LIBRARY_P)
 
 tags:           $(HDRS) $(SRCS); @ctags $(HDRS) $(SRCS)
 
 .c.o:
-		$(CC) -p $(CFLAGS) -c $*.c
-		-ld -x -r $*.o
-		mv a.out profiled/$*.o
 		$(CC) $(CFLAGS) -c $*.c
-		-ld -x -r $*.o
-		mv a.out $*.o
 
 .f.o:
-		$(FC) -p -O  -c $*.f
-		-ld -x -r $*.o
-		mv a.out profiled/$*.o
 		$(FC) -O -c $*.f
-		-ld -x -r $*.o
-		mv a.out $*.o

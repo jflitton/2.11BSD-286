@@ -14,7 +14,7 @@ else
 return(buff);
 }
 
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 /*
 ** Print error messages.
 ** Save memory by looking them up in an external file.
@@ -52,7 +52,7 @@ oops:
 	switch (type) {
 	case DCLERR:
 		fprintf(diagfile, "**Error %s: Declaration for %s: %s\n",
-		  linerr(), buff, message);
+		  linerr(), message, buff);
 		++nerrs;
 		break;
 	case LABERR:
@@ -111,7 +111,7 @@ fprintf(diagfile, "\n");
 
 
 
-#ifndef pdp11
+#if !defined(pdp11) && !defined(i286)
 dclerr(s, n)
 char *s, *n;
 {

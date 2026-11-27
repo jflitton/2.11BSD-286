@@ -966,6 +966,29 @@ register union tree *tree;
 		label(l2);
 }
 
+/*
+ * Fortran's arithmetic IF: to the first label if the value is below
+ * zero, the second if it is zero, and the third if it is above.  The
+ * sign is the value's own, and not a comparison's, which an overflow
+ * would leave the other way round.
+ */
+arif(tree, neg, zero, pos)
+register union tree *tree;
+{
+	if (isfloat(tree)) {
+		fexpr(tree);
+		ftest();
+		printf("\tjb\tL%d\n", neg);
+	} else if (LNG(tree->t.type)) {
+		rcexpr(tree, FORREG);
+		printf("\ttest\tdx,dx\n\tjs\tL%d\n\tor\tax,dx\n", neg);
+	} else {
+		rcexpr(tree, FORCC);
+		printf("\tjs\tL%d\n", neg);
+	}
+	printf("\tje\tL%d\n\tjmp\tL%d\n", zero, pos);
+}
+
 label(l)
 {
 	printf("L%d:\n", l);
@@ -1100,7 +1123,7 @@ getree()
 	register int t, op;
 	char s[80];		/* big for asm() stuff & long variable names */
 	struct swtab *swp;
-	int lbl, cond, jump;
+	int lbl, cond, lbl3, jump;
 	double ctod();
 
 	xsettle();
@@ -1271,10 +1294,10 @@ getree()
 		pswitch((struct swtab *)funcbase, swp, t);
 		break;
 
-	case C3BRANCH:		/* for fortran [sic] */
+	case C3BRANCH:		/* Fortran's arithmetic IF */
 		lbl = geti();
-		geti();
-		geti();
+		cond = geti();
+		lbl3 = geti();
 		goto xpr;
 
 	case CBRANCH:
@@ -1295,7 +1318,7 @@ getree()
 		else if (op==EXPR)
 			rcexpr(tp, FOREFF);
 		else
-			error("The arithmetic IF is not done yet");
+			arif(tp, lbl, cond, lbl3);
 		xsettle();
 		break;
 

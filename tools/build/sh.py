@@ -63,6 +63,9 @@ HOST = {
     "games/warp/sm": "sm.c",
     "lib/libc/i286/sys/mkstubs": "mkstubs.c",
     "new/jove/setmaps": "-D_POSIX_C_SOURCE=200112L setmaps.c",
+    "usr.lib/libF77/mkvers": "mkvers.c",
+    "usr.lib/libI77/mkvers": "mkvers.c",
+    "usr.lib/libU77/mkvers": "mkvers.c",
     "usr.bin/roff/nroff_term/*.tab.tmp": "-I../common_source mktab.c "
                                          "{stem}.c",
 }

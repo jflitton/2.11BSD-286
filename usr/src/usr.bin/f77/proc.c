@@ -1,4 +1,4 @@
-/* "@(#)proc.c 1.1 (2.11BSD) 2026/6/29"; */
+/* "@(#)proc.c 1.2 (2.11BSD) 2026/11/26"; */
 
 #include "defs"
 #include "string_defs"
@@ -372,7 +372,11 @@ ftnint leng, iarrl, iarrlen();
 struct extsym *mkext();
 char *memname();
 
+#ifdef i286
+asmop(asmfile, USEBSS);
+#else
 fprintf(asmfile, "%s\n", USEBSS);
+#endif
 
 for(p = hashtab ; p<lasthash ; ++p)
     if(q = p->varp)

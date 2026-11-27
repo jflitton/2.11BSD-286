@@ -132,13 +132,15 @@ says another. What was changed in them for the 286:
   `libvmf`. `lib`'s list has not `libkern`, the PDP-11 kernel's, and
   `make build` makes neither that nor `libvmf`.
 - A directory's list of programs has not the ones the port does not
-  have: the PDP-11's debugger and tape formats, Fortran and Pascal.
+  have: the PDP-11's debugger and tape formats, and Pascal.
   `usr/src/local`'s list has the port's own
   programs, `adduser`, `bench` and `ve`, in place of upstream's, which
   all compile and are not made. Nor has `share`'s list `font` and
   `fontinfo`, the typesetter's and the Versatec's, which the port has no `troff` nor
-  `vtroff` for; and `man`'s lists have the pages of what the port has,
-  and no `man3f`, Fortran's library.
+  `vtroff` for; and `man`'s lists have the pages of what the port has.
+- The Fortran libraries, `libF77`, `libI77` and `libU77`, are made of
+  the small model only, with no profiled library, and their objects are
+  not joined with `ld -x -r`, which the port has not.
 - `as(1)`, `ld(1)` and `a.out(5)` are the 286's, in `bin/as/i286` and
   `bin/ld/i286`, and `bin/as`'s and `bin/ld`'s Makefiles install them,
   `a.out(5)` with `ld` as `ar(5)` is with `ar`; `man1`'s and `man5`'s

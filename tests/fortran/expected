@@ -1,0 +1,70 @@
+== control
+ SHORT  30007
+ LONG  290000  2251
+ SQUARES  385
+ LONG IF -1 BELOW
+ LONG IF  0 ZERO
+ LONG IF  1 ABOVE
+ SHORT IF -1 BELOW
+ SHORT IF  0 ZERO
+ SHORT IF  1 ABOVE
+ REAL IF 1 BELOW
+ REAL IF 2 ZERO
+ REAL IF 3 ABOVE
+ DOUBLE IF 1 BELOW
+ DOUBLE IF 2 ZERO
+ DOUBLE IF 3 ABOVE
+ ASSIGNED FIRST
+ ASSIGNED SECOND
+ COMPUTED 1 ONE
+ COMPUTED 2 TWO
+ COMPUTED 3 THREE
+ BLOCK IF 1 FIRST
+ BLOCK IF 2 SECOND
+ BLOCK IF 3 THIRD
+ DOWN 10741
+the same with -O1, a register variable
+== arithmetic
+ REAL  -0.750  0.1000E+11
+ DOUBLE  6.28318531
+ DATA  123456 -123456       0
+ FUNCS  4.00  3.50 10.00
+ INTS   2   9  -2   7   8  12
+ PI  3.1415927  1.4142136
+ POWERS  14348907   8   8.0  1.4142136
+ COMPLEX -3.00  4.00  2.00 -1.00  5.00
+ LOGICAL T T F
+== subprograms
+ ADD  15.0
+ ENTRY   55   42
+ PAIR   1   2
+ PAIR   1  42
+ HALF  2.50 APPLY  9.00
+ SWAP  2.00  1.00
+ REV EDCBA  5 T F
+ COMMON  3  7.50
+ WORK  55.0
+ HALVES  3  2
+== characters and files
+ CONCAT HELLO, WORLD  8 20
+ COMPARE T T T
+ INTERNAL   4321  4322
+ INPUT   42   2.50 SHELL
+ FILE   36
+ BINARY  100000      -5       7  2.5
+ DIRECT  44  22
+  LIST  42
+== ratfor
+ RATFOR  30
+ WHILE 243
+== struct
+ STRUCT  6  63
+ struct  6  63
+== efl
+efl george.e as george.out has it
+efl select.e as select.out has it
+efl matmul.e as matmul.out has it
+f77 -c george.f
+== ioinit
+ioinit.s as tools/build/ioinit.s has it
+== end

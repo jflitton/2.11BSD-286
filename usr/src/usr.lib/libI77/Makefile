@@ -3,10 +3,16 @@
 # All rights reserved.  The Berkeley software License Agreement
 # specifies the terms and conditions for redistribution.
 #
-#	@(#)Makefile	5.5 (2.11BSD) 2025/11/27
+#	@(#)Makefile	5.6 (2.11BSD) 2026/11/26
 #
 
 # Makefile for f77 I/O lib, libI77.a
+#
+# The 80286: Fortran programs are of the small model alone (f77(1)),
+# and so is this library.  The PDP-11's profiled one, of cc -p, is not
+# made: the 286's compiler does not profile.  Nor is its ld -x -r done,
+# which took out the local symbols: the 286's ld makes nothing but a
+# program.
 
 CFLAGS	      = -O
 DEST	      = /usr/lib
@@ -19,7 +25,6 @@ HDRS	      = f_errno.h \
 		nmlio.h
 
 LIBRARY	      = libI77.a
-LIBRARY_P     = libI77_p.a
 
 OBJS	      = backspace.o \
 		c_dfe.o \
@@ -91,17 +96,11 @@ SRCS	      = backspace.c \
 		wsli.c \
 		wsnmle.c
 
-all:		$(LIBRARY) $(LIBRARY_P) libI66.o
+all:		$(LIBRARY) libI66.o
 
 $(LIBRARY):	$(OBJS) Version
 		@echo -n "Loading $(LIBRARY) ... "
 		@ar cru $(LIBRARY) \
-			`lorder $(OBJS) | tsort` Version
-		@echo "done"
-
-$(LIBRARY_P):	$(OBJS) Version
-		@echo -n "Loading $(LIBRARY_P) ... "
-		@cd profiled; ar cru ../$(LIBRARY_P) \
 			`lorder $(OBJS) | tsort` Version
 		@echo "done"
 
@@ -110,38 +109,27 @@ Version:	$(SRCS) mkvers
 		./mkvers $(LIBRARY) $(SRCS) > Version.c
 		$(CC) -c Version.c
 		mv Version.o Version
-		@rm -f profiled/Version
-		ln Version profiled/Version
 
 mkvers:		mkvers.c
 		@$(CC) mkvers.c -o mkvers
 
-clean:;		@rm -f $(OBJS) mkvers Version profiled/* $(LIBRARY) $(LIBRARY_P) libI66.o
+clean:;		@rm -f $(OBJS) mkvers Version $(LIBRARY) libI66.o
 
 depend:;	@echo Construct dependencies manually
 
 index:;		@ctags -wx $(HDRS) $(SRCS)
 
-install:	$(LIBRARY) $(LIBRARY_P) libI66.o
+install:	$(LIBRARY) libI66.o
 		install -c -m 644 $(LIBRARY) $(DEST)/$(LIBRARY)
 		ranlib $(DEST)/$(LIBRARY)
-		install -c -m 644 $(LIBRARY_P) $(DEST)/$(LIBRARY_P)
-		ranlib $(DEST)/$(LIBRARY_P)
 		install -c -m 644 -c libI66.o $(DEST)/libI66.a
 
 tags:           $(HDRS) $(SRCS); @ctags $(HDRS) $(SRCS)
 
 f_errlist.o:	f_errlist.c
 		$(CC) $(CFLAGS) -c f_errlist.c
-		@rm -f profiled/f_errlist.o
-		ln f_errlist.o profiled/f_errlist.o
 .c.o:
-		$(CC) -p $(CFLAGS) -c $*.c
-		-ld -x -r $*.o
-		mv a.out profiled/$*.o
 		$(CC) $(CFLAGS) -c $*.c
-		-ld -x -r $*.o
-		mv a.out $*.o
 
 backspace.o:	fio.h f_errno.h fiodefs.h backspace.c
 c_dfe.o:	fio.h f_errno.h fiodefs.h c_dfe.c

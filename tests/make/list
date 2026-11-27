@@ -329,10 +329,12 @@
 /usr/bin/diction f 755 0.0
 /usr/bin/diff3 f 755 0.0
 /usr/bin/dumbplot f 755 0.0
+/usr/bin/efl f 755 0.10
 /usr/bin/egrep f 755 0.10
 /usr/bin/eqn f 755 0.0
 /usr/bin/ex f 1755 0.0 = /usr/bin/ex
 /usr/bin/explain f 755 0.0
+/usr/bin/f77 f 755 0.0
 /usr/bin/fgrep f 755 0.10
 /usr/bin/file f 755 0.10
 /usr/bin/find f 755 0.0
@@ -375,6 +377,7 @@
 /usr/bin/printf f 755 0.10
 /usr/bin/ptx f 755 0.10
 /usr/bin/ranlib f 755 0.10
+/usr/bin/ratfor f 755 0.0
 /usr/bin/refer f 755 0.0
 /usr/bin/renice f 755 0.10
 /usr/bin/rev f 755 0.10
@@ -389,6 +392,7 @@
 /usr/bin/spellout f 755 0.0
 /usr/bin/spline f 755 0.10
 /usr/bin/split f 755 0.10
+/usr/bin/struct f 755 0.0
 /usr/bin/style f 755 0.0
 /usr/bin/sum f 755 0.10
 /usr/bin/t300 f 755 0.0
@@ -805,6 +809,10 @@
 /usr/lib/lib4013.a f 644 0.0
 /usr/lib/lib4014.a f 644 0.0
 /usr/lib/lib450.a f 644 0.0
+/usr/lib/libF77.a f 644 0.0
+/usr/lib/libI66.a f 644 0.0
+/usr/lib/libI77.a f 644 0.0
+/usr/lib/libU77.a f 644 0.0
 /usr/lib/libcurses.a f 644 0.0
 /usr/lib/libdbm.a f 644 0.0
 /usr/lib/liberrlst.a f 644 0.0
@@ -876,6 +884,7 @@
 /usr/libexec/diction/style3 f 755 0.0
 /usr/libexec/diff3 f 755 0.0
 /usr/libexec/diffh f 755 0.10
+/usr/libexec/f77pass1 f 755 0.0
 /usr/libexec/find d 755 0.0
 /usr/libexec/find/bigram f 755 0.0
 /usr/libexec/find/code f 755 0.0
@@ -899,6 +908,9 @@
 /usr/libexec/rlogind f 755 0.10
 /usr/libexec/rshd f 755 0.10
 /usr/libexec/spell f 755 0.0
+/usr/libexec/struct d 755 0.0
+/usr/libexec/struct/beautify f 755 0.0
+/usr/libexec/struct/structure f 755 0.0
 /usr/libexec/tcpd f 1755 0.10
 /usr/libexec/telnetd f 755 0.10
 /usr/libexec/tftpd f 755 0.10
@@ -1033,6 +1045,7 @@
 /usr/man/cat1/echo.0 f 444 0.10
 /usr/man/cat1/ed.0 f 444 0.10
 /usr/man/cat1/edit.0 f 444 0.10 = /usr/man/cat1/edit.0
+/usr/man/cat1/efl.0 f 444 0.10
 /usr/man/cat1/egrep.0 f 444 0.10 = /usr/man/cat1/egrep.0
 /usr/man/cat1/eqn.0 f 444 0.10 = /usr/man/cat1/checkeq.0
 /usr/man/cat1/error.0 f 444 0.10
@@ -1040,6 +1053,7 @@
 /usr/man/cat1/expand.0 f 444 0.10 = /usr/man/cat1/expand.0
 /usr/man/cat1/explain.0 f 444 0.10 = /usr/man/cat1/diction.0
 /usr/man/cat1/expr.0 f 444 0.10
+/usr/man/cat1/f77.0 f 444 0.10
 /usr/man/cat1/false.0 f 444 0.10
 /usr/man/cat1/fgrep.0 f 444 0.10 = /usr/man/cat1/egrep.0
 /usr/man/cat1/file.0 f 444 0.10
@@ -1119,6 +1133,7 @@
 /usr/man/cat1/pwd.0 f 444 0.10
 /usr/man/cat1/quota.0 f 444 0.10
 /usr/man/cat1/ranlib.0 f 444 0.10
+/usr/man/cat1/ratfor.0 f 444 0.10
 /usr/man/cat1/rcp.0 f 444 0.10
 /usr/man/cat1/rdist.0 f 444 0.10
 /usr/man/cat1/refer.0 f 444 0.10
@@ -1149,6 +1164,7 @@
 /usr/man/cat1/split.0 f 444 0.10
 /usr/man/cat1/strings.0 f 444 0.10
 /usr/man/cat1/strip.0 f 444 0.10
+/usr/man/cat1/struct.0 f 444 0.10
 /usr/man/cat1/stty.0 f 444 0.10
 /usr/man/cat1/style.0 f 444 0.10
 /usr/man/cat1/su.0 f 444 0.10
@@ -1764,6 +1780,128 @@
 /usr/man/cat3/y0.0 f 444 0.10 = /usr/man/cat3/j0.0
 /usr/man/cat3/y1.0 f 444 0.10 = /usr/man/cat3/j0.0
 /usr/man/cat3/yn.0 f 444 0.10 = /usr/man/cat3/j0.0
+/usr/man/cat3f d 755 0.0
+/usr/man/cat3f/abort.0 f 444 0.10
+/usr/man/cat3f/access.0 f 444 0.10
+/usr/man/cat3f/alarm.0 f 444 0.10
+/usr/man/cat3f/and.0 f 444 0.10 = /usr/man/cat3f/and.0
+/usr/man/cat3f/arc.0 f 444 0.10 = /usr/man/cat3f/arc.0
+/usr/man/cat3f/besj0.0 f 444 0.10 = /usr/man/cat3f/besj0.0
+/usr/man/cat3f/besj1.0 f 444 0.10 = /usr/man/cat3f/besj0.0
+/usr/man/cat3f/besjn.0 f 444 0.10 = /usr/man/cat3f/besj0.0
+/usr/man/cat3f/bessel.0 f 444 0.10 = /usr/man/cat3f/besj0.0
+/usr/man/cat3f/besy0.0 f 444 0.10 = /usr/man/cat3f/besj0.0
+/usr/man/cat3f/besy1.0 f 444 0.10 = /usr/man/cat3f/besj0.0
+/usr/man/cat3f/besyn.0 f 444 0.10 = /usr/man/cat3f/besj0.0
+/usr/man/cat3f/bit.0 f 444 0.10 = /usr/man/cat3f/and.0
+/usr/man/cat3f/box.0 f 444 0.10 = /usr/man/cat3f/arc.0
+/usr/man/cat3f/chdir.0 f 444 0.10
+/usr/man/cat3f/chmod.0 f 444 0.10
+/usr/man/cat3f/circle.0 f 444 0.10 = /usr/man/cat3f/arc.0
+/usr/man/cat3f/clospl.0 f 444 0.10 = /usr/man/cat3f/arc.0
+/usr/man/cat3f/cont.0 f 444 0.10 = /usr/man/cat3f/arc.0
+/usr/man/cat3f/ctime.0 f 444 0.10 = /usr/man/cat3f/ctime.0
+/usr/man/cat3f/dbesj0.0 f 444 0.10 = /usr/man/cat3f/besj0.0
+/usr/man/cat3f/dbesj1.0 f 444 0.10 = /usr/man/cat3f/besj0.0
+/usr/man/cat3f/dbesjn.0 f 444 0.10 = /usr/man/cat3f/besj0.0
+/usr/man/cat3f/dbesy0.0 f 444 0.10 = /usr/man/cat3f/besj0.0
+/usr/man/cat3f/dbesy1.0 f 444 0.10 = /usr/man/cat3f/besj0.0
+/usr/man/cat3f/dbesyn.0 f 444 0.10 = /usr/man/cat3f/besj0.0
+/usr/man/cat3f/dffrac.0 f 444 0.10 = /usr/man/cat3f/dffrac.0
+/usr/man/cat3f/dflmax.0 f 444 0.10 = /usr/man/cat3f/dffrac.0
+/usr/man/cat3f/dflmin.0 f 444 0.10 = /usr/man/cat3f/dffrac.0
+/usr/man/cat3f/drand.0 f 444 0.10 = /usr/man/cat3f/drand.0
+/usr/man/cat3f/drandm.0 f 444 0.10 = /usr/man/cat3f/drandm.0
+/usr/man/cat3f/dtime.0 f 444 0.10 = /usr/man/cat3f/dtime.0
+/usr/man/cat3f/erase.0 f 444 0.10 = /usr/man/cat3f/arc.0
+/usr/man/cat3f/etime.0 f 444 0.10 = /usr/man/cat3f/dtime.0
+/usr/man/cat3f/exit.0 f 444 0.10
+/usr/man/cat3f/falloc.0 f 444 0.10 = /usr/man/cat3f/falloc.0
+/usr/man/cat3f/fdate.0 f 444 0.10
+/usr/man/cat3f/ffrac.0 f 444 0.10 = /usr/man/cat3f/dffrac.0
+/usr/man/cat3f/fgetc.0 f 444 0.10 = /usr/man/cat3f/fgetc.0
+/usr/man/cat3f/flmax.0 f 444 0.10 = /usr/man/cat3f/dffrac.0
+/usr/man/cat3f/flmin.0 f 444 0.10 = /usr/man/cat3f/dffrac.0
+/usr/man/cat3f/flush.0 f 444 0.10
+/usr/man/cat3f/fork.0 f 444 0.10
+/usr/man/cat3f/fortran.0 f 444 0.10 = /usr/man/cat3f/fortran.0
+/usr/man/cat3f/fpecnt.0 f 444 0.10 = /usr/man/cat3f/fpecnt.0
+/usr/man/cat3f/fputc.0 f 444 0.10 = /usr/man/cat3f/fputc.0
+/usr/man/cat3f/free.0 f 444 0.10 = /usr/man/cat3f/falloc.0
+/usr/man/cat3f/fseek.0 f 444 0.10 = /usr/man/cat3f/fseek.0
+/usr/man/cat3f/fstat.0 f 444 0.10 = /usr/man/cat3f/fstat.0
+/usr/man/cat3f/ftell.0 f 444 0.10 = /usr/man/cat3f/fseek.0
+/usr/man/cat3f/gerror.0 f 444 0.10 = /usr/man/cat3f/gerror.0
+/usr/man/cat3f/getarg.0 f 444 0.10 = /usr/man/cat3f/getarg.0
+/usr/man/cat3f/getc.0 f 444 0.10 = /usr/man/cat3f/fgetc.0
+/usr/man/cat3f/getcwd.0 f 444 0.10
+/usr/man/cat3f/getenv.0 f 444 0.10
+/usr/man/cat3f/getgid.0 f 444 0.10 = /usr/man/cat3f/getgid.0
+/usr/man/cat3f/getlog.0 f 444 0.10
+/usr/man/cat3f/getpid.0 f 444 0.10
+/usr/man/cat3f/getuid.0 f 444 0.10 = /usr/man/cat3f/getgid.0
+/usr/man/cat3f/gmtime.0 f 444 0.10 = /usr/man/cat3f/ctime.0
+/usr/man/cat3f/hostnm.0 f 444 0.10
+/usr/man/cat3f/iargc.0 f 444 0.10 = /usr/man/cat3f/getarg.0
+/usr/man/cat3f/idate.0 f 444 0.10 = /usr/man/cat3f/idate.0
+/usr/man/cat3f/ierrno.0 f 444 0.10 = /usr/man/cat3f/gerror.0
+/usr/man/cat3f/index.0 f 444 0.10 = /usr/man/cat3f/index.0
+/usr/man/cat3f/inmax.0 f 444 0.10 = /usr/man/cat3f/dffrac.0
+/usr/man/cat3f/intro.0 f 444 0.10 = /usr/man/cat3f/fortran.0
+/usr/man/cat3f/ioinit.0 f 444 0.10
+/usr/man/cat3f/irand.0 f 444 0.10 = /usr/man/cat3f/drand.0
+/usr/man/cat3f/irandm.0 f 444 0.10 = /usr/man/cat3f/drandm.0
+/usr/man/cat3f/isatty.0 f 444 0.10 = /usr/man/cat3f/isatty.0
+/usr/man/cat3f/itime.0 f 444 0.10 = /usr/man/cat3f/idate.0
+/usr/man/cat3f/kill.0 f 444 0.10
+/usr/man/cat3f/label.0 f 444 0.10 = /usr/man/cat3f/arc.0
+/usr/man/cat3f/len.0 f 444 0.10 = /usr/man/cat3f/index.0
+/usr/man/cat3f/line.0 f 444 0.10 = /usr/man/cat3f/arc.0
+/usr/man/cat3f/linemd.0 f 444 0.10 = /usr/man/cat3f/arc.0
+/usr/man/cat3f/link.0 f 444 0.10 = /usr/man/cat3f/link.0
+/usr/man/cat3f/lnblnk.0 f 444 0.10 = /usr/man/cat3f/index.0
+/usr/man/cat3f/loc.0 f 444 0.10
+/usr/man/cat3f/long.0 f 444 0.10 = /usr/man/cat3f/long.0
+/usr/man/cat3f/lshift.0 f 444 0.10 = /usr/man/cat3f/and.0
+/usr/man/cat3f/lstat.0 f 444 0.10 = /usr/man/cat3f/fstat.0
+/usr/man/cat3f/ltime.0 f 444 0.10 = /usr/man/cat3f/ctime.0
+/usr/man/cat3f/malloc.0 f 444 0.10 = /usr/man/cat3f/falloc.0
+/usr/man/cat3f/move.0 f 444 0.10 = /usr/man/cat3f/arc.0
+/usr/man/cat3f/not.0 f 444 0.10 = /usr/man/cat3f/and.0
+/usr/man/cat3f/openpl.0 f 444 0.10 = /usr/man/cat3f/arc.0
+/usr/man/cat3f/or.0 f 444 0.10 = /usr/man/cat3f/and.0
+/usr/man/cat3f/perror.0 f 444 0.10 = /usr/man/cat3f/gerror.0
+/usr/man/cat3f/plot.0 f 444 0.10 = /usr/man/cat3f/arc.0
+/usr/man/cat3f/point.0 f 444 0.10 = /usr/man/cat3f/arc.0
+/usr/man/cat3f/putc.0 f 444 0.10 = /usr/man/cat3f/fputc.0
+/usr/man/cat3f/qsort.0 f 444 0.10
+/usr/man/cat3f/rand.0 f 444 0.10 = /usr/man/cat3f/drand.0
+/usr/man/cat3f/random.0 f 444 0.10 = /usr/man/cat3f/drandm.0
+/usr/man/cat3f/rename.0 f 444 0.10
+/usr/man/cat3f/rindex.0 f 444 0.10 = /usr/man/cat3f/index.0
+/usr/man/cat3f/rshift.0 f 444 0.10 = /usr/man/cat3f/and.0
+/usr/man/cat3f/short.0 f 444 0.10 = /usr/man/cat3f/long.0
+/usr/man/cat3f/signal.0 f 444 0.10
+/usr/man/cat3f/sleep.0 f 444 0.10
+/usr/man/cat3f/space.0 f 444 0.10 = /usr/man/cat3f/arc.0
+/usr/man/cat3f/stat.0 f 444 0.10 = /usr/man/cat3f/fstat.0
+/usr/man/cat3f/symlnk.0 f 444 0.10 = /usr/man/cat3f/link.0
+/usr/man/cat3f/system.0 f 444 0.10
+/usr/man/cat3f/tclose.0 f 444 0.10 = /usr/man/cat3f/tclose.0
+/usr/man/cat3f/time.0 f 444 0.10 = /usr/man/cat3f/ctime.0
+/usr/man/cat3f/topen.0 f 444 0.10 = /usr/man/cat3f/tclose.0
+/usr/man/cat3f/traper.0 f 444 0.10
+/usr/man/cat3f/trapov.0 f 444 0.10
+/usr/man/cat3f/tread.0 f 444 0.10 = /usr/man/cat3f/tclose.0
+/usr/man/cat3f/trewin.0 f 444 0.10 = /usr/man/cat3f/tclose.0
+/usr/man/cat3f/trpfpe.0 f 444 0.10 = /usr/man/cat3f/fpecnt.0
+/usr/man/cat3f/tskipf.0 f 444 0.10 = /usr/man/cat3f/tclose.0
+/usr/man/cat3f/tstate.0 f 444 0.10 = /usr/man/cat3f/tclose.0
+/usr/man/cat3f/ttynam.0 f 444 0.10 = /usr/man/cat3f/isatty.0
+/usr/man/cat3f/twrite.0 f 444 0.10 = /usr/man/cat3f/tclose.0
+/usr/man/cat3f/unlink.0 f 444 0.10
+/usr/man/cat3f/wait.0 f 444 0.10
+/usr/man/cat3f/xor.0 f 444 0.10 = /usr/man/cat3f/and.0
 /usr/man/cat4 d 755 0.0
 /usr/man/cat4/arp.0 f 444 0.10
 /usr/man/cat4/fl.0 f 444 0.10
@@ -2087,6 +2225,8 @@
 /usr/share/adb/tcpcb f 444 0.0
 /usr/share/adb/u f 444 0.0
 /usr/share/adb/xip f 444 0.0
+/usr/share/efl d 755 0.0
+/usr/share/efl/efl_errorstrings f 444 0.10
 /usr/share/font d 755 0.0
 /usr/share/font/fontlist f 444 0.0
 /usr/share/font/ftB f 444 0.0
@@ -2768,6 +2908,7 @@
 /usr/share/misc/eign f 444 0.0
 /usr/share/misc/explain.d f 444 0.0
 /usr/share/misc/exstrings f 444 0.0
+/usr/share/misc/f77_strings f 644 0.0
 /usr/share/misc/lib.b f 444 0.0
 /usr/share/misc/map3270 f 444 0.0
 /usr/share/misc/more.help f 444 0.0

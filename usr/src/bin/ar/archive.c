@@ -35,7 +35,7 @@
  */
 
 #if	defined(DOSCCS) && !defined(lint)
-static char sccsid[] = "@(#)archive.c	5.7 (Berkeley) 3/21/91";
+static char sccsid[] = "@(#)archive.c	5.7.1 (2.11BSD) 2026/11/26";
 #endif
 
 #include <sys/param.h>
@@ -274,8 +274,8 @@ copy_ar(cfp, size)
 	static char pad = '\n';
 	off_t sz;
 	register int from, nr, nw, off, to;
-#ifdef	pdp11
-	char buf[2*1024];
+#if	defined(pdp11) || defined(i286)
+	char buf[2*1024];	/* in a stack of 8K on the 286 */
 #else
 	char buf[8*1024];
 #endif

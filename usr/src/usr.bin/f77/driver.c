@@ -1,9 +1,14 @@
-static char xxxvers[] = "f77 driver version 1.14 2026/6/29\n";
+static char xxxvers[] = "f77 driver version 1.15 2026/11/26\n";
 
 #include <stdio.h>
 #include <ctype.h>
 #include "defines"
+#ifdef i286
+#include "i286defs"
+#include "dmrdefs"
+#else
 #include "pdp11defs"
+#endif
 #include "drivedefs"
 #include "ftypes"
 #include <signal.h>
@@ -63,6 +68,9 @@ static flag verbose	= NO;
 static flag nofloating	= NO;
 static flag fortonly	= NO;
 static flag macroflag	= NO;
+#ifdef i286
+static flag quiet	= NO;	/* sys: the program's errors to /dev/null */
+#endif
 
 main(argc, argv)
 int argc;
@@ -85,7 +93,11 @@ pid = getpid();
 crfnames();
 
 loadargs = (char **) calloc(argc+20, sizeof(*loadargs));
+#ifdef i286
+loadargs[1] = "-ms";
+#else
 loadargs[1] = "-X";
+#endif
 loadargs[2] = "-u";
 loadargs[3] = "_MAIN_";
 loadp = loadargs + 4;
@@ -328,8 +340,8 @@ for(i = 0 ; i<argc ; ++i)
 			break;
 		}
 
-if(loadflag && !erred)
-	doload(loadargs, loadp);
+if(loadflag && !erred && doload(loadargs, loadp))
+	erred = YES;
 done(erred);
 }
 
@@ -357,6 +369,10 @@ switch( sys(buff) )
 if(content(initfname) > 0)
 	if( dodata() )
 		goto error;
+#ifdef i286
+if( endasm() )
+	goto comperror;
+#endif
 if( dopass2() )
 	goto comperror;
 doasm(s);
@@ -386,9 +402,29 @@ char buff[100];
 if(verbose)
 	fprintf(diagfile, "PASS2.");
 
+#ifdef i286
+	/* the data follow the code, as the C compiler's strings do */
+	sprintf(buff, "%s %s %s %s", pass2name, textfname, asmfname, asmpass2);
+#else
 	sprintf(buff, "%s %s - %s %s", pass2name, textfname, asmpass2, "-V");
+#endif
 	return( sys(buff) );
 }
+
+#ifdef i286
+/*
+ * The end of the data, which the second pass reads to.
+ */
+endasm()
+{
+FILE *fp;
+
+if( (fp = fopen(asmfname, "a")) == NULL)
+	return(1);
+asmop(fp, P2EOF);
+return( fclose(fp) != 0 );
+}
+#endif
 
 doasm(s)
 char *s;
@@ -396,6 +432,7 @@ char *s;
 register char *lastc;
 char *obj;
 char buff[200];
+int status;
 
 if(*s == '\0')
 	s = objfdefault;
@@ -406,7 +443,24 @@ obj = setdoto(s);
 if(optimflag)
 	{
 	sprintf(buff, "%s %s %s", PASS2OPT, asmpass2, optzfname);
+#ifdef PASS2OPTL
+	/*
+	 * c2 has no room for a function that c2l, which is c2 of the
+	 * large model, has: it is given the file when c2 fails, and says
+	 * again what c2 would have.
+	 */
+	quiet = YES;
+	status = sys(buff);
+	quiet = NO;
+	if(status)
+		{
+		sprintf(buff, "%s %s %s", PASS2OPTL, asmpass2, optzfname);
+		status = sys(buff);
+		}
+	if (status)
+#else
 	if (sys(buff))
+#endif
 		rmf(optzfname);
 	else
 		{
@@ -419,7 +473,11 @@ if(optimflag)
 if(saveasmflag)
 	{
 	*lastc = 's';
+#ifdef i286
+	sprintf(buff, "cp %s %s", asmpass2, obj);
+#else
 	sprintf(buff, "cat %s %s >%s", asmfname, asmpass2, obj);
+#endif
 	sys(buff);
 	*lastc = 'o';
 	}
@@ -428,8 +486,12 @@ else
 	if(verbose)
 		fprintf(diagfile, "  ASM.");
 
+#ifdef i286
+	sprintf(buff, "%s -ms -o %s %s", asmname, obj, asmpass2);
+#else
 	sprintf(buff, "%s %s -o %s %s %s", asmname, aflags,
 		obj, asmfname, asmpass2);
+#endif
 
 	if( sys(buff) )
 		fatal("assembler error");
@@ -468,7 +530,7 @@ if(debugflag)
 		execv(ldname, v0);
 		fatal1("couldn't load %s", ldname);
 		}
-	await(waitpid,ldname);
+	return( await(waitpid,ldname) );
 }
 
 /* Process control and Shell-simulating routines */
@@ -537,6 +599,10 @@ if((waitpid = fork()) == 0)
 		freopen(inname, "r", stdin);
 	if(outname)
 		freopen(outname, (append ? "a" : "w"), stdout);
+#ifdef i286
+	if(quiet)
+		freopen("/dev/null", "w", stderr);
+#endif
 	enbint(SIG_DFL);
 
 	texec(path+9, argv);  /* command */
@@ -802,6 +868,10 @@ ftnint vchar;
 int size, align;
 int vargroup;
 ftnint totlen, doeven();
+#ifdef i286
+char line[80];
+int c;
+#endif
 
 erred = NO;
 ovarname[0] = '\0';
@@ -817,7 +887,11 @@ if( (sortfile = fopen(sortfname, "r")) == NULL)
 	badfile(sortfname);
 if( (asmfile = fopen(asmfname, "a")) == NULL)
 	badfile(asmfname);
+#ifdef i286
+asmop(asmfile, USEINIT);
+#else
 fprintf(asmfile, "%s\n", USEINIT);
+#endif
 
 while( rdname(&vargroup, varname) && rdlong(&offset) && rdlong(&vlen) && rdlong(&type) )
 	{
@@ -833,7 +907,11 @@ while( rdname(&vargroup, varname) && rdlong(&offset) && rdlong(&vlen) && rdlong(
 			align = (type==TYCHAR ? SZLONG : typealign[type]);
 		else	align = ALIDOUBLE;
 		totlen = doeven(totlen, align);
+#ifdef i286
+		asmlabel(asmfile, varname);
+#else
 		fprintf(asmfile, LABELFMT, varname);
+#endif
 		}
 	if(offset < ooffset)
 		{
@@ -853,9 +931,22 @@ while( rdname(&vargroup, varname) && rdlong(&offset) && rdlong(&vlen) && rdlong(
 		}
 	else
 		{
+#ifdef i286
+		/* a line of assembly, of i286.c's prconi or prconr */
+		register char *p;
+
+		p = line;
+		*p++ = '\t';
+		while( (c = getc(sortfile)) != '\n' && c != EOF &&
+		    p < line + sizeof(line) - 1)
+			*p++ = c;
+		*p = '\0';
+		asmline(asmfile, line);
+#else
 		putc('\t', asmfile);
 		while	( putc( getc(sortfile), asmfile)  != '\n')
 			;
+#endif
 		}
 	if( (ooffset += size) > ovlen)
 		{

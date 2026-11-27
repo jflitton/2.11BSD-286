@@ -24,7 +24,7 @@ SRCS=	adb.1 addbib.1 apply.1 apropos.1 at.1 atq.1 atrm.1 \
 	cb.1 cc.1 cd.1 checknr.1 chgrp.1 chmod.1 clear.1 cmp.1 col.1 \
 	colcrt.1 colrm.1 comm.1 compress.1 cp.1 csh.1 ctags.1 date.1 dc.1 \
 	dd.1 deroff.1 df.1 diction.1 diff.1 diff3.1 du.1 echo.1 ed.1 \
-	eqn.1 error.1 ex.1 expand.1 expr.1 false.1 file.1 \
+	efl.1 eqn.1 error.1 ex.1 expand.1 expr.1 f77.1 false.1 file.1 \
 	find.1 fmt.1 fold.1 from.1 gcore.1 \
 	graph.1 grep.1 head.1 hostid.1 indent.1 \
 	intro.1 iostat.1 join.1 kill.1 last.1 lastcomm.1 \
@@ -34,11 +34,11 @@ SRCS=	adb.1 addbib.1 apply.1 apropos.1 at.1 atq.1 atrm.1 \
 	more.1 mset.1 msgs.1 mv.1 netstat.1 newaliases.1 nice.1 nm.1
 SRCS1=	nroff.1 nslookup.1 od.1 pagesize.1 \
 	plot.1 pr.1 printenv.1 ps.1 ptx.1 pwd.1 \
-	quota.1 rcp.1 rdist.1 refer.1 rev.1 \
+	quota.1 ratfor.1 rcp.1 rdist.1 refer.1 rev.1 \
 	rm.1 rmail.1 rmdir.1 roffbib.1 rsh.1 ruptime.1 rwho.1 \
 	script.1 sed.1 sendbug.1 sh.1 size.1 sleep.1 soelim.1 \
 	sort.1 sortbib.1 spell.1 spline.1 split.1 strings.1 \
-	strip.1 style.1 su.1 sum.1 \
+	strip.1 struct.1 style.1 su.1 sum.1 \
 	tabs.1 tail.1 talk.1 \
 	tar.1 tbl.1 tc.1 tee.1 telnet.1 time.1 \
 	tip.1 tk.1 tn3270.1 tr.1 troff.1 true.1 \
@@ -52,7 +52,7 @@ OBJS1=	adb.0 addbib.0 apply.0 apropos.0 at.0 atq.0 atrm.0 \
 	cb.0 cc.0 cd.0 checknr.0 chgrp.0 chmod.0 clear.0 cmp.0 col.0 \
 	colcrt.0 colrm.0 comm.0 compress.0 cp.0 csh.0 ctags.0 date.0 dc.0 \
 	dd.0 deroff.0 df.0 diction.0 diff.0 diff3.0 du.0 echo.0 ed.0 \
-	eqn.0 error.0 ex.0 expand.0 expr.0 false.0 file.0 \
+	efl.0 eqn.0 error.0 ex.0 expand.0 expr.0 f77.0 false.0 file.0 \
 	find.0 fmt.0 fold.0 from.0 gcore.0 \
 	graph.0 grep.0 head.0 hostid.0 indent.0 \
 	intro.0 iostat.0 join.0 kill.0 last.0 lastcomm.0 \
@@ -62,11 +62,11 @@ OBJS1=	adb.0 addbib.0 apply.0 apropos.0 at.0 atq.0 atrm.0 \
 	more.0 mset.0 msgs.0 mv.0 netstat.0 newaliases.0 nice.0 nm.0
 OBJS2=	nroff.0 nslookup.0 od.0 pagesize.0 \
 	plot.0 pr.0 printenv.0 ps.0 ptx.0 pwd.0 \
-	quota.0 rcp.0 rdist.0 refer.0 rev.0 \
+	quota.0 ratfor.0 rcp.0 rdist.0 refer.0 rev.0 \
 	rm.0 rmail.0 rmdir.0 roffbib.0 rsh.0 ruptime.0 rwho.0 \
 	script.0 sed.0 sendbug.0 sh.0 size.0 sleep.0 soelim.0 \
 	sort.0 sortbib.0 spell.0 spline.0 split.0 strings.0 \
-	strip.0 style.0 su.0 sum.0 \
+	strip.0 struct.0 style.0 su.0 sum.0 \
 	tabs.0 tail.0 talk.0 \
 	tar.0 tbl.0 tc.0 tee.0 telnet.0 time.0 \
 	tip.0 tk.0 tn3270.0 tr.0 troff.0 true.0 \

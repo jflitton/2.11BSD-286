@@ -32,14 +32,14 @@ upstream's goes with them is ported. What is left:
 |---|---|
 | Profiling: `cc -p`, `mcrt0.o`, `prof` | the second pass does not do it for the 286, and the start-up code for it is not written |
 | `ld -r`, and so objects joined into one | not written |
+| Fortran of the medium model | `f77` makes the small model's code alone, and its libraries are built so; a procedure's address would be two words |
 
-And these of upstream's programs that work on programs, which are not
+And this one of upstream's programs that work on programs, which is not
 ported yet:
 
 | program | where |
 |---|---|
-| `f77` (*medium*), `efl` (*medium*), `ratfor`, `struct`, `pascal` | `usr.bin`, `ucb/pascal` |
-| `libF77`, `libI77`, `libU77` | `usr.lib` |
+| `pascal` | `ucb/pascal` |
 
 Upstream has no `lint`: its `lint` is a script that says the old one
 did not understand prototypes and that another is to come, and that
@@ -172,8 +172,8 @@ upstream's does, `libutil`, `libtermcap`, `libcurses`, `libdbm`,
 `libwrap`, `libln`, `liby`, `libident`, `liberrlst`, whose messages
 `mkerrlst` makes into `/etc/syserrlst`, `libmp` (numbers of any size),
 `libplot`'s fifteen, one for each device, and `libvmf` (virtual memory
-in a file). The rest are above: the Fortran libraries, which wait on
-`f77`, and those not to be ported.
+in a file), and Fortran's, `libF77`, `libI77` with `libI66`, and
+`libU77`. The rest are not to be ported.
 
 ## Not to be ported
 

@@ -1,4 +1,4 @@
-/* "@(#)dmrdefs 1.1 (2.11BSD) 2026/6/28"; */
+/* "@(#)dmrdefs 1.2 (2.11BSD) 2026/11/26"; */
 
 #define P2BAD -1
 #define P2NAME	20
@@ -69,6 +69,28 @@
 #define P2DREAL	3
 #define P2PTR 	020
 #define P2FUNCT	040
+
+/*
+ * The bits of the type each pointer or function in it takes: three to
+ * the 286's compiler, which has room for its far pointer.
+ */
+#ifdef i286
+#define P2SHIFT	3
+#else
+#define P2SHIFT	2
+#endif
+
+/*
+ * What the data are given the second pass with, where it is the
+ * 286's: its labels, its words, its space and its segments.
+ */
+#define P2NLABEL	113
+#define P2DATA	203
+#define P2BSS	204
+#define P2CSPACE	205
+#define P2SSPACE	206
+#define P2EVEN	210
+#define P2ASSEM	223
 
 #define P2ITOF	51
 #define P2FTOI	52

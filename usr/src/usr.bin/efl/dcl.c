@@ -1,14 +1,14 @@
 #include "defs"
 
 
-#ifndef pdp11
+#if !defined(pdp11) && !defined(i286)
 static char mess[ ] = "inconsistent attributes";
 #endif
 
 attatt(a1 , a2)
 register struct atblock *a1, *a2;
 {
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 #define MERGE1(x,mess2) {if(a1->x==0) a1->x = a2->x; else if(a2->x!=0 && a1->x!=a2->x) dclerr("inconsistent attributes",mess2); }
 MERGE1(attype,"type");
 MERGE1(attypep,"typep");
@@ -52,8 +52,8 @@ else if(a->attype == TYCHAR)
 cfree(a);
 }
 
-#ifdef pdp11
-#define MERGE(x,b,y) {if(v->y==0) v->y = a->x; else if(a->x!=0 && a->x!=v->y) dclerr("inconsistent attributes:","x"+2); }
+#if defined(pdp11) || defined(i286)
+#define MERGE(x,b,y) {if(v->y==0) v->y = a->x; else if(a->x!=0 && a->x!=v->y) dclerr("inconsistent attributes",b); }
 #else
 #define MERGE(x,y) {if(v->y==0) v->y = a->x; else if(a->x!=0 && a->x!=v->y) dclerr(mess,"x"+2); }
 #endif
@@ -79,7 +79,7 @@ else if(!eqdim(a->atdim, v->vdim))
 if(v->vprec == 0)
 	v->vprec = a->atprec;
 
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 MERGE(attype,"type",vtype);
 #else
 MERGE(attype,vtype);
@@ -124,7 +124,7 @@ else if(a->atclass == CLVALUE)
 		v->vclass = CLVALUE;
 	else dclerr("cannot value a non-argument variable",v->sthead->namep);
 else  {
-#ifdef pdp11
+#if defined(pdp11) || defined(i286)
 MERGE(atclass,"class",vclass);
 #else
 MERGE(atclass,vclass);

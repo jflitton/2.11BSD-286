@@ -3,7 +3,7 @@
  * All rights reserved.  The Berkeley software License Agreement
  * specifies the terms and conditions for redistribution.
  *
- *	@(#)fmt.c	5.1	6/7/85
+ *	@(#)fmt.c	5.1.1 (2.11BSD) 2026/11/26
  */
 
 /*
@@ -22,6 +22,10 @@
 #endif
 
 #ifdef pdp11
+#define SYLMX 300
+#endif
+
+#ifdef i286
 #define SYLMX 300
 #endif
 

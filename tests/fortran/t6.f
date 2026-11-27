@@ -1,0 +1,16 @@
+C     FOR STRUCT, WHICH WRITES IT AGAIN IN RATFOR WITHOUT THE GO TO:
+C     THE MULTIPLES OF THREE TO TWENTY, HOW MANY AND THEIR SUM
+      PROGRAM T6
+      INTEGER I, N, S
+      N = 0
+      S = 0
+      I = 1
+   10 IF (I .GT. 20) GO TO 30
+      IF (MOD(I, 3) .NE. 0) GO TO 20
+      S = S + I
+      N = N + 1
+   20 I = I + 1
+      GO TO 10
+   30 WRITE (6, 100) N, S
+  100 FORMAT (' STRUCT', I3, I4)
+      END

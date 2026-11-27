@@ -3,7 +3,7 @@
  * All rights reserved.  The Berkeley software License Agreement
  * specifies the terms and conditions for redistribution.
  *
- *	@(#)random_.c	5.3 (2.11BSD) 12/25/2018
+ *	@(#)random_.c	5.3.1 (2.11BSD) 2026/11/26
  * 
  * Routines to return random values
  *
@@ -24,7 +24,7 @@
 #if	vax
 #define	RANDMAX		2147483647
 #else	vax
-#if	pdp11
+#if	defined(pdp11) || defined(i286)
 #define	RANDMAX		2147483647
 #else
 	UNKNOWN MACHINE!

@@ -3,7 +3,7 @@
  * All rights reserved.  The Berkeley software License Agreement
  * specifies the terms and conditions for redistribution.
  *
- *	@(#)main.c	5.3	(2.11BSD) 2026/9/21
+ *	@(#)main.c	5.4	(2.11BSD) 2026/11/26
  */
 #include <stdio.h>
 #include <signal.h>
@@ -29,7 +29,9 @@ for (signum=1; signum<=16; signum++)
 	if((sigf=signal(signum, sigdie)) != SIG_DFL) signal(signum, sigf);
 }
 
+#ifndef i286
 	ldfps(01200); /* detect overflow as an exception */
+#endif
 
 f_init();
 MAIN_();

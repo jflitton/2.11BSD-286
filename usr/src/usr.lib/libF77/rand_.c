@@ -3,7 +3,7 @@
  * All rights reserved.  The Berkeley software License Agreement
  * specifies the terms and conditions for redistribution.
  *
- *	@(#)rand_.c	5.2	6/7/85
+ *	@(#)rand_.c	5.2.1 (2.11BSD) 2026/11/26
  *
  * Routines to return random values
  *
@@ -23,7 +23,7 @@
 #if	vax
 #define	RANDMAX		2147483647
 #else	vax
-#if	pdp11
+#if	defined(pdp11) || defined(i286)
 #define	RANDMAX		32767
 #else	pdp11
 	UNKNOWN MACHINE!
@@ -34,7 +34,7 @@ long irand_(iarg)
 long *iarg;
 {
 	if (*iarg) srand((int)*iarg);
-#if	pdp11
+#if	defined(pdp11) || defined(i286)
 	return(( ((long)rand()) << 16) | rand());
 #else	pdp11
 	return( rand() );

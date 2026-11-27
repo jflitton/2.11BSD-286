@@ -1,11 +1,15 @@
-/* "@(#)defs 1.1 (2.11BSD) 2026/6/28"; */
+/* "@(#)defs 1.2 (2.11BSD) 2026/11/26"; */
 
 #include <stdio.h>
 #include <ctype.h>
 #include <unistd.h>
 #include "ftypes"
 #include "defines"
+#ifdef i286
+#include "i286defs"
+#else
 #include "pdp11defs"
+#endif
 
 #define VL 6
 

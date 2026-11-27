@@ -101,16 +101,17 @@ step() {	# step NAME COMMAND...: run COMMAND, its output in OUT/log/NAME
 
 # mk DIR TARGET...: make each TARGET, "" for the first, in DIR of
 # O/root/usr/src, as the system's make would there; O is OUT, or
-# OUT/xlib.
+# OUT/xlib.  make is given mkvar too, NAME=VALUE, when it is set.
 mk() {
     d=$1
     shift
     for t; do
         (cd "$o/root/usr/src/$d" && PATH="$o/bin:$PATH" &&
             MAKEFILES=$here/rules.mk && export PATH MAKEFILES &&
-            make -r -k SHELL="$o/bin/sh" $t)
+            make -r -k SHELL="$o/bin/sh" ${mkvar:+"$mkvar"} $t)
     done
 }
+mkvar=
 o=$out
 
 # failed LOG...: what make said failed, which fails the build.
@@ -210,10 +211,18 @@ if [ "$TOOLS" = cross ]; then
     for d in $(cat "$xout/remade"); do
         mk "$d" clean || true
     done > "$xout/log/clean" 2>&1
+    # Not the Fortran libraries: no program is linked with them here,
+    # and the cross compiler stops at their calls, which pass a char *
+    # for what is declared otherwise.
+    mkvar="SUBDIR=$(sed -n '/^SUBDIR=/,/[^\\]$/p' \
+        "$top/usr/src/usr.lib/Makefile" | sed 's/^SUBDIR=//; s/\\$//' |
+        tr -s ' \t\n' '\n\n\n' | grep -v -x -e '' -e 'lib[FIU]77' |
+        tr '\n' ' ' | sed 's/ $//')"
     {
         mk lib/libc "" install
         mk usr.lib "" install
     } > "$xout/log/lib" 2>&1
+    mkvar=
     o=$out
     failed "$xout/log/lib"
 fi
@@ -236,24 +245,33 @@ for m in s m l; do
     cp "$top/obj/nlib/$m/crt0.o" "$top/obj/nlib/$m/libc.a" "$d"
 done
 # libsum DIR...: a sum of the libraries and objects in DIRs of OUT/dest,
-# a library by its members, which is what a program is linked with.
+# a library by its members, which is what a program is linked with.  An
+# object may be installed by a library's name: libI77's libI66.a.  The
+# time mkvers puts in a Fortran library's Version is not counted, which
+# would have every program made again each time.
 libsum() {
     python3 -I - "$top" "$out/dest" "$@" <<'END'
-import hashlib, os, sys
+import hashlib, os, re, sys
 sys.path.insert(0, os.path.join(sys.argv[1], "tools"))
 import ar
+MKVERS = re.compile(rb"(@\(#\)lib[FIU]77\.a\t)[A-Z][a-z]{2} [ 0-9][0-9] "
+                    rb"[0-9]{2}:[0-9]{2}:[0-9]{2} [0-9]{4}")
 h = hashlib.sha256()
 for d in sys.argv[3:]:
     for dp, dn, fn in os.walk(os.path.join(sys.argv[2], d)):
         dn.sort()
         for n in sorted(fn):
             p = os.path.join(dp, n)
-            if n.endswith(".a"):
+            if not n.endswith((".a", ".o")):
+                continue
+            data = open(p, "rb").read()
+            if n.endswith(".a") and data[:8] == b"!<arch>\n":
                 for name, data in ar.read(p):
                     if name != "__.SYMDEF":
-                        h.update(name.encode() + b"\0" + data)
-            elif n.endswith(".o"):
-                h.update(open(p, "rb").read())
+                        h.update(name.encode() + b"\0" +
+                                 MKVERS.sub(rb"\1", data))
+            else:
+                h.update(data)
 print(h.hexdigest())
 END
 }

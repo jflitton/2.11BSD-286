@@ -226,6 +226,8 @@ conversions()
 	    "strtol and strtoul");
 	check(atof("3.25") == 3.25 && atof("-1e3") == -1000.0 && atof(".5") == 0.5,
 	    "atof");
+	d = atof("1e-300") * 1e300;
+	check(d > 0.999 && d < 1.001, "atof of a double smaller than a float");
 	d = modf(-3.75, &ip);
 	check(d == -0.75 && ip == -3.0, "modf");
 	check(ldexp(0.75, 4) == 12.0, "ldexp");

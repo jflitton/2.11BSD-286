@@ -3,12 +3,12 @@
  * All rights reserved.  The Berkeley software License Agreement
  * specifies the terms and conditions for redistribution.
  *
- *	@(#)abort_.c	5.1	6/7/85
+ *	@(#)abort_.c	5.1.1 (2.11BSD) 2026/11/26
  */
 
 #include <stdio.h>
 
-#if	pdp11
+#if	defined(pdp11) || defined(i286)
 abort_()
 {
 	fprintf(stderr, "Fortran abort routine called\n");

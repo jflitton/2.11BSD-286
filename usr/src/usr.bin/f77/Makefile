@@ -1,4 +1,4 @@
-#       Makefile        2.2 (2.11BSD) 2026/6/28
+#       Makefile        2.3 (2.11BSD) 2026/11/26
 
 # Fortran 77 compiler generating code for the PDP11 using the Ritchie pass 2
 
@@ -9,33 +9,39 @@
 #	2026/6/28 - Don't use -O and then run /lib/c2 on the assembly file.
 #		    That runs the optimizer twice.  Borrow from pascal/pi and
 #		    use tmp/ as the prefix for mkstr.
+#	2026/11/26 - the 80286: what is the PDP-11's in pdp11.c and pdp11x.c
+#		    is the 286's in i286.c and i286x.c, and the code goes
+#		    to the 286's second pass, as does the data.  f77pass1
+#		    is of the medium model, its code being more than a
+#		    segment of 64K, where the PDP-11 had it in overlays;
+#		    and so is f77, which has i286x.o too.
 
-LD=		ld
 STRINGS=	f77_strings
-CFLAGS=		-O -I. -w
-LDFLAGS= -i
+MODEL=		-mm
+CFLAGS=		-O -I. -w ${MODEL}
+LDFLAGS= -i ${MODEL}
 
 SRCS= 	data.c driver.c equiv.c error.c exec.c expr.c gram.c init.c \
-	intr.c io.c lex.c main.c misc.c pdp11.c pdp11x.c \
+	intr.c io.c lex.c main.c misc.c i286.c i286x.c \
 	proc.c put.c putdmr.c
 
 PASS1OBJECTS=	data.o equiv.o error.o exec.o expr.o gram.o init.o \
-		intr.o io.o lex.o main.o misc.o pdp11.o pdp11x.o proc.o \
+		intr.o io.o lex.o main.o misc.o i286.o i286x.o proc.o \
 		put.o putdmr.o
 
 all:	tmp f77 f77pass1
 
-f77:	driver.o pdp11x.o
-	${CC} ${LDFLAGS} driver.o pdp11x.o -o f77
+f77:	driver.o i286x.o
+	${CC} ${LDFLAGS} driver.o i286x.o -o f77
 	@size f77
 
 f77pass1:	${PASS1OBJECTS}
-	${LD} /lib/crt0.o ${LDFLAGS} -o f77pass1 \
+	${CC} ${LDFLAGS} -o f77pass1 \
 		main.o misc.o gram.o lex.o \
-		-Z proc.o init.o \
-		-Z equiv.o data.o error.o \
-		-Y io.o expr.o intr.o exec.o \
-		put.o putdmr.o pdp11.o pdp11x.o -lc
+		proc.o init.o \
+		equiv.o data.o error.o \
+		io.o expr.o intr.o exec.o \
+		put.o putdmr.o i286.o i286x.o
 	@size f77pass1
 
 gram.o:	gram.c
@@ -63,10 +69,10 @@ tmp:
 driver.o:
 	${CC} -c ${CFLAGS} $*.c
 
-pdp11x.o:
+i286x.o:
 	${CC} -c ${CFLAGS} $*.c
 
-defs:	ftypes defines
+defs:	ftypes defines i286defs
 	touch defs
 
 tokdefs:	tokens
@@ -85,7 +91,7 @@ tags:
 	ctags ${SRCS}
 
 data.o:		defs string_defs data.c
-driver.o:	defs drivedefs driver.c
+driver.o:	defs drivedefs dmrdefs driver.c
 equiv.o:	defs string_defs equiv.c
 error.o:	defs string_defs error.c
 exec.o:		defs string_defs exec.c
@@ -97,7 +103,8 @@ io.o:		defs string_defs io.c
 lex.o:		defs string_defs tokdefs lex.c
 main.o:		defs string_defs main.c
 misc.o:		defs string_defs misc.c
-pdp11.o:	defs string_defs pdp11.c
+i286.o:		defs string_defs dmrdefs i286.c
+i286x.o:	defines i286defs dmrdefs i286x.c
 proc.o:		defs string_defs proc.c
 put.o:		defs string_defs put.c
 putdmr.o:	defs string_defs dmrdefs putdmr.c

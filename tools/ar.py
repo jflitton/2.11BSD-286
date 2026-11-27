@@ -13,10 +13,11 @@ is built, which has the system's assembler and linker compiled for it
 and not ar and ranlib; on the system those two make the same.
 
 Every member's date is 0, and its owner, and its mode is 644: what is
-made of the same files is the same.  A library of the cross compiler's
-objects (OMF), which the system's Makefiles make of them where the
-system is built with it (tools/build), has no table: its linker makes
-its own of them (tools/cc).
+made of the same files is the same.  A member that is not an object,
+libU77's ioinit.f, has nothing in the table, as ranlib passes over it.
+A library of the cross compiler's objects (OMF), which the system's
+Makefiles make of them where the system is built with it (tools/build),
+has no table: its linker makes its own of them (tools/cc).
 
 -t lists a library's members, and the symbols its table has for each.
 """
@@ -88,17 +89,17 @@ def make(lib, files):
 
 def write(lib, contents):
     """LIB made anew of the members, each a name and its contents, in
-    their order, with the table first if they are the system's objects."""
+    their order, with the table first if any are the system's objects."""
     members = []            # (header, contents, names)
     seen = set()
-    table = all(ours(data) for _name, data in contents)
+    table = any(ours(data) for _name, data in contents)
     for name, data in contents:
         if name in seen:
             fail("%s: two members of that name" % name)
         seen.add(name)
         h, extra = header(name, len(data))
         members.append((h, extra + data,
-                        symbols(name, data) if table else []))
+                        symbols(name, data) if ours(data) else []))
     if not table:
         out = bytearray(ARMAG)
         for h, data, _names in members:

@@ -1,4 +1,4 @@
-/* "@(#)init.c 1.1 (2.11BSD) 2026/6/28"; */
+/* "@(#)init.c 1.2 (2.11BSD) 2026/11/26"; */
 
 #include "defs"
 #include "string_defs"
@@ -135,7 +135,11 @@ register struct hashentry *hp;
 chainp cp;
 int i;
 
+#ifdef i286
+asmop(asmfile, USECONST);
+#else
 fprintf(asmfile, "%s\n", USECONST);
+#endif
 parstate = OUTSIDE;
 headerdone = NO;
 blklevel = 1;
@@ -159,7 +163,7 @@ chlgslot = -1;
 procleng = 0;
 blklevel = 1;
 lastargslot = 0;
-autoleng = 6;
+autoleng = SAVESPACE;
 
 for(lp = labeltab ; lp < labtabend ; ++lp)
 	lp->stateno = 0;

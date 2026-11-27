@@ -43,6 +43,7 @@
 /usr/man/cat1 755 root wheel
 /usr/man/cat2 755 root wheel
 /usr/man/cat3 755 root wheel
+/usr/man/cat3f 755 root wheel
 /usr/man/cat4 755 root wheel
 /usr/man/cat5 755 root wheel
 /usr/man/cat6 755 root wheel

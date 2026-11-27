@@ -172,7 +172,10 @@ same order.
 
 What `lib/libc/pdp/gen` has in assembly (the string routines, `bcopy` and
 the like, `frexp`) comes from the C in `lib/libc/gen` that it stood in
-for, and its `atof.c`, `ecvt.c` and `setjmperr.c` are used as they are.
+for, and its `atof.c`, `ecvt.c` and `setjmperr.c` are used as they are,
+but that `atof` takes a number to be 0 below 10 to the -308th, the
+287's double's least, where it was `math.h`'s `LOGHUGE`, the PDP-11's
+39: `1e-300` was 0 (`tests/fortran`'s `DOUBLE IF`).
 
 Left out:
 
@@ -1401,14 +1404,14 @@ The pages are those `usr/src/man`'s Makefiles format, and those the
 programs' Makefiles format with them, as on 2.11BSD, where the system
 is built too. `man`'s lists are upstream's less what
 the system has not: of sections 1 and 8, the pages of the programs on
-it, and the introductions; of 2, 3, 5 and 7, the kernel's calls, the
-libraries, the files and the rest, all of upstream's, with the pages of
-those kinds that `cron` and `tcpd` keep with them; of 4, those not of
-the PDP-11's devices: `tty`, `pty`, `null`, `fl`, and the network's; of
-6, those of the games on it ([games](#games)); and no 3f, Fortran's
-library. That is 621 pages, with the 317 other names upstream's
-Makefiles give them by `ln`, `egrep` for `grep` and `fprintf` for
-`printf`, and 2.4 MB. `whatis` is
+it, and the introductions; of 2, 3, 3f, 5 and 7, the kernel's calls,
+the libraries, Fortran's among them, the files and the rest, all of
+upstream's, with the pages of those kinds that `cron` and `tcpd` keep
+with them; of 4, those not of the PDP-11's devices: `tty`, `pty`,
+`null`, `fl`, and the network's; and of 6, those of the games on it
+([games](#games)). That is 728 pages, with the 392 other names
+upstream's Makefiles give them by `ln`, `egrep` for `grep` and
+`fprintf` for `printf`, and 2.7 MB. `whatis` is
 made as `usr/src/man`'s Makefile makes it: its `makewhatis.sed` takes
 the name and the line under NAME of each page, and `sort -u` sorts
 them. The system's `makewhatis`, upstream's script, which does that with
@@ -2554,6 +2557,10 @@ each is and where it is from. `cc`, `/lib/cpp`, `ar`, `ranlib`, `nm`,
   gives the PDP-11's overlays.
 - `ranlib` reads the table of segments with the header to find an
   object's symbols.
+- `ar` copied a member through 8K on its stack, which is all the stack
+  the 286 gives a small program: what it read went over the end of its
+  data, and `libI77` was not made ("temporary file: Bad file
+  descriptor"). It has the PDP-11's 2K.
 - `nm` needed nothing more than the headers ([programs that read the
   kernel](#programs-that-read-the-kernel)), and is given `ar`'s for a
   library. It shows a symbol's segment after its name in a program, as
@@ -2595,6 +2602,64 @@ written for the 286 (`bin/as/i286`, `bin/ld/i286`), upstream's being
 of the PDP-11's assembler, its overlays and its format: `bin/as`'s and
 `bin/ld`'s Makefiles install them, `a.out(5)` with `ld` as `ar(5)` is
 with `ar`, and `man`'s have not upstream's.
+
+## Fortran
+
+`f77` is on the system, with its libraries, `libF77`, `libI77` (and
+`libI66`, Fortran 66's way of input and output) and `libU77`, and the
+three that write Fortran: `ratfor`, `efl` and `struct`. [Fortran in
+the toolchain](toolchain.md#fortran) has how `f77` makes a program.
+`f77`, `f77pass1` and `efl` are of the medium model, where the PDP-11
+had overlays; `ratfor` and `struct`'s two passes, `structure` and
+`beautify`, of the small. What they needed:
+
+- `f77pass1` writes `c1`'s trees with the 286's types, whose modifiers
+  take three bits where the PDP-11's took two, and the space and the
+  initial values of the data as `c1`'s own lines of assembly, which
+  `as` takes as defined where it has seen them declared.
+- `f77` said a program was made when `ld` had failed: it ended with
+  what the compiling had, and not what `ld` did.
+- `libF77` does not set the PDP-11's floating point unit (`ldfps`) at
+  the start; `flmax`, `dflmin` and the rest give IEEE's numbers; and
+  `rand`, `irand` and `abort` take the PDP-11's way, whose `int` is 16
+  bits as the 286's is. `libI77` keeps a format in 300 bytes, as on the
+  PDP-11, and does not look for `'EOF'`, a constant of three letters.
+- `libI77`, reading a namelist, gave `l_read` each variable's count,
+  length and type as `int`s, where it takes `long`s, as on the PDP-11.
+  This `f77` has no `NAMELIST`; the library has it for a later one.
+- The libraries that the cross compiler's programs are linked with
+  (`TOOLS=cross`) are not made of these three, which no program is
+  linked with where the system is built, and whose calls pass a
+  `char *` for what is declared otherwise, which it stops at.
+- The libraries are of the small model alone, as Fortran's programs
+  are, and their Makefiles make no profiled library and do not join
+  each object with `ld -x -r`, which the system has not.
+- `struct`'s first pass, `structure`, handed out each block of its
+  memory from two bytes into the block's own header, so that the first
+  thing kept there wrote over the header, and what came after went
+  anywhere: it ran to the end and printed nothing. The block starts
+  after the header now.
+- `efl` keeps its messages in `/usr/share/efl/efl_errorstrings`, as
+  on the PDP-11, where its Makefile has `mkstr` put them: it takes the
+  PDP-11's way in `error.c` and `dcl.c`, whose messages are each a
+  string `mkstr` can find. The Makefile does not run `catastrophe`,
+  which said how near its overlays were to too big. A message about a
+  declaration put the name after the fault, and one of attributes that
+  disagree named no attribute, but whatever was past the end of `"x"`.
+
+`tests/fortran` has the system compile and run five programs and
+checks what each prints: control, the arithmetic `IF` of each type, the
+assigned and computed `GO TO`, the block `IF` and `DO`, with a register
+variable and without; arithmetic and the intrinsic functions;
+subprograms in two files, with `ENTRY`, `COMMON`, `BLOCK DATA`,
+`EQUIVALENCE` and functions of each type; characters, an internal
+file, the standard input, and files formatted, unformatted and
+direct; and one in Ratfor. A program of `GO TO`s is run as it is and as
+`struct` writes it again, and `efl` translates upstream's three tests
+as they have it.
+
+The manual has `f77`, `efl`, `ratfor` and `struct` as upstream wrote
+them, and section 3f, the libraries'.
 
 ## The root file system
 

@@ -1,4 +1,4 @@
-#       Makefile        2.1 (2.11BSD) 2026/6/29
+#       Makefile        2.2 (2.11BSD) 2026/11/26
 
 ################################################################################
 # A horrid Makefile for EFL, a language even more dead than Latin
@@ -12,9 +12,14 @@
 # confining changes to here is probably a good idea.
 #                                       -- Frank Wortner
 ################################################################################
+# The 80286: efl is of the medium model, its code being more than a
+# segment of 64K, as the PDP-11's nearly was; catastrophe, which says how
+# near, is not run.
+################################################################################
 PROGRAM= efl
-CFLAGS = -O -w
-LDFLAGS = -i
+MODEL = -mm
+CFLAGS = -O -w ${MODEL}
+LDFLAGS = -i ${MODEL}
 EFLSHAREDIR = /usr/share/efl
 
 FILES1 =  Makefile efl.1 defs tokens main.c init.c tailor.c\
@@ -44,9 +49,8 @@ OBJECTS = $(BASE) ${OV1} ${OV2}
 $(PROGRAM): ${OBJECTS}
 #	/bin/ld $(LDFLAGS) -X -o $(PROGRAM) /lib/crt0.o \
 #	   -Z ${OV1} -Z ${OV2} -Y ${BASE} -lc
-	/bin/ld $(LDFLAGS) -X -o $(PROGRAM) /lib/crt0.o ${OV1} ${OV2} ${BASE} -lc
+	${CC} $(LDFLAGS) -o $(PROGRAM) ${OV1} ${OV2} ${BASE}
 	size $(PROGRAM)
-	./catastrophe $(PROGRAM)
 
 # Extract strings to a file using mkstr.  Unfortunately, that program will 
 # rewrite only calls to a subroutine called error().  map calls of dclerr(),

@@ -3,7 +3,7 @@
 # All rights reserved.  The Berkeley software License Agreement
 # specifies the terms and conditions for redistribution.
 #
-#	@(#)Makefile	5.12.5 (2.11BSD) 2025/11/29
+#	@(#)Makefile	5.12.6 (2.11BSD) 2026/11/26
 #
 CFLAGS=	-O
 TAGSFILE=tags
@@ -20,7 +20,7 @@ TAGSDIR=libcurses libdbm libln libmp libtermlib libutil liberrlst
 # of its three models, the small's in /usr/lib, the medium's in
 # /usr/lib/m and the large's in /usr/lib/l, where cc -mm and -ml look.
 
-SUBDIR=	libcurses libdbm libln \
+SUBDIR=	libF77 libI77 libU77 libcurses libdbm libln \
 	libom libmp libplot libtermlib liby libutil libvmf \
 	liberrlst libident
 

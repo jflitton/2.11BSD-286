@@ -1,5 +1,5 @@
 #if	!defined(lint) && defined(DOSCCS)
-static char sccsid[] = "@(#)0.alloc.c	4.2	(2.11BSD)	2026/5/9";
+static char sccsid[] = "@(#)0.alloc.c	4.2.1	(2.11BSD)	2026/11/26";
 #endif
 
 #include <stdio.h>
@@ -106,7 +106,7 @@ struct coreblk **p;
 	*p = q;
 	q->blksize = t;
 	q->nxtfree = 0;
-	q->blk = (int *) q + 1;
+	q->blk = (int *) (q + 1);	/* after the header, not in it */
 	return((int)q);
 	}
 

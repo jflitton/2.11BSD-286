@@ -3,16 +3,21 @@
 # All rights reserved.  The Berkeley software License Agreement
 # specifies the terms and conditions for redistribution.
 #
-#	@(#)Makefile	5.6 (2.11BSD) 2025/11/27
+#	@(#)Makefile	5.7 (2.11BSD) 2026/11/26
 #
 # Makefile for f77 math & startup lib, libF77.a
+#
+# The 80286: Fortran programs are of the small model alone (f77(1)),
+# and so is this library.  The PDP-11's profiled one, of cc -p, is not
+# made: the 286's compiler does not profile.  Nor is its ld -x -r done,
+# which took out the local symbols: the 286's ld makes nothing but a
+# program.
 
 CFLAGS	      = -O
 DEST	      = /usr/lib
 HDRS	      = opcodes.h
 
 LIBRARY	      = libF77.a
-LIBRARY_P     = libF77_p.a
 
 OBJS1	      = abort_.o \
 		besj0_.o \
@@ -273,17 +278,11 @@ SRCS	      = abort_.c \
 		z_sin.c \
 		z_sqrt.c
 
-all:		$(LIBRARY) $(LIBRARY_P)
+all:		$(LIBRARY)
 
 $(LIBRARY):	$(OBJS1) $(OBJS2) Version
 		@echo -n "Loading $(LIBRARY) ... "
 		@ar cru $(LIBRARY) \
-			`lorder $(OBJS1) $(OBJS2) | tsort` Version
-		@echo "done"
-
-$(LIBRARY_P):	$(OBJS1) $(OBJS2) Version
-		@echo -n "Loading $(LIBRARY_P) ... "
-		@cd profiled; ar cru ../$(LIBRARY_P) \
 			`lorder $(OBJS1) $(OBJS2) | tsort` Version
 		@echo "done"
 
@@ -292,23 +291,19 @@ Version:	$(SRCS) mkvers
 		./mkvers $(LIBRARY) $(SRCS) > Version.c
 		$(CC) -c Version.c
 		mv Version.o Version
-		@rm -f profiled/Version
-		ln Version profiled/Version
 
 mkvers:		mkvers.c
 		@$(CC) mkvers.c -o mkvers
 
-clean:;		@rm -f $(OBJS1) $(OBJS2) Version mkvers profiled/* $(LIBRARY) $(LIBRARY_P)
+clean:;		@rm -f $(OBJS1) $(OBJS2) Version mkvers $(LIBRARY)
 
 depend:;	@echo Construct dependencies manually
 
 index:;		@ctags -wx $(HDRS) $(SRCS)
 
-install:	$(LIBRARY) $(LIBRARY_P)
+install:	$(LIBRARY)
 		install -c -m 644 $(LIBRARY) $(DEST)/$(LIBRARY)
 		ranlib $(DEST)/$(LIBRARY)
-		install -c -m 644 $(LIBRARY_P) $(DEST)/$(LIBRARY_P)
-		ranlib $(DEST)/$(LIBRARY_P)
 
 tags:           $(HDRS) $(SRCS); @ctags $(HDRS) $(SRCS)
 
@@ -350,9 +345,4 @@ tags:           $(HDRS) $(SRCS); @ctags $(HDRS) $(SRCS)
 #		mv a.out $*.o
 
 .c.o:
-		$(CC) -p $(CFLAGS) -c $*.c
-		-ld -x -r $*.o
-		mv a.out profiled/$*.o
 		$(CC) $(CFLAGS) -c $*.c
-		-ld -x -r $*.o
-		mv a.out $*.o

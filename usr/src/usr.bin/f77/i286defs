@@ -1,0 +1,54 @@
+/* "@(#)i286defs 1.0 (2.11BSD) 2026/11/26"; */
+
+/*
+ * The 80286, of the small model: an int and an address of 16 bits, and
+ * the data laid out, as the PDP-11 has them (pdp11defs).  The second
+ * pass is the C compiler's for the 286 (lib/ccom/i286), whose register
+ * 5 is BP and 4 is SI: the frame, and the arguments, which a call leaves
+ * above the return address and the saved BP.  DI, its 3, is the one
+ * register variable it has room for besides.
+ */
+
+#define TYLENG	TYLONG
+
+#define TYINT	TYSHORT
+#define SZADDR	2
+#define SZSHORT	2
+#define SZINT	2
+
+#define SZLONG	4
+#define SZLENG	SZLONG
+
+#define ALIADDR SZADDR
+#define ALISHORT SZSHORT
+#define ALILONG 2
+#define ALIDOUBLE 2
+#define ALIINT	ALILONG
+#define ALILENG	ALILONG
+
+
+#define AUTOREG 5
+#define ARGREG 4
+#define ARGOFFSET 4
+#define SAVESPACE 0
+
+#define FUDGEOFFSET 1
+#define BITSPERCHAR 8
+#define XL 8
+
+/*
+ * The data, like the code, goes to the second pass (i286x.c), and these
+ * are its operators for the segments.
+ */
+#define USETEXT	202
+#define USECONST	203
+#define USEBSS	204
+#define USEINIT	203
+
+#define BLANKCOMMON "_BLNK_"
+
+#define MAXSHORT 32767
+
+#define MAXREGVAR 1
+#define TYIREG TYSHORT
+#define MSKIREG  M(TYSHORT)

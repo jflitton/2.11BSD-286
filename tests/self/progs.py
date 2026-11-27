@@ -18,7 +18,8 @@ formatted; what the system changes by running (running); and NAME.old
 or oNAME, where a Makefile keeps the NAME it installs over.  A library
 has the day it was made in it too, and whose its members were, and is
 compared by its members, each by its name and its contents, and their
-order, the table of contents among them.  And each file that the
+order, the table of contents among them; the Fortran libraries' Version
+but for the time mkvers put in it.  And each file that the
 Makefile of a DIR, or of one under it, installed where the system is
 built is to be among the files installed (built.py).
 """
@@ -78,6 +79,10 @@ def formatted(p):
         DAY.sub(b"Printed", contents(p, "root"))
 
 
+MKVERS = re.compile(rb"(@\(#\)lib[FIU]77\.a\t)[A-Z][a-z]{2} [ 0-9][0-9] "
+                    rb"[0-9]{2}:[0-9]{2}:[0-9]{2} [0-9]{4}")
+
+
 def members(data):
     """A library's members, each its name and its contents, or None if
     it is not one."""
@@ -91,7 +96,7 @@ def members(data):
         if name.startswith(b"#1/"):
             n = int(name[3:])
             name = data[d:d + n]
-        out.append((name, data[d + n:pos + 60 + size]))
+        out.append((name, MKVERS.sub(rb"\1", data[d + n:pos + 60 + size])))
         pos += 60 + size + (size & 1)
     return out
 

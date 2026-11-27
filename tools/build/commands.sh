@@ -36,6 +36,13 @@
 #			its lists, and phantasia's has tbl
 #	mkerrlst	tools/mkerrlst.py, for the one mkerrlst's Makefile
 #			installs and runs, which writes /etc/syserrlst
+#	f77		for usr.lib/libU77's ioinit.f, the one Fortran a
+#			Makefile compiles: what the system's f77 -O makes of
+#			it, tools/build/ioinit.s, assembled as that f77 has
+#			it assembled.  No f77 runs here: its first pass is of
+#			a C this machine's compiler does not take, which
+#			reaches any structure's member through any pointer
+#			(tests/fortran checks that file against the system's)
 #	makewhatis	the system's script, which sh.py reads
 #	mkpasswd	tools/mkpasswd.py, for -p, which etc's
 #			distribution runs: FILE.orig, the password file,
@@ -144,6 +151,14 @@ run mkerrlst python3 -I "$top/tools/mkerrlst.py" \
     "$s/usr.lib/liberrlst/errlst.c" "$out/dest/etc/syserrlst"
 run manroff nroff -man -h
 run mknod python3 -I "$here/mknod.py" "$out"
+cat > "$b/f77" <<END
+#!/bin/sh
+if [ "\$*" != "-O -c ioinit.f" ]; then
+    echo "f77: only libU77's f77 -O -c ioinit.f here" >&2
+    exit 1
+fi
+exec "$b/as" -ms -o ioinit.o "$here/ioinit.s"
+END
 cat > "$b/mkpasswd" <<END
 #!/bin/sh
 [ \$# = 2 ] && [ "\$1" = -p ] || { echo "mkpasswd: only -p file here" >&2; exit 1; }

@@ -19,8 +19,10 @@ MODE says whose compiler it is:
             LIBROOT, the cross compiler's, which the same Makefiles
             made with it (MODE xlib); but in lib and usr.lib, whose
             libraries and compiler the root has of the system's own
-            objects whoever made its programs, the system's own, as
-            for native, with OUT/dest's
+            objects whoever made its programs, and in usr.bin's f77,
+            efl and struct, older C than the cross compiler takes, as
+            the compiler's own is, the system's own, as for native,
+            with OUT/dest's
     xlib    the cross compiler, for those libraries, with LIBROOT's
 
 The cross compiler is told what the system's preprocessor defines of
@@ -53,8 +55,9 @@ root = out + "/root"
 dest = out + "/dest"
 src = root + "/usr/src"
 here = os.path.relpath(os.getcwd(), src)
+NATIVE = ("lib", "usr.lib", "usr.bin/f77", "usr.bin/efl", "usr.bin/struct")
 cross = mode == "xlib" or mode == "cross" and \
-    here.split("/")[0] not in ("lib", "usr.lib")
+    not any(here == d or here.startswith(d + "/") for d in NATIVE)
 if mode == "cross" and not cross:
     libroot = dest
 what = None

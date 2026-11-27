@@ -5,7 +5,7 @@
  */
 
 #if defined(LIBC_SCCS) && !defined(lint)
-static char sccsid[] = "@(#)atof.c	2.2 (Berkeley) 1/22/87";
+static char sccsid[] = "@(#)atof.c	2.2.1 (2.11BSD) 2026/11/26";
 #endif LIBC_SCCS and not lint
 
 /*
@@ -14,6 +14,15 @@ static char sccsid[] = "@(#)atof.c	2.2 (Berkeley) 1/22/87";
 
 #include <math.h>
 #include <ctype.h>
+
+#ifdef i286
+/*
+ * The 286's double is IEEE's, the 287's, down to 10 to the -308th:
+ * math.h's LOGHUGE is the PDP-11's, whose double has a float's exponent.
+ */
+#undef LOGHUGE
+#define LOGHUGE 308
+#endif
 
 double
 atof(p)

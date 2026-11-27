@@ -1,4 +1,4 @@
-#	Makefile	2.1 (2.11BSD) 2026/1/23
+#	Makefile	2.2 (2.11BSD) 2026/11/26
 #
 CFLAGS=	-O
 LDFLAGS= -i
@@ -6,9 +6,9 @@ LDFLAGS= -i
 # Programs that live in subdirectories, and have makefiles of their own.  eqn
 # must be built before neqn.
 
-SUBDIR=	at calendar dc diction diff3 eqn fstat find graph id learn \
+SUBDIR=	at calendar dc diction diff3 efl eqn fstat f77 find graph id learn \
 	lex \
-	m4 neqn plot printf ranlib refer roff spell tbl \
+	m4 neqn plot printf ranlib ratfor refer roff spell struct tbl \
 	mkerrlst patch \
 	renice shar tip touch uucp uname whereis yacc xargs xinstall
 

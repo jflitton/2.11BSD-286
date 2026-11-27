@@ -3,7 +3,7 @@
  * All rights reserved.  The Berkeley software License Agreement
  * specifies the terms and conditions for redistribution.
  *
- *	@(#)rsnmle.c	5.3.2	(2.11BSD) 2026/8/1
+ *	@(#)rsnmle.c	5.3.3	(2.11BSD) 2026/11/26
  */
 
 /*
@@ -114,7 +114,8 @@ got_name:
 	    if(ch != '=') goto rderr;
 
 	    nameflag = NO;
-	    if(n = l_read( nelem, addr, vlen, vtype )) goto rderr_n;
+	    if(n = l_read( (ftnint)nelem, (flex *)addr, (ftnlen)vlen,
+		(ftnint)vtype )) goto rderr_n;
 	    while(isblnk(GETC));
 	    if(ch == ',') while(isblnk(GETC));
 	    UNGETC();
@@ -238,7 +239,7 @@ int *subval;
 		cnt++;
 	}
 	UNGETC();
-#ifndef pdp11
+#if !defined(pdp11) && !defined(i286)
 	if(ch == 'EOF') return EOF;
 #endif
 	if(cnt == 0 ) return F_ERNMLIST;

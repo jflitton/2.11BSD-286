@@ -239,6 +239,16 @@ again:
 		return;
 
 	/*
+	 * A jump to what the tree is, as the PDP-11's jmp has it: where
+	 * the jump goes is its address.  Fortran's assigned GOTO, whose
+	 * variable holds the address of a label.
+	 */
+	case JUMP:
+		rcexpr(optim(tnode(AMPER, INT, tree->t.tr1, TNULL)), FORREG);
+		printf("\tjmp\tax\n");
+		return;
+
+	/*
 	 * sequential execution
 	 */
 	case SEQNC:

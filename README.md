@@ -7,7 +7,7 @@ This is 2.11BSD, at its current patch level, ported to the 286 in
 protected mode. It boots from a hard disk to multi-user. Users can log
 In via the local consoles (4 total), at a serial terminal, or over the
 network with `telnet` or `rlogin`.  Shells include `sh`, `csh`, and `tcsh`.
-Most programs have been ported (317 to date), among them `vi`, mail, the
+Most programs have been ported (over 400 to date), among them `vi`, mail, the
 manual and a C compiler. It runs in 86Box and on real machines.
 
 ## Lineage
@@ -54,8 +54,8 @@ The PDP-11 and the 286 are close enough that the tree carries over:
   system is built with them. `adb` debugs programs, their core files,
   the running kernel and the dumps a panic leaves
   ([adb](docs/userland.md#adb)).
-- Not there yet: `f77`; a tape driver in the kernel. [What
-  is not ported](docs/unported.md) has the whole list.
+- Not there yet: a tape driver in the kernel. [What is not
+  ported](docs/unported.md) has the whole list.
 - Upstream's programs are kept as 2.11BSD has them, changed only for
   bugs, the compiler and each machine's settings. Newer behaviour goes
   in programs of the port's own, in `/usr/local` as 2.11BSD has a site's

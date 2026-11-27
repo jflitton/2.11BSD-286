@@ -454,10 +454,44 @@ of the assembler `%if`, `%assign`, `%rep`, `%+`, a `%define` with
 arguments, a macro that uses another, `alignb` and `fsetpm`, and named
 segments in its objects; and of the linker those segments and `-gdt`.
 
+## Fortran
+
+`f77` is upstream's driver and first pass, `/usr/libexec/f77pass1`,
+both of the medium model. A `.r` file goes through `ratfor` first, a
+`.e` through `efl` and a `.F` through `cpp`; then `f77pass1` writes
+the procedures as `c0` writes C, trees for `c1`, and the initial values
+of `DATA`, which the driver sorts and puts after them. `c1` makes the
+code of both, `c2` improves it (`c2l` when `c2` has no room), and
+`ld -ms` links it with `-lU77 -lF77 -lI77 -lm -lc`
+(`usr.bin/f77/i286.c`, `i286defs`, `drivedefs`).
+
+```sh
+f77 -O -o prog prog.f sub.f
+```
+
+- A Fortran program is of the small model, as on the PDP-11: 64K of
+  code and 64K of data, `COMMON` with the rest. A common block of more
+  than 64K is an error.
+- `c1` has two things for Fortran that C does not use: the arithmetic
+  `IF`, a jump on the value's own sign, and the assigned `GO TO`, a
+  jump to an address that is a variable's.
+- A procedure saves `SI`, which has the address of its arguments, and
+  `DI`, its one register variable, which `-O1` asks for.
+- `f77` writes a procedure's prologues after its body, which they jump
+  back into, and `c2` takes a routine to end at its return: so each
+  return jumps to the procedure's one return, which is last.
+- `REAL` and `DOUBLE PRECISION` are the 287's, IEEE's, and `libF77`'s
+  `flmax` and the rest give IEEE's limits.
+
+Where the system is built there is no `f77`: upstream's is older C than
+this machine's compiler takes, or the cross compiler, which leaves it,
+`efl` and `struct` to the system's own (`tools/build/cc.py`) in a
+`TOOLS=cross` build. `libU77`'s one Fortran file, `ioinit.f`,
+is given there as what the system's `f77 -O -S` makes of it,
+`tools/build/ioinit.s`, which `tests/fortran` checks is still so.
+
 ## What is not there
 
-- The system making its kernel itself, on the 286: its `make` and
-  `cc` have not been given the kernel's Makefile and flags.
-- Profiling (`cc -p`, `mcrt0.o`, `prof`), `adb` and `ld -r`.
+- Profiling (`cc -p`, `mcrt0.o`, `prof`) and `ld -r`.
 - In the large model, a variable of more than 32K in a segment of its
   own, which the cross compiler makes, and `__huge` pointers.

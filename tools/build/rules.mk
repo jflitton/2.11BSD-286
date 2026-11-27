@@ -4,7 +4,7 @@
 # MAKEFILES): a Makefile that counts on a rule gets the one it gets on
 # the system, and none that the system's make does not have.
 .SUFFIXES:
-.SUFFIXES: .out .a .o .c .y .l .s
+.SUFFIXES: .out .a .o .c .f .y .l .s
 YACC=yacc
 YFLAGS=
 LEX=lex
@@ -12,6 +12,8 @@ LFLAGS=
 CC=cc
 AS=as
 CFLAGS=
+FC=f77
+FFLAGS=
 LOADLIBES=
 
 .c.a:

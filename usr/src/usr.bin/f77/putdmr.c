@@ -1,5 +1,5 @@
 #if     defined(DOSCCS) && !defined(lint)
-static char *sccsid = "@(#)putdmr.c 2.1 (2.11BSD) 2026/7/29";
+static char *sccsid = "@(#)putdmr.c 2.2 (2.11BSD) 2026/11/26";
 #endif
 
 /*  INTERMEDIATE CODE GENERATION FOR D. M. RITCHIE C COMPILERS */
@@ -913,16 +913,16 @@ switch(p->vstg)
 
 	case STGLENG:
 	case STGARG:
-		p2reg(ARGREG, type2|P2PTR|((funct?funct:P2PTR)<<2));
+		p2reg(ARGREG, type2|P2PTR|((funct?funct:P2PTR)<<P2SHIFT));
 		if(p->memno)
 			{
 			putx( ICON(p->memno) );
-			p2op2(P2PLUS, type2|P2PTR|(funct<<2));
+			p2op2(P2PLUS, type2|P2PTR|(funct<<P2SHIFT));
 			}
 		if(p->vstg == STGARG)
 			{
 			p2op2(P2INDIRECT, type2|P2PTR);
-			p2offset(type2|P2PTR|(funct<<2), offp);
+			p2offset(type2|P2PTR|(funct<<P2SHIFT), offp);
 			}
 		if(indir)
 			p2op2(P2INDIRECT, type2|funct);
@@ -1166,14 +1166,23 @@ p2i(type);
 p2i(k);
 }
 
+/*
+ * A long goes to the second pass with its high word first, as the
+ * PDP-11 keeps it; the 286 keeps the low first.
+ */
 LOCAL p2li(n)
 long int n;
 {
+#ifdef i286
+p2i( (int) (n >> 16) );
+p2i( (int) n );
+#else
 register int *p, i;
 
 p = &n;
 for(i = 0 ; i< sizeof(long int)/sizeof(int) ; ++i)
 	p2i(*p++);
+#endif
 }
 
 LOCAL p2offset(type, offp)
