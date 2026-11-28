@@ -248,7 +248,10 @@ $(OBJ)/%.o: $(MD)/csu/%.c $(HDRS) | $(OBJ)
 $(OBJ)/%.o: $(MD)/sys/%.s $(MD)/crt/DEFS.inc $(NCC) | $(OBJ)
 	@echo as $(notdir $<)
 	@$(AS) -o $@ $<
-$(OBJ)/%.o: $(MD)/gen/%.s $(MD)/crt/DEFS.inc $(NCC) | $(OBJ)
+# A rule of its own for each, before ../gen's and ../compat-sys5's C
+# of the same names, which a pattern of a rule above would choose.
+$(addprefix $(OBJ)/,$(addsuffix .o,$(MDGEN))): $(OBJ)/%.o: $(MD)/gen/%.s \
+	    $(MD)/crt/DEFS.inc $(NCC) | $(OBJ)
 	@echo as $(notdir $<)
 	@$(AS) -o $@ $<
 $(OBJ)/%.o: $(MD)/net/%.s $(MD)/crt/DEFS.inc $(NCC) | $(OBJ)
