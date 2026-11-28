@@ -11,6 +11,11 @@ this machine, for cc.py, as.py and ld.py.
                     of a typedef); and pascal's px of the
                     system's assembler and its pi of the system's
                     linker, in what pi puts at the head of an object
+    a directory not in usr/src
+                    the system's own tree, where a Makefile that
+                    compiles at install time, as learn's does
+                    getnum.c in /usr/share/learn/C, leaves an object
+                    for the system's linker
 """
 
 NATIVE = ("lib", "usr.lib", "usr.bin/f77", "usr.bin/efl", "usr.bin/struct",
@@ -19,4 +24,5 @@ NATIVE = ("lib", "usr.lib", "usr.bin/f77", "usr.bin/efl", "usr.bin/struct",
 
 def native(here):
     """Whether HERE, a directory named from usr/src, is one of them."""
-    return any(here == d or here.startswith(d + "/") for d in NATIVE)
+    return here.startswith("..") or \
+        any(here == d or here.startswith(d + "/") for d in NATIVE)

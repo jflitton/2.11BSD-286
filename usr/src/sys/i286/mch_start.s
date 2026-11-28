@@ -24,6 +24,9 @@
         extern  _idt:wrt DGROUP
         extern  _uslot:wrt DGROUP, _uptr:wrt DGROUP
         global  _bootinfo, _basemem, _extmem, _gdt, _ktss
+        global  pmode           ; where a process's kernel stack begins,
+                                ; which adb's $c names; the cross
+                                ; build's kernel has global names alone
 
         BSS
 _bootinfo:

@@ -131,7 +131,9 @@ them, and the root has the libraries and the compiler of the system's
 own tools, which make programs on it. `f77`, `efl`, `struct`, `prof`
 and Pascal's programs are the system's own tools' work too: their C is
 older than the cross compiler takes, and `px` is of the system's
-assembler (`tools/build/native.py`).
+assembler; and an object a Makefile compiles in the root as it
+installs, as `learn`'s `getnum.o`, is for the system's linker
+(`tools/build/native.py`).
 
 The last makes a bootable image of a 40 MB IDE disk with the root and
 2 MB of swap. The root file system is 24 MB, with 16 MB in it;
