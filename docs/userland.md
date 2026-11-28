@@ -167,13 +167,14 @@ same order.
 | `sys/*.c`, `sigtramp.s` | the calls that need more than a stub: `brk` and `sbrk`; `execl`, `execle`, `execv`; `setlogin`; `sigaction`, with the trampoline it names to the kernel, which gets the handler as a far address (in the small model the library adds CS); `readv` and `writev`, `sigaltstack` and `sigstack`, whose structures hold pointers, which are far to the kernel and near in a small- or medium-model program. |
 | `gen/setjmp.s` | `setjmp`, `longjmp`, `_setjmp`, `_longjmp`. A `jmp_buf` is a `struct sigcontext`, 17 words here (`setjmp.h`); `longjmp` has the kernel resume it with `sigreturn`, which restores the signal mask and every register at once. In the medium model the context's CS is the return address's. |
 | `gen/ldexp.s`, `modf.s` | on the 287 |
+| `gen/strcmp.s`, `strncmp.s`, `strcpy.s`, `strlen.s`, `index.s`, `memcpy.s` | the string routines a profiled compile spent its time in, with the 286's string instructions: `REPNE SCASB` finds a string's end and `REP MOVSW` copies. Each is one file for the three models, by `crt/DEFS.inc`'s macros for a pointer argument. |
 | `net/htons.s` | byte order |
 | `crt/` | the routines compiled code calls for 32-bit arithmetic ([the ABI notes](abi.md)) |
 | `csu/mon.c`, `mcount.s`; `crt0.s` with `MCRT0` | profiling, of the small model: the monitor, and `mcrt0.o` ([below](#profiling)) |
 
-What `lib/libc/pdp/gen` has in assembly (the string routines, `bcopy` and
-the like, `frexp`) comes from the C in `lib/libc/gen` that it stood in
-for, and its `atof.c`, `ecvt.c` and `setjmperr.c` are used as they are,
+The rest of what `lib/libc/pdp/gen` has in assembly (`strcat`, `bcopy`
+and the like, `frexp`) comes from the C in `lib/libc/gen` that it stood
+in for, and its `atof.c`, `ecvt.c` and `setjmperr.c` are used as they are,
 but that `atof` takes a number to be 0 below 10 to the -308th, the
 287's double's least, where it was `math.h`'s `LOGHUGE`, the PDP-11's
 39: `1e-300` was 0 (`tests/fortran`'s `DOUBLE IF`).

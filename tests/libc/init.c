@@ -103,6 +103,9 @@ stdio()
 	check(fmt("123456789 -2147483648 4294967295",
 	    (sbuf, "%ld %ld %lu", 123456789L, (long)-2147483647L - 1, 0xffffffffL)),
 	    "printf: longs");
+	check(fmt("0 -32768 10000 abcdef01 ABCDEF01 200000",
+	    (sbuf, "%d %d %lx %lx %lX %lo", 0, -32767 - 1, 0x10000L,
+	    0xabcdef01L, 0xabcdef01L, 65536L)), "printf: longs past 16 bits");
 	check(fmt("ff FF 0xff 377 65535", (sbuf, "%x %X %#x %o %u", 255, 255, 255, 255, -1)),
 	    "printf: other bases");
 	check(fmt("x abc   ab|%", (sbuf, "%c %-5s %.2s|%%", 'x', "abc", "abc")),
@@ -205,6 +208,16 @@ strings()
 	    "strtok");
 	p = strdup("copy");
 	check(p && strcmp(p, "copy") == 0, "strdup");
+	/* the ends of those in assembly (usr/src/lib/libc/i286/gen) */
+	check(strcmp("", "") == 0 && strcmp("ab", "abc") < 0 &&
+	    strcmp("abc", "ab") > 0 && strcmp("\200", "a") < 0 &&
+	    strncmp("ab", "ab", 5) == 0 && strncmp("abc", "abd", 3) < 0 &&
+	    strncmp("a", "b", 0) == 0, "strcmp and strncmp at their ends");
+	check(strcpy(a, "") == a && strlen(a) == 0 && strcpy(a, "abc") == a &&
+	    index(a, 0) == a + 3 && index(a, 'z') == NULL,
+	    "strcpy, strlen and index at their ends");
+	check(memcpy(a, "abcdefg", 7) == a && strncmp(a, "abcdefg", 7) == 0 &&
+	    memcpy(a + 1, "xyz", 0) == a + 1 && a[1] == 'b', "memcpy");
 }
 
 int

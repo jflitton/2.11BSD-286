@@ -53,10 +53,11 @@
 #	csu	start-up
 #	sys	the system call stubs, made from sys/syscalls.tab by
 #		sys/mkstubs.c, and the calls that need more than a stub
-#	gen	setjmp and longjmp, and the floating-point routines the
-#		PDP-11 has in assembly; its other assembly (strings, bcopy
-#		and the like) is replaced by the C in ../gen that it stood
-#		in for
+#	gen	setjmp and longjmp, the floating-point routines the
+#		PDP-11 has in assembly, and of its strings index, strcmp,
+#		strcpy, strlen and strncmp, and memcpy; its other assembly
+#		(bcopy and the like) is replaced by the C in ../gen that it
+#		stood in for
 #	net	byte order
 #	crt	the routines compiled code calls for long arithmetic
 #
@@ -147,9 +148,9 @@ GEN=	abort alarm atoi atol calloc closedir crypt ctime ctype_ daemon \
 	sigsetops sleep strcasecmp strftime swab sysctl syslog system \
 	swapdevname syserrlst telldir time timezone ttyname ttyslot ualarm \
 	usleep valloc strdup uname wait wait3 waitpid
-# what ../pdp/gen has in assembly
-GENC=	abs bcmp bcopy bzero fabs ffs frexp index insque remque rindex \
-	strcat strcmp strcpy strlen strncat strncmp strncpy
+# what ../pdp/gen has in assembly, and this directory's gen has not
+GENC=	abs bcmp bcopy bzero fabs ffs frexp insque remque rindex strcat \
+	strncat strncpy
 # and what it has in C
 PDPGEN=	atof ecvt setjmperr
 STDIO=	clrerr exit fclose fdopen findfp fflush fopen fprintf fpurge fread \
@@ -165,7 +166,7 @@ COMPAT41= ftime gtty nice pause rand stty times utime
 COMPAT43= creat gethostid sethostid sigcompat setregid setreuid setrgid \
 	setruid
 # ../pdp/gen has strchr and strrchr as other names for index and rindex
-COMPAT5= memccpy memchr memcmp memcpy memset strchr strrchr
+COMPAT5= memccpy memchr memcmp memset strchr strrchr
 INET=	inet_addr inet_network inet_netof inet_ntoa inet_lnaof inet_maddr
 NET=	getnbyaddr getnbyname getnent getpent getpname getproto getsbyname \
 	getsbyport getsent herror rcmd res_comp res_debug res_init \
@@ -175,7 +176,8 @@ NS=	ns_addr ns_ntoa
 MDSYS=	brk execl execle execv iovec setlogin sigaction sigaltstack
 MDGENC=	nsym
 MDSYSS=	sigtramp
-MDGEN=	ldexp modf setjmp $(if $(CCOM),alloca)
+MDGEN=	ldexp modf setjmp index memcpy strcmp strcpy strlen strncmp \
+	$(if $(CCOM),alloca)
 MDCSUC=	$(if $(filter s,$(MODEL)),mon)
 MDCSU=	$(if $(filter s,$(MODEL)),mcount)
 MDNET=	htons

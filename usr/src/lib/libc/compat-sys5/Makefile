@@ -1,12 +1,13 @@
-#	Makefile	1.7 (2.11BSD) 2025/12/25
+#	Makefile	1.8 (2.11BSD) 2026/11/27
 #
 CFLAGS=	-O ${DEFS}
 # strchr and strrchr.c are not used.  The assembly versions in pdp/gen are
 # used instead.
-# The 80286 has them: its index and rindex are ../gen's C, which has
-# not the other names that the PDP-11's assembly gives them.
-SRCS=	memccpy.c memchr.c memcmp.c memcpy.c memset.c strchr.c strrchr.c
-OBJS=	memccpy.o memchr.o memcmp.o memcpy.o memset.o strchr.o strrchr.o
+# The 80286 has them: its index and rindex have not the other names
+# that the PDP-11's assembly gives them.  Its memcpy is in assembly, in
+# ../i286/gen.
+SRCS=	memccpy.c memchr.c memcmp.c memset.c strchr.c strrchr.c
+OBJS=	memccpy.o memchr.o memcmp.o memset.o strchr.o strrchr.o
 TAGSFILE=tags
 
 # The 80286: each file is compiled for the three models, the medium's

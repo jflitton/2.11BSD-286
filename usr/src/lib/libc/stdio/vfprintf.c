@@ -82,6 +82,7 @@ __svfprintf(FILE *iob, const char *fmt, va_list ap)
 	register int ch;
 	register char *chp;
 	unsigned long l;
+	unsigned u;
 	char buf[SZBUF];
 
 	if ((iob->_flags & (__SNBF|__SWR|__SRW)) == (__SNBF|__SWR) &&
@@ -181,12 +182,20 @@ intfmt:			mtab = (char *)&pri.flags;
 
 			if (l == 0 && pri.ndigit)
 				*--chp = '0';
-			while (l) {
+			/*
+			 * A long is divided by a routine of the library's,
+			 * twice for each digit; once what is left fits in an
+			 * unsigned, the machine's own division does.
+			 */
+			while (l > UINT_MAX) {
 				*--chp = _hextab[l % ch];
-				if ((pri.flags & CUC) == 0)
-					*chp |= ' '; /* make lowercase */
 				l /= ch;
 			}
+			for (u = l; u; u /= ch)
+				*--chp = _hextab[u % ch];
+			if ((pri.flags & CUC) == 0)
+				for (u = 0; chp + u < mtab; u++)
+					chp[u] |= ' '; /* make lowercase */
 		} else if (ch < FPBASE) {
 			if (*mtab == 'c') {
 #ifdef __pdp11__

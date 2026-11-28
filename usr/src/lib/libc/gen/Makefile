@@ -3,26 +3,25 @@
 # All rights reserved.  The Berkeley software License Agreement
 # specifies the terms and conditions for redistribution.
 #
-#	@(#)Makefile	5.7.14 (2.11BSD) 2026/11/26
+#	@(#)Makefile	5.7.15 (2.11BSD) 2026/11/27
 #
 # Several routines have been rewritten in assembly language for the VAX and
 # the PDP. If you are not running on a VAX or PDP, you should use the
 # original C sources which are included in this directory.
 #
 # The 80286 has them, MDSRC: what the PDP-11's ../pdp/gen has in
-# assembly.  And it has no fakcu.o, the empty _cleanup that exit()
-# calls in a program without stdio: that works by the PDP-11's order
-# of the library, and the 286's ld took it in place of stdio's, which
-# then did not flush at exit.
+# assembly, but for index, strcmp, strcpy, strlen and strncmp, which
+# the 286's ../i286/gen has in assembly too.  And it has no fakcu.o,
+# the empty _cleanup that exit() calls in a program without stdio:
+# that works by the PDP-11's order of the library, and the 286's ld
+# took it in place of stdio's, which then did not flush at exit.
 #
 SRCS=	${STDSRC} ${MDSRC}
 OBJS=	${STDOBJ} ${MDOBJ}
-MDSRC=	abs.c bcmp.c bcopy.c bzero.c fabs.c ffs.c frexp.c index.c insque.c \
-	remque.c rindex.c strcat.c strcmp.c strcpy.c strlen.c strncat.c \
-	strncmp.c strncpy.c
-MDOBJ=	abs.o bcmp.o bcopy.o bzero.o fabs.o ffs.o frexp.o index.o insque.o \
-	remque.o rindex.o strcat.o strcmp.o strcpy.o strlen.o strncat.o \
-	strncmp.o strncpy.o
+MDSRC=	abs.c bcmp.c bcopy.c bzero.c fabs.c ffs.c frexp.c insque.c \
+	remque.c rindex.c strcat.c strncat.c strncpy.c
+MDOBJ=	abs.o bcmp.o bcopy.o bzero.o fabs.o ffs.o frexp.o insque.o \
+	remque.o rindex.o strcat.o strncat.o strncpy.o
 
 CFLAGS=	-O ${DEFS}
 STDSRC=	abort.c alarm.c atoi.c atol.c calloc.c closedir.c crypt.c \

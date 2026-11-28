@@ -38,4 +38,36 @@ RA      equ     2
 %1:
 %endmacro
 
+; For a function that takes data pointers, with BP its frame:
+;
+;       PTRSIZE is the size of one, 4 with -DFARDATA, or 2
+;       LDSSI n loads the one at [BP+n] into DS:SI, and LESDI n into
+;               ES:DI: a far one with its selector, and with a near one
+;               ES is made DS, for the string instructions
+;       SAVEDS  before LDSSI, and RESTDS before it returns, keep DS,
+;               which only a far one changes
+%ifdef FARDATA
+PTRSIZE equ     4
+  %define SAVEDS push ds
+  %define RESTDS pop ds
+%macro LDSSI 1
+        lds     si, [bp+%1]
+%endmacro
+%macro LESDI 1
+        les     di, [bp+%1]
+%endmacro
+%else
+PTRSIZE equ     2
+  %define SAVEDS
+  %define RESTDS
+%macro LDSSI 1
+        mov     si, [bp+%1]
+%endmacro
+%macro LESDI 1
+        mov     di, [bp+%1]
+        push    ds
+        pop     es
+%endmacro
+%endif
+
         segment _TEXT public align=2 class=CODE
