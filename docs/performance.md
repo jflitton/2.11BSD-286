@@ -514,6 +514,43 @@ right against each other, and as times on a real machine about 1.4
 times too small. The table to compare a change with now is the column
 with one wait state here.
 
+### A week later
+
+The same machine, unchanged, on 27 November, with the system of the
+SCSI tapes' commit (`065460d`) from its SCSI disk, and `bench` logged
+in by telnet with nobody else on; for K/s more is better:
+
+```
+test        19 November    27 November    the 27th to the 19th
+sieve        127075 us      139175          1.10
+long             96 us          85          0.89
+getpid          200 us         213          1.06
+write           433 us         471          1.09
+stat           1417 us        1591          1.12
+pipe           3834 us        4200          1.10
+pipeio          541 K/s        520          0.96
+fork          17166 us       17886          1.04
+exec          34500 us       37000          1.07
+shell        343400 us      295000          0.86
+creat         20660 us       21500          1.04
+fswrite         307 K/s        337          1.10
+fsread          349 K/s        420          1.20
+pty              41 K/s         40          0.98
+tcp             210 K/s        204          0.97
+tcprr          7766 us        8366          1.08
+telkey        14375 us       15754          1.10
+telcmd       194175 us      208750          1.08
+```
+
+The files and the shell were faster, and most of the rest about a
+tenth slower, `sieve` too, which is the processor's work in the
+program with no system call. That was not the program: the `bench` of
+the system on the card before, of 24 November's libraries, gave the
+same as this one on the same boot, `sieve` 139175 and 139600 µs to
+this one's 138750 and 140400. So something in the week's kernels
+made the machine slower evenly, as memory placed or waiting longer
+would; which has not been looked for.
+
 ## Files and the disk
 
 A block of a file, 1K, cost about 2 ms of the processor to read or
