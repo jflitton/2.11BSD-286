@@ -163,7 +163,7 @@ The file gives the clock's rate, `MAXUSERS`, which sizes the tables of
 processes, files and inodes, the most buffers, the slots
 ([processes](processes.md#slots-the-user-structure-and-kernel-stack)),
 `UCB_METER`, and a count of each device: `NWD` IDE disks, `NSD` SCSI
-disks, `NFL` diskette drives, `NRD` disks in memory, `NCOM` serial
+disks, `NST` SCSI tapes, `NFL` diskette drives, `NRD` disks in memory, `NCOM` serial
 ports, `NLP` parallel ports, `NNE` NE1000s and NE2000s, `NSL` SLIP
 interfaces, `NPTY` pseudo-terminals. A driver whose
 count is 0 is nothing in the kernel, and its places in the device
@@ -390,6 +390,9 @@ tests/slip/run.sh       # SLIP on COM2, whose far end sends each packet
                         # and fetched with rcp
 tests/lp/run.sh         # a printer on the parallel port: printing to
                         # /dev/lp0 and by lpr, and what came out
+tests/tape/run.sh       # SCSI tapes, QIC and DAT: a tape the host wrote
+                        # read, archives written and found again with
+                        # mt, a dump restored, a tape taken out
 tests/uucp/run.sh       # UUCP: the system calls itself by TCP, through
                         # uucpd, and by a pty, the t protocol and the g,
                         # and sends and fetches files and a letter
@@ -409,10 +412,10 @@ tests/ve/run.sh         # the editor ve, built for that machine too: 115
 
 The tests that boot the system as a machine has it, `tests/system`,
 `tests/network`, `tests/programs`, `tests/crash`, `tests/quota`,
-`tests/mx`, `tests/slip`, `tests/lp`, `tests/uucp`, `tests/fortran`,
-`tests/pascal`, `tests/prof`, `tests/bench`, `tests/libc` and
-`tests/ccom` with `self.sh`, boot either build of it: with
-`TOOLS=cross` the cross compiler's, and with `TOOLS=native` the
+`tests/mx`, `tests/slip`, `tests/lp`, `tests/tape`, `tests/uucp`,
+`tests/fortran`, `tests/pascal`, `tests/prof`, `tests/bench`,
+`tests/libc` and `tests/ccom` with `self.sh`, boot either build of it:
+with `TOOLS=cross` the cross compiler's, and with `TOOLS=native` the
 system's own compiler's, assembler's and linker's throughout, the
 kernel, the libraries, every program on the disk and the boot programs
 (`tests/harness/system.sh`). Without it they boot the default build,
@@ -609,6 +612,20 @@ and so on).
   printer printed must be as `printed` has it, and what `lpq` and
   `lpc` say as `expected` has it ([the
   console](console.md#the-parallel-port)).
+- `tests/tape` boots it from a SCSI disk with two of 86Box's tape
+  drives on the same Adaptec (`runtest.py --tape`): an Archive Viper
+  150, a QIC drive of 512-byte blocks, with a tape that has nothing on
+  it, and an Archive Python, a DAT drive of records of any length, with a
+  tape the harness wrote, a tar archive and four records of their own
+  sizes. Root reads that tape with `tcopy`, `tar` and `dd`; writes two
+  archives on the QIC tape and finds each again with `mt`, moves over
+  blocks and reads each file to its mark; dumps a file system to the QIC
+  tape and restores it onto another, the disk's commands and the
+  tape's out on the adapter together; writes the DAT tape with
+  `ansitape` and reads it back, then with `tar`; and takes the QIC
+  tape out. What they say must be as `expected` has
+  it, and the host must find on the DAT tape the archive written there
+  ([tapes](disks.md#scsi-tapes-sysi286atstc)).
 - `tests/uucp` boots it with `/etc/uucp/L.sys` naming it twice, as
   `loop`, called by TCP, where `inetd` starts `uucpd`, and as `ploop`,
   called by a direct line that is a pty, with a `uucico` at its other
@@ -687,6 +704,7 @@ are from single runs with an 86Box that has the automation socket.
 | `cc -p`, `mcrt0.o`, the monitor, `libc_p.a` or `prof` | `tests/prof` | 3 minutes, 16 when the build makes every program again |
 | SLIP, `slattach`, or the serial ports' driver | `tests/slip` | 3½ minutes |
 | the parallel port's driver, or `lpr` and `lpd` printing on it | `tests/lp` | 2 minutes |
+| the SCSI tapes' driver, `mt`, `tcopy`, `ansitape`, or `dump` and `restor` on a tape; the Adaptec's driver, with `tests/kernel` for the disks | `tests/tape` | 3 minutes |
 | `sendmail.MX`, or what `sendmail.cf` does with mail for another machine | `tests/mx` | 2½ minutes |
 
 The build here makes what the system makes of the same Makefiles, to

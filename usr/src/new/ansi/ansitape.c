@@ -1,5 +1,5 @@
 #if     !defined(lint) && defined(DOSCCS)
-static char sccsid[] = "@(#)ansitape.c    1.1 (2.11BSD) 2025/12/26";
+static char sccsid[] = "@(#)ansitape.c    1.2 (2.11BSD) 2026/11/27";
 #endif
 
 #include <sys/types.h>
@@ -251,7 +251,7 @@ writefile(tape,file,filename,tapename,filenum,year,day,blocksize)
 	writedata(tape,file,filename,&blocks,blocksize);
 	writetm(tape);
 	writeeof1(tape,filename,tapename,filenum,year,day,blocks);
-	writeeof2(tape);
+	writeeof2(tape,blocksize);
 	writeeof3(tape);
 	writetm(tape);
 	totalwritefiles++;
@@ -415,9 +415,11 @@ writehdr1(tape,filename,tapename,filenum,year,day)
 	int day;
 {
 	char buf[81];
+	char c = year >= 100 ? '0' : ' ';	/* the century: 20, or 19 */
+
 	sprintf(buf,
-"HDR1%-17.17s%-6.6s0001%4.4d000101 %2.2d%3.3d %2.2d%3.3d 000000DECFILE11A          "
-		,filename,tapename,filenum,year,day,year,day);
+"HDR1%-17.17s%-6.6s0001%4.4d000101%c%2.2d%3.3d%c%2.2d%3.3d 000000DECFILE11A          "
+		,filename,tapename,filenum,c,year%100,day,c,year%100,day);
 	write(tape,buf,80);
 }
 
@@ -431,9 +433,11 @@ writeeof1(tape,filename,tapename,filenum,year,day,blocks)
 	int blocks;
 {
 	char buf[81];
+	char c = year >= 100 ? '0' : ' ';	/* the century: 20, or 19 */
+
 	sprintf(buf,
-"EOF1%-17.17s%-6.6s0001%4.4d000101 %2.2d%3.3d %2.2d%3.3d %6.6dDECFILE11A          "
-		,filename,tapename,filenum,year,day,year,day,blocks);
+"EOF1%-17.17s%-6.6s0001%4.4d000101%c%2.2d%3.3d%c%2.2d%3.3d %6.6dDECFILE11A          "
+		,filename,tapename,filenum,c,year%100,day,c,year%100,day,blocks);
 	write(tape,buf,80);
 }
 
@@ -476,7 +480,7 @@ writevol(tapename,tape)
 	char *tapename;
 {
 	char buf[81];
-	sprintf(buf,"VOL1%-6.6s %26.26sD%47510.10s1%28.28s3",tapename," "," "," ");
+	sprintf(buf,"VOL1%-6.6s %26.26sD%cC%10.10s1%28.28s3",tapename," ",'%'," "," ");
 	write(tape,buf,80);
 	if(vflag) {
 		fprintf(stdout," tape labeled %-6.6s\n",tapename);

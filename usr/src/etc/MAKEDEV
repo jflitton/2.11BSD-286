@@ -1,6 +1,6 @@
 #!/bin/sh -
 #
-#	@(#)MAKEDEV	1.2 (2.11BSD) 2026/11/26
+#	@(#)MAKEDEV	1.3 (2.11BSD) 2026/11/27
 #
 # Device "make" file for the 286: upstream's, with this machine's
 # devices in place of the PDP-11's.  Valid arguments:
@@ -13,6 +13,8 @@
 #	wd*	hard disks on the AT disk controller
 #	sd*	SCSI disks on an Adaptec AHA-154x
 #	fl*	diskettes
+# Tapes:
+#	st*	SCSI tapes on an Adaptec AHA-154x
 # Terminals:
 #	vt	the console's other screens
 #	com*	serial ports
@@ -31,7 +33,8 @@ do
 case $i in
 
 all)
-	sh MAKEDEV std wd0 wd1 sd0 sd1 fl0 fl1 ram vt com0 com1 pty0 lp0
+	sh MAKEDEV std wd0 wd1 sd0 sd1 fl0 fl1 st0 st1 ram vt com0 com1 \
+	    pty0 lp0
 	;;
 
 std)
@@ -108,6 +111,33 @@ fl*)
 		;;
 	*)
 		echo bad unit for diskette in: $i
+		;;
+	esac
+	umask 77
+	;;
+
+st*)
+	# Upstream's names for a drive's tape (mtio(4)): rmt0 is rewound
+	# when it is closed, and nrmt0, which is rmt4, is not; rmt8 and
+	# rmt12, nrmt8, are the same again, the higher density on
+	# upstream's drives, and what the programs open by default.  There
+	# is no block device.
+	umask 0
+	unit=`expr $i : 'st\(.*\)'`
+	case $unit in
+	0|1|2|3)
+		four=`expr $unit + 4`
+		eight=`expr $unit + 8`
+		twelve=`expr $unit + 12`
+		mknod rmt$unit c 13 $unit
+		mknod rmt$four c 13 $four
+		mknod rmt$eight c 13 $eight
+		mknod rmt$twelve c 13 $twelve
+		mknod nrmt$unit c 13 $four
+		mknod nrmt$eight c 13 $twelve
+		;;
+	*)
+		echo bad unit for tape in: $i
 		;;
 	esac
 	umask 77

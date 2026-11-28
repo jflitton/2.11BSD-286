@@ -1,6 +1,7 @@
 #! /bin/sh
 #	2.11BSD script to set up a new kernel configuration directory.
 #
+#	2026/11/27 - NST, the SCSI tapes on the Adaptec (st).
 #	2026/11/23 - the 286's.  The machine's file gives the counts of the
 #		     286's devices, and the kernel's Makefile is made of
 #		     Make.nsunix, with the 286's Make.i286, Make.i286at and
@@ -55,7 +56,7 @@ if [ "$PDP11" ]; then
 	echo "$0: $MACHINE is a PDP-11's, and this is the 286's config."
 	exit 1
 fi
-for i in MAXUSERS LINEHZ NBUF NSLOT NWD NSD NFL NRD NCOM NLP NETHER NNE NSL NPTY
+for i in MAXUSERS LINEHZ NBUF NSLOT NWD NSD NST NFL NRD NCOM NLP NETHER NNE NSL NPTY
 do
 	eval v=\$$i
 	if [ ! "$v" ]; then
@@ -131,6 +132,7 @@ echo "#define NPTY	$NPTY"		> ../$MACHINE/pty.h
 echo "#define NRD	$NRD"		> ../$MACHINE/rd.h
 echo "#define NSD	$NSD"		> ../$MACHINE/sd.h
 echo "#define NSL	$NSL"		> ../$MACHINE/sl.h
+echo "#define NST	$NST"		> ../$MACHINE/st.h
 echo "#define NWD	$NWD"		> ../$MACHINE/wd.h
 
 # What the code the 286 shares with the PDP-11 asks of drivers the 286

@@ -1,7 +1,7 @@
-# Disks
+# Disks and tapes
 
-What a disk looks like to the kernel on a PC, and the two drivers for
-real disks. They run in the emulator under `tests/kernel`, which boots
+What a disk looks like to the kernel on a PC, the two drivers for
+real disks, and the one for SCSI tapes. They run in the emulator under `tests/kernel`, which boots
 the kernel with its root file system and swap area on a hard disk, and
 from the disk itself ([booting](boot.md)).
 
@@ -13,6 +13,7 @@ from the disk itself ([booting](boot.md)).
 | 1 | 8 | hard disks on the AT disk controller | `sys/i286at/wd.c` |
 | 2 | 9 | SCSI disks on an Adaptec AHA-1540 or 1542 | `sys/i286at/sd.c`, `aha.c` |
 | 3 | 11 | diskettes on the AT diskette controller | `sys/i286at/fl.c` |
+| | 13 | SCSI tapes on the same Adaptec as the SCSI disks | `sys/i286at/st.c`, `aha.c` |
 
 A hard disk's minor number is the drive in bits 3 and up and the
 partition, `a` to `h`, in the low three: `wd0a` is 0, `wd1c` is 10. A
@@ -124,7 +125,8 @@ copied on the way.
 ## The Adaptec SCSI adapter (`sys/i286at/aha.c`, `sd.c`)
 
 For the AHA-1540 and 1542, models B, C, CF and CP. `aha.c` is the
-adapter and `sd.c` the disks on it.
+adapter, `sd.c` the disks on it and `st.c` the tapes
+([below](#scsi-tapes-sysi286atstc)).
 
 - The adapter is looked for at each of the six I/O addresses it can be
   set to. Its interrupt request and DMA channel are read from it, so
@@ -190,8 +192,11 @@ adapter and `sd.c` the disks on it.
   `aha_speed` (50, 57, 67, 80 or 100, tenths of a megabyte a second).
   A speed that the machine's memory cannot keep up with spoils what is
   read and written, the file system's own blocks with the rest.
-- One command is out at a time. It is for the transfer at the head of
-  the queue and for as many of those after it, up to 16 transfers and
+- The disks have one command out at a time, in a CCB of their own; the
+  tapes have another, which may be out with it, a target leaving the
+  bus while it works, so that a tape rewinding for a minute does not
+  hold the disks up. The disks' command is for the transfer at the
+  head of the queue and for as many of those after it, up to 16 transfers and
   32K, as go the same way and each begin on the disk where the one
   before ends: the adapter is given a list of where each one's data is
   and fills or empties them in turn, so still nothing is copied. A
@@ -218,11 +223,86 @@ adapter and `sd.c` the disks on it.
   understood it and refused, or is not there. If it was for several
   transfers and still fails, each of them is sent by itself, to succeed
   or to have the error that is its own, and the driver says so.
-- Once a second the driver looks at a command that is still out. If the
-  adapter says it has finished, the interrupt was lost, and the driver
-  carries on and says so once. If it has been out 30 seconds
-  (`ahatimeout`), the adapter and the SCSI bus are reset and the command
-  is sent again.
+- Once a second the driver looks at the commands that are still out. If
+  the adapter says one has finished, the interrupt was lost, and the
+  driver carries on and says so once. If one has been out longer than
+  it may be, 30 seconds for a disk's (`ahatimeout`), the adapter and the
+  SCSI bus are reset, and each command that was out is sent again or
+  fails, as its driver does with it.
+
+## SCSI tapes (`sys/i286at/st.c`)
+
+Any SCSI tape drive on the Adaptec, beside the disks (`st(4)`). The
+driver asks a drive what it can do, not which it is, and uses
+upstream's interface for a tape, `mtio.h`: a read or a write is a
+record, a file ends at a tape mark, and `ioctl` moves the tape.
+
+- The bus is looked over when a tape is first opened. Each tape drive
+  found, in order of SCSI id, is the next drive: `st0`, `st1`, up to
+  `NST` (2 in `sys/conf/PC`, at most 4), only unit 0 of a target. The
+  driver says what it found, as `sd.c` does:
+
+  ```
+  st0: ARCHIVE VIPER 150 21247 2.10, id 2, async
+  st1: ARCHIVE Python 04687-XXX 4.CM, id 3, async
+  ```
+
+- The names are upstream's (`MAKEDEV st0`): `rmt0` is rewound when it
+  is closed and `nrmt0`, minor 4, is not; `rmt8` and `nrmt8` are the
+  same again, the higher density of two on upstream's drives, and the
+  tape the programs open when given none. Here the density is the
+  drive's, which writes at the one it chooses for the tape and reads
+  whatever it finds, and bit 8 of the minor number does nothing. There
+  is no block device: upstream's was for 1K blocks through the buffer
+  cache, which nothing here reads a tape by.
+- A drive whose least record is a byte, as a DAT is, is set to records
+  of any length (`MODE SELECT`, a block length of 0): a write is a
+  record, and a read takes one, which must be no longer than the read.
+  Any other, as a QIC drive, has blocks of one size, the one it is set
+  to, or its least if that is not between its limits: a read or a write
+  is of whole blocks, as many as it asks for, so a write of 10K is
+  twenty, and one that is not of whole blocks is refused (`EINVAL`).
+  Each goes straight to or from the process's memory, as a disk's raw
+  transfer does.
+- A read that stops short says so: at a tape mark, which returns 0, and
+  the next read is of the next file; at the end of what is written,
+  which returns 0 too; or with a record shorter than the read, which
+  returns the record. A read of a fixed-block tape that meets a mark
+  after some blocks returns those, and the next read returns 0. The
+  drive says how much it did not move in its sense data, and the driver
+  goes by that. A drive that returns a short record with no error, as
+  86Box's do, leaves only the adapter's count: a C, CF or CP gives it
+  when the command asks (CCB opcode 3), and the driver takes it only
+  when there is no sense data, since 86Box's adapter leaves 0 there
+  when there is.
+- 86Box's drives differ from real ones in two ways that `tests/tape`
+  avoids. A fixed-block read that meets a mark after some blocks says
+  it read the whole length, so the test reads whole files. Its HP
+  C5683A gives limits of 512 bytes to 32K, so here it is a drive of
+  512-byte blocks; the test's DAT drive is the Archive Python, whose
+  records are of any length, as a real DAT drive's are.
+- A tape that was written gets one tape mark when it is closed, where
+  upstream's drivers write two, the end of a nine-track tape, and go
+  back over the second. A QIC drive writes only at the end of what is on
+  the tape, so a mark there could not be written over; the end of what
+  is written reads as an end of file anyway, so a tape still ends with
+  two. Then it is rewound, unless the minor number says not, and close
+  waits for it: the disks do not.
+- `open` waits up to a minute for a drive that is loading a tape, and
+  says on the opener's terminal when there is no tape or the tape is
+  write protected and was opened to write. A read's or a write's error
+  goes there and to the log, with the drive's sense key and code.
+- A read or a write may take 15 minutes, and a command that may move the
+  whole tape, a rewind, a move over files, a tape mark, 4 hours, before
+  the adapter is reset. Near the end of the tape a drive warns that it
+  is there, after which writes are refused (`ENOSPC`, unless
+  `MTIOCIEOT`), with room left for the mark.
+- `mt status` says `SCSI tape drive` (`MT_ISST`), whether the tape is
+  write protected (`WRTLCK`), past the warning (`EOM`) or last written
+  (`WRITTEN`), and the third byte of the last sense data, the key under
+  `MARK`, `EOM` and `ILI`, with the additional sense code above it.
+- `lseek` does not move the tape: upstream's raw tapes take it only as
+  where the next block is counted from.
 
 ## The diskette controller (`sys/i286at/fl.c`)
 

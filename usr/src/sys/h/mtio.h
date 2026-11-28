@@ -3,7 +3,7 @@
  * All rights reserved.  The Berkeley software License Agreement
  * specifies the terms and conditions for redistribution.
  *
- *	@(#)mtio.h	7.2 (2.11BSD) 2020/1/7
+ *	@(#)mtio.h	7.3 (2.11BSD) 2026/11/27
  */
 
 /*
@@ -56,6 +56,7 @@ struct	mtget	{
 #define	MT_ISCPC	0x06		/* SUN */
 #define	MT_ISAR		0x07		/* SUN */
 #define	MT_ISTMSCP	0x08		/* DEC TMSCP protocol (TU81, TK50) */
+#define	MT_ISST		0x09		/* SCSI tape on the 286 (st) */
 
 /*
  * At present only the TMSCP driver reports this information in the

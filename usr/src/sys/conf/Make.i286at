@@ -1,15 +1,15 @@
 #
 # The drivers of the PC/AT's devices, as Make.pdpuba is the PDP-11's
 # UNIBUS's.  Each is nothing when its count in the machine's file is 0;
-# aha.c is the SCSI disks' (sd), and pcdisk.c what the hard disks' have
-# in common.
+# aha.c is the SCSI disks' and tapes' (sd, st), and pcdisk.c what the
+# hard disks' have in common.
 #
 U=	../i286at
 VPATH=	../i286at
 
 CFILES=	${U}/aha.c ${U}/com.c ${U}/fl.c ${U}/kbd.c ${U}/lp.c ${U}/pcdisk.c \
-	${U}/sd.c ${U}/vt.c ${U}/wd.c
-OBJS=	aha.o com.o fl.o kbd.o lp.o pcdisk.o sd.o vt.o wd.o
+	${U}/sd.c ${U}/st.c ${U}/vt.c ${U}/wd.c
+OBJS=	aha.o com.o fl.o kbd.o lp.o pcdisk.o sd.o st.o vt.o wd.o
 
 .c.o:
 	${CC} ${CFLAGS} -c $<

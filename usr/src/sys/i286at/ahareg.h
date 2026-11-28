@@ -90,11 +90,16 @@ struct ccb {
 #define	CCB_PIECES	0x02	/* cc_op: the data is in pieces, and
 				   cc_dataptr and cc_datalen are of a
 				   list of them, struct ahaseg */
+#define	CCB_RESID	0x03	/* C and later: cc_datalen is given back
+				   as what was not moved (aharesid) */
 #define	CCB_DATAIN	0x08	/* cc_idlun: target to memory */
 #define	CCB_DATAOUT	0x10
 #define	CCB_NODATA	0x18
 
-/* A piece of a command's data.  A 1542B takes 17 of them, a C 255. */
+/*
+ * A piece of a command's data.  A 1542B takes 17 of them, a C 255; a
+ * driver that sends its data in pieces has a list of AHA_NSEG.
+ */
 struct ahaseg {
 	u_char	sg_len[3];
 	u_char	sg_addr[3];
@@ -107,6 +112,7 @@ struct ahaseg {
 
 #define	SS_GOOD		0x00	/* cc_tarstat */
 #define	SS_CHECK	0x02	/* there is sense data */
+#define	SS_BUSY		0x08
 
 /* SCSI commands and sense keys. */
 #define	SC_INQUIRY	0x12
@@ -115,11 +121,15 @@ struct ahaseg {
 #define	SC_WRITE10	0x2A
 
 #define	SK_RECOVERED	1
+#define	SK_NOTREADY	2
+#define	SK_MEDIUM	3
+#define	SK_HARDWARE	4
 #define	SK_ILLEGAL	5
 #define	SK_ATTENTION	6
 #define	SK_PROTECT	7
+#define	SK_BLANK	8	/* nothing written there */
+#define	SK_OVERFLOW	0x0D	/* no room left for what was written */
 
 #ifdef KERNEL
-extern struct ccb ahaccb;	/* the one CCB */
 extern int ahatest;		/* what is made to go wrong (aha.c) */
 #endif

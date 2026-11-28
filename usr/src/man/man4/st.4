@@ -1,0 +1,149 @@
+.\" Public Domain.  After ts.4 and mtio.4, for SCSI tapes on a PC.
+.\"
+.\"	@(#)st.4	1.1 (2.11BSD) 2026/11/27
+.\"
+.TH ST 4 "November 27, 2026"
+.UC 2
+.SH NAME
+st \- SCSI tapes
+.SH SYNOPSIS
+.ft B
+.nf
+/sys/conf/PC:
+	NST	\fIst_drives\fP		# SCSI tapes, on the Adaptec
+
+major device number(s):
+	raw: 13
+minor device encoding:
+	bits 0003 specify the drive
+	bit  0004 specifies no-rewind operation
+	bit  0010 ignored
+.fi
+.ft R
+.SH DESCRIPTION
+The
+.I st
+device provides access to SCSI tape drives on an Adaptec AHA-1540 or
+1542, the adapter the SCSI disks are on.
+The bus is looked over when a tape is first opened, and each tape drive
+found there becomes the next drive, in order of SCSI id, up to
+.BR NST .
+The kernel says what it found:
+.PP
+.nf
+	st0: ARCHIVE VIPER 150 21247 2.10, id 2, async
+.fi
+.PP
+Any SCSI tape drive is used the same way.
+A drive whose least record is a byte, such as a DAT drive, is set to
+records of any length: each write is a record of its own, and each read
+takes one record, which must be no longer than the read.
+Any other, such as a QIC drive, is read and written in blocks of the
+size it is set to, 512 bytes for QIC: a read or a write must be of whole
+blocks, and is of as many as it asks for, so that a write of 10240
+bytes is twenty blocks.
+A drive writes at the density it chooses for the tape, and reads
+whatever density it finds.
+.PP
+The files are
+.I rmt0
+to
+.IR rmt3 ,
+which are rewound when they are closed, and
+.I nrmt0
+to
+.I nrmt3
+(the same as
+.I rmt4
+to
+.IR rmt7 ),
+which are not.
+.I rmt8
+to
+.I rmt15
+and
+.I nrmt8
+to
+.I nrmt11
+are the same again: upstream's drives took them for a second density,
+and the programs open
+.I /dev/rmt8
+and
+.I /dev/nrmt8
+when they are given no tape.
+There is no block device.
+.PP
+A tape opened to write and written, or opened only to write, has a
+tape mark written at the end when it is closed: one, which ends the
+file.
+A read past the last file finds the end of what is written on the tape
+and returns 0, as at a tape mark, so a tape ends with two ends of file,
+as upstream's do with two marks.
+A tape that is not rewound is left just after the mark, where the next
+file may be written.
+A read at a tape mark returns 0, and the next read is of the next file.
+.PP
+The
+.I ioctl
+calls of
+.I <sys/mtio.h>
+work on the raw files:
+MTIOCTOP with MTWEOF (write tape marks), MTFSF and MTBSF (move forward
+or back over tape marks), MTFSR and MTBSR (over records, or blocks), MTREW
+(rewind), MTOFFL (rewind and unload), MTNOP, and MTFLUSH (write what the
+drive holds, with no mark); MTIOCGET, whose
+.I mt_type
+is MT_ISST, with the bits MTF_EOM, MTF_WRTLCK and MTF_WRITTEN in the
+high byte of
+.IR mt_dsreg ,
+the third byte of the last sense data the drive sent in
+.I mt_erreg
+with the additional sense code above it, and what the drive did not do of
+the last command in
+.IR mt_resid ;
+and MTIOCIEOT and MTIOCEEOT.
+Near the end of the tape a drive warns that it is there; after that
+writes are refused with ENOSPC, unless MTIOCIEOT has said to let them
+be, and there is room for the tape mark.
+.SH FILES
+.ta \w'/dev/nrmt?  'u
+/dev/rmt?	rewound when closed
+.br
+/dev/nrmt?	not rewound
+.DT
+.SH "SEE ALSO"
+mt(1),
+tar(1),
+tcopy(1),
+dump(8),
+restor(8)
+.SH DIAGNOSTICS
+These are written on the terminal of whoever opened the tape, and the
+last three in the system's log as well.
+.PP
+\fBst%d: no tape\fR.  The drive has no tape in it.
+.PP
+\fBst%d: not ready, sense key %d, code %x\fR.  The drive was not ready,
+for the reason the codes give.
+A drive that is loading a tape is waited for, for a minute.
+.PP
+\fBst%d: write protected\fR.  The tape was opened to write, and is
+protected against writing.
+.PP
+\fBst%d: blocks of %D bytes unsupported\fR.  The drive's records are all
+of a size larger than 32K.
+.PP
+\fBst%d: a record of %D bytes, read with %u\fR.  A read was shorter than
+the record it found; the rest of the record is lost.
+.PP
+\fBst%d: a block not of %u bytes\fR.  The tape has blocks of another size
+than the drive's.
+.PP
+\fBst%d: read: sense key %d, code %x\fR, and the same for a write.  The
+drive failed to read or write, for the reason the codes give.
+.SH BUGS
+Only one adapter, and only unit 0 of a target.
+A drive switched on after the bus was looked over is not found.
+.PP
+.I Lseek
+does not move the tape, as upstream's raw tapes do not.

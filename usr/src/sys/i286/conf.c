@@ -55,6 +55,16 @@ daddr_t	sdsize();
 #define	sddump		NULL
 #endif
 
+#include "st.h"
+#if NST > 0
+int	stopen(), stclose(), ststrategy(), stioctl();
+#else
+#define	stopen		nodev
+#define	stclose		nodev
+#define	ststrategy	nodev
+#define	stioctl		nodev
+#endif
+
 #include "fl.h"
 #if NFL > 0
 int	flopen(), flclose(), flstrategy(), flioctl();
@@ -207,6 +217,10 @@ struct cdevsw	cdevsw[] = {
 	lpopen,		lpclose,	nodev,		lpwrite,
 	nodev,		nulldev,	0,		nodev,
 	nulldev,
+/* rst = 13: SCSI tapes, which have no block device */
+	stopen,		stclose,	rawrw,		rawrw,
+	stioctl,	nulldev,	0,		seltrue,
+	ststrategy,
 };
 int	nchrdev = sizeof(cdevsw) / sizeof(cdevsw[0]);
 
@@ -247,7 +261,7 @@ isdisk(dev, type)
 	return (0);
 }
 
-#define MAXDEV	13
+#define MAXDEV	14
 static char chrtoblktbl[MAXDEV] =  {
       /* CHR */      /* BLK */
 	/* 0 */		NODEV,
@@ -263,6 +277,7 @@ static char chrtoblktbl[MAXDEV] =  {
 	/* 10 */	NODEV,
 	/* 11 */	3,		/* fl */
 	/* 12 */	NODEV,
+	/* 13 */	NODEV,
 };
 
 /*

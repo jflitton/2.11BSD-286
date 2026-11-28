@@ -1,0 +1,64 @@
+== status
+SCSI tape drive, residual=0
+ds=0
+er=0
+SCSI tape drive, residual=0
+ds=0
+er=0
+== the host's tape
+file 1: record 1: size 10240
+file 1: eof after 1 records: 10240 bytes
+file 2: record 1: size 100
+file 2: record 2: size 3000
+file 2: record 3: size 512
+file 2: record 4: size 7
+file 2: eof after 4 records: 3619 bytes
+eot
+total length: 13859 bytes
+hello from the host
+and goodbye
+0+4 records in
+0+4 records out
+    3619
+0000000    0   1   2   3   4   5   6   7   8   9   0   1   2   3   4   5
+at the end:
+0+0 records in
+0+0 records out
+== the QIC tape: two archives, one after the other
+lines
+more
+blocks: past the header, and back over one
+line 1
+line 2
+reads of 10K: each file to its mark, and the end
+4+0 records in
+4+0 records out
+1+0 records in
+1+0 records out
+0+0 records in
+0+0 records out
+a read that is not of whole blocks:
+read: Invalid argument
+0+0 records in
+0+0 records out
+lines: the same
+== dump and restor through the QIC tape
+dump: 0
+newfs: 0
+restor: 0
+fsck: 0
+restored: the same
+== the DAT tape, labelled as ANSI has it
+t - MORE:  500 lines (3892 chars) in 3 tape blocks
+MORE: the same, its name in capitals as VMS has it
+== the DAT tape, written
+lines
+more
+file 1: records 1 to 4: size 10240
+file 1: eof after 4 records: 40960 bytes
+eot
+total length: 40960 bytes
+== the QIC tape, taken out
+st0: no tape
+/dev/rmt0: Input/output error
+== end

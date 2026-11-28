@@ -12,14 +12,6 @@ A program marked *medium* was linked with overlays on the PDP-11 and
 will be a medium-model program here, as `csh`, `ex`, `tcsh` and
 `sendmail` are ([the C library and programs](userland.md)).
 
-## What the kernel lacks first
-
-Some programs wait on more than themselves:
-
-| what | for |
-|---|---|
-| A tape driver | `mt`, `tcopy`, `ansitape`, `vmsbackup`, and `dump` and `restor` to a tape |
-
 ## The compiler and object files
 
 Upstream's `cc` is the PDP-11's compiler, so a compiler on the system
@@ -131,17 +123,6 @@ All are ported: `nroff` and `troff`, with `tbl`, `eqn`, `neqn`, `refer`,
 | program | where | notes |
 |---|---|---|
 | `mkhosts` | `usr.sbin/mkhosts` | `/etc/hosts` as a database. Its Makefile is run, as upstream's is, and installs nothing: `mkhosts` needs `gethostent`, which the C library has only when it reads the table of hosts itself, and it asks `named`, as upstream's does (`HOSTLOOKUP` in `lib/libc/Makefile`) |
-
-## Tapes
-
-Each waits on a tape driver: it moves the tape, or reads and writes its
-files between the marks that end them, which a file on a disk has not.
-
-| program | where | notes |
-|---|---|---|
-| `mt`, `tcopy` | `bin`, `ucb` | |
-| `ansitape` | `new/ansi` | ANSI labelled tapes |
-| `vmsbackup` | `new/vmsbackup` | reads VMS's backup tapes |
 
 ## Games
 

@@ -39,6 +39,7 @@
 /bin/mail f 4755 0.0
 /bin/make f 755 0.0
 /bin/mkdir f 755 0.10
+/bin/mt f 755 0.10
 /bin/mv f 755 0.10
 /bin/nice f 755 0.10
 /bin/nm f 755 0.10
@@ -83,6 +84,10 @@
 /dev/kmem c 640 0.2 1 1
 /dev/lp0 c 666 0.0 12 0
 /dev/mem c 640 0.2 1 0
+/dev/nrmt0 c 666 0.0 13 4
+/dev/nrmt1 c 666 0.0 13 5
+/dev/nrmt8 c 666 0.0 13 12
+/dev/nrmt9 c 666 0.0 13 13
 /dev/null c 666 0.0 1 2
 /dev/ptyp0 c 666 0.0 5 0
 /dev/ptyp1 c 666 0.0 5 1
@@ -96,6 +101,14 @@
 /dev/rd1 b 600 0.0 0 1
 /dev/rfl0 c 640 0.5 11 0
 /dev/rfl1 c 640 0.5 11 1
+/dev/rmt0 c 666 0.0 13 0
+/dev/rmt1 c 666 0.0 13 1
+/dev/rmt12 c 666 0.0 13 12
+/dev/rmt13 c 666 0.0 13 13
+/dev/rmt4 c 666 0.0 13 4
+/dev/rmt5 c 666 0.0 13 5
+/dev/rmt8 c 666 0.0 13 8
+/dev/rmt9 c 666 0.0 13 9
 /dev/rsd0a c 640 0.5 9 0
 /dev/rsd0b c 640 0.5 9 1
 /dev/rsd0c c 640 0.5 9 2
@@ -616,6 +629,7 @@
 /usr/include/i286at/ahareg.h f 444 0.0
 /usr/include/i286at/flreg.h f 444 0.0
 /usr/include/i286at/pcdisk.h f 444 0.0
+/usr/include/i286at/streg.h f 444 0.0
 /usr/include/i286at/vt.h f 444 0.0
 /usr/include/ident.h f 444 0.0
 /usr/include/inttypes.h f 444 0.0
@@ -1114,6 +1128,7 @@
 /usr/man/cat1/more.0 f 444 0.10 = /usr/man/cat1/more.0
 /usr/man/cat1/mset.0 f 444 0.10
 /usr/man/cat1/msgs.0 f 444 0.10
+/usr/man/cat1/mt.0 f 444 0.10
 /usr/man/cat1/mv.0 f 444 0.10
 /usr/man/cat1/neqn.0 f 444 0.10 = /usr/man/cat1/checkeq.0
 /usr/man/cat1/netstat.0 f 444 0.10
@@ -1183,6 +1198,7 @@
 /usr/man/cat1/tar.0 f 444 0.10
 /usr/man/cat1/tbl.0 f 444 0.10
 /usr/man/cat1/tc.0 f 444 0.10
+/usr/man/cat1/tcopy.0 f 444 0.10
 /usr/man/cat1/tcsh.0 f 444 0.10
 /usr/man/cat1/tee.0 f 444 0.10
 /usr/man/cat1/telnet.0 f 444 0.10
@@ -1921,6 +1937,7 @@
 /usr/man/cat4/networking.0 f 444 0.10
 /usr/man/cat4/null.0 f 444 0.10
 /usr/man/cat4/pty.0 f 444 0.10
+/usr/man/cat4/st.0 f 444 0.10
 /usr/man/cat4/tcp.0 f 444 0.10
 /usr/man/cat4/tty.0 f 444 0.10
 /usr/man/cat4/udp.0 f 444 0.10
@@ -2132,6 +2149,7 @@
 /usr/man/whatis f 444 0.10
 /usr/msgs d 777 0.0
 /usr/new d 755 0.0
+/usr/new/ansitape f 755 0.0
 /usr/new/jove f 755 0.0
 /usr/new/la f 755 0.0
 /usr/new/lib d 755 0.10
@@ -2143,9 +2161,12 @@
 /usr/new/lib/jove/teach-jove f 644 0.10
 /usr/new/man d 755 0.0
 /usr/new/man/cat1 d 755 0.0
+/usr/new/man/cat1/ansitape.0 f 444 0.10
 /usr/new/man/cat1/jove.0 f 444 3.20
 /usr/new/man/cat1/la.0 f 444 0.10
 /usr/new/man/cat1/teachjove.0 f 444 3.20
+/usr/new/man/cat1/vmsbackup.0 f 444 0.10
+/usr/new/man/cat1/vmsprep.0 f 444 0.10
 /usr/new/man/cat2 d 755 0.0
 /usr/new/man/cat3 d 755 0.0
 /usr/new/man/cat4 d 755 0.0
@@ -2155,6 +2176,8 @@
 /usr/new/man/cat8 d 755 0.0
 /usr/new/man/whatis f 664 0.0
 /usr/new/teachjove f 755 0.0
+/usr/new/vmsbackup f 755 3.0
+/usr/new/vmsprep f 755 0.0
 /usr/preserve d 755 0.0
 /usr/pub d 755 0.0
 /usr/pub/ascii f 444 0.10
@@ -3202,6 +3225,7 @@
 /usr/ucb/strings f 755 0.0
 /usr/ucb/tail f 755 0.0
 /usr/ucb/talk f 2755 0.4
+/usr/ucb/tcopy f 755 0.0
 /usr/ucb/tcpdchk f 755 0.10
 /usr/ucb/tcpdmatch f 755 0.10
 /usr/ucb/telnet f 755 0.0

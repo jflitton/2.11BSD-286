@@ -68,7 +68,7 @@ cp "$top/usr/src/usr.bin/spell/stop" checks/d
         echo "f /${f#checks/} 644 $f"
     done
 } > checks.proto
-python3 -I "$top/tools/mkfs.py" -s 800 checks.proto checks.fs >/dev/null
+python3 -I "$top/tools/mkfs.py" -s 1000 checks.proto checks.fs >/dev/null
 
 geometry=$(python3 -I "$top/tools/mkdisk.py" -p -g 977,5,17 \
     -b "$stand/hdboot.bin" -m "$stand/mbr.bin" programs.img a=root.fs b=swap:4000 d=checks.fs | tail -1)

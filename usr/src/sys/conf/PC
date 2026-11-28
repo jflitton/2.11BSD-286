@@ -63,6 +63,7 @@ NSLOT		6			# slots, the swapper's among them
 NWD		2		# IDE disks on the AT's controller, 0x1F0
 				# and interrupt 14: at most 2
 NSD		4		# SCSI disks, on an Adaptec 1540 or 1542
+NST		2		# SCSI tapes, on the same Adaptec: at most 4
 NFL		2		# diskette drives, on the AT's controller:
 				# at most 2
 NRD		2		# disks in memory: the root /boot loads,

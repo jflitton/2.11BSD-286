@@ -931,7 +931,9 @@ left as it is:
 
 Left out of this batch: `tc` and `tk`, which are for a Tektronix
 4014; `from`, `biff` and `msgs`, which came with
-[mail](#mail), and `calendar`, which runs `/lib/cpp`; `tcopy`, `mt` and `tp`, for tapes; the scripts
+[mail](#mail), and `calendar`, which runs `/lib/cpp`; `tcopy` and `mt`,
+which came with the tape driver ([tapes](#tapes)), and `tp`, for
+DECtape; the scripts
 `lorder`, `mkdep` and `lint`, which run `nm`, the compiler and the
 passes of `lint`, and came with [the compiler](#the-compiler), as
 `calendar` did; `spell` and `indent`, which came [with what documents
@@ -1736,9 +1738,10 @@ the dump. `dump` reads a file system through its raw device, which only
 root and the group `operator` may, and copies all of it (level 0), or
 what has changed since the last dump of a lower level, which
 `/etc/dumpdates` keeps with `u`; `W` and `w` say from that file and
-`fstab` what is due. There is no tape drive yet, so a dump goes to a
-file, named with `f`, or with `f -` to the standard output, from which
-`restor rf -` can read it in a pipe, as `restor(8)` shows for copying a
+`fstab` what is due. A dump goes to a tape, `/dev/rmt8` unless `f`
+names another ([tapes](#tapes)); to a file, named with `f`; or with
+`f -` to the standard output, from which `restor rf -` can read it in a
+pipe, as `restor(8)` shows for copying a
 file system. `rdump`, which only root may run, since it takes a
 privileged port, writes it on another machine through `rsh` and `rmt`
 there; `rmt` opens a file without making it, as 4.3BSD's does, so the
@@ -1839,6 +1842,52 @@ is killed with signal 6; `chflags uchg` must keep a file from being
 removed and written to until `nouchg`; and `la` must print three
 averages. At the terminal, it starts `window`, runs a command in a
 window on a pty, and leaves it with ^P `q`.
+
+## Tapes
+
+| Where | |
+|---|---|
+| `/bin` | `mt` |
+| `/usr/ucb` | `tcopy` |
+| `/usr/new` | `ansitape`, `vmsprep`, `vmsbackup` |
+
+They came with the tape driver, for any SCSI tape drive on the Adaptec
+([tapes](disks.md#scsi-tapes-sysi286atstc), `st(4)`). The programs'
+tape is drive 0's as upstream names it: `tar` and `dump` write
+`/dev/rmt8`, which is rewound when it is closed, and `mt` and
+`ansitape` move `/dev/nrmt8` and `/dev/rmt12`, which are not. `mt`
+moves a tape over files and records, rewinds it or takes it out, and
+says what the driver knows of it: `SCSI tape drive`, whether the tape
+is write protected or past the warning near its end, and the last
+sense data the drive sent. `tcopy` copies one tape to another, file for
+file and record for record, or with one tape says how its records go.
+`ansitape` writes and reads tapes with ANSI's labels, as VMS has them,
+and `vmsprep` lists files for it to write; their records are of their
+own lengths, which a drive of fixed blocks, as QIC is, cannot read.
+`vmsbackup` takes files out of a tape of VMS's `BACKUP`.
+
+These had bugs, on the PDP-11 too:
+
+- `tcopy` wrote each record it read to a descriptor it never opened
+  when it was given one tape, and it read 32K at a time, which `read`
+  returns as -32768 in a 16-bit `int`: a tape of fixed blocks, read in
+  whole reads, ended at the first. It writes only when it copies now,
+  and reads 32K less a block.
+- `ansitape` wrote the second label after each file with the block
+  size left out of the call, and whatever was on the stack in its
+  place.
+- `ansitape c` faulted: its volume label's format asked for a field of
+  47510 spaces, in a buffer of 81, where 4.3BSD's has the owner's
+  `D%C`. It has 4.3BSD's again.
+- `ansitape`'s file labels put the year as `tm_year` in two digits,
+  which have been three since 2000, and overran the label. The year is
+  in two now, after the mark ANSI gives the century: `0` for 20xx,
+  and a space for 19xx.
+
+`tests/tape` has the system read a tape the harness wrote, write tapes
+with `tar`, `dump` and `ansitape` on a QIC drive and a DAT drive of
+86Box's, and read them back and move over them with `mt`
+([building and testing](development.md#tests)).
 
 ## The large model
 
@@ -2106,8 +2155,7 @@ had it) are.
 Its notice asks that the documentation say that copying and
 distribution are by permission of the University of California and of
 Gregory Glenn Minshall ([COPYRIGHT](../COPYRIGHT)). `ansitape` and
-`vmsbackup` are not made: they wait on a tape driver
-([what is not ported](unported.md)).
+`vmsbackup` came with the tape driver ([tapes](#tapes)).
 
 What the 16-bit `int` broke ([what the PDP-11 let programs
 assume](#what-the-pdp-11-let-programs-assume)): `dumbplot` scaled by

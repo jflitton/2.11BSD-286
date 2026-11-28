@@ -11,7 +11,7 @@ char copyright[] =
 "@(#) Copyright (c) 1980 Regents of the University of California.\n\
  All rights reserved.\n";
 
-static char sccsid[] = "@(#)mt.c	2.3 (2.11BSD) 2026/9/13";
+static char sccsid[] = "@(#)mt.c	2.4 (2.11BSD) 2026/11/27";
 #endif
 
 /*
@@ -103,10 +103,14 @@ main(argc, argv)
 	}
 }
 
+#ifdef i286
+#include <i286at/streg.h>
+#else
 #include <pdpuba/htreg.h>
 #include <pdpuba/tmreg.h>
 #include <pdpuba/tsreg.h>
 #include <pdpuba/tmscpreg.h>
+#endif
 
 struct tape_desc {
 	short	t_type;		/* type of magtape device */
@@ -114,10 +118,14 @@ struct tape_desc {
 	char	*t_dsbits;	/* "drive status" register */
 	char	*t_erbits;	/* "error" register */
 } tapes[] = {
+#ifdef i286
+	{ MT_ISST,	"SCSI",		STDS_BITS,	STER_BITS },
+#else
 	{ MT_ISTS,	"ts11",		0,		TSXS0_BITS },
 	{ MT_ISHT,	"tm03",		HTFS_BITS,	HTER_BITS },
 	{ MT_ISTM,	"tm11",		0,		TMER_BITS },
 	{ MT_ISTMSCP,	"tmscp",	0,		0 },
+#endif
 	{ 0 }
 };
 

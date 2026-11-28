@@ -14,7 +14,7 @@
 # IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
 # WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 #
-#	@(#)Makefile	2.3 (2.11BSD) 2026/11/26
+#	@(#)Makefile	2.4 (2.11BSD) 2026/11/27
 #
 # The 286's: the pages of the programs it has.  as(1) is its own, which
 # bin/as's Makefile installs.
@@ -31,7 +31,7 @@ SRCS=	adb.1 addbib.1 apply.1 apropos.1 at.1 atq.1 atrm.1 \
 	learn.1 leave.1 lex.1 ln.1 logger.1 login.1 \
 	look.1 lookbib.1 lorder.1 lpq.1 lpr.1 lprm.1 lptest.1 ls.1 \
 	m4.1 mail.1 make.1 man.1 mesg.1 mkdep.1 \
-	more.1 mset.1 msgs.1 mv.1 netstat.1 newaliases.1 nice.1 nm.1
+	more.1 mset.1 msgs.1 mt.1 mv.1 netstat.1 newaliases.1 nice.1 nm.1
 SRCS1=	nroff.1 nslookup.1 od.1 pagesize.1 \
 	pi.1 pix.1 plot.1 pr.1 printenv.1 ps.1 ptx.1 pwd.1 px.1 \
 	pxp.1 \
@@ -41,7 +41,7 @@ SRCS1=	nroff.1 nslookup.1 od.1 pagesize.1 \
 	sort.1 sortbib.1 spell.1 spline.1 split.1 strings.1 \
 	strip.1 struct.1 style.1 su.1 sum.1 \
 	tabs.1 tail.1 talk.1 \
-	tar.1 tbl.1 tc.1 tee.1 telnet.1 time.1 \
+	tar.1 tbl.1 tc.1 tcopy.1 tee.1 telnet.1 time.1 \
 	tip.1 tk.1 tn3270.1 tr.1 troff.1 true.1 \
 	tsort.1 tty.1 ul.1 unifdef.1 uniq.1 units.1 uptime.1 users.1 \
 	uucp.1 uuencode.1 uulog.1 uuname.1 uuq.1 uusend.1 uux.1 \
@@ -60,7 +60,7 @@ OBJS1=	adb.0 addbib.0 apply.0 apropos.0 at.0 atq.0 atrm.0 \
 	learn.0 leave.0 lex.0 ln.0 logger.0 login.0 \
 	look.0 lookbib.0 lorder.0 lpq.0 lpr.0 lprm.0 lptest.0 ls.0 \
 	m4.0 mail.0 make.0 man.0 mesg.0 mkdep.0 \
-	more.0 mset.0 msgs.0 mv.0 netstat.0 newaliases.0 nice.0 nm.0
+	more.0 mset.0 msgs.0 mt.0 mv.0 netstat.0 newaliases.0 nice.0 nm.0
 OBJS2=	nroff.0 nslookup.0 od.0 pagesize.0 \
 	pi.0 pix.0 plot.0 pr.0 printenv.0 ps.0 ptx.0 pwd.0 px.0 \
 	pxp.0 \
@@ -70,7 +70,7 @@ OBJS2=	nroff.0 nslookup.0 od.0 pagesize.0 \
 	sort.0 sortbib.0 spell.0 spline.0 split.0 strings.0 \
 	strip.0 struct.0 style.0 su.0 sum.0 \
 	tabs.0 tail.0 talk.0 \
-	tar.0 tbl.0 tc.0 tee.0 telnet.0 time.0 \
+	tar.0 tbl.0 tc.0 tcopy.0 tee.0 telnet.0 time.0 \
 	tip.0 tk.0 tn3270.0 tr.0 troff.0 true.0 \
 	tsort.0 tty.0 ul.0 unifdef.0 uniq.0 units.0 uptime.0 users.0 \
 	uucp.0 uuencode.0 uulog.0 uuname.0 uuq.0 uusend.0 uux.0 \

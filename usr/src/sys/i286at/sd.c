@@ -10,6 +10,7 @@
  */
 #include "sd.h"
 #if NSD > 0
+#include "st.h"
 #include "param.h"
 #include "systm.h"
 #include "user.h"
@@ -70,7 +71,9 @@ static int sdn;
 static int sdalone;		/* this many more go one to a command: a
 				   command of several failed, and which
 				   of them it was is to be found */
-static u_char sdbuf[36];	/* what a target says of itself */
+static struct ccb sdccb;	/* the disks' commands go out in turn */
+static struct ahaseg sdsegs[SDNSEG];	/* where a command's pieces are */
+static u_char sdbuf[8];		/* what a disk says of its size */
 
 int	sdstrategy();
 static int sdintr();
@@ -83,21 +86,6 @@ get4(p)
 }
 
 /*
- * The sense key a target sent with the CCB, or -1 if it sent none.
- */
-static int
-sdsense(st)
-	int st;
-{
-	register struct ccb *cp = &ahaccb;
-
-	if (st == MBI_ERROR && cp->cc_hastat == HS_OK &&
-	    cp->cc_tarstat == SS_CHECK)
-		return (cp->cc_cdb[cp->cc_cdblen + 2] & 0x0F);
-	return (-1);
-}
-
-/*
  * What is at a target?  If a disk that can be used, it is the next
  * drive.  Called at splbio.
  */
@@ -105,59 +93,37 @@ static
 sdprobe(target)
 	int target;
 {
-	register struct ccb *cp = &ahaccb;
+	register struct ccb *cp = &sdccb;
 	register struct sd *sp;
 	register int i;
-	int st, n, type;
+	int st, type;
 	long size, secsize, cyls;
-	char name[30];
+	char name[32];
 
-	bzero(sdbuf, sizeof (sdbuf));
-	ahafill(target, CCB_DATAIN, 6, fartophys(sdbuf), 36);
-	cp->cc_cdb[0] = SC_INQUIRY;
-	cp->cc_cdb[4] = 36;
-	st = ahapoll();
-	if (st == MBI_ERROR && cp->cc_hastat == HS_SELTIMEOUT)
-		return;			/* nothing there */
-	if (st != MBI_OK && !(st == MBI_ERROR && cp->cc_hastat == HS_DATARUN &&
-	    cp->cc_tarstat == SS_GOOD)) {
-		printf("sd: id %d: inquiry failed (%d, %x, %x)\n",
-		    target, st, cp->cc_hastat, cp->cc_tarstat);
+	if ((type = ahainquiry(cp, target, name, "sd")) < 0)
 		return;
-	}
-	if (sdbuf[0] & 0xE0)
-		return;			/* no unit 0 */
-	type = sdbuf[0] & 0x1F;
-	/* Maker, product and revision, with the padding squeezed out. */
-	for (n = 0, i = 8; i < 36; i++) {
-		if (sdbuf[i] <= ' ' || sdbuf[i] > '~' || i == 16 || i == 32) {
-			if (n && name[n - 1] != ' ')
-				name[n++] = ' ';
-			if (sdbuf[i] <= ' ' || sdbuf[i] > '~')
-				continue;
-		}
-		name[n++] = sdbuf[i];
-	}
-	while (n && name[n - 1] == ' ')
-		n--;
-	name[n] = 0;
 	if (type != 0) {
+#if NST > 0
+		if (type == 1)
+			return;		/* a tape: st.c's */
+#endif
 		printf("sd: id %d: %s, type %d, not a disk\n", target, name,
 		    type);
 		return;
 	}
 	/* A target just switched on or reset refuses the first command. */
 	for (i = 0; i < SDTRIES; i++) {
-		bzero(sdbuf, 8);
-		ahafill(target, CCB_DATAIN, 10, fartophys(sdbuf), 8);
+		bzero(sdbuf, sizeof (sdbuf));
+		ahafill(cp, target, CCB_DATAIN, 10, fartophys(sdbuf),
+		    sizeof (sdbuf));
 		cp->cc_cdb[0] = SC_RDCAP;
-		if ((st = ahapoll()) == MBI_OK)
+		if ((st = ahapoll(cp)) == MBI_OK)
 			break;
 	}
 	if (st != MBI_OK) {
 		printf("sd: id %d: %s: read capacity failed (%d, %x, %x, key %d)\n",
 		    target, name, st, cp->cc_hastat, cp->cc_tarstat,
-		    sdsense(st));
+		    ahasense(cp, st));
 		return;
 	}
 	size = get4(sdbuf) + 1;
@@ -270,7 +236,7 @@ static
 sdstart()
 {
 	register struct buf *bp, *np;
-	register struct ccb *cp = &ahaccb;
+	register struct ccb *cp = &sdccb;
 	struct sd *sp;
 	daddr_t sect;
 	int dir, i;
@@ -315,11 +281,11 @@ sdstart()
 	    sp->sd_dk.dk_parts[dkpart(bp->b_dev)].p_offset;
 	dir = bp->b_flags & B_READ ? CCB_DATAIN : CCB_DATAOUT;
 	if (sdn == 1)
-		ahafill(sp->sd_target, dir, 10, bfpaddr(bp), bp->b_bcount);
+		ahafill(cp, sp->sd_target, dir, 10, bfpaddr(bp), bp->b_bcount);
 	else {
 		for (np = bp, i = 0; np != NULL; i++, np = np->av_forw)
-			ahaseg(i, bfpaddr(np), np->b_bcount);
-		ahafillsegs(sp->sd_target, dir, 10, sdn);
+			ahaseg(sdsegs, i, bfpaddr(np), np->b_bcount);
+		ahafillsegs(cp, sdsegs, sp->sd_target, dir, 10, sdn);
 	}
 	cp->cc_cdb[0] = bp->b_flags & B_READ ? SC_READ10 : SC_WRITE10;
 	cp->cc_cdb[2] = sect >> 24;
@@ -328,7 +294,7 @@ sdstart()
 	cp->cc_cdb[5] = sect;
 	cp->cc_cdb[7] = n >> 8;
 	cp->cc_cdb[8] = n;
-	ahago(sdintr);
+	ahago(cp, sdintr, 0);
 }
 
 /*
@@ -339,7 +305,7 @@ sdintr(how)
 	int how;
 {
 	register struct buf *bp = sdcur, *np;
-	register struct ccb *cp = &ahaccb;
+	register struct ccb *cp = &sdccb;
 	register int key;
 	static int failed;
 
@@ -349,7 +315,7 @@ sdintr(how)
 		failed++;
 		how = MBI_ABORTED;
 	}
-	key = sdsense(how);
+	key = ahasense(cp, how);
 	if (how != MBI_OK && key != SK_RECOVERED) {
 		/*
 		 * Tried again, unless it could not go better: the adapter
@@ -428,7 +394,7 @@ sddump(dev, blkno, addr, count)
 	int count;
 {
 	register struct sd *sp = &sd[dkunit(dev)];
-	register struct ccb *cp = &ahaccb;
+	register struct ccb *cp = &sdccb;
 	register int i;
 	struct partition *pp;
 	daddr_t sect;
@@ -446,7 +412,7 @@ sddump(dev, blkno, addr, count)
 	}
 	sect = blkno + sp->sd_start + pp->p_offset;
 	for (i = 0; i < SDTRIES; i++) {
-		ahafill(sp->sd_target, CCB_DATAOUT, 10, addr,
+		ahafill(cp, sp->sd_target, CCB_DATAOUT, 10, addr,
 		    (u_int)count << 9);
 		cp->cc_cdb[0] = SC_WRITE10;
 		cp->cc_cdb[2] = sect >> 24;
@@ -455,7 +421,7 @@ sddump(dev, blkno, addr, count)
 		cp->cc_cdb[5] = sect;
 		cp->cc_cdb[7] = count >> 8;
 		cp->cc_cdb[8] = count;
-		if (ahapoll() == MBI_OK)
+		if (ahapoll(cp) == MBI_OK)
 			return (0);
 	}
 	return (EIO);

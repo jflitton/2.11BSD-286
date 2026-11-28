@@ -10,7 +10,7 @@ OPTS= -DUCB_METER -DQUOTA -DINET
 # software without specific prior written permission. This software
 # is provided ``as is'' without express or implied warranty.
 #
-#	2.12	(2.11BSD) 2026/2/28
+#	2.13	(2.11BSD) 2026/11/27
 #
 #########################################################
 # Networking kernel, the 286's				#
@@ -57,7 +57,7 @@ CONF=	mch_start.o mch_trap.o mch_copy.o mch_swtch.o mch_xxx.o mch_net.o \
 	i4m.o i4d.o
 
 BASE=	clock.o conf.o cons.o machdep.o mem.o rd.o trap.o \
-	aha.o com.o fl.o kbd.o lp.o pcdisk.o sd.o vt.o wd.o \
+	aha.o com.o fl.o kbd.o lp.o pcdisk.o sd.o st.o vt.o wd.o \
 	init_main.o init_sysent.o kern_acct.o kern_clock.o \
 	kern_descrip.o kern_exec.o kern_exit.o kern_fork.o kern_mman.o \
 	kern_proc.o kern_prot.o kern_prot2.o kern_resource.o kern_sig.o \

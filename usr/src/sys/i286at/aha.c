@@ -1,20 +1,24 @@
 /*
  * The Adaptec AHA-1540 and 1542 SCSI host adapters, B, C, CF and CP:
- * the adapter itself.  sd.c is the disks on it.
+ * the adapter itself.  sd.c is the disks on it, and st.c the tapes.
  *
  * One adapter, found at whichever of its six possible addresses it
  * answers at; the interrupt request and DMA channel are read from it.
  * It moves data to and from memory itself, as a master of the AT bus,
  * so it is given physical addresses and nothing is copied: that is why
- * its mailboxes and CCB, which are in the kernel's data segment, are
- * handed to it through fartophys.
+ * its mailboxes and the CCBs, which are in the kernel's data segment,
+ * are handed to it through fartophys.
  *
- * One SCSI command is out at a time, in the one CCB: a driver fills it
- * with ahafill, or with ahaseg and ahafillsegs when its data is in
- * pieces, and the command's bytes, and gives it to ahago or ahapoll.
+ * Each driver has a CCB of its own, and one SCSI command out in it at
+ * a time: it fills it with ahafill, or with ahaseg and ahafillsegs when
+ * its data is in pieces, and the command's bytes, and gives it to ahago
+ * or ahapoll.  The disks' command and the tapes' may be out together,
+ * and a target disconnects from the bus while it works, so that a tape
+ * that takes minutes to rewind does not keep the disks waiting.
  */
 #include "sd.h"
-#if NSD > 0
+#include "st.h"
+#if NSD > 0 || NST > 0
 #include "param.h"
 #include "systm.h"
 #include "kernel.h"
@@ -28,7 +32,7 @@ static int ahaports[] = { 0x330, 0x334, 0x230, 0x234, 0x130, 0x134 };
 
 /*
  * Seconds a command may be out before the adapter and the SCSI bus are
- * reset.  (patchable)
+ * reset, unless its driver gives it longer.  (patchable)
  */
 int	ahatimeout = 30;
 
@@ -44,9 +48,8 @@ int	ahatimeout = 30;
  */
 int	ahatest = 0;
 
-struct ccb ahaccb;
 static struct mbox ahamb[2 * AHA_NMBOX];	/* out, then in */
-static struct ahaseg ahasegs[AHA_NSEG];	/* the CCB's data, when in pieces */
+static u_char ahainq[36];		/* what a target says of itself */
 
 static struct {
 	int	a_base;
@@ -54,13 +57,8 @@ static struct {
 	int	a_dma;
 	int	a_id;		/* the adapter's own on the SCSI bus */
 	char	a_state;
-	char	a_busy;		/* the CCB is out */
 	char	a_mbo, a_mbi;	/* next mailbox to use, and to look in */
 	char	a_warned;
-	int	a_ticks;	/* seconds the CCB has been out */
-	int	(*a_done)();
-	long	a_ccbpa;	/* the CCB's physical address */
-	long	a_segpa;	/* and that of the list of its pieces */
 	u_char	a_board[4];
 	u_char	a_xbios[2];
 } aha;
@@ -68,7 +66,33 @@ static struct {
 #define	A_ABSENT	1
 #define	A_PRESENT	2
 
+/*
+ * The commands that are out, one for each driver's CCB at most: the
+ * CCB's physical address, which the adapter gives back when it is done,
+ * 0 for none; what to call then; and the seconds it has been out and
+ * may be.
+ */
+#define	AHA_NRUN	2		/* sd's and st's */
+static struct aharun {
+	long	r_pa;
+	int	(*r_done)();
+	int	r_ticks;
+	int	r_limit;
+} aharun[AHA_NRUN];
+
 static int ahaintr(), ahawatch(), ahacmd(), ahalate();
+
+/* Is a command out? */
+static int
+ahabusy()
+{
+	register struct aharun *rp;
+
+	for (rp = aharun; rp < &aharun[AHA_NRUN]; rp++)
+		if (rp->r_pa)
+			return (1);
+	return (0);
+}
 
 /*
  * How the adapter takes its turns on the AT bus, which is what a disk's
@@ -261,8 +285,6 @@ ahasetup(how)
 
 	bzero(ahamb, sizeof (ahamb));
 	aha.a_mbo = aha.a_mbi = 0;
-	aha.a_ccbpa = fartophys(&ahaccb);
-	aha.a_segpa = fartophys(ahasegs);
 	c[0] = AC_MBINIT;
 	c[1] = AHA_NMBOX;
 	put3(&c[2], fartophys(ahamb));
@@ -301,8 +323,9 @@ aharate(b, wr)
  * second if synchronous, 0 if not, -1 if the adapter will not say.
  * The period is counted from 100 ns by the C series, by its technical
  * reference (5-11), and a real CF's came to what its disk said it had
- * agreed; from 200 by a B, by what other drivers do.  Called at
- * splbio, with no command outstanding.
+ * agreed; from 200 by a B, by what other drivers do.  The adapter is
+ * asked only when no command is out, and otherwise this is -1.  Called
+ * at splbio.
  */
 ahasync(target)
 	int target;
@@ -310,6 +333,8 @@ ahasync(target)
 	u_char c[2], r[16];
 	register int v;
 
+	if (ahabusy())
+		return (-1);
 	c[0] = AC_RETSETUP;
 	c[1] = sizeof (r);
 	if (ahacmd(c, 2, r, sizeof (r)))
@@ -339,7 +364,7 @@ ahasysctl(which, oldp, oldlenp, newp, newlen)
 
 	v = ahatune[which];
 	s = splbio();
-	idle = aha.a_state == A_PRESENT && !aha.a_busy;
+	idle = aha.a_state == A_PRESENT && !ahabusy();
 	c[0] = AC_RETSETUP;
 	c[1] = sizeof (r);
 	if (idle && ahacmd(c, 2, r, sizeof (r)) == 0)
@@ -355,7 +380,7 @@ ahasysctl(which, oldp, oldlenp, newp, newlen)
 	s = splbio();
 	if (aha.a_state != A_PRESENT)
 		e = ENXIO;
-	else if (aha.a_busy)
+	else if (ahabusy())
 		e = EBUSY;
 	else if (ahaset(which, v))
 		e = which == 2 ? EINVAL : EIO;
@@ -433,17 +458,25 @@ ahaxlate()
 }
 
 /*
- * Start filling the CCB: a command of cdblen bytes for a target, which
- * moves len bytes at a physical address in the direction dir.  The
- * caller puts the command's bytes in ahaccb.cc_cdb.
+ * Does the adapter give back what a command did not move, when its
+ * CCB asks for that (CCB_RESID)?  The C series does.
  */
-ahafill(target, dir, cdblen, addr, len)
+aharesid()
+{
+	return (aha.a_board[0] >= 'D');
+}
+
+/*
+ * Start filling a CCB: a command of cdblen bytes for a target, which
+ * moves len bytes at a physical address in the direction dir.  The
+ * caller puts the command's bytes in cc_cdb.
+ */
+ahafill(cp, target, dir, cdblen, addr, len)
+	register struct ccb *cp;
 	int target, dir, cdblen;
 	long addr;
 	u_int len;
 {
-	register struct ccb *cp = &ahaccb;
-
 	bzero(cp, sizeof (*cp));
 	cp->cc_op = CCB_INITIATOR;
 	cp->cc_idlun = target << 5 | dir;
@@ -456,36 +489,61 @@ ahafill(target, dir, cdblen, addr, len)
 /*
  * The same for a command whose data is in n pieces, each somewhere of
  * its own in memory, which the adapter fills or empties in turn:
- * ahaseg says where each is, and then this fills the CCB.
+ * ahaseg says where each is in the driver's list of them, sg, and then
+ * this fills the CCB.
  */
-ahaseg(i, addr, len)
+ahaseg(sg, i, addr, len)
+	struct ahaseg *sg;
 	int i;
 	long addr;
 	u_int len;
 {
-	put3(ahasegs[i].sg_len, (long)len);
-	put3(ahasegs[i].sg_addr, addr);
+	put3(sg[i].sg_len, (long)len);
+	put3(sg[i].sg_addr, addr);
 }
 
-ahafillsegs(target, dir, cdblen, n)
+ahafillsegs(cp, sg, target, dir, cdblen, n)
+	struct ccb *cp;
+	struct ahaseg *sg;
 	int target, dir, cdblen, n;
 {
-	ahafill(target, dir, cdblen, aha.a_segpa,
+	ahafill(cp, target, dir, cdblen, fartophys(sg),
 	    n * sizeof (struct ahaseg));
-	ahaccb.cc_op = CCB_PIECES;
+	cp->cc_op = CCB_PIECES;
 }
 
-/* Put the CCB in a mailbox and tell the adapter. */
-static
-ahaout()
+/* The sense key a target sent with a CCB's command, or -1 if none. */
+ahasense(cp, st)
+	register struct ccb *cp;
+	int st;
 {
-	register struct mbox *mb = &ahamb[aha.a_mbo];
+	if (st == MBI_ERROR && cp->cc_hastat == HS_OK &&
+	    cp->cc_tarstat == SS_CHECK)
+		return (cp->cc_cdb[cp->cc_cdblen + 2] & 0x0F);
+	return (-1);
+}
+
+/*
+ * Put a CCB, at the physical address pa, in the next free mailbox and
+ * tell the adapter.  There are more mailboxes than commands can be out.
+ */
+static
+ahambo(pa)
+	long pa;
+{
+	register struct mbox *mb;
+	register int i;
 	static int count;
 
-	aha.a_mbo = (aha.a_mbo + 1) % AHA_NMBOX;
+	for (i = 0; i < AHA_NMBOX; i++) {
+		mb = &ahamb[aha.a_mbo];
+		aha.a_mbo = (aha.a_mbo + 1) % AHA_NMBOX;
+		if (mb->mb_status == MBO_FREE)
+			break;
+	}
 	if ((ahatest & 2) && ++count == 30)
 		return;
-	put3(mb->mb_ccb, aha.a_ccbpa);
+	put3(mb->mb_ccb, pa);
 	mb->mb_status = MBO_START;
 	if (ahawait(aha.a_base + AHA_STAT, ST_CDF, 0, ST_CDF, SPIN))
 		printf("aha: not ready\n");
@@ -516,53 +574,143 @@ ahaget(pa)
 }
 
 /*
- * Send the CCB.  When it is done, done(how) is called at splbio, how
- * being what the mailbox said, MBI_...; or AHA_LOST if the adapter
- * never answered and has been reset, with the SCSI bus; or AHA_DEAD if
- * it would not be reset either, after which nothing more can be sent.
+ * The command of the CCB at pa is done, as st says: its driver is told.
  * Called at splbio.
  */
-ahago(done)
-	int (*done)();
+static
+ahaend(pa, st)
+	long pa;
+	int st;
 {
+	register struct aharun *rp;
+	int (*done)();
+
+	for (rp = aharun; rp < &aharun[AHA_NRUN]; rp++)
+		if (rp->r_pa && rp->r_pa == pa)
+			break;
+	if (rp == &aharun[AHA_NRUN] || st == MBI_NOTFOUND) {
+		printf("aha: stray completion %d for %X\n", st, pa);
+		return;
+	}
+	done = rp->r_done;
+	rp->r_pa = 0;
+	(*done)(st);
+}
+
+/*
+ * Send a driver's CCB.  When it is done, done(how) is called at splbio,
+ * how being what the mailbox said, MBI_...; or AHA_LOST if the adapter
+ * never answered and has been reset, with the SCSI bus; or AHA_DEAD if
+ * it would not be reset either, after which nothing more can be sent.
+ * It may be out secs seconds, or ahatimeout's if secs is 0, before
+ * that.  Called at splbio.
+ */
+ahago(cp, done, secs)
+	struct ccb *cp;
+	int (*done)();
+	int secs;
+{
+	register struct aharun *rp;
+
 	if (aha.a_state != A_PRESENT) {
 		(*done)(AHA_DEAD);
 		return;
 	}
-	aha.a_done = done;
-	aha.a_ticks = 0;
-	aha.a_busy = 1;
-	ahaout();
+	for (rp = aharun; rp->r_pa; rp++)
+		if (rp == &aharun[AHA_NRUN - 1])
+			panic("ahago");
+	rp->r_pa = fartophys(cp);
+	rp->r_done = done;
+	rp->r_ticks = 0;
+	rp->r_limit = secs ? secs : ahatimeout;
+	ahambo(rp->r_pa);
 }
 
 /*
- * Send the CCB and wait here for it, with the processor: for looking
- * at what is on the bus, before there is anything else to do.  Returns
- * what the mailbox said, or AHA_LOST.  Called at splbio.
+ * Send a CCB and wait here for it, with the processor: for looking at
+ * what is on the bus, before there is anything else to do.  Another
+ * driver's command that ends meanwhile goes to it.  Returns what the
+ * mailbox said, or AHA_LOST.  Called at splbio.
  */
-ahapoll()
+ahapoll(cp)
+	struct ccb *cp;
 {
-	register int st;
-	long pa;
+	register int st, mine;
+	long pa, got;
 
-	ahaout();
-	if (ahawait(aha.a_base + AHA_INTR, IF_MBIF, IF_MBIF, 0, 20 * SPIN))
-		return (AHA_LOST);
-	st = ahaget(&pa);
-	outb(aha.a_base + AHA_CTRL, CTRL_IRST);
-	return (st == MBI_FREE ? AHA_LOST : st);
+	pa = fartophys(cp);
+	ahambo(pa);
+	for (mine = MBI_FREE; mine == MBI_FREE; ) {
+		if (ahawait(aha.a_base + AHA_INTR, IF_MBIF, IF_MBIF, 0,
+		    20 * SPIN))
+			return (AHA_LOST);
+		outb(aha.a_base + AHA_CTRL, CTRL_IRST);
+		while ((st = ahaget(&got)) != MBI_FREE)
+			if (got == pa)
+				mine = st;
+			else
+				ahaend(got, st);
+	}
+	return (mine);
+}
+
+/*
+ * What is at a target, asked with the processor (ahapoll) through a
+ * driver's CCB: the device type of its unit 0, with the maker's,
+ * product's and revision's names, the padding squeezed out, in name,
+ * which has room for 32; or -1 if nothing answers there, or no unit 0
+ * does, or the target would not say, which the driver, drv, says.
+ * Called at splbio.
+ */
+ahainquiry(cp, target, name, drv)
+	register struct ccb *cp;
+	int target;
+	register char *name;
+	char *drv;
+{
+	register int i, n;
+	int st;
+
+	bzero(ahainq, sizeof (ahainq));
+	ahafill(cp, target, CCB_DATAIN, 6, fartophys(ahainq), sizeof (ahainq));
+	cp->cc_cdb[0] = SC_INQUIRY;
+	cp->cc_cdb[4] = sizeof (ahainq);
+	st = ahapoll(cp);
+	if (st == MBI_ERROR && cp->cc_hastat == HS_SELTIMEOUT)
+		return (-1);		/* nothing there */
+	if (st != MBI_OK && !(st == MBI_ERROR && cp->cc_hastat == HS_DATARUN &&
+	    cp->cc_tarstat == SS_GOOD)) {
+		printf("%s: id %d: inquiry failed (%d, %x, %x)\n", drv,
+		    target, st, cp->cc_hastat, cp->cc_tarstat);
+		return (-1);
+	}
+	if (ahainq[0] & 0xE0)
+		return (-1);		/* no unit 0 */
+	for (n = 0, i = 8; i < sizeof (ahainq); i++) {
+		if (ahainq[i] <= ' ' || ahainq[i] > '~' || i == 16 || i == 32) {
+			if (n && name[n - 1] != ' ')
+				name[n++] = ' ';
+			if (ahainq[i] <= ' ' || ahainq[i] > '~')
+				continue;
+		}
+		name[n++] = ahainq[i];
+	}
+	while (n && name[n - 1] == ' ')
+		n--;
+	name[n] = 0;
+	return (ahainq[0] & 0x1F);
 }
 
 /*
  * Make the adapter ready for ahapoll whatever it was doing, for a crash
- * dump: it and the SCSI bus are reset, and a command that was out is
- * lost.  Returns 0 if it is ready.  Called with interrupts off.
+ * dump: it and the SCSI bus are reset, and the commands that were out
+ * are lost.  Returns 0 if it is ready.  Called with interrupts off.
  */
 ahadumpreset()
 {
 	if (aha.a_state != A_PRESENT)
 		return (-1);
-	aha.a_busy = 0;
+	bzero(aharun, sizeof (aharun));
 	return (ahasetup(CTRL_SCRST));
 }
 
@@ -573,14 +721,8 @@ ahadone()
 	register int st;
 	long pa;
 
-	while ((st = ahaget(&pa)) != MBI_FREE) {
-		if (!aha.a_busy || pa != aha.a_ccbpa || st == MBI_NOTFOUND) {
-			printf("aha: stray completion %d for %X\n", st, pa);
-			continue;
-		}
-		aha.a_busy = 0;
-		(*aha.a_done)(st);
-	}
+	while ((st = ahaget(&pa)) != MBI_FREE)
+		ahaend(pa, st);
 }
 
 static
@@ -617,6 +759,32 @@ ahaintr(arg, tf)
 }
 
 /*
+ * A command has been out longer than it may be: the adapter and the
+ * SCSI bus are reset, and each command that was out is over, lost; or,
+ * if the adapter will not come back, it is dead.  Called at splbio.
+ */
+static
+ahareset(secs)
+	int secs;
+{
+	struct aharun was[AHA_NRUN];
+	register int i, st;
+
+	printf("aha: timeout after %d s, resetting adapter and bus\n", secs);
+	bcopy(aharun, was, sizeof (was));
+	bzero(aharun, sizeof (aharun));
+	st = AHA_LOST;
+	if (ahasetup(CTRL_SCRST)) {
+		printf("aha: reset failed\n");
+		aha.a_state = A_ABSENT;
+		st = AHA_DEAD;
+	}
+	for (i = 0; i < AHA_NRUN; i++)
+		if (was[i].r_pa)
+			(*was[i].r_done)(st);
+}
+
+/*
  * Once a second: has a command finished without its interrupt reaching
  * here, or been out too long?
  */
@@ -624,32 +792,30 @@ static
 ahawatch()
 {
 	register int s = splbio();
-	register int st;
+	register struct aharun *rp;
+	int late = 0, over = 0;
 
-	if (aha.a_state == A_PRESENT && aha.a_busy) {
-		if (++aha.a_ticks >= 2 &&
-		    (inb(aha.a_base + AHA_INTR) & IF_ANY)) {
+	if (aha.a_state == A_PRESENT) {
+		for (rp = aharun; rp < &aharun[AHA_NRUN]; rp++) {
+			if (rp->r_pa == 0)
+				continue;
+			if (++rp->r_ticks >= 2)
+				late = 1;
+			if (rp->r_ticks >= rp->r_limit)
+				over = rp->r_limit;
+		}
+		if (late && (inb(aha.a_base + AHA_INTR) & IF_ANY)) {
 			if (!aha.a_warned) {
 				aha.a_warned = 1;
 				printf("aha: lost interrupt (irq %d shared?)\n",
 				    aha.a_irq);
 			}
 			ahaintr(0, (caddr_t)0);
-		} else if (aha.a_ticks >= ahatimeout) {
-			printf("aha: timeout after %d s, resetting adapter and bus\n",
-			    ahatimeout);
-			aha.a_busy = 0;
-			st = AHA_LOST;
-			if (ahasetup(CTRL_SCRST)) {
-				printf("aha: reset failed\n");
-				aha.a_state = A_ABSENT;
-				st = AHA_DEAD;
-			}
-			(*aha.a_done)(st);
-		}
+		} else if (over)
+			ahareset(over);
 	}
 	splx(s);
 	if (aha.a_state == A_PRESENT)
 		timeout(ahawatch, (caddr_t)0, hz);
 }
-#endif /* NSD */
+#endif /* NSD || NST */

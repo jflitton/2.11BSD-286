@@ -4,6 +4,7 @@
 usage: runtest.py NAME SOURCE...
        runtest.py [--hd IMAGE,CYLINDERS,HEADS,SECTORS[,BUS]]
                   [--hd2 IMAGE,CYLINDERS,HEADS,SECTORS[,ID]]
+                  [--tape IMAGE,DRIVE,ID[,ro]]...
                   [--fda IMAGE[,SIZE]] [--fdb IMAGE[,SIZE]] [--until TEXT]
                   [--resets N] [--net CARD[:PORT:IRQ]] [--term TYPE:COLSxROWS]
                   [--slip] [--lpt]
@@ -33,6 +34,14 @@ is no diskette, and the machine boots from the hard disk as it would by
 itself.  --hd2 gives a second disk, whose contents are IMAGE likewise:
 on the AT disk controller, the slave, or on the Adaptec, at SCSI id ID,
 by default the one after the first disk's.
+
+--tape puts a tape drive on the Adaptec, which --hd has the disk on, at
+SCSI id ID, with IMAGE in it: a SimH .tap file, which must be there,
+and is changed by whatever is written to the tape.  DRIVE is "viper",
+an Archive Viper 150, a QIC drive whose records are blocks of 512
+bytes, or "python", an Archive Python, a DAT drive whose records are of
+any length; "ro" after them has the tape write protected.  Each drive has a
+--tape of its own, up to four.  86Box only.
 
 --fda and --fdb put the diskette IMAGE in drive A or B, to be changed by
 whatever is written to it; the drive is 3.5 inch for an image of 1474560
@@ -577,6 +586,8 @@ def has_automation(box):
 
 HD = None               # --hd: (image, cylinders, heads, sectors, bus)
 HD2 = None              # --hd2: (image, cylinders, heads, sectors)
+TAPES = []              # --tape: (image, drive, id, write protected)
+TAPETYPES = {"viper": 1, "python": 3}   # 86Box's numbers for them
 FD = [None, None]       # --fda, --fdb: (image, 86Box's name for the drive,
                         #   the BIOS's number for it)
 FDTYPES = {1474560: ("35_2hd", 4), 1228800: ("525_2hd", 2)}
@@ -655,6 +666,16 @@ def start_86box(box, img, out, com1, args=(), env=None):
                         "dma = %d\nbios_addr = %05X\n"
                         % (int(scsi[0], 16), int(scsi[1]),
                            int(scsi[2]), int(scsi[4], 16)))
+            if TAPES:
+                f.write("\n[Other removable devices]\n")
+            for n, (image, drive, sid, ro) in enumerate(TAPES, 1):
+                f.write("tape_%02d_parameters = %d, scsi\n"
+                        "tape_%02d_scsi_location = 0:%02d\n"
+                        "tape_%02d_image_path = %s\n"
+                        % (n, TAPETYPES[drive], n, sid, n,
+                           os.path.abspath(image)))
+                if ro:
+                    f.write("tape_%02d_writeprot = 1\n" % n)
         if NET:
             card, port, irq, hostport = NET
             f.write("\n[Network]\nnet_01_card = %s\nnet_01_net_type = slirp\n\n"
@@ -1037,6 +1058,7 @@ def run_86box(img, out):
 
 def main():
     global HD, HD2, UNTIL, RESETS, NET, SLIP, LPT, TERM, MARK, PROFILE
+    global TAPES
     emu = os.environ.get("EMU", "86box")
     if emu not in ("86box", "qemu"):
         sys.exit("EMU must be 86box or qemu")
@@ -1070,6 +1092,26 @@ def main():
             sys.exit("--hd2: needs --hd on the AT disk controller or the "
                      "Adaptec, an id only with the Adaptec, and an image of "
                      "the size its geometry gives")
+        del sys.argv[1:3]
+    while len(sys.argv) > 2 and sys.argv[1] == "--tape":
+        try:
+            w = sys.argv[2].split(",")
+            if len(w) not in (3, 4) or len(w) == 4 and w[3] != "ro":
+                raise ValueError
+            TAPES.append((w[0], w[1], int(w[2]), len(w) == 4))
+        except ValueError:
+            sys.exit(__doc__)
+        used = [int(HD[4].split(":")[4])] if HD and \
+            HD[4].startswith("scsi") else []
+        if HD2 and used:
+            used.append(HD2[4])
+        used += [t[2] for t in TAPES[:-1]]
+        if not used or len(TAPES) > 4 or w[1] not in TAPETYPES or \
+                not 0 <= int(w[2]) <= 6 or int(w[2]) in used or \
+                not os.path.isfile(w[0]):
+            sys.exit("--tape: needs --hd on the Adaptec, a drive of %s, a "
+                     "free id from 0 to 6, and the image there; four at "
+                     "most" % " or ".join(sorted(TAPETYPES)))
         del sys.argv[1:3]
     for i, opt in enumerate(("--fda", "--fdb")):
         if len(sys.argv) > 2 and sys.argv[1] == opt:

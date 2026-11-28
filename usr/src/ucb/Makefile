@@ -3,7 +3,7 @@
 # All rights reserved.  The Berkeley software License Agreement
 # specifies the terms and conditions for redistribution.
 #
-#	@(#)Makefile	5.21 (2.11BSD) 2026/11/26
+#	@(#)Makefile	5.22 (2.11BSD) 2026/11/27
 #
 CFLAGS=	-O
 LDFLAGS= -i
@@ -24,7 +24,7 @@ CSHSCRIPT= which
 STD=	apply biff checknr colcrt colrm ctags expand fold \
 	from head last lastcomm leave logger \
 	printenv ruptime rwho script soelim strings \
-	tail telnet unexpand unifdef users \
+	tail tcopy telnet unexpand unifdef users \
 	whois what wc xstr yes
 
 # C programs that live in the current directory and need explicit make lines.

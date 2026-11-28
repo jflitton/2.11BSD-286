@@ -1,4 +1,4 @@
-#       @(#)Makefile    2.1   (2.11BSD)  2026/5/10
+#       @(#)Makefile    2.2   (2.11BSD)  2026/11/27
 
 MANDIR= /usr/new/man
 
@@ -7,8 +7,8 @@ CFLAGS=	-O
 #
 # Default programs that are installed
 #
-STDINST= jove la
-SUBDIR= jove la
+STDINST= ansi jove la vmsbackup
+SUBDIR= ansi jove la vmsbackup
 
 #
 # Special purpose software that requires custom installation or may not

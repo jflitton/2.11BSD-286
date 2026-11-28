@@ -9,7 +9,7 @@ char copyright[] =
 "@(#) Copyright (c) 1985 Regents of the University of California.\n\
  All rights reserved.\n";
 
-static char sccsid[] = "@(#)tcopy.c	1.5 (2.11BSD) 2026/9/21";
+static char sccsid[] = "@(#)tcopy.c	1.6 (2.11BSD) 2026/11/27";
 #endif
 
 #include <stdio.h>
@@ -21,7 +21,11 @@ static char sccsid[] = "@(#)tcopy.c	1.5 (2.11BSD) 2026/9/21";
 #include <string.h>
 #include <errno.h>
 
-#define SIZE	((unsigned)32 * 1024)
+/*
+ * The longest record read: 32K but a block, since what read returns is
+ * an int, and in blocks, which a tape of fixed blocks is read in.
+ */
+#define SIZE	((unsigned)63 * 512)
 
 char buff[SIZE];
 int filen=1;
@@ -64,8 +68,8 @@ char **argv;
 		count++;
 		n = read(inp, buff, SIZE);
 		if (n > 0) {
-		    nw = write(outp, buff, n);
 		    if (copy) {
+			    nw = write(outp, buff, n);
 			    if (nw != n) {
 				int error = errno;
 				if (nw == -1)
