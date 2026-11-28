@@ -998,7 +998,7 @@ cp -r /usr/man/cat4 /usr/man/cat7 m
 makewhatis /tmp/w/m
 grep ' ([47]) - ' /usr/man/whatis | cmp - m/whatis && wc -l < m/whatis
 --
-      25
+      27
 =file tab.t
 .TS
 center box;
@@ -1372,8 +1372,12 @@ Rotating daemonlog:
 
 Rotating debuglog:
 
+Cleaning up UUCP:
+
 mail:
 Mail queue is empty
+
+uucp:
 acct.0.Z
 acct.1.Z
 daemonlog.0
@@ -1449,7 +1453,7 @@ drivedata: 0
   a:    48000        0   2.11BSD     1024  1024         # (Cyl.    0 - 564*)
   b:     4000    48000      swap                        # (Cyl.  564*- 611*)
   c:    83028        0    unused        0     0         # (Cyl.    0 - 976*)
-  d:     1600    52000   2.11BSD     1024  1024         # (Cyl.  611*- 630*)
+  d:     2000    52000   2.11BSD     1024  1024         # (Cyl.  611*- 635*)
 == disklabel-r
 disklabel -r wd0 | sed 1d > r
 disklabel wd0 | sed 1d | cmp - r && echo same
