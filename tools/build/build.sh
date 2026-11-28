@@ -68,6 +68,13 @@
 #     install them, and with root, the root file system is made of OUT/dest
 #     (proto.py) and /usr/include (tools/ccproto.py).
 #
+# Steps 3 to 5 are done only when something they are made of has
+# changed since they last ended, each file by its size and time
+# (OUT/built-with): the sources but the kernel's, the headers, the tools
+# and the libraries they start with.  Otherwise OUT/dest is kept as they
+# left it, and step 6 done to it again: a build of what has not changed
+# takes seconds.
+#
 # The programs are kept with their symbols in OUT/syms, by the names
 # they are installed by (install.py).
 set -e
@@ -188,8 +195,99 @@ mv "$out/sources.new" "$out/sources"
 awk -v d="$out/dest" '{ print $1; print d $1 }' "$top/usr/src/etc/dirs" \
     > "$out/dirs"
 
+# libsum DIR...: a sum of the libraries and objects in DIRs of OUT/dest,
+# a library by its members, which is what a program is linked with.  An
+# object may be installed by a library's name: libI77's libI66.a.  The
+# time mkvers puts in a Fortran library's Version is not counted, which
+# would have every program made again each time.
+libsum() {
+    python3 -I - "$top" "$out/dest" "$@" <<'END'
+import hashlib, os, re, sys
+sys.path.insert(0, os.path.join(sys.argv[1], "tools"))
+import ar
+MKVERS = re.compile(rb"(@\(#\)lib[FIU]77\.a\t)[A-Z][a-z]{2} [ 0-9][0-9] "
+                    rb"[0-9]{2}:[0-9]{2}:[0-9]{2} [0-9]{4}")
+h = hashlib.sha256()
+for d in sys.argv[3:]:
+    for dp, dn, fn in os.walk(os.path.join(sys.argv[2], d)):
+        dn.sort()
+        for n in sorted(fn):
+            p = os.path.join(dp, n)
+            if not n.endswith((".a", ".o")):
+                continue
+            data = open(p, "rb").read()
+            if n.endswith(".a") and data[:8] == b"!<arch>\n":
+                for name, data in ar.read(p):
+                    if name != "__.SYMDEF":
+                        h.update(name.encode() + b"\0" +
+                                 MKVERS.sub(rb"\1", data))
+            else:
+                h.update(data)
+print(h.hexdigest())
+END
+}
+
+# inputs: what steps 3 to 5 are made of, each file by its name, size
+# and time: usr/src, but for the kernel's sources, which no program is
+# made of, apart from the table of system calls that libc's stubs are;
+# usr/include; tools; obj/host; the C libraries of obj/nlib and obj/lib;
+# the files tape.py copies; and TOOLS, ROOTDISK and STRIP.
+inputs() {
+    python3 -I - "$top" "$TOOLS $ROOTDISK $STRIP" <<'END'
+import hashlib, os, sys
+top, env = sys.argv[1:3]
+h = hashlib.sha256(env.encode() + b"\n")
+def add(p):
+    st = os.stat(p)
+    h.update(b"%s %d %d\n" % (os.path.relpath(p, top).encode(), st.st_size,
+                              st.st_mtime_ns))
+def walk(d, keep=lambda p: True):
+    for dp, dn, fn in os.walk(os.path.join(top, d)):
+        dn[:] = sorted(n for n in dn if n != "__pycache__")
+        for n in sorted(fn):
+            p = os.path.join(dp, n)
+            if keep(p) and os.path.isfile(p):
+                add(p)
+sys_ = os.path.join(top, "usr/src/sys") + os.sep
+sysent = sys_ + "sys/init_sysent.c"
+walk("usr/src", lambda p: not p.startswith(sys_) or p == sysent or
+     not p.endswith((".c", ".s")))
+for d in ("usr/include", "tools", "obj/host"):
+    walk(d)
+for lib in ("obj/nlib", "obj/lib"):
+    for m in "sml":
+        d = os.path.join(top, lib, m)
+        if os.path.isdir(d):
+            for n in sorted(os.listdir(d)):
+                if os.path.isfile(os.path.join(d, n)):
+                    add(os.path.join(d, n))
+for line in open(os.path.join(top, "tools/build/tape.proto")):
+    w = line.split()
+    if len(w) >= 4 and w[0] == "f":
+        add(os.path.join(top, w[3]))
+print(h.hexdigest())
+END
+}
+
+# Steps 3 to 5 are done again only when what they are made of is not
+# what it was when they last ended (OUT/built-with).  Otherwise OUT/dest
+# is as they left it, with what step 6 put there taken out, and so is
+# OUT/meta (OUT/meta.5).
+given=$(inputs)
+if [ -d "$out/dest" ] && [ -s "$out/meta.5" ] &&
+    [ "$given" = "$(cat "$out/built-with" 2>/dev/null)" ]; then
+    remake=
+    rm -f "$out/dest/unix" "$out/dest/boot" "$out/dest/mdec/wduboot" \
+        "$out/dest/mdec/sduboot" "$out/dest/mdec/fluboot"
+    cp "$out/meta.5" "$out/meta"
+    echo "build: ${out#$top/}/dest as it was: nothing it is made of has changed"
+else
+    remake=1
+    rm -f "$out/built-with" "$out/meta.5"
+fi
+
 # 1, with the cross compiler: its libraries.
-if [ "$TOOLS" = cross ]; then
+if [ "$TOOLS" = cross ] && [ -n "$remake" ]; then
     mkdir -p "$xout/log"
     step xlib sh -c "sh '$here/commands.sh' '$top' '$xout' xlib '$xout/dest' &&
         python3 -I '$here/stage.py' '$top' '$xout'"
@@ -227,92 +325,65 @@ if [ "$TOOLS" = cross ]; then
     failed "$xout/log/lib"
 fi
 
-# 3.
-rm -rf "$out/dest" "$out/syms"
-rm -f "$out/meta" "$out/devices"
-mkdir -p "$out/dest"
-: > "$out/meta"
-DISTRIBUTION=1 && export DISTRIBUTION
-step distribution mk etc "distribution DESTDIR=$out/dest"
-unset DISTRIBUTION
-step tape python3 -I "$here/tape.py" "$top" "$out"
+if [ -n "$remake" ]; then
+    # 3.
+    rm -rf "$out/dest" "$out/syms"
+    rm -f "$out/meta" "$out/devices"
+    mkdir -p "$out/dest"
+    : > "$out/meta"
+    DISTRIBUTION=1 && export DISTRIBUTION
+    step distribution mk etc "distribution DESTDIR=$out/dest"
+    unset DISTRIBUTION
+    step tape python3 -I "$here/tape.py" "$top" "$out"
 
-# 4.
-for m in s m l; do
-    d=$out/dest/lib/$m
-    [ $m = s ] && d=$out/dest/lib
-    mkdir -p "$d"
-    cp "$top/obj/nlib/$m/crt0.o" "$top/obj/nlib/$m/libc.a" "$d"
-done
-# libsum DIR...: a sum of the libraries and objects in DIRs of OUT/dest,
-# a library by its members, which is what a program is linked with.  An
-# object may be installed by a library's name: libI77's libI66.a.  The
-# time mkvers puts in a Fortran library's Version is not counted, which
-# would have every program made again each time.
-libsum() {
-    python3 -I - "$top" "$out/dest" "$@" <<'END'
-import hashlib, os, re, sys
-sys.path.insert(0, os.path.join(sys.argv[1], "tools"))
-import ar
-MKVERS = re.compile(rb"(@\(#\)lib[FIU]77\.a\t)[A-Z][a-z]{2} [ 0-9][0-9] "
-                    rb"[0-9]{2}:[0-9]{2}:[0-9]{2} [0-9]{4}")
-h = hashlib.sha256()
-for d in sys.argv[3:]:
-    for dp, dn, fn in os.walk(os.path.join(sys.argv[2], d)):
-        dn.sort()
-        for n in sorted(fn):
-            p = os.path.join(dp, n)
-            if not n.endswith((".a", ".o")):
-                continue
-            data = open(p, "rb").read()
-            if n.endswith(".a") and data[:8] == b"!<arch>\n":
-                for name, data in ar.read(p):
-                    if name != "__.SYMDEF":
-                        h.update(name.encode() + b"\0" +
-                                 MKVERS.sub(rb"\1", data))
-            else:
-                h.update(data)
-print(h.hexdigest())
-END
-}
-mk lib/libc "" install > "$log/lib" 2>&1
-# The compiler is linked with the C library, and with nothing else that
-# is made here: when that is not what it was, so is the compiler.
-libc=$(libsum lib)
-if [ -s "$out/libc" ] && [ "$libc" != "$(cat "$out/libc")" ]; then
-    for d in lib/ccom lib/cpp lib/c2; do
-        mk "$d" clean
-    done >> "$log/clean" 2>&1 || true
-fi
-echo "$libc" > "$out/libc"
-{
-    mk lib "ccom cpp c2"
-    mk lib/ccom install
-    mk lib/cpp install
-    mk lib/c2 install
-    mk usr.lib "" install
-} >> "$log/lib" 2>&1
-# What upstream has and does not make (5.): sendmail.MX, a sendmail
-# that finds where to send mail by MX records (tests/mx).
-EXTRA=usr.sbin/sendmail.MX
-libs=$(libsum lib usr/lib)
-if [ -s "$out/libraries" ] && [ "$libs" != "$(cat "$out/libraries")" ]; then
-    for d in $(sed -n 's/^SRCDIR=//p' "$top/usr/src/Makefile") $EXTRA; do
-        mk "$d" clean
-    done > "$log/clean" 2>&1 || true
-fi
-echo "$libs" > "$out/libraries"
+    # 4.
+    for m in s m l; do
+        d=$out/dest/lib/$m
+        [ $m = s ] && d=$out/dest/lib
+        mkdir -p "$d"
+        cp "$top/obj/nlib/$m/crt0.o" "$top/obj/nlib/$m/libc.a" "$d"
+    done
+    mk lib/libc "" install > "$log/lib" 2>&1
+    # The compiler is linked with the C library, and with nothing else that
+    # is made here: when that is not what it was, so is the compiler.
+    libc=$(libsum lib)
+    if [ -s "$out/libc" ] && [ "$libc" != "$(cat "$out/libc")" ]; then
+        for d in lib/ccom lib/cpp lib/c2; do
+            mk "$d" clean
+        done >> "$log/clean" 2>&1 || true
+    fi
+    echo "$libc" > "$out/libc"
+    {
+        mk lib "ccom cpp c2"
+        mk lib/ccom install
+        mk lib/cpp install
+        mk lib/c2 install
+        mk usr.lib "" install
+    } >> "$log/lib" 2>&1
+    # What upstream has and does not make (5.): sendmail.MX, a sendmail
+    # that finds where to send mail by MX records (tests/mx).
+    EXTRA=usr.sbin/sendmail.MX
+    libs=$(libsum lib usr/lib)
+    if [ -s "$out/libraries" ] && [ "$libs" != "$(cat "$out/libraries")" ]; then
+        for d in $(sed -n 's/^SRCDIR=//p' "$top/usr/src/Makefile") $EXTRA; do
+            mk "$d" clean
+        done > "$log/clean" 2>&1 || true
+    fi
+    echo "$libs" > "$out/libraries"
 
-# 5.
-srcdir=$(sed -n 's/^SRCDIR=//p' "$top/usr/src/Makefile")
-{
-    (mk man scriptinstall)
-    (mk usr.sbin/makewhatis install)
-    mk . "$srcdir"
-    mk . installsrc
-    for d in $EXTRA; do mk "$d" ""; done
-} > "$log/build" 2>&1
-failed "$log/lib" "$log/build"
+    # 5.
+    srcdir=$(sed -n 's/^SRCDIR=//p' "$top/usr/src/Makefile")
+    {
+        (mk man scriptinstall)
+        (mk usr.sbin/makewhatis install)
+        mk . "$srcdir"
+        mk . installsrc
+        for d in $EXTRA; do mk "$d" ""; done
+    } > "$log/build" 2>&1
+    failed "$log/lib" "$log/build"
+    cp "$out/meta" "$out/meta.5"
+    echo "$given" > "$out/built-with"
+fi
 
 # 6.
 for f in "$kernel" "$stand/boot" "$stand/hdboot.bin" "$stand/flboot.bin"; do

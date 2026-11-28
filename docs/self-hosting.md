@@ -440,8 +440,10 @@ not for a change. A change is checked two ways, and
   `build.sh`), for `tests/mx` to install; a change to it calls for
   that test and nothing on the machine. `sh tests/make/run.sh` makes
   the root and compares it with `tests/make/list`, each file,
-  directory, device and link with its mode, owner and group: 2681 names, in eight minutes the first
-  time and two after a change. `HOST=1 sh tests/self/run.sh` makes `/boot`
+  directory, device and link with its mode, owner and group: 3273
+  names, in eight minutes the first time, three after a change, and
+  seconds when nothing it is made of has changed (`build.sh` keeps the
+  root it made). `HOST=1 sh tests/self/run.sh` makes `/boot`
   and the kernel with their Makefiles the same way and
   compares what they make, each object (`tests/self/host.sh`). That
   says the Makefiles name the right files, flags and order, and install
@@ -474,8 +476,11 @@ not for a change. A change is checked two ways, and
   take a root as `ROOTFS`, and passed on one the system installed them
   in, but for `last`, which found there the logins of the machine that
   made them.
-- One machine is then booted to make what the changed files are part
-  of and nothing else (`tests/self/select.py`): with `make` in the
+- Machines are then booted, three at once at most, to make what the
+  changed files are part of and nothing else (`tests/self/select.py`):
+  the compiler and the kernel on one, and the directories dealt out to
+  the others by how many files each has. Each boots the root that
+  `tests/make` made, and makes with `make` in the
   directory whose Makefile makes a file, and in those of the programs
   whose sources it is among, and the kernel or the boot programs. A
   change to the tools that do the making, or to a header of

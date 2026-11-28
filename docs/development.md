@@ -312,9 +312,9 @@ tests/make/run.sh       # those Makefiles run here, with no machine:
                         # directory and device tests/make/list has,
                         # with its mode, owner and group, and no more
 tests/self/changed.sh   # as much of that as a change calls for: the
-                        # Makefiles run here with no machine, then one
-                        # machine for what the changed files are part
-                        # of
+                        # Makefiles run here with no machine, then up
+                        # to three machines at once for what the
+                        # changed files are part of
 tests/self/split.sh     # all of it, a directory at a time, shared
                         # between two machines or three at once
 tests/floppy/run.sh     # the system formatting diskettes and making

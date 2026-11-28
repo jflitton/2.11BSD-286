@@ -152,9 +152,16 @@ $(O)/vers.o: $(O)/vers.c
 endif
 
 # newvers.sh is told the day: it reads it from what date prints, which
-# here is not always what the system's prints.
+# here is not always what the system's prints.  It writes vers.c in a
+# directory of its own, which takes the place of the one there only if
+# it differs: the kernel is linked again only when something has
+# changed, and makes of it at once do not write the same file.
 $(O)/vers.c: FRC | $(O)/config/made
-	@cd $(O) && DATE=$${DATE:-$$(date +%Y-%m-%d)} sh $(SYS)/conf/newvers.sh
+	@cd $(O) && d=vers.$$$$ && mkdir $$d && \
+	    (cd $$d && DATE=$${DATE:-$$(date +%Y-%m-%d)} \
+	    sh $(SYS)/conf/newvers.sh) && \
+	    { cmp -s $$d/vers.c vers.c || mv $$d/vers.c vers.c; } && \
+	    rm -rf $$d
 
 comma:=	,
 empty:=
